@@ -50,6 +50,10 @@ fmt:
 test:
 	go test ./... -race -coverprofile=coverage.out -covermode=atomic
 
+.PHONY: pgtest
+pgtest:
+	PG_INTEGRATION=1 go test ./internal/adapter/postgres -run Test.*_PG -v
+
 LINT_IMAGE_TAG ?= v1.64.8
 
 .PHONY: lint

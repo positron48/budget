@@ -191,6 +191,9 @@ make dproto
 ```bash
 make check
 # включает: go mod tidy, форматирование (gofumpt/gofmt), vet, golangci-lint (в docker), тесты
+
+# интеграционные тесты репозиториев PostgreSQL (testcontainers)
+make pgtest
 ```
 
 ### Быстрые команды (Makefile)
