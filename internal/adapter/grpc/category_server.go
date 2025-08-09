@@ -50,17 +50,33 @@ func (s *CategoryServer) DeleteCategory(ctx context.Context, req *budgetv1.Delet
 func (s *CategoryServer) GetCategory(ctx context.Context, req *budgetv1.GetCategoryRequest) (*budgetv1.GetCategoryResponse, error) {
     c, err := s.svc.Get(ctx, req.GetId())
     if err != nil { return nil, mapError(err) }
-	return &budgetv1.GetCategoryResponse{Category: toProtoCategory(c)}, nil
+    if l := req.GetLocale(); l != "" {
+        for i := range c.Translations {
+            if c.Translations[i].Locale == l {
+                if i != 0 { c.Translations[0], c.Translations[i] = c.Translations[i], c.Translations[0] }
+                break
+            }
+        }
+    }
+    return &budgetv1.GetCategoryResponse{Category: toProtoCategory(c)}, nil
 }
 
 func (s *CategoryServer) ListCategories(ctx context.Context, req *budgetv1.ListCategoriesRequest) (*budgetv1.ListCategoriesResponse, error) {
     cs, err := s.svc.List(ctx, ctxTenantID(ctx), toKind(req.GetKind()), req.GetIncludeInactive())
     if err != nil { return nil, mapError(err) }
-	out := make([]*budgetv1.Category, 0, len(cs))
-	for _, c := range cs {
-		out = append(out, toProtoCategory(c))
-	}
-	return &budgetv1.ListCategoriesResponse{Categories: out}, nil
+    if l := req.GetLocale(); l != "" {
+        for i := range cs {
+            for j := range cs[i].Translations {
+                if cs[i].Translations[j].Locale == l {
+                    if j != 0 { cs[i].Translations[0], cs[i].Translations[j] = cs[i].Translations[j], cs[i].Translations[0] }
+                    break
+                }
+            }
+        }
+    }
+    out := make([]*budgetv1.Category, 0, len(cs))
+    for _, c := range cs { out = append(out, toProtoCategory(c)) }
+    return &budgetv1.ListCategoriesResponse{Categories: out}, nil
 }
 
 func toProtoCategory(c domain.Category) *budgetv1.Category {

@@ -22,9 +22,9 @@ func NewAuthUnaryInterceptor(signKey string) grpc.UnaryServerInterceptor {
         }
 		if md, ok := metadata.FromIncomingContext(ctx); ok {
             var hasAuth bool
-			if vals := md.Get("x-tenant-id"); len(vals) > 0 && vals[0] != "" {
-				ctx = ctxutil.WithTenantID(ctx, vals[0])
-			}
+            if vals := md.Get("x-tenant-id"); len(vals) > 0 && vals[0] != "" {
+                ctx = ctxutil.WithTenantID(ctx, vals[0])
+            }
 			if vals := md.Get("authorization"); len(vals) > 0 {
 				token := vals[0]
 				if strings.HasPrefix(strings.ToLower(token), "bearer ") {
@@ -36,15 +36,17 @@ func NewAuthUnaryInterceptor(signKey string) grpc.UnaryServerInterceptor {
 						return keyBytes, nil
 					})
 					if err == nil && parsed != nil && parsed.Valid {
-						if claims, ok := parsed.Claims.(jwt.MapClaims); ok {
-							if sub, ok := claims["sub"].(string); ok && sub != "" {
-								ctx = ctxutil.WithUserID(ctx, sub)
+                        if claims, ok := parsed.Claims.(jwt.MapClaims); ok {
+                            if sub, ok := claims["sub"].(string); ok && sub != "" {
+                                ctx = ctxutil.WithUserID(ctx, sub)
                                 hasAuth = true
-							}
-							if tid, ok := claims["tenant_id"].(string); ok && tid != "" {
-								ctx = ctxutil.WithTenantID(ctx, tid)
-							}
-						}
+                            }
+                            if tid, ok := claims["tenant_id"].(string); ok && tid != "" {
+                                if _, exists := ctxutil.TenantIDFromContext(ctx); !exists {
+                                    ctx = ctxutil.WithTenantID(ctx, tid)
+                                }
+                            }
+                        }
 					}
 				}
 			}

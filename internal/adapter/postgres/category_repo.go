@@ -147,3 +147,24 @@ func (r *CategoryRepo) GetMany(ctx context.Context, ids []string) (map[string]do
     }
     return res, trRows.Err()
 }
+
+// GetWithLocale returns a category with best-effort localized translation name/description
+func (r *CategoryRepo) GetWithLocale(ctx context.Context, id, locale string) (domain.Category, error) {
+    c, err := r.Get(ctx, id)
+    if err != nil {
+        return domain.Category{}, err
+    }
+    if locale == "" {
+        return c, nil
+    }
+    // Reorder translations to put preferred locale first (best-effort)
+    for i := range c.Translations {
+        if c.Translations[i].Locale == locale {
+            if i != 0 {
+                c.Translations[0], c.Translations[i] = c.Translations[i], c.Translations[0]
+            }
+            break
+        }
+    }
+    return c, nil
+}
