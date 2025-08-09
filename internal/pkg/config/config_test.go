@@ -6,12 +6,12 @@ import (
 )
 
 func TestLoad_Defaults(t *testing.T) {
-    os.Unsetenv("APP_ENV")
-    os.Unsetenv("GRPC_ADDR")
-    os.Unsetenv("DATABASE_URL")
-    os.Unsetenv("JWT_SIGN_KEY")
-    os.Unsetenv("JWT_ACCESS_TTL")
-    os.Unsetenv("JWT_REFRESH_TTL")
+    _ = os.Unsetenv("APP_ENV")
+    _ = os.Unsetenv("GRPC_ADDR")
+    _ = os.Unsetenv("DATABASE_URL")
+    _ = os.Unsetenv("JWT_SIGN_KEY")
+    _ = os.Unsetenv("JWT_ACCESS_TTL")
+    _ = os.Unsetenv("JWT_REFRESH_TTL")
 
     cfg, err := Load()
     if err != nil { t.Fatalf("Load() error: %v", err) }

@@ -4,7 +4,7 @@ package budget.v1;
 
 option go_package = "github.com/positron48/budget/gen/go/budget/v1;budgetv1";
 
-import "budget/v1/common.proto";
+// import "budget/v1/common.proto"; // currently unused
 
 // Minimal import API scaffold for CSV (future): streaming upload + mapping + preview + commit
 

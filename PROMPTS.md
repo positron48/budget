@@ -77,3 +77,38 @@ https://github.com/positron48/budget я сделал репозиторий на
 
 ---
 
+давай разберемся с github-ci:
+
+этап proto:
+
+Run cd proto && buf lint
+WARN	Category DEFAULT referenced in your buf.yaml is deprecated. It has been replaced by category STANDARD.
+
+	The concept of a default rule has been introduced. A default rule is a rule that will be run
+	if no rules are explicitly configured in your buf.yaml. Run buf config ls-lint-rules or
+	buf config ls-breaking-rules to see which rules are defaults. With this introduction, having a category
+	also named DEFAULT is confusing, as while it happens that all the rules in the DEFAULT category
+	are also default rules, the name has become overloaded.
+
+	As with all buf changes, this change is backwards-compatible: DEFAULT will continue to work.
+	We recommend replacing DEFAULT in your buf.yaml, but no action is immediately necessary.
+budget/v1/fx.proto:8:1:Import "budget/v1/common.proto" is unused.
+budget/v1/import.proto:7:1:Import "budget/v1/common.proto" is unused.
+Error: Process completed with exit code 100.
+
+этап go:
+
+run golangci-lint
+  Running [/home/runner/golangci-lint-1.64.8-linux-amd64/golangci-lint config path] in [/home/runner/work/budget/budget] ...
+  Running [/home/runner/golangci-lint-1.64.8-linux-amd64/golangci-lint config verify] in [/home/runner/work/budget/budget] ...
+  Running [/home/runner/golangci-lint-1.64.8-linux-amd64/golangci-lint run  --timeout=5m] in [/home/runner/work/budget/budget] ...
+  Error: internal/pkg/config/config_test.go:9:16: Error return value of `os.Unsetenv` is not checked (errcheck)
+      os.Unsetenv("APP_ENV")
+                 ^
+  Error: internal/pkg/config/config_test.go:10:16: Error return value of `os.Unsetenv` is not checked (errcheck)
+      os.Unsetenv("GRPC_ADDR")
+
+Если те же проверки доступны локально - запускай их, работать все должно идентично что локально что в github
+
+---
+
