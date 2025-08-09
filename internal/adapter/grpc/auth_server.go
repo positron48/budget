@@ -60,7 +60,17 @@ func (s *AuthServer) Login(ctx context.Context, req *budgetv1.LoginRequest) (*bu
 }
 
 func (s *AuthServer) RefreshToken(ctx context.Context, req *budgetv1.RefreshTokenRequest) (*budgetv1.RefreshTokenResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented yet")
+	tp, err := s.svc.Refresh(ctx, req.GetRefreshToken())
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, err.Error())
+	}
+	return &budgetv1.RefreshTokenResponse{Tokens: &budgetv1.TokenPair{
+		AccessToken:           tp.AccessToken,
+		RefreshToken:          tp.RefreshToken,
+		AccessTokenExpiresAt:  timestamppb.New(tp.AccessTokenExpiresAt),
+		RefreshTokenExpiresAt: timestamppb.New(tp.RefreshTokenExpiresAt),
+		TokenType:             tp.TokenType,
+	}}, nil
 }
 
 func mapRole(role string) budgetv1.TenantRole {

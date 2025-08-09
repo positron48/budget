@@ -51,3 +51,9 @@ func (r *TenantRepo) ListForUser(ctx context.Context, userID string) ([]domain.T
 	}
 	return res, rows.Err()
 }
+
+func (r *TenantRepo) GetByID(ctx context.Context, id string) (domain.Tenant, error) {
+	var t domain.Tenant
+	err := r.pool.DB.QueryRow(ctx, `SELECT id, name, slug, default_currency_code, created_at FROM tenants WHERE id=$1`, id).Scan(&t.ID, &t.Name, &t.Slug, &t.DefaultCurrencyCode, &t.CreatedAt)
+	return t, err
+}

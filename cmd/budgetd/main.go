@@ -59,7 +59,13 @@ func main() {
 		sug.Fatalw("listen failed", "error", err)
 	}
 
-	server := grpc.NewServer()
+	// Build gRPC server (interceptors can be chained here)
+	server := grpc.NewServer(
+	// Example: grpc.ChainUnaryInterceptor(
+	//     grpcadapter.NewAuthUnaryInterceptor(cfg.JWTSignKey),
+	//     grpcadapter.RecoveryUnaryInterceptor(sug),
+	// ),
+	)
 
 	// health service
 	hs := health.NewServer()
@@ -67,8 +73,6 @@ func main() {
 
 	// register services
 	if db != nil {
-		// middlewares
-		_ = grpcadapter.AuthUnaryInterceptor // keep import until integrated into server options
 
 		// Auth
 		userRepo := postgres.NewUserRepo(db)
