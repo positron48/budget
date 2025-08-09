@@ -14,16 +14,18 @@ message Transaction {
   string user_id = 3;                      // UUID
   string category_id = 4;                  // UUID
   TransactionType type = 5;                // income / expense
-  Money amount = 6;                        // minor units + currency
-  google.protobuf.Timestamp occurred_at = 7;
-  string comment = 8;
-  google.protobuf.Timestamp created_at = 9;
+  Money amount = 6;                        // original amount in transaction currency
+  Money base_amount = 7;                   // amount converted to tenant's base currency (if currency differs)
+  FxInfo fx = 8;                           // FX used to compute base_amount (optional if same currency)
+  google.protobuf.Timestamp occurred_at = 9;
+  string comment = 10;
+  google.protobuf.Timestamp created_at = 11;
 }
 
 message CreateTransactionRequest {
   TransactionType type = 1;
   string category_id = 2;
-  Money amount = 3;
+  Money amount = 3;                        // original amount
   google.protobuf.Timestamp occurred_at = 4;
   string comment = 5;
 }
@@ -49,7 +51,7 @@ message ListTransactionsRequest {
   TransactionType type = 4;        // optional filter
   int64 min_minor_units = 5;        // optional amount filters
   int64 max_minor_units = 6;
-  string currency_code = 7;         // if provided, amounts interpreted in this currency
+  string currency_code = 7;         // optional filter by transaction currency
   string search = 8;                 // comment search
 }
 message ListTransactionsResponse {

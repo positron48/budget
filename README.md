@@ -58,7 +58,7 @@ flowchart TB
 - Backend: Go 1.22+, gRPC (google.golang.org/grpc), protobuf v3, Buf (buf.build) для схем и генерации.
 - API transport: gRPC (основной), gRPC‑Web через Envoy (для браузера) или connect-go/grpcweb wrapper.
 - Frontend: Next.js 14 (React + TS), `@connectrpc/connect-web` клиент, Tailwind CSS, TanStack Query.
-- DB: PostgreSQL 15+, миграции `golang-migrate` (SQL миграции), UUID v4, NUMERIC для денег.
+- DB: PostgreSQL 15+, миграции `golang-migrate` (SQL миграции), UUID v4, NUMERIC для денег и курсов.
 - Аутентификация: email/пароль, Argon2id для хеширования, JWT (access+refresh), tenant_id в клаймах.
 - Обсервабилити: OpenTelemetry (traces/metrics), Prometheus, Zap/Zerolog для логирования.
 
@@ -88,7 +88,7 @@ flowchart TB
 - user_tenants(user_id, tenant_id, role, is_default)
 - categories(id uuid, tenant_id, kind income|expense, code, parent_id, is_active, created_at)
 - category_i18n(category_id, locale, name, description)
-- transactions(id uuid, tenant_id, user_id, category_id, type income|expense, amount numeric(18,2), currency, occurred_at timestamptz, comment, created_at)
+- transactions(id uuid, tenant_id, user_id, category_id, type income|expense, amount numeric(18,2), currency, base_amount numeric(18,2), base_currency, fx_rate numeric(18,8), fx_provider, fx_as_of date, occurred_at timestamptz, comment, created_at)
 
 Ключевые индексы: (tenant_id, occurred_at), (tenant_id, category_id), (tenant_id, type, occurred_at), полнотекстовый по комментарию (опционально).
 
@@ -103,10 +103,11 @@ flowchart TB
 - TenantService: создание и получение своих арендаторов.
 - CategoryService: CRUD категорий с i18n.
 - TransactionService: CRUD транзакций, список с фильтрами/пагинацией.
-- ReportService: месячная сводка доходов/расходов по категориям.
+- ReportService: месячная сводка доходов/расходов по категориям (в целевой валюте).
+- FxService: получение/запись курсов валют.
 - ImportService: задел под CSV‑импорт (streaming upload, mapping, preview, commit).
 
-Общие типы в `common.proto`: `Money`, `TransactionType`, `CategoryKind`, `PageRequest/PageResponse`, `DateRange`.
+Общие типы в `common.proto`: `Money`, `FxInfo`, `TransactionType`, `CategoryKind`, `PageRequest/PageResponse`, `DateRange`.
 
 Аутентификация: передавать `authorization: Bearer <access_token>` в gRPC metadata. Активный тенант — либо в клаймах токена, либо `x-tenant-id` в metadata, если пользователь имеет несколько.
 
@@ -145,6 +146,14 @@ buf generate
 
 Это создаст артефакты клиента/сервера (пути задаются в `buf.gen.yaml`). Для Go генерируется в `gen/go`, для web‑клиента — в `gen/ts`.
 
+### Мультивалютность
+
+- У каждого арендатора есть базовая валюта (`tenants.default_currency`).
+- Транзакции могут быть в любой валюте: сохраняем оригинальную сумму/валюту и одновременно `base_amount` в базовой валюте арендатора.
+- Конвертация происходит по курсу на дату транзакции (`fx_as_of = occurred_at::date`). Курс берется из хранилища курсов (таблица `fx_rates`) или через интеграцию провайдера (например, ЦБ РФ/ECB), после чего кешируется.
+- В списках показываем оригинальные суммы, в отчетах/сводках — агрегаты в целевой валюте (по умолчанию базовая валюта арендатора; можно указать иную целевую валюта в запросе отчета).
+- Для точности в API курс представляется десятичной строкой, в БД — NUMERIC(18,8), суммы — NUMERIC(18,2).
+
 ### Запуск окружения (dev, минимально)
 
 - PostgreSQL (Docker):
@@ -180,7 +189,7 @@ buf generate
 ├── proto/
 │   ├── buf.yaml
 │   ├── buf.gen.yaml
-│   └── budget/v1/*.proto
+│   └── budget/v1/*.proto       # в т.ч. fx.proto (курсы)
 ├── gen/
 │   ├── go/                     # сгенерированные Go stubs
 │   └── ts/                     # сгенерированные TS клиенты
