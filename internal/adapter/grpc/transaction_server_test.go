@@ -8,8 +8,10 @@ import (
 
     budgetv1 "github.com/positron48/budget/gen/go/budget/v1"
     "github.com/positron48/budget/internal/domain"
+    "github.com/positron48/budget/internal/pkg/ctxutil"
     txuse "github.com/positron48/budget/internal/usecase/transaction"
     "google.golang.org/protobuf/types/known/fieldmaskpb"
+    "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type txSvcStub struct{ tx domain.Transaction; err error; items []domain.Transaction; total int64 }
@@ -118,6 +120,32 @@ func TestTransactionServer_Delete_Get_List(t *testing.T) {
     if err != nil || g.GetTransaction().GetId() != "tx1" { t.Fatalf("get: %v %#v", err, g) }
     lst, err := srv.ListTransactions(context.Background(), &budgetv1.ListTransactionsRequest{Page: &budgetv1.PageRequest{Page: 1, PageSize: 2}})
     if err != nil || len(lst.GetTransactions()) != 2 || lst.GetPage().GetTotalItems() != 2 { t.Fatalf("list: %v %#v", err, lst) }
+}
+
+func TestTransactionServer_List_DefaultPaging(t *testing.T) {
+    // pageSize=0 -> default 50; totalPages should be 1 when total < default page size
+    items := []domain.Transaction{{ID: "a"}}
+    srv := NewTransactionServer(txSvcStub{items: items, total: int64(len(items))})
+    out, err := srv.ListTransactions(context.Background(), &budgetv1.ListTransactionsRequest{})
+    if err != nil { t.Fatalf("list: %v", err) }
+    if out.GetPage().GetPageSize() != 50 || out.GetPage().GetTotalPages() != 1 { t.Fatalf("unexpected paging: %#v", out.GetPage()) }
+}
+
+func TestTransactionServer_List_WithFilters(t *testing.T) {
+    srv := NewTransactionServer(txSvcStub{})
+    now := time.Now()
+    req := &budgetv1.ListTransactionsRequest{
+        DateRange: &budgetv1.DateRange{From: timestamppb.New(now.Add(-24 * time.Hour)), To: timestamppb.New(now)},
+        CategoryIds: []string{"c1", "c2"},
+        Type: budgetv1.TransactionType_TRANSACTION_TYPE_INCOME,
+        MinMinorUnits: 10,
+        MaxMinorUnits: 1000,
+        CurrencyCode: "USD",
+        Search: "book",
+        Page: &budgetv1.PageRequest{Page: 2, PageSize: 10},
+    }
+    ctx := ctxutil.WithTenantID(context.Background(), "t1")
+    if _, err := srv.ListTransactions(ctx, req); err != nil { t.Fatalf("list with filters: %v", err) }
 }
 
 // Further server tests can be added by refactoring server to accept an interface in constructor
