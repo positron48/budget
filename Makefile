@@ -39,16 +39,23 @@ tidy:
 
 .PHONY: fmt
 fmt:
-	gofumpt -w .
+	@if command -v gofumpt >/dev/null 2>&1; then \
+	  gofumpt -w . ; \
+	else \
+	  echo "gofumpt not found, skipping" ; \
+	fi
 	gofmt -s -w .
 
 .PHONY: test
 test:
 	go test ./... -race -coverprofile=coverage.out -covermode=atomic
 
+LINT_IMAGE_TAG ?= v1.64.8
+
 .PHONY: lint
 lint:
-	golangci-lint run
+	@echo "Running golangci-lint in docker ($(LINT_IMAGE_TAG))"
+	docker run --rm -e GOTOOLCHAIN=local -v $(PWD):/app -w /app golangci/golangci-lint:$(LINT_IMAGE_TAG) golangci-lint run --timeout=5m
 
 .PHONY: vet
 vet:

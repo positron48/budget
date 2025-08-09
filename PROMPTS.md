@@ -306,3 +306,22 @@ run golangci-lint
 
 ---
 
+так а чего make check ошибкой заканчивается
+
+make check
+go mod tidy
+gofumpt -w .
+gofmt -s -w .
+go vet ./...
+golangci-lint run
+WARN [runner] Can't run linter goanalysis_metalinter: buildir: failed to load package goarch: could not load export data: internal error in importing "internal/goarch" (unsupported version: 2); please report an issue 
+ERRO Running error: can't run linter goanalysis_metalinter
+buildir: failed to load package goarch: could not load export data: internal error in importing "internal/goarch" (unsupported version: 2); please report an issue 
+make: *** [Makefile:51: lint] Ошибка 3
+
+---
+
+make check все еще выдает ошибку, чини пока не починишь
+
+---
+
