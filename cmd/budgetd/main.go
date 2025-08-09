@@ -19,6 +19,7 @@ import (
 	"github.com/positron48/budget/internal/usecase/category"
 	"github.com/positron48/budget/internal/usecase/transaction"
 	reportuse "github.com/positron48/budget/internal/usecase/report"
+	useuser "github.com/positron48/budget/internal/usecase/user"
 	"github.com/positron48/budget/internal/usecase/tenant"
 
 	// usecase imports will be wired when generated stubs are available
@@ -106,6 +107,17 @@ func main() {
 		// Report
 		reportSvc := reportuse.NewService(txSvc, fxRepo, tenantRepo, categoryRepo)
 		budgetv1.RegisterReportServiceServer(server, grpcadapter.NewReportServer(reportSvc))
+
+		// User
+		userSvc := useuser.NewService(userRepo, hasher)
+		getHash := func(ctx context.Context, userID string) (string, error) {
+			u, err := userRepo.GetByID(ctx, userID)
+			if err != nil {
+				return "", err
+			}
+			return u.PasswordHash, nil
+		}
+		budgetv1.RegisterUserServiceServer(server, grpcadapter.NewUserServer(userSvc, getHash))
 	}
 
 	go func() {
