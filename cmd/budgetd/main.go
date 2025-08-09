@@ -57,6 +57,9 @@ func main() {
     hs := health.NewServer()
     healthpb.RegisterHealthServer(server, hs)
 
+    // register services generated from protobuf (no-op without build tag)
+    registerGeneratedServices(server, db, cfg)
+
     go func() {
         sug.Infow("gRPC listening", "addr", cfg.GRPCAddr)
         if err := server.Serve(lis); err != nil {

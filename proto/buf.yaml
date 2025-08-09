@@ -1,7 +1,4 @@
 version: v1
-name: buf.build/example/budget
-deps:
-  - buf.build/googleapis/googleapis
 lint:
   use:
     - DEFAULT
