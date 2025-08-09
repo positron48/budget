@@ -69,6 +69,7 @@ func main() {
     server := grpc.NewServer(
         grpc.ChainUnaryInterceptor(
             grpcadapter.NewAuthUnaryInterceptor(cfg.JWTSignKey),
+            grpcadapter.LoggingUnaryInterceptor(sug),
             grpcadapter.RecoveryUnaryInterceptor(sug),
             func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
                 return tenantGuard(ctx, req, info, handler)

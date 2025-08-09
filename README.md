@@ -174,8 +174,8 @@ make dproto
 - Миграции: `golang-migrate` против локальной БД.
 - `budgetd` запускается на :8080 (gRPC). Envoy слушает :8081 (gRPC‑Web) → проксирует на :8080.
 
-Включение интерсепторов (после проверки JWT ключей):
-- В `cmd/budgetd/main.go` раскомментировать `grpc.ChainUnaryInterceptor(...)` и добавить `NewAuthUnaryInterceptor(cfg.JWTSignKey)`, `RecoveryUnaryInterceptor(logger)`.
+Включение интерсепторов:
+- В `cmd/budgetd/main.go` включены: `Auth`, `Logging`, `Recovery`, `TenantGuard` (проверка членства в активном тенанте).
 
 ### Проверки локально
 
