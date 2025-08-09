@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package budget.v1;
+
+option go_package = "github.com/example/budget/gen/go/budget/v1;budgetv1";
+
+import "budget/v1/common.proto";
+
+message MonthlyCategorySummaryItem {
+  string category_id = 1;
+  string category_name = 2;   // localized best-effort
+  TransactionType type = 3;   // income / expense
+  Money total = 4;
+}
+
+message GetMonthlySummaryRequest {
+  int32 year = 1;             // e.g., 2025
+  int32 month = 2;            // 1..12
+  string locale = 3;          // preferred translation
+}
+
+message GetMonthlySummaryResponse {
+  repeated MonthlyCategorySummaryItem items = 1;
+  Money total_income = 2;
+  Money total_expense = 3;
+}
+
+service ReportService {
+  rpc GetMonthlySummary(GetMonthlySummaryRequest) returns (GetMonthlySummaryResponse);
+}
+
+

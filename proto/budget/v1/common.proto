@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package budget.v1;
+
+option go_package = "github.com/example/budget/gen/go/budget/v1;budgetv1";
+
+import "google/protobuf/timestamp.proto";
+
+// Generic money representation using minor currency units (e.g., cents)
+message Money {
+  string currency_code = 1; // ISO 4217, e.g. "USD", "EUR", "RUB"
+  int64 minor_units = 2;    // integer number of minor units (cents/kopecks)
+}
+
+enum TransactionType {
+  TRANSACTION_TYPE_UNSPECIFIED = 0;
+  TRANSACTION_TYPE_INCOME = 1;
+  TRANSACTION_TYPE_EXPENSE = 2;
+}
+
+enum CategoryKind {
+  CATEGORY_KIND_UNSPECIFIED = 0;
+  CATEGORY_KIND_INCOME = 1;
+  CATEGORY_KIND_EXPENSE = 2;
+}
+
+message PageRequest {
+  int32 page = 1;       // 1-based
+  int32 page_size = 2;  // max enforced server-side
+  string sort = 3;      // e.g. "occurred_at desc"
+}
+
+message PageResponse {
+  int32 page = 1;
+  int32 page_size = 2;
+  int64 total_items = 3;
+  int32 total_pages = 4;
+}
+
+message DateRange {
+  google.protobuf.Timestamp from = 1;
+  google.protobuf.Timestamp to = 2;
+}
+
+

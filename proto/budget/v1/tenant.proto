@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package budget.v1;
+
+option go_package = "github.com/example/budget/gen/go/budget/v1;budgetv1";
+
+import "google/protobuf/timestamp.proto";
+
+enum TenantRole {
+  TENANT_ROLE_UNSPECIFIED = 0;
+  TENANT_ROLE_OWNER = 1;
+  TENANT_ROLE_ADMIN = 2;
+  TENANT_ROLE_MEMBER = 3;
+}
+
+message Tenant {
+  string id = 1;                         // UUID
+  string name = 2;                       // Display name
+  string slug = 3;                       // URL-friendly identifier
+  string default_currency_code = 4;      // e.g. "USD", "RUB"
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message TenantMembership {
+  Tenant tenant = 1;
+  TenantRole role = 2;
+  bool is_default = 3;
+}
+
+message CreateTenantRequest {
+  string name = 1;
+  string slug = 2;                       // optional, server may generate
+  string default_currency_code = 3;
+}
+message CreateTenantResponse { Tenant tenant = 1; }
+
+message ListMyTenantsRequest {}
+message ListMyTenantsResponse { repeated TenantMembership memberships = 1; }
+
+service TenantService {
+  rpc CreateTenant(CreateTenantRequest) returns (CreateTenantResponse);
+  rpc ListMyTenants(ListMyTenantsRequest) returns (ListMyTenantsResponse);
+}
+
+

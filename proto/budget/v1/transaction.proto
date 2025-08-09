@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package budget.v1;
+
+option go_package = "github.com/example/budget/gen/go/budget/v1;budgetv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/field_mask.proto";
+import "budget/v1/common.proto";
+
+message Transaction {
+  string id = 1;                           // UUID
+  string tenant_id = 2;                    // UUID
+  string user_id = 3;                      // UUID
+  string category_id = 4;                  // UUID
+  TransactionType type = 5;                // income / expense
+  Money amount = 6;                        // minor units + currency
+  google.protobuf.Timestamp occurred_at = 7;
+  string comment = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+message CreateTransactionRequest {
+  TransactionType type = 1;
+  string category_id = 2;
+  Money amount = 3;
+  google.protobuf.Timestamp occurred_at = 4;
+  string comment = 5;
+}
+message CreateTransactionResponse { Transaction transaction = 1; }
+
+message UpdateTransactionRequest {
+  string id = 1;
+  Transaction transaction = 2;            // new values
+  google.protobuf.FieldMask update_mask = 3; // paths relative to Transaction (e.g. "category_id,amount,comment,occurred_at")
+}
+message UpdateTransactionResponse { Transaction transaction = 1; }
+
+message DeleteTransactionRequest { string id = 1; }
+message DeleteTransactionResponse {}
+
+message GetTransactionRequest { string id = 1; }
+message GetTransactionResponse { Transaction transaction = 1; }
+
+message ListTransactionsRequest {
+  PageRequest page = 1;
+  DateRange date_range = 2;
+  repeated string category_ids = 3;
+  TransactionType type = 4;        // optional filter
+  int64 min_minor_units = 5;        // optional amount filters
+  int64 max_minor_units = 6;
+  string currency_code = 7;         // if provided, amounts interpreted in this currency
+  string search = 8;                 // comment search
+}
+message ListTransactionsResponse {
+  repeated Transaction transactions = 1;
+  PageResponse page = 2;
+}
+
+service TransactionService {
+  rpc CreateTransaction(CreateTransactionRequest) returns (CreateTransactionResponse);
+  rpc UpdateTransaction(UpdateTransactionRequest) returns (UpdateTransactionResponse);
+  rpc DeleteTransaction(DeleteTransactionRequest) returns (DeleteTransactionResponse);
+  rpc GetTransaction(GetTransactionRequest) returns (GetTransactionResponse);
+  rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse);
+}
+
+
