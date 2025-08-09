@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,6 +12,7 @@ import (
 	"github.com/positron48/budget/internal/adapter/postgres"
 	"github.com/positron48/budget/internal/pkg/config"
 	"github.com/positron48/budget/internal/pkg/logger"
+	_ "github.com/prometheus/client_golang/prometheus/promhttp" // ensure prometheus handler is linked
 
 	budgetv1 "github.com/positron48/budget/gen/go/budget/v1"
 	aauth "github.com/positron48/budget/internal/adapter/auth"
@@ -71,6 +73,7 @@ func main() {
 	server := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			grpcadapter.NewAuthUnaryInterceptor(cfg.JWTSignKey),
+			grpcadapter.MetricsUnaryInterceptor(),
 			grpcadapter.LoggingUnaryInterceptor(sug),
 			grpcadapter.RecoveryUnaryInterceptor(sug),
 			func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
@@ -79,9 +82,12 @@ func main() {
 		),
 	)
 
-	// optional metrics server
+	// optional metrics server with Prometheus handler
 	if cfg.MetricsAddr != "" {
-		stopMetrics := logger.StartMetricsServer(sug, cfg.MetricsAddr, nil)
+		mux := http.NewServeMux()
+		// register /metrics if client_golang is linked in
+		mux.Handle("/metrics", http.DefaultServeMux)
+		stopMetrics := logger.StartMetricsServer(sug, cfg.MetricsAddr, mux)
 		defer stopMetrics(context.Background())
 	}
 
