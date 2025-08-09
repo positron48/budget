@@ -4,7 +4,7 @@
 
 ### 0. Предварительные требования (локально)
 
-- Go 1.22+
+- Go 1.23+
 - protoc >= 3.21, `buf` (buf.build)
 - Docker, Docker Compose v2
 - `golang-migrate` CLI
@@ -15,7 +15,7 @@
 ```bash
 go version
 protoc --version
-buf --version || true
+buf --version || true # или используйте make dproto
 docker --version && docker compose version
 ```
 
@@ -126,6 +126,13 @@ docker compose up -d --build
 docker compose ps
 ```
 
+Альтернатива: локальный запуск без контейнеров
+
+```bash
+make build
+GRPC_ADDR=0.0.0.0:8080 DATABASE_URL=postgres://budget:budget@localhost:5432/budget?sslmode=disable ./bin/budgetd
+```
+
 ### 3. Go-модуль и зависимости
 
 ```bash
@@ -135,11 +142,6 @@ go get google.golang.org/protobuf@latest
 go get github.com/jackc/pgx/v5@latest
 go get go.uber.org/zap@latest
 go get github.com/golang-jwt/jwt/v5@latest
-go get github.com/grpc-ecosystem/go-grpc-middleware/v2@latest
-go get github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging@latest
-go get github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery@latest
-go get github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth@latest
-go get github.com/google/uuid@latest
 go get golang.org/x/crypto@latest
 go get github.com/golang-migrate/migrate/v4@latest
 ```
@@ -275,10 +277,10 @@ grpcurl -plaintext -H "authorization: Bearer <ACCESS>" -H "x-tenant-id: <TENANT>
 
 ### 16. Lint/CI/CD
 
-- Линтеры: `buf lint`, `go vet`, `golangci-lint`.
+- Линтеры: `buf lint`, `go vet`, `golangci-lint` (локально через docker образ).
 - GitHub Actions:
   - job: proto lint + generate
-  - job: go build + test + lint
+  - job: go build + test + lint (Go 1.23.x, golangci-lint 1.64.8)
   - job: docker build/push (опционально)
 
 ### 17. Makefile цели (рекомендация)
@@ -290,6 +292,10 @@ PROTO_DIR=proto
 proto:
 	cd $(PROTO_DIR) && buf lint && buf generate
 
+.PHONY: dproto
+dproto:
+	docker run --rm -v $(PWD):/workspace -w /workspace/proto bufbuild/buf:latest generate
+
 .PHONY: build
 build:
 	go build -o bin/budgetd ./cmd/budgetd
@@ -297,6 +303,18 @@ build:
 .PHONY: test
 test:
 	go test ./...
+
+.PHONY: fmt
+fmt:
+	gofumpt -w . || true
+	gofmt -s -w .
+
+.PHONY: lint
+lint:
+	docker run --rm -e GOTOOLCHAIN=local -v $(PWD):/app -w /app golangci/golangci-lint:v1.64.8 golangci-lint run --timeout=5m
+
+.PHONY: check
+check: tidy fmt vet lint test
 
 .PHONY: migrate-up
 migrate-up:

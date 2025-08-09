@@ -55,7 +55,7 @@ flowchart TB
 
 ### Технологический стек
 
-- Backend: Go 1.22+, gRPC (google.golang.org/grpc), protobuf v3, Buf (buf.build) для схем и генерации.
+- Backend: Go 1.23+, gRPC (google.golang.org/grpc), protobuf v3, Buf (buf.build) для схем и генерации.
 - API transport: gRPC (основной), gRPC‑Web через Envoy (для браузера) или connect-go/grpcweb wrapper.
 - Frontend: Next.js 14 (React + TS), `@connectrpc/connect-web` клиент, Tailwind CSS, TanStack Query.
 - DB: PostgreSQL 15+, миграции `golang-migrate` (SQL миграции), UUID v4, NUMERIC для денег и курсов.
@@ -147,6 +147,12 @@ buf generate
 
 Это создаст артефакты клиента/сервера (пути задаются в `buf.gen.yaml`). Для Go генерируется в `gen/go`, для web‑клиента — в `gen/ts`.
 
+Если нет локально установленного `buf`, можно использовать docker:
+
+```bash
+make dproto
+```
+
 ### Мультивалютность
 
 - У каждого арендатора есть базовая валюта (`tenants.default_currency`).
@@ -162,6 +168,15 @@ buf generate
 - Envoy (Docker) как gRPC‑Web прокси к `budgetd`.
 - Миграции: `golang-migrate` против локальной БД.
 - `budgetd` запускается на :8080 (gRPC). Envoy слушает :8081 (gRPC‑Web) → проксирует на :8080.
+
+### Проверки локально
+
+Используем цель `check`, чтобы запустить все необходимые проверки так же, как в CI:
+
+```bash
+make check
+# включает: go mod tidy, форматирование (gofumpt/gofmt), vet, golangci-lint (в docker), тесты
+```
 
 ### Быстрые команды (Makefile)
 
@@ -216,6 +231,8 @@ make down
 │   ├── buf.yaml
 │   ├── buf.gen.yaml
 │   └── budget/v1/*.proto       # в т.ч. fx.proto (курсы)
+├── .github/workflows/ci.yml     # GitHub Actions (buf lint, golangci-lint, tests)
+├── Makefile                     # proto/dproto, build, up/down, check, dmigrate-*
 ├── gen/
 │   ├── go/                     # сгенерированные Go stubs
 │   └── ts/                     # сгенерированные TS клиенты
