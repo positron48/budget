@@ -63,10 +63,16 @@ func main() {
 	}
 
     // Build gRPC server with interceptors
+    // Tenant guard needs tenantRepo; build a validate function lazily below.
+    var tenantGuard grpc.UnaryServerInterceptor = func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) { return handler(ctx, req) }
+
     server := grpc.NewServer(
         grpc.ChainUnaryInterceptor(
             grpcadapter.NewAuthUnaryInterceptor(cfg.JWTSignKey),
             grpcadapter.RecoveryUnaryInterceptor(sug),
+            func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+                return tenantGuard(ctx, req, info, handler)
+            },
         ),
     )
 
@@ -87,7 +93,11 @@ func main() {
 
 		// Tenant
 		tenantRepo := postgres.NewTenantRepo(db)
-		tenantSvc := tenant.NewService(tenantRepo)
+        tenantSvc := tenant.NewService(tenantRepo)
+        // now that tenantRepo is ready, attach tenant guard
+        tenantGuard = grpcadapter.NewTenantGuardUnaryInterceptor(func(ctx context.Context, userID, tenantID string) (bool, error) {
+            return tenantRepo.HasMembership(ctx, userID, tenantID)
+        })
 		budgetv1.RegisterTenantServiceServer(server, grpcadapter.NewTenantServer(tenantSvc))
 
 		// Category

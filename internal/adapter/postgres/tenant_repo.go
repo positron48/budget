@@ -57,3 +57,10 @@ func (r *TenantRepo) GetByID(ctx context.Context, id string) (domain.Tenant, err
 	err := r.pool.DB.QueryRow(ctx, `SELECT id, name, slug, default_currency_code, created_at FROM tenants WHERE id=$1`, id).Scan(&t.ID, &t.Name, &t.Slug, &t.DefaultCurrencyCode, &t.CreatedAt)
 	return t, err
 }
+
+// HasMembership returns true if user is a member of tenant
+func (r *TenantRepo) HasMembership(ctx context.Context, userID, tenantID string) (bool, error) {
+    var exists bool
+    err := r.pool.DB.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM user_tenants WHERE user_id=$1 AND tenant_id=$2)`, userID, tenantID).Scan(&exists)
+    return exists, err
+}
