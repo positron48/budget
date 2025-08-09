@@ -7,34 +7,31 @@
 - Базовое окружение (Docker Compose: db/app/envoy), минимальный gRPC‑сервер, health.
 - Миграции PostgreSQL: tenants/users/user_tenants/refresh_tokens, categories/category_i18n, transactions (с fx snapshot), fx_rates.
 - Конфиг/логгер/pgx pool.
-- Auth слой (частично): Argon2id хешер, JWT issuer, user/refresh_token репозитории.
-- Tenant/Category: домены, usecase, репозитории (PostgreSQL).
+- Auth: Argon2id хешер, JWT issuer, репозитории, usecase с `Register/Login/Refresh`, gRPC‑хендлеры включены.
+- Tenant/Category: домены, usecase, репозитории (PostgreSQL), gRPC‑хендлеры включены.
+- FxRepo/tenant GetByID: для конвертации сумм в базовую валюту (TransactionService).
 - CI: buf lint, golangci‑lint (docker), тесты; локальный `make check` идентичен CI.
-- gRPC‑хендлеры подготовлены как скелеты (под build‑tag), включим после генерации protobuf stubs.
+- Stubs `gen/go/**` коммитятся (workflow `Generate Protobuf Stubs`).
 
 ### Ближайшие шаги (что делать дальше)
 
-1) Протокол и stubs (выбрать стратегию)
-- Вариант A (проще): коммитить Go‑stubs в репозиторий
-  - Сгенерировать: `make dproto` → появится `gen/go/**`; закоммитить `gen/go`.
-  - Снять `//go:build ignore` с `internal/adapter/grpc/{auth,tenant,category}_server.go`.
-  - В `cmd/budgetd/main.go` зарегистрировать сервисы (Auth, Tenant, Category).
-- Вариант B: генерировать stubs в CI перед сборкой
-  - В job go выполнить `buf generate` (docker/буфер) перед линтом и тестами.
-  - Оставить `gen/` в .gitignore (на клиентские артефакты не влияем).
+1) Интерсепторы и безопасность
+- Подключить цепочку `grpc.ChainUnaryInterceptor(...)` в `cmd/budgetd/main.go`:
+  - `NewAuthUnaryInterceptor(cfg.JWTSignKey)` — валидация JWT, извлечение `user_id` и `tenant_id`.
+  - `RecoveryUnaryInterceptor(logger)` — перехват паник.
 
 2) Подключить gRPC‑интерсепторы
 - Auth: парсинг `authorization: Bearer`, валидация JWT; класть `user_id` и `tenant_id` в контекст.
 - Tenant: определять активный tenant (из клаймов или `x-tenant-id`) и валидировать принадлежность.
 
 3) Завершить AuthService
-- Реализовать `RefreshToken` (ротация, отзыв старого), добавить интеграционные тесты: Register → Login → Refresh → доступ к защищенному RPC.
+- Интеграционные тесты: Register → Login → Refresh → доступ к защищенному RPC (grpcurl + in‑process).
 
 4) Завершить TenantService/CategoryService (gRPC)
 - Подключить хендлеры и добавить интеграционные тесты (валидировать уникальность code, поведение i18n).
 
 5) Реализовать TransactionService
-- Репозиторий + usecase: CRUD, фильтры, пагинация; расчет `base_amount` по `fx_rates` на день.
+- Репозиторий + usecase: CRUD, фильтры, пагинация; расчет `base_amount` по `fx_rates` на день (использовать `FxRepo` и `TenantRepo.GetByID`).
 - Тесты: корректность конвертации и крайние случаи.
 
 6) FxService

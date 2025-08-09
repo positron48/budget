@@ -110,6 +110,11 @@ flowchart TB
 
 Общие типы в `common.proto`: `Money`, `FxInfo`, `TransactionType`, `CategoryKind`, `PageRequest/PageResponse`, `DateRange`.
 
+Состояние реализации (backend):
+- Готово: Auth (Register/Login/Refresh), Tenant (Create/List), Category (CRUD+i18n) — серверные хендлеры включены.
+- В процессе: включение цепочки интерсепторов (Auth/Recovery/Logging).
+- В плане ближайшего шага: TransactionService (CRUD+фильтры/пагинация, перерасчет base_amount), ReportService (месячные агрегаты в целевой валюте).
+
 Аутентификация: передавать `authorization: Bearer <access_token>` в gRPC metadata. Активный тенант — либо в клаймах токена, либо `x-tenant-id` в metadata, если пользователь имеет несколько.
 
 Коды ошибок: стандартные gRPC статус‑коды. Детали (валидация и др.) — через `google.rpc.BadRequest` и `google.rpc.ErrorInfo` (позже).
@@ -168,6 +173,9 @@ make dproto
 - Envoy (Docker) как gRPC‑Web прокси к `budgetd`.
 - Миграции: `golang-migrate` против локальной БД.
 - `budgetd` запускается на :8080 (gRPC). Envoy слушает :8081 (gRPC‑Web) → проксирует на :8080.
+
+Включение интерсепторов (после проверки JWT ключей):
+- В `cmd/budgetd/main.go` раскомментировать `grpc.ChainUnaryInterceptor(...)` и добавить `NewAuthUnaryInterceptor(cfg.JWTSignKey)`, `RecoveryUnaryInterceptor(logger)`.
 
 ### Проверки локально
 
