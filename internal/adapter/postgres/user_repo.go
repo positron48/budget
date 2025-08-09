@@ -1,13 +1,13 @@
 package postgres
 
 import (
-    "context"
-    "errors"
-    "strings"
+	"context"
+	"errors"
+	"strings"
 
-    pgx "github.com/jackc/pgx/v5"
-    "github.com/positron48/budget/internal/domain"
-    useauth "github.com/positron48/budget/internal/usecase/auth"
+	pgx "github.com/jackc/pgx/v5"
+	"github.com/positron48/budget/internal/domain"
+	useauth "github.com/positron48/budget/internal/usecase/auth"
 )
 
 type UserRepo struct{ pool *Pool }
@@ -108,26 +108,26 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (useauth.User, 
 
 // Additional methods for UserService usecase
 func (r *UserRepo) GetByID(ctx context.Context, id string) (domain.User, error) {
-    var u domain.User
-    err := r.pool.DB.QueryRow(ctx,
-        `SELECT id, email, name, locale, password_hash, email_verified, created_at, updated_at FROM users WHERE id=$1`, id,
-    ).Scan(&u.ID, &u.Email, &u.Name, &u.Locale, &u.PasswordHash, &u.EmailVerified, &u.CreatedAt, &u.UpdatedAt)
-    return u, err
+	var u domain.User
+	err := r.pool.DB.QueryRow(ctx,
+		`SELECT id, email, name, locale, password_hash, email_verified, created_at, updated_at FROM users WHERE id=$1`, id,
+	).Scan(&u.ID, &u.Email, &u.Name, &u.Locale, &u.PasswordHash, &u.EmailVerified, &u.CreatedAt, &u.UpdatedAt)
+	return u, err
 }
 
 func (r *UserRepo) UpdateProfile(ctx context.Context, id, name, locale string) (domain.User, error) {
-    _, err := r.pool.DB.Exec(ctx,
-        `UPDATE users SET name=$2, locale=$3, updated_at=now() WHERE id=$1`, id, name, locale,
-    )
-    if err != nil {
-        return domain.User{}, err
-    }
-    return r.GetByID(ctx, id)
+	_, err := r.pool.DB.Exec(ctx,
+		`UPDATE users SET name=$2, locale=$3, updated_at=now() WHERE id=$1`, id, name, locale,
+	)
+	if err != nil {
+		return domain.User{}, err
+	}
+	return r.GetByID(ctx, id)
 }
 
 func (r *UserRepo) ChangePassword(ctx context.Context, id, newHash string) error {
-    _, err := r.pool.DB.Exec(ctx,
-        `UPDATE users SET password_hash=$2, updated_at=now() WHERE id=$1`, id, newHash,
-    )
-    return err
+	_, err := r.pool.DB.Exec(ctx,
+		`UPDATE users SET password_hash=$2, updated_at=now() WHERE id=$1`, id, newHash,
+	)
+	return err
 }

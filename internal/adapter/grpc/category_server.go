@@ -4,12 +4,12 @@
 package grpcadapter
 
 import (
-    "context"
+	"context"
 
-    budgetv1 "github.com/positron48/budget/gen/go/budget/v1"
-    "github.com/positron48/budget/internal/domain"
-    "github.com/positron48/budget/internal/pkg/ctxutil"
-    "github.com/positron48/budget/internal/usecase/category"
+	budgetv1 "github.com/positron48/budget/gen/go/budget/v1"
+	"github.com/positron48/budget/internal/domain"
+	"github.com/positron48/budget/internal/pkg/ctxutil"
+	"github.com/positron48/budget/internal/usecase/category"
 )
 
 type CategoryServer struct {
@@ -20,15 +20,17 @@ type CategoryServer struct {
 func NewCategoryServer(svc *category.Service) *CategoryServer { return &CategoryServer{svc: svc} }
 
 func (s *CategoryServer) CreateCategory(ctx context.Context, req *budgetv1.CreateCategoryRequest) (*budgetv1.CreateCategoryResponse, error) {
-    if req.GetCode() == "" {
-        return nil, invalidArg("code is required")
-    }
+	if req.GetCode() == "" {
+		return nil, invalidArg("code is required")
+	}
 	trs := make([]domain.CategoryTranslation, 0, len(req.GetTranslations()))
 	for _, tr := range req.GetTranslations() {
 		trs = append(trs, domain.CategoryTranslation{Locale: tr.GetLocale(), Name: tr.GetName(), Description: tr.GetDescription()})
 	}
-    c, err := s.svc.Create(ctx, ctxTenantID(ctx), toKind(req.GetKind()), req.GetCode(), optString(req.GetParentId()), req.GetIsActive(), trs)
-    if err != nil { return nil, mapError(err) }
+	c, err := s.svc.Create(ctx, ctxTenantID(ctx), toKind(req.GetKind()), req.GetCode(), optString(req.GetParentId()), req.GetIsActive(), trs)
+	if err != nil {
+		return nil, mapError(err)
+	}
 	return &budgetv1.CreateCategoryResponse{Category: toProtoCategory(c)}, nil
 }
 
@@ -37,46 +39,60 @@ func (s *CategoryServer) UpdateCategory(ctx context.Context, req *budgetv1.Updat
 	for _, tr := range req.GetTranslations() {
 		trs = append(trs, domain.CategoryTranslation{Locale: tr.GetLocale(), Name: tr.GetName(), Description: tr.GetDescription()})
 	}
-    c, err := s.svc.Update(ctx, req.GetId(), req.GetCode(), optString(req.GetParentId()), req.GetIsActive(), trs)
-    if err != nil { return nil, mapError(err) }
+	c, err := s.svc.Update(ctx, req.GetId(), req.GetCode(), optString(req.GetParentId()), req.GetIsActive(), trs)
+	if err != nil {
+		return nil, mapError(err)
+	}
 	return &budgetv1.UpdateCategoryResponse{Category: toProtoCategory(c)}, nil
 }
 
 func (s *CategoryServer) DeleteCategory(ctx context.Context, req *budgetv1.DeleteCategoryRequest) (*budgetv1.DeleteCategoryResponse, error) {
-    if err := s.svc.Delete(ctx, req.GetId()); err != nil { return nil, mapError(err) }
+	if err := s.svc.Delete(ctx, req.GetId()); err != nil {
+		return nil, mapError(err)
+	}
 	return &budgetv1.DeleteCategoryResponse{}, nil
 }
 
 func (s *CategoryServer) GetCategory(ctx context.Context, req *budgetv1.GetCategoryRequest) (*budgetv1.GetCategoryResponse, error) {
-    c, err := s.svc.Get(ctx, req.GetId())
-    if err != nil { return nil, mapError(err) }
-    if l := req.GetLocale(); l != "" {
-        for i := range c.Translations {
-            if c.Translations[i].Locale == l {
-                if i != 0 { c.Translations[0], c.Translations[i] = c.Translations[i], c.Translations[0] }
-                break
-            }
-        }
-    }
-    return &budgetv1.GetCategoryResponse{Category: toProtoCategory(c)}, nil
+	c, err := s.svc.Get(ctx, req.GetId())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	if l := req.GetLocale(); l != "" {
+		for i := range c.Translations {
+			if c.Translations[i].Locale == l {
+				if i != 0 {
+					c.Translations[0], c.Translations[i] = c.Translations[i], c.Translations[0]
+				}
+				break
+			}
+		}
+	}
+	return &budgetv1.GetCategoryResponse{Category: toProtoCategory(c)}, nil
 }
 
 func (s *CategoryServer) ListCategories(ctx context.Context, req *budgetv1.ListCategoriesRequest) (*budgetv1.ListCategoriesResponse, error) {
-    cs, err := s.svc.List(ctx, ctxTenantID(ctx), toKind(req.GetKind()), req.GetIncludeInactive())
-    if err != nil { return nil, mapError(err) }
-    if l := req.GetLocale(); l != "" {
-        for i := range cs {
-            for j := range cs[i].Translations {
-                if cs[i].Translations[j].Locale == l {
-                    if j != 0 { cs[i].Translations[0], cs[i].Translations[j] = cs[i].Translations[j], cs[i].Translations[0] }
-                    break
-                }
-            }
-        }
-    }
-    out := make([]*budgetv1.Category, 0, len(cs))
-    for _, c := range cs { out = append(out, toProtoCategory(c)) }
-    return &budgetv1.ListCategoriesResponse{Categories: out}, nil
+	cs, err := s.svc.List(ctx, ctxTenantID(ctx), toKind(req.GetKind()), req.GetIncludeInactive())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	if l := req.GetLocale(); l != "" {
+		for i := range cs {
+			for j := range cs[i].Translations {
+				if cs[i].Translations[j].Locale == l {
+					if j != 0 {
+						cs[i].Translations[0], cs[i].Translations[j] = cs[i].Translations[j], cs[i].Translations[0]
+					}
+					break
+				}
+			}
+		}
+	}
+	out := make([]*budgetv1.Category, 0, len(cs))
+	for _, c := range cs {
+		out = append(out, toProtoCategory(c))
+	}
+	return &budgetv1.ListCategoriesResponse{Categories: out}, nil
 }
 
 func toProtoCategory(c domain.Category) *budgetv1.Category {
@@ -122,8 +138,8 @@ func optString(s string) *string {
 
 // контекстные helpers (интерсептор аутентификации/тенанта)
 func ctxTenantID(ctx context.Context) string {
-    if v, ok := ctxutil.TenantIDFromContext(ctx); ok {
-        return v
-    }
-    return ""
+	if v, ok := ctxutil.TenantIDFromContext(ctx); ok {
+		return v
+	}
+	return ""
 }

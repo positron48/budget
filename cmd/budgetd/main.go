@@ -17,10 +17,10 @@ import (
 	grpcadapter "github.com/positron48/budget/internal/adapter/grpc"
 	useauth "github.com/positron48/budget/internal/usecase/auth"
 	"github.com/positron48/budget/internal/usecase/category"
-	"github.com/positron48/budget/internal/usecase/transaction"
 	reportuse "github.com/positron48/budget/internal/usecase/report"
-	useuser "github.com/positron48/budget/internal/usecase/user"
 	"github.com/positron48/budget/internal/usecase/tenant"
+	"github.com/positron48/budget/internal/usecase/transaction"
+	useuser "github.com/positron48/budget/internal/usecase/user"
 
 	// usecase imports will be wired when generated stubs are available
 	"google.golang.org/grpc"
@@ -62,20 +62,22 @@ func main() {
 		sug.Fatalw("listen failed", "error", err)
 	}
 
-    // Build gRPC server with interceptors
-    // Tenant guard needs tenantRepo; build a validate function lazily below.
-    var tenantGuard grpc.UnaryServerInterceptor = func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) { return handler(ctx, req) }
+	// Build gRPC server with interceptors
+	// Tenant guard needs tenantRepo; build a validate function lazily below.
+	var tenantGuard grpc.UnaryServerInterceptor = func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		return handler(ctx, req)
+	}
 
-    server := grpc.NewServer(
-        grpc.ChainUnaryInterceptor(
-            grpcadapter.NewAuthUnaryInterceptor(cfg.JWTSignKey),
-            grpcadapter.LoggingUnaryInterceptor(sug),
-            grpcadapter.RecoveryUnaryInterceptor(sug),
-            func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-                return tenantGuard(ctx, req, info, handler)
-            },
-        ),
-    )
+	server := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			grpcadapter.NewAuthUnaryInterceptor(cfg.JWTSignKey),
+			grpcadapter.LoggingUnaryInterceptor(sug),
+			grpcadapter.RecoveryUnaryInterceptor(sug),
+			func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+				return tenantGuard(ctx, req, info, handler)
+			},
+		),
+	)
 
 	// health service
 	hs := health.NewServer()
@@ -94,11 +96,11 @@ func main() {
 
 		// Tenant
 		tenantRepo := postgres.NewTenantRepo(db)
-        tenantSvc := tenant.NewService(tenantRepo)
-        // now that tenantRepo is ready, attach tenant guard
-        tenantGuard = grpcadapter.NewTenantGuardUnaryInterceptor(func(ctx context.Context, userID, tenantID string) (bool, error) {
-            return tenantRepo.HasMembership(ctx, userID, tenantID)
-        })
+		tenantSvc := tenant.NewService(tenantRepo)
+		// now that tenantRepo is ready, attach tenant guard
+		tenantGuard = grpcadapter.NewTenantGuardUnaryInterceptor(func(ctx context.Context, userID, tenantID string) (bool, error) {
+			return tenantRepo.HasMembership(ctx, userID, tenantID)
+		})
 		budgetv1.RegisterTenantServiceServer(server, grpcadapter.NewTenantServer(tenantSvc))
 
 		// Category

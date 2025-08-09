@@ -4,36 +4,34 @@
 package grpcadapter
 
 import (
-    "context"
+	"context"
 
-    budgetv1 "github.com/positron48/budget/gen/go/budget/v1"
+	budgetv1 "github.com/positron48/budget/gen/go/budget/v1"
 )
 
 // Minimal no-op scaffold for future CSV import flow
 type ImportServer struct {
-    budgetv1.UnimplementedImportServiceServer
+	budgetv1.UnimplementedImportServiceServer
 }
 
 func NewImportServer() *ImportServer { return &ImportServer{} }
 
 func (s *ImportServer) StartCsvImport(ctx context.Context, req *budgetv1.StartCsvImportRequest) (*budgetv1.StartCsvImportResponse, error) {
-    return &budgetv1.StartCsvImportResponse{ImportId: "todo"}, nil
+	return &budgetv1.StartCsvImportResponse{ImportId: "todo"}, nil
 }
 
 func (s *ImportServer) UploadCsvChunk(ctx context.Context, req *budgetv1.UploadCsvChunkRequest) (*budgetv1.UploadCsvChunkResponse, error) {
-    return &budgetv1.UploadCsvChunkResponse{ReceivedBytes: int64(len(req.GetChunk()))}, nil
+	return &budgetv1.UploadCsvChunkResponse{ReceivedBytes: int64(len(req.GetChunk()))}, nil
 }
 
 func (s *ImportServer) ConfigureCsvMapping(ctx context.Context, req *budgetv1.ConfigureCsvMappingRequest) (*budgetv1.ConfigureCsvMappingResponse, error) {
-    return &budgetv1.ConfigureCsvMappingResponse{}, nil
+	return &budgetv1.ConfigureCsvMappingResponse{}, nil
 }
 
 func (s *ImportServer) PreviewCsvImport(ctx context.Context, req *budgetv1.PreviewCsvImportRequest) (*budgetv1.PreviewCsvImportResponse, error) {
-    return &budgetv1.PreviewCsvImportResponse{TotalRows: 0, ValidRows: 0, InvalidRows: 0}, nil
+	return &budgetv1.PreviewCsvImportResponse{TotalRows: 0, ValidRows: 0, InvalidRows: 0}, nil
 }
 
 func (s *ImportServer) CommitCsvImport(ctx context.Context, req *budgetv1.CommitCsvImportRequest) (*budgetv1.CommitCsvImportResponse, error) {
-    return &budgetv1.CommitCsvImportResponse{Inserted: 0, Failed: 0}, nil
+	return &budgetv1.CommitCsvImportResponse{Inserted: 0, Failed: 0}, nil
 }
-
-

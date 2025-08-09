@@ -4,11 +4,11 @@
 package grpcadapter
 
 import (
-    "context"
+	"context"
 
-    budgetv1 "github.com/positron48/budget/gen/go/budget/v1"
-    useauth "github.com/positron48/budget/internal/usecase/auth"
-    "google.golang.org/protobuf/types/known/timestamppb"
+	budgetv1 "github.com/positron48/budget/gen/go/budget/v1"
+	useauth "github.com/positron48/budget/internal/usecase/auth"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type AuthServer struct {
@@ -19,8 +19,10 @@ type AuthServer struct {
 func NewAuthServer(svc *useauth.Service) *AuthServer { return &AuthServer{svc: svc} }
 
 func (s *AuthServer) Register(ctx context.Context, req *budgetv1.RegisterRequest) (*budgetv1.RegisterResponse, error) {
-    u, t, tp, err := s.svc.Register(ctx, req.GetEmail(), req.GetPassword(), req.GetName(), req.GetLocale(), req.GetTenantName())
-    if err != nil { return nil, mapError(err) }
+	u, t, tp, err := s.svc.Register(ctx, req.GetEmail(), req.GetPassword(), req.GetName(), req.GetLocale(), req.GetTenantName())
+	if err != nil {
+		return nil, mapError(err)
+	}
 	return &budgetv1.RegisterResponse{
 		Tokens: &budgetv1.TokenPair{
 			AccessToken:           tp.AccessToken,
@@ -35,8 +37,10 @@ func (s *AuthServer) Register(ctx context.Context, req *budgetv1.RegisterRequest
 }
 
 func (s *AuthServer) Login(ctx context.Context, req *budgetv1.LoginRequest) (*budgetv1.LoginResponse, error) {
-    _, memberships, tp, err := s.svc.Login(ctx, req.GetEmail(), req.GetPassword())
-    if err != nil { return nil, mapError(err) }
+	_, memberships, tp, err := s.svc.Login(ctx, req.GetEmail(), req.GetPassword())
+	if err != nil {
+		return nil, mapError(err)
+	}
 	ms := make([]*budgetv1.TenantMembership, 0, len(memberships))
 	for _, m := range memberships {
 		ms = append(ms, &budgetv1.TenantMembership{Tenant: &budgetv1.Tenant{Id: m.TenantID}, Role: mapRole(m.Role), IsDefault: m.IsDefault})
@@ -54,8 +58,10 @@ func (s *AuthServer) Login(ctx context.Context, req *budgetv1.LoginRequest) (*bu
 }
 
 func (s *AuthServer) RefreshToken(ctx context.Context, req *budgetv1.RefreshTokenRequest) (*budgetv1.RefreshTokenResponse, error) {
-    tp, err := s.svc.Refresh(ctx, req.GetRefreshToken())
-    if err != nil { return nil, mapError(err) }
+	tp, err := s.svc.Refresh(ctx, req.GetRefreshToken())
+	if err != nil {
+		return nil, mapError(err)
+	}
 	return &budgetv1.RefreshTokenResponse{Tokens: &budgetv1.TokenPair{
 		AccessToken:           tp.AccessToken,
 		RefreshToken:          tp.RefreshToken,
