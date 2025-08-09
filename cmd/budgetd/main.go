@@ -18,6 +18,7 @@ import (
 	useauth "github.com/positron48/budget/internal/usecase/auth"
 	"github.com/positron48/budget/internal/usecase/category"
 	"github.com/positron48/budget/internal/usecase/transaction"
+	reportuse "github.com/positron48/budget/internal/usecase/report"
 	"github.com/positron48/budget/internal/usecase/tenant"
 
 	// usecase imports will be wired when generated stubs are available
@@ -101,6 +102,10 @@ func main() {
 		txRepo := postgres.NewTransactionRepo(db)
 		txSvc := transaction.NewService(txRepo, fxRepo, tenantRepo, categoryRepo)
 		budgetv1.RegisterTransactionServiceServer(server, grpcadapter.NewTransactionServer(txSvc))
+
+		// Report
+		reportSvc := reportuse.NewService(txSvc, fxRepo, tenantRepo, categoryRepo)
+		budgetv1.RegisterReportServiceServer(server, grpcadapter.NewReportServer(reportSvc))
 	}
 
 	go func() {
