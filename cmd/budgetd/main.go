@@ -12,6 +12,13 @@ import (
 	"github.com/positron48/budget/internal/pkg/config"
 	"github.com/positron48/budget/internal/pkg/logger"
 
+	budgetv1 "github.com/positron48/budget/gen/go/budget/v1"
+	aauth "github.com/positron48/budget/internal/adapter/auth"
+	grpcadapter "github.com/positron48/budget/internal/adapter/grpc"
+	useauth "github.com/positron48/budget/internal/usecase/auth"
+	"github.com/positron48/budget/internal/usecase/category"
+	"github.com/positron48/budget/internal/usecase/tenant"
+
 	// usecase imports will be wired when generated stubs are available
 	"google.golang.org/grpc"
 	health "google.golang.org/grpc/health"
@@ -58,8 +65,29 @@ func main() {
 	hs := health.NewServer()
 	healthpb.RegisterHealthServer(server, hs)
 
-	// register services generated from protobuf (no-op without build tag)
-	registerGeneratedServices(server, db, cfg)
+	// register services
+	if db != nil {
+		// middlewares
+		_ = grpcadapter.AuthUnaryInterceptor // keep import until integrated into server options
+
+		// Auth
+		userRepo := postgres.NewUserRepo(db)
+		rtRepo := postgres.NewRefreshTokenRepo(db)
+		hasher := aauth.NewArgon2Hasher()
+		issuer := aauth.NewJWTIssuer(cfg.JWTSignKey)
+		authSvc := useauth.NewService(userRepo, rtRepo, hasher, issuer, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
+		budgetv1.RegisterAuthServiceServer(server, grpcadapter.NewAuthServer(authSvc))
+
+		// Tenant
+		tenantRepo := postgres.NewTenantRepo(db)
+		tenantSvc := tenant.NewService(tenantRepo)
+		budgetv1.RegisterTenantServiceServer(server, grpcadapter.NewTenantServer(tenantSvc))
+
+		// Category
+		categoryRepo := postgres.NewCategoryRepo(db)
+		categorySvc := category.NewService(categoryRepo)
+		budgetv1.RegisterCategoryServiceServer(server, grpcadapter.NewCategoryServer(categorySvc))
+	}
 
 	go func() {
 		sug.Infow("gRPC listening", "addr", cfg.GRPCAddr)
