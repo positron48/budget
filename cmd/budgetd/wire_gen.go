@@ -1,7 +1,7 @@
 package main
 
 import (
-    "github.com/example/budget/internal/adapter/postgres"
+    "github.com/positron48/budget/internal/adapter/postgres"
 )
 
 // registerGeneratedServices is a placeholder to avoid direct import of generated code

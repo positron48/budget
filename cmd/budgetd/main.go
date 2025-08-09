@@ -8,9 +8,9 @@ import (
     "syscall"
     "time"
 
-    "github.com/example/budget/internal/adapter/postgres"
-    "github.com/example/budget/internal/pkg/config"
-    "github.com/example/budget/internal/pkg/logger"
+    "github.com/positron48/budget/internal/adapter/postgres"
+    "github.com/positron48/budget/internal/pkg/config"
+    "github.com/positron48/budget/internal/pkg/logger"
 
     "google.golang.org/grpc"
     health "google.golang.org/grpc/health"

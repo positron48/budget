@@ -6,7 +6,7 @@ import (
     "encoding/base64"
     "time"
 
-    uauth "github.com/example/budget/internal/usecase/auth"
+    uauth "github.com/positron48/budget/internal/usecase/auth"
     jwt "github.com/golang-jwt/jwt/v5"
 )
 

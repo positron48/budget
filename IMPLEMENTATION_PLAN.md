@@ -129,7 +129,7 @@ docker compose ps
 ### 3. Go-модуль и зависимости
 
 ```bash
-go mod init github.com/example/budget
+go mod init github.com/positron48/budget
 go get google.golang.org/grpc@latest
 go get google.golang.org/protobuf@latest
 go get github.com/jackc/pgx/v5@latest

@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package budget.v1;
 
-option go_package = "gen/go/budget/v1;budgetv1";
+option go_package = "github.com/positron48/budget/gen/go/budget/v1;budgetv1";
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/field_mask.proto";
