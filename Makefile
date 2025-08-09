@@ -37,6 +37,11 @@ ps:
 tidy:
 	go mod tidy
 
+.PHONY: fmt
+fmt:
+	gofumpt -w .
+	gofmt -s -w .
+
 .PHONY: test
 test:
 	go test ./... -race -coverprofile=coverage.out -covermode=atomic
@@ -51,6 +56,9 @@ vet:
 
 .PHONY: ci
 ci: tidy vet lint test
+
+.PHONY: check
+check: tidy fmt vet lint test
 
 .PHONY: migrate-up
 migrate-up:

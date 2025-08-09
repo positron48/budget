@@ -112,3 +112,197 @@ run golangci-lint
 
 ---
 
+proto  выполнился, go нет:
+
+run golangci-lint
+  Running [/home/runner/golangci-lint-1.64.8-linux-amd64/golangci-lint config path] in [/home/runner/work/budget/budget] ...
+  Running [/home/runner/golangci-lint-1.64.8-linux-amd64/golangci-lint config verify] in [/home/runner/work/budget/budget] ...
+  Running [/home/runner/golangci-lint-1.64.8-linux-amd64/golangci-lint run  --timeout=5m] in [/home/runner/work/budget/budget] ...
+  Error: internal/adapter/grpc/auth_server_stub.go:7:1: File is not properly formatted (gofumpt)
+  
+  ^
+  Error: internal/domain/user.go:6:1: File is not properly formatted (gofumpt)
+      ID            string
+  ^
+  Error: internal/domain/user.go:15:1: File is not properly formatted (gofumpt)
+  
+  ^
+  Error: internal/adapter/auth/argon2_hasher.go:4:1: File is not properly formatted (gofumpt)
+      "crypto/rand"
+  ^
+  Error: internal/adapter/auth/argon2_hasher.go:14:1: File is not properly formatted (gofumpt)
+      Time    uint32
+  ^
+  Error: internal/adapter/auth/argon2_hasher.go:21:1: File is not properly formatted (gofumpt)
+      p Argon2Params
+  ^
+  Error: internal/adapter/auth/argon2_hasher.go:25:1: File is not properly formatted (gofumpt)
+      return &Argon2Hasher{p: Argon2Params{Time: 1, Memory: 64 * 1024, Threads: 4, KeyLen: 32}}
+  ^
+  Error: internal/adapter/auth/argon2_hasher.go:29:1: File is not properly formatted (gofumpt)
+      salt := make([]byte, 16)
+  ^
+  Error: internal/adapter/auth/argon2_hasher.go:38:1: File is not properly formatted (gofumpt)
+      parts := strings.Split(hash, "$")
+  ^
+  Error: internal/adapter/auth/jwt_issuer.go:4:1: File is not properly formatted (gofumpt)
+      "context"
+  ^
+  Error: internal/adapter/auth/jwt_issuer.go:14:1: File is not properly formatted (gofumpt)
+      signKey []byte
+  ^
+  Error: internal/adapter/auth/jwt_issuer.go:18:1: File is not properly formatted (gofumpt)
+      return &JWTIssuer{signKey: []byte(signKey)}
+  ^
+  Error: internal/adapter/auth/jwt_issuer.go:22:1: File is not properly formatted (gofumpt)
+      now := time.Now()
+  ^
+  Error: internal/adapter/auth/argon2_hasher_test.go:4:1: File is not properly formatted (gofumpt)
+      "regexp"
+  ^
+  Error: internal/adapter/auth/argon2_hasher_test.go:9:1: File is not properly formatted (gofumpt)
+      h := NewArgon2Hasher()
+  ^
+  Error: internal/adapter/auth/argon2_hasher_test.go:25:1: File is not properly formatted (gofumpt)
+  
+  ^
+  Error: internal/adapter/postgres/db.go:4:1: File is not properly formatted (gofumpt)
+      "context"
+  ^
+  Error: internal/adapter/postgres/db.go:11:1: File is not properly formatted (gofumpt)
+      DB *pgxpool.Pool
+  ^
+  Error: internal/adapter/postgres/db.go:15:1: File is not properly formatted (gofumpt)
+      cfg, err := pgxpool.ParseConfig(databaseURL)
+  ^
+  Error: internal/adapter/postgres/db.go:31:1: File is not properly formatted (gofumpt)
+      return p.DB.Ping(ctx)
+  ^
+  Error: internal/adapter/postgres/db.go:35:1: File is not properly formatted (gofumpt)
+      p.DB.Close()
+  ^
+  Error: internal/adapter/postgres/refresh_token_repo.go:4:1: File is not properly formatted (gofumpt)
+      "context"
+  ^
+  Error: internal/adapter/postgres/refresh_token_repo.go:15:1: File is not properly formatted (gofumpt)
+      sum := sha256.Sum256([]byte(token))
+  ^
+  Error: internal/adapter/postgres/refresh_token_repo.go:20:1: File is not properly formatted (gofumpt)
+      _, err := r.pool.DB.Exec(ctx,
+  ^
+  Error: internal/adapter/postgres/refresh_token_repo.go:28:1: File is not properly formatted (gofumpt)
+      // mark old as revoked and insert new
+  ^
+  Error: internal/adapter/postgres/user_repo.go:4:1: File is not properly formatted (gofumpt)
+      "context"
+  ^
+  Error: internal/adapter/postgres/user_repo.go:16:1: File is not properly formatted (gofumpt)
+      TenantID string
+  ^
+  Error: internal/adapter/postgres/user_repo.go:22:1: File is not properly formatted (gofumpt)
+      ID           string
+  ^
+  Error: internal/adapter/postgres/user_repo.go:30:1: File is not properly formatted (gofumpt)
+      var u User
+  ^
+  Error: internal/adapter/postgres/user_repo.go:50:1: File is not properly formatted (gofumpt)
+          email, name, locale, passwordHash,
+  ^
+  Error: internal/adapter/postgres/user_repo.go:66:1: File is not properly formatted (gofumpt)
+      ID string
+  ^
+  Error: internal/adapter/postgres/user_repo.go:72:1: File is not properly formatted (gofumpt)
+      email = strings.ToLower(strings.TrimSpace(email))
+  ^
+  Error: internal/pkg/logger/logger.go:4:1: File is not properly formatted (gofumpt)
+      "go.uber.org/zap"
+  ^
+  Error: internal/pkg/logger/logger.go:8:1: File is not properly formatted (gofumpt)
+      if env == "prod" { // production config: JSON, sampling, stacktraces on error
+  ^
+  Error: internal/pkg/logger/logger.go:15:1: File is not properly formatted (gofumpt)
+  
+  ^
+  Error: cmd/budgetd/main.go:4:1: File is not properly formatted (gofumpt)
+      "context"
+  ^
+  Error: cmd/budgetd/main.go:21:1: File is not properly formatted (gofumpt)
+      // Load config & logger
+  ^
+  Error: cmd/budgetd/main.go:85:1: File is not properly formatted (gofumpt)
+  
+  ^
+  Error: cmd/budgetd/wire_gen.go:4:1: File is not properly formatted (gofumpt)
+      "github.com/positron48/budget/internal/adapter/postgres"
+  ^
+  Error: cmd/budgetd/wire_gen.go:10:1: File is not properly formatted (gofumpt)
+  
+  ^
+  Error: internal/usecase/auth/service.go:4:1: File is not properly formatted (gofumpt)
+      "context"
+  ^
+  Error: internal/usecase/auth/service.go:10:1: File is not properly formatted (gofumpt)
+      Hash(password string) (string, error)
+  ^
+  Error: internal/usecase/auth/service.go:15:1: File is not properly formatted (gofumpt)
+      AccessToken           string
+  ^
+  Error: internal/usecase/auth/service.go:23:1: File is not properly formatted (gofumpt)
+      Issue(ctx context.Context, userID, tenantID string, accessTTL, refreshTTL time.Duration) (TokenPair, error)
+  ^
+  Error: internal/usecase/auth/service.go:27:1: File is not properly formatted (gofumpt)
+      ID            string
+  ^
+  Error: internal/usecase/auth/service.go:36:1: File is not properly formatted (gofumpt)
+      ID                   string
+  ^
+  Error: internal/usecase/auth/service.go:42:1: File is not properly formatted (gofumpt)
+      TenantID string
+  ^
+  Error: internal/usecase/auth/service.go:48:1: File is not properly formatted (gofumpt)
+      CreateWithDefaultTenant(ctx context.Context, email, passwordHash, name, locale, tenantName string) (User, Tenant, error)
+  ^
+  Error: internal/usecase/auth/service.go:53:1: File is not properly formatted (gofumpt)
+      Store(ctx context.Context, userID, token string, expiresAt time.Time) error
+  ^
+  Error: internal/usecase/auth/service.go:58:1: File is not properly formatted (gofumpt)
+      users  UserRepo
+  ^
+  Error: internal/usecase/auth/service.go:67:1: File is not properly formatted (gofumpt)
+      return &Service{users: users, tokens: tokens, hasher: hasher, issuer: issuer, accessTTL: accessTTL, refreshTTL: refreshTTL}
+  ^
+  Error: internal/usecase/auth/service.go:73:1: File is not properly formatted (gofumpt)
+      hash, err := s.hasher.Hash(password)
+  ^
+  Error: internal/usecase/auth/service.go:84:1: File is not properly formatted (gofumpt)
+      u, memberships, err := s.users.GetByEmail(ctx, email)
+  ^
+  Error: internal/pkg/config/config.go:4:1: File is not properly formatted (gofumpt)
+      "fmt"
+  ^
+  Error: internal/pkg/config/config.go:10:1: File is not properly formatted (gofumpt)
+      AppEnv        string
+  ^
+  Error: internal/pkg/config/config.go:19:1: File is not properly formatted (gofumpt)
+      if v := os.Getenv(key); v != "" {
+  ^
+  Error: internal/pkg/config/config.go:26:1: File is not properly formatted (gofumpt)
+      var cfg Config
+  ^
+  Error: internal/pkg/config/config_test.go:4:1: File is not properly formatted (gofumpt)
+      "os"
+  ^
+  Error: internal/pkg/config/config_test.go:9:1: File is not properly formatted (gofumpt)
+      _ = os.Unsetenv("APP_ENV")
+  ^
+  Error: internal/pkg/config/config_test.go:22:1: File is not properly formatted (gofumpt)
+  
+  ^
+  
+  Error: issues found
+  Ran golangci-lint in 24151ms
+  
+Ты можешь локально запустить golangci-lint, чтьобы проверить? В идеале сделать какой-нибудь make check, который будет запускать все проверки включая тесты
+
+---
+
