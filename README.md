@@ -89,6 +89,7 @@ flowchart TB
 - categories(id uuid, tenant_id, kind income|expense, code, parent_id, is_active, created_at)
 - category_i18n(category_id, locale, name, description)
 - transactions(id uuid, tenant_id, user_id, category_id, type income|expense, amount numeric(18,2), currency, base_amount numeric(18,2), base_currency, fx_rate numeric(18,8), fx_provider, fx_as_of date, occurred_at timestamptz, comment, created_at)
+ - fx_rates(from_currency, to_currency, rate numeric(18,8), as_of date, provider, created_at)
 
 Ключевые индексы: (tenant_id, occurred_at), (tenant_id, category_id), (tenant_id, type, occurred_at), полнотекстовый по комментарию (опционально).
 
@@ -182,6 +183,9 @@ make proto
 
 # применить миграции (после их добавления)
 make migrate-up
+
+# остановить окружение и удалить volume с БД
+make down
 ```
 
 ### Безопасность

@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS category_i18n;
+DROP TABLE IF EXISTS categories;
+
+

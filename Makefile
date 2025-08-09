@@ -41,4 +41,12 @@ migrate-up:
 migrate-down:
 	migrate -database "$(DB_URL)" -path migrations down 1
 
+# Dockerized migrate (no local CLI required)
+.PHONY: dmigrate-up dmigrate-down
+dmigrate-up:
+	docker run --rm -v $(PWD)/migrations:/migrations --network host migrate/migrate -database "$(DB_URL)" -path /migrations up
+
+dmigrate-down:
+	docker run --rm -v $(PWD)/migrations:/migrations --network host migrate/migrate -database "$(DB_URL)" -path /migrations down 1
+
 
