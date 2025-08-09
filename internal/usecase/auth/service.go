@@ -52,6 +52,11 @@ type UserRepo interface {
 type RefreshTokenRepo interface {
 	Store(ctx context.Context, userID, token string, expiresAt time.Time) error
 	Rotate(ctx context.Context, oldToken, newToken string, newExpiresAt time.Time) error
+	GetByToken(ctx context.Context, token string) (struct {
+		UserID    string
+		ExpiresAt time.Time
+		RevokedAt *time.Time
+	}, error)
 }
 
 type Service struct {
@@ -115,4 +120,24 @@ func (s *Service) Login(ctx context.Context, email, password string) (User, []Te
 		return User{}, nil, TokenPair{}, err
 	}
 	return u, memberships, tp, nil
+}
+
+// Refresh performs single-use refresh token rotation
+func (s *Service) Refresh(ctx context.Context, refreshToken string) (TokenPair, error) {
+	row, err := s.tokens.GetByToken(ctx, refreshToken)
+	if err != nil {
+		return TokenPair{}, ErrInvalidCredentials
+	}
+	if row.RevokedAt != nil || time.Now().After(row.ExpiresAt) {
+		return TokenPair{}, ErrInvalidCredentials
+	}
+	// issue new pair; tenantID unknown here → empty, клиент должен выбрать активный tenant заново или хранить его внешне
+	tp, err := s.issuer.Issue(ctx, row.UserID, "", s.accessTTL, s.refreshTTL)
+	if err != nil {
+		return TokenPair{}, err
+	}
+	if err := s.tokens.Rotate(ctx, refreshToken, tp.RefreshToken, tp.RefreshTokenExpiresAt); err != nil {
+		return TokenPair{}, err
+	}
+	return tp, nil
 }

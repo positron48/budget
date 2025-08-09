@@ -24,6 +24,21 @@ func (r *RefreshTokenRepo) Store(ctx context.Context, userID, token string, expi
 	return err
 }
 
+type RefreshTokenRow struct {
+	UserID    string
+	ExpiresAt time.Time
+	RevokedAt *time.Time
+}
+
+func (r *RefreshTokenRepo) GetByToken(ctx context.Context, token string) (RefreshTokenRow, error) {
+	var row RefreshTokenRow
+	err := r.pool.DB.QueryRow(ctx,
+		`SELECT user_id, expires_at, revoked_at FROM refresh_tokens WHERE token_hash=$1 ORDER BY created_at DESC LIMIT 1`,
+		hashToken(token),
+	).Scan(&row.UserID, &row.ExpiresAt, &row.RevokedAt)
+	return row, err
+}
+
 func (r *RefreshTokenRepo) Rotate(ctx context.Context, oldToken, newToken string, newExpiresAt time.Time) error {
 	// mark old as revoked and insert new
 	_, err := r.pool.DB.Exec(ctx,
