@@ -27,25 +27,8 @@ func (s *TransactionServer) CreateTransaction(ctx context.Context, req *budgetv1
     userID, _ := ctxutil.UserIDFromContext(ctx)
     amount := domain.Money{CurrencyCode: req.GetAmount().GetCurrencyCode(), MinorUnits: req.GetAmount().GetMinorUnits()}
     occurredAt := time.Now()
-    if req.GetOccurredAt() != nil {
-        occurredAt = req.GetOccurredAt().AsTime()
-    }
-    base, fx, err := s.svc.ComputeBaseAmount(ctx, tenantID, amount, occurredAt)
-    if err != nil {
-        return nil, err
-    }
-    tx := domain.Transaction{
-        TenantID:   tenantID,
-        UserID:     userID,
-        CategoryID: req.GetCategoryId(),
-        Type:       mapTxType(req.GetType()),
-        Amount:     amount,
-        BaseAmount: base,
-        Fx:         fx,
-        OccurredAt: occurredAt,
-        Comment:    req.GetComment(),
-    }
-    created, err := s.svc.Create(ctx, tx)
+    if req.GetOccurredAt() != nil { occurredAt = req.GetOccurredAt().AsTime() }
+    created, err := s.svc.CreateForUser(ctx, tenantID, userID, mapTxType(req.GetType()), req.GetCategoryId(), amount, occurredAt, req.GetComment())
     if err != nil {
         return nil, err
     }

@@ -99,7 +99,7 @@ func main() {
 
 		// Transaction (wire repos into usecase)
 		txRepo := postgres.NewTransactionRepo(db)
-		txSvc := transaction.NewService(txRepo, fxRepo, tenantRepo)
+		txSvc := transaction.NewService(txRepo, fxRepo, tenantRepo, categoryRepo)
 		budgetv1.RegisterTransactionServiceServer(server, grpcadapter.NewTransactionServer(txSvc))
 	}
 
