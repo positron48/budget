@@ -1,9 +1,9 @@
 package config
 
 import (
-    "os"
-    "testing"
-    "time"
+	"os"
+	"testing"
+	"time"
 )
 
 func TestLoad_Defaults(t *testing.T) {
@@ -30,11 +30,13 @@ func TestLoad_Defaults(t *testing.T) {
 }
 
 func TestLoad_ParseTTLs(t *testing.T) {
-    t.Setenv("JWT_ACCESS_TTL", "10m")
-    t.Setenv("JWT_REFRESH_TTL", "24h")
-    cfg, err := Load()
-    if err != nil { t.Fatalf("Load() error: %v", err) }
-    if cfg.JWTAccessTTL != 10*time.Minute || cfg.JWTRefreshTTL != 24*time.Hour {
-        t.Fatalf("unexpected TTLs: %v %v", cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
-    }
+	t.Setenv("JWT_ACCESS_TTL", "10m")
+	t.Setenv("JWT_REFRESH_TTL", "24h")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if cfg.JWTAccessTTL != 10*time.Minute || cfg.JWTRefreshTTL != 24*time.Hour {
+		t.Fatalf("unexpected TTLs: %v %v", cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
+	}
 }

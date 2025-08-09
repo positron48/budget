@@ -24,14 +24,14 @@ func TestArgon2Hasher_HashAndVerify(t *testing.T) {
 }
 
 func TestArgon2Hasher_InvalidHashes(t *testing.T) {
-    h := NewArgon2Hasher()
-    // wrong parts count
-    if h.Verify("invalid$hash", "secret") {
-        t.Fatal("verify should fail on malformed hash")
-    }
-    // wrong prefix/version
-    bad := "argon2i$v=18$m=65536,t=1,p=4$AAAA$BBBB"
-    if h.Verify(bad, "secret") {
-        t.Fatal("verify should fail on wrong method/version")
-    }
+	h := NewArgon2Hasher()
+	// wrong parts count
+	if h.Verify("invalid$hash", "secret") {
+		t.Fatal("verify should fail on malformed hash")
+	}
+	// wrong prefix/version
+	bad := "argon2i$v=18$m=65536,t=1,p=4$AAAA$BBBB"
+	if h.Verify(bad, "secret") {
+		t.Fatal("verify should fail on wrong method/version")
+	}
 }
