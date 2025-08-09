@@ -2,73 +2,84 @@ package main
 
 import (
     "context"
-    "fmt"
-    "log"
     "net"
     "os"
     "os/signal"
     "syscall"
     "time"
 
+    "github.com/example/budget/internal/adapter/postgres"
+    "github.com/example/budget/internal/pkg/config"
+    "github.com/example/budget/internal/pkg/logger"
+
     "google.golang.org/grpc"
     health "google.golang.org/grpc/health"
     healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
-func getenv(key, def string) string {
-    if v := os.Getenv(key); v != "" {
-        return v
-    }
-    return def
-}
-
 func main() {
-    grpcAddr := getenv("GRPC_ADDR", ":8080")
-
-    lis, err := net.Listen("tcp", grpcAddr)
+    // Load config & logger
+    cfg, err := config.Load()
     if err != nil {
-        log.Fatalf("failed to listen on %s: %v", grpcAddr, err)
+        panic(err)
+    }
+    lg, err := logger.New(cfg.AppEnv)
+    if err != nil {
+        panic(err)
+    }
+    defer lg.Sync() //nolint:errcheck
+    sug := lg.Sugar()
+
+    // DB connect
+    ctx := context.Background()
+    var db *postgres.Pool
+    if cfg.DatabaseURL != "" {
+        db, err = postgres.NewPool(ctx, cfg.DatabaseURL)
+        if err != nil {
+            sug.Fatalw("db connect failed", "error", err)
+        }
+        if pingErr := db.Ping(ctx); pingErr != nil {
+            sug.Fatalw("db ping failed", "error", pingErr)
+        }
+        defer db.Close()
+    } else {
+        sug.Warn("DATABASE_URL is empty; running without DB connection")
+    }
+
+    lis, err := net.Listen("tcp", cfg.GRPCAddr)
+    if err != nil {
+        sug.Fatalw("listen failed", "error", err)
     }
 
     server := grpc.NewServer()
 
-    // Register health service
+    // health service
     hs := health.NewServer()
     healthpb.RegisterHealthServer(server, hs)
 
-    // Lifecycle: serve in goroutine
     go func() {
-        log.Printf("gRPC listening on %s", grpcAddr)
+        sug.Infow("gRPC listening", "addr", cfg.GRPCAddr)
         if err := server.Serve(lis); err != nil {
-            log.Fatalf("gRPC server failed: %v", err)
+            sug.Fatalw("gRPC server failed", "error", err)
         }
     }()
 
-    // Graceful shutdown on SIGINT/SIGTERM
+    // graceful shutdown
     sigCh := make(chan os.Signal, 1)
     signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-
     <-sigCh
-    log.Println("shutting down gRPC server...")
-
-    // allow ongoing RPCs to finish
+    sug.Info("shutting down gRPC server...")
     done := make(chan struct{})
-    go func() {
-        server.GracefulStop()
-        close(done)
-    }()
-
+    go func() { server.GracefulStop(); close(done) }()
     select {
     case <-done:
-        log.Println("gRPC server stopped")
+        sug.Info("gRPC server stopped")
     case <-time.After(5 * time.Second):
-        log.Println("force stopping gRPC server")
+        sug.Warn("force stopping gRPC server")
         server.Stop()
     }
-
-    // Extra: ensure context cancel semantics for future extensions
-    _ = context.Background()
-    fmt.Println("bye")
 }
+
+
 
 
