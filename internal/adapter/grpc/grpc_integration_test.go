@@ -14,6 +14,7 @@ import (
 	"github.com/positron48/budget/internal/usecase/category"
     txuse "github.com/positron48/budget/internal/usecase/transaction"
     repuse "github.com/positron48/budget/internal/usecase/report"
+    useTenant "github.com/positron48/budget/internal/usecase/tenant"
     "google.golang.org/protobuf/types/known/timestamppb"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -399,6 +400,57 @@ func TestFx_Upsert_Get_Batch(t *testing.T) {
     b, err := c.BatchGetRates(ctx, &budgetv1.BatchGetRatesRequest{FromCurrencyCodes: []string{"USD"}, ToCurrencyCode: "RUB", AsOf: timestamppb.New(now)})
     if err != nil || len(b.GetRates()) == 0 { t.Fatalf("batch: %v %#v", err, b) }
 }
+
+// --- Tenant integration ---
+type memTenantRepo struct{}
+func (memTenantRepo) Create(ctx context.Context, name, slug, defaultCurrency string, ownerUserID string) (domain.Tenant, error) {
+    return domain.Tenant{ID: "t1", Name: name, Slug: slug, DefaultCurrencyCode: defaultCurrency}, nil
+}
+func (memTenantRepo) ListForUser(ctx context.Context, userID string) ([]domain.TenantMembership, error) {
+    return []domain.TenantMembership{{Tenant: domain.Tenant{ID: "t1"}, Role: "owner", IsDefault: true}}, nil
+}
+
+func TestTenant_Create_And_List_WithAuth(t *testing.T) {
+    const signKey = "test-secret"
+    lis := bufconn.Listen(bufSize)
+    t.Cleanup(func() { _ = lis.Close() })
+
+    lg, _ := zap.NewDevelopment()
+    sug := lg.Sugar()
+    defer lg.Sync() //nolint:errcheck
+
+    var tenantGuard grpc.UnaryServerInterceptor = func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) { return handler(ctx, req) }
+    srv := grpc.NewServer(grpc.ChainUnaryInterceptor(
+        NewAuthUnaryInterceptor(signKey),
+        LoggingUnaryInterceptor(sug),
+        RecoveryUnaryInterceptor(sug),
+        func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) { return tenantGuard(ctx, req, info, handler) },
+    ))
+    tenantGuard = NewTenantGuardUnaryInterceptor(func(ctx context.Context, userID, tenantID string) (bool, error) { return true, nil })
+
+    // wire tenant service
+    trepo := memTenantRepo{}
+    tsvc := useTenant.NewService(trepo)
+    budgetv1.RegisterTenantServiceServer(srv, NewTenantServer(tsvc))
+
+    go func() { _ = srv.Serve(lis) }()
+    t.Cleanup(srv.Stop)
+
+    ctx := context.Background()
+    conn, err := dialBufConn(ctx, lis)
+    if err != nil { t.Fatalf("dial: %v", err) }
+    t.Cleanup(func() { _ = conn.Close() })
+
+    token, _ := issueToken(signKey, "u1", "t1")
+    md := metadata.New(map[string]string{"authorization": "Bearer " + token})
+    authCtx := metadata.NewOutgoingContext(ctx, md)
+
+    c := budgetv1.NewTenantServiceClient(conn)
+    if _, err := c.CreateTenant(authCtx, &budgetv1.CreateTenantRequest{Name: "Home", Slug: "home", DefaultCurrencyCode: "USD"}); err != nil { t.Fatalf("create: %v", err) }
+    lst, err := c.ListMyTenants(authCtx, &budgetv1.ListMyTenantsRequest{})
+    if err != nil || len(lst.GetMemberships()) == 0 { t.Fatalf("list: %v %#v", err, lst) }
+}
+
 
 
 

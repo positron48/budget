@@ -11,6 +11,54 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+      - name: Buf Lint
+        working-directory: proto
+        run: buf lint
+      - name: Buf Generate
+        working-directory: proto
+        run: buf generate
+
+  go:
+    runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+      - name: Install gofumpt
+        run: go install mvdan.cc/gofumpt@latest
+      - name: Tidy
+        run: go mod tidy
+      - name: Lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.64.8
+          args: --timeout=5m
+      - name: Test
+        run: go test ./... -race -coverprofile=coverage.out -covermode=atomic
+      - name: Check coverage threshold
+        run: |
+          total=$(go tool cover -func=coverage.out | awk '/total:/ {print int($3)}')
+          echo "Total coverage: ${total}%"
+          if [ "$total" -lt 80 ]; then echo "coverage below 80%" && exit 1; fi
+
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  proto:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - uses: bufbuild/buf-setup-action@v1
       - run: cd proto && buf lint
 

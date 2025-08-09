@@ -22,7 +22,7 @@
 - ✅ gRPC серверы: Auth, Tenant, Category, Transaction, Report, Fx, User — реализованы; Import — скелет.
 - ✅ Репозитории: user, tenant, category, transaction, fx, refresh_token — реализованы.
 - ✅ Usecase‑сервисы: auth, tenant, category, transaction, report, user — реализованы.
-- 🟡 Интеграционные gRPC‑тесты — частично: есть тесты Category с аутентификацией, добавлен сценарий Auth (Register→Login→Refresh→доступ к защищенным RPC), начаты сценарии Transaction+Report, добавлены тесты Fx (Upsert/Get/Batch); осталось Tenant.
+- ✅ Интеграционные gRPC‑тесты — сделано: есть тесты Category с аутентификацией, реализован сценарий Auth (Register→Login→Refresh→access), добавлены сценарии Transaction+Report и Fx (Upsert/Get/Batch), добавлен Tenant (Create/List). 
 - 🟡 CI — частично: локальный `make check` зелёный; добавить GitHub Actions (buf generate, тесты, линт).
 - 🟡 Observability — частично: логирование/Recovery есть; OpenTelemetry/Prometheus — TODO.
 - 🟡 ImportService — частично: есть скелет `ImportServer`, требуется реализация и тесты.
@@ -341,7 +341,7 @@ grpcurl -plaintext -H "authorization: Bearer <ACCESS>" -H "x-tenant-id: <TENANT>
   - job: go build + test + lint (Go 1.23.x, golangci-lint 1.64.8)
   - job: docker build/push (опционально)
 
-Статус: 🟡 частично — локальный `make check` зелёный; CI‑пайплайн в GitHub Actions нужно добавить.
+Статус: 🟡 частично — локальный `make check` зелёный; добавлен базовый CI GitHub Actions (buf lint/generate, golangci-lint, go test + coverage≥80%).
 
 План доработки CI:
 - Добавить job `proto` (buf lint + buf generate) с кэшированием `gen/go`.
