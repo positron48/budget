@@ -297,6 +297,7 @@ export JWT_SIGN_KEY=dev-secret
 export OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4318
 export OTEL_EXPORTER_OTLP_INSECURE=true
 
+docker compose --profile obs up -d otel-collector prometheus grafana
 go run ./cmd/budgetd
 ```
 

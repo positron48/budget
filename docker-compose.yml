@@ -60,6 +60,14 @@ services:
     depends_on:
       - prometheus
 
+  otel-collector:
+    image: otel/opentelemetry-collector:0.94.0
+    profiles: ["obs"]
+    volumes:
+      - ./deploy/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4318:4318"
+
 volumes:
   db_data:
 

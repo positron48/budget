@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -10,6 +11,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/positron48/budget/internal/domain"
+	txusecase "github.com/positron48/budget/internal/usecase/transaction"
 	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
@@ -151,5 +154,51 @@ func TestFxRepo_CRUD_PG(t *testing.T) {
 	rows, err := repo.BatchGetRates(ctx, []string{"USD"}, "EUR", time.Now())
 	if err != nil || len(rows) != 1 {
 		t.Fatalf("batch: %v %#v", err, rows)
+	}
+}
+
+func TestTransactionRepo_CRUD_PG(t *testing.T) {
+	pool, _ := withPg(t)
+	ctx := context.Background()
+	// seed tenant, user, category
+	var tenantID, userID, catID string
+	if err := pool.DB.QueryRow(ctx, `INSERT INTO tenants(name, default_currency_code) VALUES ($1,$2) RETURNING id`, "Home", "USD").Scan(&tenantID); err != nil {
+		t.Fatalf("seed tenant: %v", err)
+	}
+	if err := pool.DB.QueryRow(ctx, `INSERT INTO users(email, password_hash) VALUES ($1,$2) RETURNING id`, fmt.Sprintf("u_%d@example.com", time.Now().UnixNano()), "h").Scan(&userID); err != nil {
+		t.Fatalf("seed user: %v", err)
+	}
+	if err := pool.DB.QueryRow(ctx, `INSERT INTO categories(tenant_id, kind, code, is_active) VALUES ($1,$2,$3,$4) RETURNING id`, tenantID, "expense", "food", true).Scan(&catID); err != nil {
+		t.Fatalf("seed cat: %v", err)
+	}
+	repo := NewTransactionRepo(pool)
+	// create tx in USD with fx=1.0 to exercise fx path and avoid NULL type issues
+	now := time.Now()
+	tx := domain.Transaction{TenantID: tenantID, UserID: userID, CategoryID: catID, Type: domain.TransactionTypeExpense, Amount: domain.Money{CurrencyCode: "USD", MinorUnits: 1234}, BaseAmount: domain.Money{CurrencyCode: "USD", MinorUnits: 1234}, OccurredAt: now, Fx: &domain.FxInfo{FromCurrency: "USD", ToCurrency: "USD", RateDecimal: "1.0000", Provider: "prov", AsOf: now}}
+	created, err := repo.Create(ctx, tx)
+	if err != nil || created.ID == "" {
+		t.Fatalf("create: %v %#v", err, created)
+	}
+	// get
+	got, err := repo.Get(ctx, created.ID)
+	if err != nil || got.Amount.MinorUnits != 1234 {
+		t.Fatalf("get: %v %#v", err, got)
+	}
+	// update amount
+	got.Amount.MinorUnits = 1500
+	got.BaseAmount.MinorUnits = 1500
+	got.Fx = &domain.FxInfo{FromCurrency: "USD", ToCurrency: "USD", RateDecimal: "1.0000", Provider: "prov", AsOf: now}
+	up, err := repo.Update(ctx, got)
+	if err != nil || up.BaseAmount.MinorUnits != 1500 {
+		t.Fatalf("update: %v %#v", err, up)
+	}
+	// list
+	lst, total, err := repo.List(ctx, tenantID, txusecase.ListFilter{Page: 1, PageSize: 10})
+	if err != nil || total < 1 || len(lst) < 1 {
+		t.Fatalf("list: %v total=%d len=%d", err, total, len(lst))
+	}
+	// delete
+	if err := repo.Delete(ctx, created.ID); err != nil {
+		t.Fatalf("delete: %v", err)
 	}
 }

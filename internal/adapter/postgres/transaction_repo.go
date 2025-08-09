@@ -29,7 +29,7 @@ func (r *TransactionRepo) Create(ctx context.Context, tx domain.Transaction) (do
 		`INSERT INTO transactions (tenant_id, user_id, category_id, type, amount_numeric, currency_code,
                                    base_amount_numeric, base_currency_code, fx_rate, fx_provider, fx_as_of, occurred_at, comment)
           VALUES ($1,$2,$3,$4,$5::numeric,$6,
-                  CASE WHEN $8 IS NULL THEN $5::numeric ELSE ($5::numeric * $8::numeric) END,
+                  CASE WHEN $8::numeric IS NULL THEN $5::numeric ELSE ($5::numeric * $8::numeric) END,
                   $7, $8::numeric, $9, $10, $11, $12)
           RETURNING id`,
 		tx.TenantID, tx.UserID, tx.CategoryID, string(tx.Type),
@@ -55,7 +55,7 @@ func (r *TransactionRepo) Update(ctx context.Context, tx domain.Transaction) (do
 	_, err := r.pool.DB.Exec(ctx,
 		`UPDATE transactions
            SET category_id=$2, type=$3, amount_numeric=$4::numeric, currency_code=$5,
-               base_amount_numeric=CASE WHEN $7 IS NULL THEN $4::numeric ELSE ($4::numeric * $7::numeric) END,
+               base_amount_numeric=CASE WHEN $7::numeric IS NULL THEN $4::numeric ELSE ($4::numeric * $7::numeric) END,
                base_currency_code=$6, fx_rate=$7::numeric, fx_provider=$8, fx_as_of=$9, occurred_at=$10, comment=$11
          WHERE id=$1`,
 		tx.ID, tx.CategoryID, string(tx.Type), toDecimal(tx.Amount.MinorUnits), tx.Amount.CurrencyCode,

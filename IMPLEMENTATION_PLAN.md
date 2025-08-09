@@ -220,7 +220,7 @@ migrate -database "postgres://budget:budget@localhost:5432/budget?sslmode=disabl
 - Интеграционные тесты с Dockerized PostgreSQL (через `docker compose` profile `test` или `testcontainers-go`).
 - Покрыть CRUD по категориям, транзакции (с сохранением base_amount и fx_*), fx_rates CRUD.
 
-Статус: 🟡 частично — репозитории реализованы; интеграционные тесты с реальной БД начаты (CategoryRepo CRUD, FxRepo upsert/get/batch); осталось покрыть TransactionRepo.
+Статус: ✅ сделано — репозитории реализованы; интеграционные тесты с реальной БД добавлены: CategoryRepo CRUD, FxRepo upsert/get/batch, TransactionRepo CRUD/List. 
 
 ### 7. Аутентификация и авторизация
 
@@ -321,7 +321,7 @@ grpcurl -plaintext -H "authorization: Bearer <ACCESS>" -H "x-tenant-id: <TENANT>
 
 Тесты: e2e на небольших CSV.
 
-Статус: 🟡 частично — сервер‑скелет создан; минимальный happy‑path (start/upload/config/preview/commit) покрыт; требуется реализация парсинга/маппинга и интеграция с TransactionService.
+Статус: 🟡 частично — сервер‑скелет создан; минимальный happy‑path (start/upload/config/preview/commit) покрыт; далее: хранение временного файла, парсинг CSV, маппинг и интеграция с TransactionService.
 
 ### 15. Обсервабилити и инфраструктура
 
@@ -341,7 +341,7 @@ grpcurl -plaintext -H "authorization: Bearer <ACCESS>" -H "x-tenant-id: <TENANT>
   - job: go build + test + lint (Go 1.23.x, golangci-lint 1.64.8)
   - job: docker build/push (опционально)
 
-Статус: 🟡 частично — локальный `make check` зелёный; добавлен базовый CI GitHub Actions (buf lint/generate, golangci-lint, go test + coverage≥80%).
+Статус: 🟡 частично — локальный `make check` зелёный; добавлен базовый CI GitHub Actions (buf lint/generate, golangci-lint, go test + coverage≥80%), добавлен кэш Buf/Go и публикация артефакта coverage.
 
 План доработки CI:
 - Добавить кэш для buf/proto и Go модулей.
