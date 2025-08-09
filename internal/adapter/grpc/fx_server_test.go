@@ -53,4 +53,14 @@ func TestFxServer_Upsert_And_Batch(t *testing.T) {
     if err != nil || len(b.GetRates()) == 0 { t.Fatalf("batch: %v %#v", err, b) }
 }
 
+func TestFxServer_Upsert_Error(t *testing.T) {
+    srv := NewFxServer(fxStub{err: errors.New("boom")})
+    if _, err := srv.UpsertRate(context.Background(), &budgetv1.UpsertRateRequest{Rate: &budgetv1.FxRate{FromCurrencyCode: "USD", ToCurrencyCode: "RUB", RateDecimal: "2.0"}}); err == nil { t.Fatal("expected error") }
+}
+
+func TestFxServer_Batch_Error(t *testing.T) {
+    srv := NewFxServer(fxStub{err: errors.New("boom")})
+    if _, err := srv.BatchGetRates(context.Background(), &budgetv1.BatchGetRatesRequest{FromCurrencyCodes: []string{"USD"}, ToCurrencyCode: "RUB"}); err == nil { t.Fatal("expected error") }
+}
+
 

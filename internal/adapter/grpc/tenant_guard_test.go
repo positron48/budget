@@ -33,4 +33,11 @@ func TestTenantGuard_ErrorFromValidate(t *testing.T) {
 type assertErr struct{}
 func (assertErr) Error() string { return "assert" }
 
+func TestTenantGuard_MissingContext(t *testing.T) {
+    it := NewTenantGuardUnaryInterceptor(func(ctx context.Context, userID, tenantID string) (bool, error) { return true, nil })
+    // no user/tenant in ctx
+    _, err := it(context.Background(), nil, &grpc.UnaryServerInfo{FullMethod: "/budget.v1.TransactionService/ListTransactions"}, handlerOK)
+    if status.Code(err) != codes.Unauthenticated { t.Fatalf("expected Unauthenticated, got %v", err) }
+}
+
 

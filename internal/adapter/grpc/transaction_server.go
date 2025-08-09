@@ -17,10 +17,18 @@ import (
 
 type TransactionServer struct {
 	budgetv1.UnimplementedTransactionServiceServer
-	svc *txusecase.Service
+    svc interface{
+        ComputeBaseAmount(ctx context.Context, tenantID string, amount domain.Money, occurredAt time.Time) (domain.Money, *domain.FxInfo, error)
+        Create(ctx context.Context, tx domain.Transaction) (domain.Transaction, error)
+        Update(ctx context.Context, tx domain.Transaction) (domain.Transaction, error)
+        Delete(ctx context.Context, id string) error
+        Get(ctx context.Context, id string) (domain.Transaction, error)
+        List(ctx context.Context, tenantID string, filter txusecase.ListFilter) ([]domain.Transaction, int64, error)
+        CreateForUser(ctx context.Context, tenantID, userID string, txType domain.TransactionType, categoryID string, amount domain.Money, occurredAt time.Time, comment string) (domain.Transaction, error)
+    }
 }
 
-func NewTransactionServer(svc *txusecase.Service) *TransactionServer {
+func NewTransactionServer(svc interface{ ComputeBaseAmount(context.Context, string, domain.Money, time.Time) (domain.Money, *domain.FxInfo, error); Create(context.Context, domain.Transaction) (domain.Transaction, error); Update(context.Context, domain.Transaction) (domain.Transaction, error); Delete(context.Context, string) error; Get(context.Context, string) (domain.Transaction, error); List(context.Context, string, txusecase.ListFilter) ([]domain.Transaction, int64, error); CreateForUser(context.Context, string, string, domain.TransactionType, string, domain.Money, time.Time, string) (domain.Transaction, error) }) *TransactionServer {
 	return &TransactionServer{svc: svc}
 }
 

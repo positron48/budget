@@ -2,6 +2,7 @@ package grpcadapter
 
 import (
     "context"
+    "errors"
     "testing"
 
     budgetv1 "github.com/positron48/budget/gen/go/budget/v1"
@@ -64,6 +65,24 @@ func TestCategoryServer_CRUD_And_Locale(t *testing.T) {
 
     // delete
     if _, err := srv.DeleteCategory(ctx, &budgetv1.DeleteCategoryRequest{Id: out.GetCategory().GetId()}); err != nil { t.Fatalf("delete: %v", err) }
+}
+
+type errCatRepo struct{}
+func (errCatRepo) Create(ctx context.Context, tenantID string, kind domain.CategoryKind, code string, parentID *string, isActive bool, translations []domain.CategoryTranslation) (domain.Category, error) { return domain.Category{}, errors.New("boom") }
+func (errCatRepo) Update(ctx context.Context, id string, code string, parentID *string, isActive bool, translations []domain.CategoryTranslation) (domain.Category, error) { return domain.Category{}, errors.New("boom") }
+func (errCatRepo) Delete(ctx context.Context, id string) error { return errors.New("boom") }
+func (errCatRepo) Get(ctx context.Context, id string) (domain.Category, error) { return domain.Category{}, errors.New("boom") }
+func (errCatRepo) List(ctx context.Context, tenantID string, kind domain.CategoryKind, includeInactive bool) ([]domain.Category, error) { return nil, errors.New("boom") }
+
+func TestCategoryServer_MapError(t *testing.T) {
+    svc := usecat.NewService(errCatRepo{})
+    srv := NewCategoryServer(svc)
+    ctx := ctxutil.WithTenantID(context.Background(), "t1")
+    if _, err := srv.CreateCategory(ctx, &budgetv1.CreateCategoryRequest{Kind: budgetv1.CategoryKind_CATEGORY_KIND_EXPENSE, Code: "x"}); err == nil { t.Fatal("expected error") }
+    if _, err := srv.UpdateCategory(ctx, &budgetv1.UpdateCategoryRequest{Id: "c1"}); err == nil { t.Fatal("expected error") }
+    if _, err := srv.GetCategory(ctx, &budgetv1.GetCategoryRequest{Id: "c1"}); err == nil { t.Fatal("expected error") }
+    if _, err := srv.ListCategories(ctx, &budgetv1.ListCategoriesRequest{Kind: budgetv1.CategoryKind_CATEGORY_KIND_EXPENSE}); err == nil { t.Fatal("expected error") }
+    if _, err := srv.DeleteCategory(ctx, &budgetv1.DeleteCategoryRequest{Id: "c1"}); err == nil { t.Fatal("expected error") }
 }
 
 
