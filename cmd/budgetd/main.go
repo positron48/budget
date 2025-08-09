@@ -128,6 +128,9 @@ func main() {
 			return u.PasswordHash, nil
 		}
 		budgetv1.RegisterUserServiceServer(server, grpcadapter.NewUserServer(userSvc, getHash))
+
+		// Import (scaffold)
+		budgetv1.RegisterImportServiceServer(server, grpcadapter.NewImportServer())
 	}
 
 	go func() {
