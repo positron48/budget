@@ -5,6 +5,10 @@ DB_URL=postgres://budget:budget@localhost:5432/budget?sslmode=disable
 proto:
 	cd $(PROTO_DIR) && buf lint && buf generate
 
+.PHONY: dproto
+dproto:
+	docker run --rm -v $(PWD):/workspace -w /workspace/proto bufbuild/buf:latest generate
+
 .PHONY: build
 build:
 	go build -o bin/budgetd ./cmd/budgetd

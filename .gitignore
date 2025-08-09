@@ -11,6 +11,7 @@ coverage/
 
 # Generated code
 gen/
+coverage.out
 
 # Env files
 .env
