@@ -32,7 +32,7 @@ func TestAuthInterceptor_Protected_WithToken(t *testing.T) {
     claims := jwt.MapClaims{"sub": "u1", "tenant_id": "t1", "iat": time.Now().Unix(), "exp": time.Now().Add(time.Minute).Unix()}
     token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
     s, _ := token.SignedString([]byte("k"))
-    ctx := metadataIncoming(map[string]string{"authorization": "Bearer " + s})
+    ctx := metadataIncoming(map[string]string{"authorization": "Bearer " + s, "x-tenant-id": "t1"})
     _, err := it(ctx, nil, &grpc.UnaryServerInfo{FullMethod: "/budget.v1.CategoryService/ListCategories"}, handlerOK)
     if err != nil { t.Fatalf("unexpected error: %v", err) }
 }

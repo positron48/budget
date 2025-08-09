@@ -31,7 +31,7 @@ func (cRepoStub) GetMany(ctx context.Context, ids []string) (map[string]domain.C
 }
 
 func TestReport_MonthlySummary(t *testing.T) {
-    // two expense tx in USD base RUB, target RUB
+    // two expense tx in base RUB
     items := []domain.Transaction{
         {CategoryID: "food", Type: domain.TransactionTypeExpense, BaseAmount: domain.Money{CurrencyCode: "RUB", MinorUnits: 10000}, OccurredAt: time.Now()},
         {CategoryID: "books", Type: domain.TransactionTypeExpense, BaseAmount: domain.Money{CurrencyCode: "RUB", MinorUnits: 5000}, OccurredAt: time.Now()},
@@ -39,10 +39,18 @@ func TestReport_MonthlySummary(t *testing.T) {
     rep := Service{fx: fxRepoStub{}, tenants: tRepoStub{base: "RUB"}, cats: cRepoStub{}, txsvc: stubTxService{items: items}}
     sum, err := rep.GetMonthlySummary(context.Background(), "t1", 2025, 2, "en", "")
     if err != nil { t.Fatalf("summary: %v", err) }
-    _ = items // placeholder to keep the compiler happy in this simplified test
-    if sum.TotalIncome.MinorUnits != 0 || sum.TotalExpense.CurrencyCode == "" {
+    if sum.TotalIncome.MinorUnits != 0 || sum.TotalExpense.MinorUnits != 15000 {
         t.Fatalf("unexpected sums: %+v", sum)
     }
+}
+
+func TestReport_TargetDiffersFromBase(t *testing.T) {
+    // one expense in EUR base, target USD with fx 2.0
+    items := []domain.Transaction{{CategoryID: "rent", Type: domain.TransactionTypeExpense, BaseAmount: domain.Money{CurrencyCode: "EUR", MinorUnits: 10000}, OccurredAt: time.Now()}}
+    rep := Service{fx: fxRepoStub{}, tenants: tRepoStub{base: "EUR"}, cats: cRepoStub{}, txsvc: stubTxService{items: items}}
+    sum, err := rep.GetMonthlySummary(context.Background(), "t1", 2025, 2, "en", "USD")
+    if err != nil { t.Fatalf("summary: %v", err) }
+    if sum.TotalExpense.MinorUnits != 20000 || sum.TotalExpense.CurrencyCode != "USD" { t.Fatalf("conversion failed: %+v", sum) }
 }
 
 

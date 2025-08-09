@@ -13,10 +13,10 @@ import (
 
 type ReportServer struct {
 	budgetv1.UnimplementedReportServiceServer
-	svc *repuse.Service
+    svc interface{ GetMonthlySummary(ctx context.Context, tenantID string, year int, month int, locale string, targetCurrencyCode string) (repuse.MonthlySummary, error) }
 }
 
-func NewReportServer(svc *repuse.Service) *ReportServer { return &ReportServer{svc: svc} }
+func NewReportServer(svc interface{ GetMonthlySummary(ctx context.Context, tenantID string, year int, month int, locale string, targetCurrencyCode string) (repuse.MonthlySummary, error) }) *ReportServer { return &ReportServer{svc: svc} }
 
 func (s *ReportServer) GetMonthlySummary(ctx context.Context, req *budgetv1.GetMonthlySummaryRequest) (*budgetv1.GetMonthlySummaryResponse, error) {
 	tenantID, _ := ctxutil.TenantIDFromContext(ctx)
