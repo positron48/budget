@@ -19,6 +19,7 @@ type TenantRepo interface {
 
 type CategoryRepo interface {
     Get(ctx context.Context, id string) (domain.Category, error)
+    GetMany(ctx context.Context, ids []string) (map[string]domain.Category, error)
 }
 
 type Service struct {
@@ -108,27 +109,21 @@ func (s *Service) GetMonthlySummary(ctx context.Context, tenantID string, year i
         }
     }
 
-    // build items with localized name
+    // batch fetch categories for names
+    catIDs := make([]string, 0, len(sums))
+    for k := range sums {
+        catIDs = append(catIDs, k.CatID)
+    }
+    catMap, _ := s.cats.GetMany(ctx, catIDs)
     items := make([]MonthlyItem, 0, len(sums))
     for k, mu := range sums {
         name := ""
-        if cat, err := s.cats.Get(ctx, k.CatID); err == nil {
-            // try locale
+        if cat, ok := catMap[k.CatID]; ok {
             for _, tr := range cat.Translations {
-                if tr.Locale == locale && tr.Name != "" {
-                    name = tr.Name
-                    break
-                }
+                if tr.Locale == locale && tr.Name != "" { name = tr.Name; break }
             }
-            if name == "" {
-                // fallback any name
-                if len(cat.Translations) > 0 {
-                    name = cat.Translations[0].Name
-                }
-            }
-            if name == "" {
-                name = cat.Code
-            }
+            if name == "" && len(cat.Translations) > 0 { name = cat.Translations[0].Name }
+            if name == "" { name = cat.Code }
         }
         items = append(items, MonthlyItem{CategoryID: k.CatID, CategoryName: name, Type: k.Type, Total: domain.Money{CurrencyCode: target, MinorUnits: mu}})
     }

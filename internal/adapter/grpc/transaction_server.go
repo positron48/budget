@@ -25,6 +25,12 @@ func NewTransactionServer(svc *txusecase.Service) *TransactionServer { return &T
 func (s *TransactionServer) CreateTransaction(ctx context.Context, req *budgetv1.CreateTransactionRequest) (*budgetv1.CreateTransactionResponse, error) {
     tenantID, _ := ctxutil.TenantIDFromContext(ctx)
     userID, _ := ctxutil.UserIDFromContext(ctx)
+    if req.GetCategoryId() == "" {
+        return nil, invalidArg("category_id is required")
+    }
+    if req.GetAmount() == nil || req.GetAmount().GetCurrencyCode() == "" {
+        return nil, invalidArg("amount.currency_code is required")
+    }
     amount := domain.Money{CurrencyCode: req.GetAmount().GetCurrencyCode(), MinorUnits: req.GetAmount().GetMinorUnits()}
     occurredAt := time.Now()
     if req.GetOccurredAt() != nil { occurredAt = req.GetOccurredAt().AsTime() }

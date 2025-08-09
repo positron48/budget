@@ -20,6 +20,9 @@ type CategoryServer struct {
 func NewCategoryServer(svc *category.Service) *CategoryServer { return &CategoryServer{svc: svc} }
 
 func (s *CategoryServer) CreateCategory(ctx context.Context, req *budgetv1.CreateCategoryRequest) (*budgetv1.CreateCategoryResponse, error) {
+    if req.GetCode() == "" {
+        return nil, invalidArg("code is required")
+    }
 	trs := make([]domain.CategoryTranslation, 0, len(req.GetTranslations()))
 	for _, tr := range req.GetTranslations() {
 		trs = append(trs, domain.CategoryTranslation{Locale: tr.GetLocale(), Name: tr.GetName(), Description: tr.GetDescription()})

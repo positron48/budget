@@ -103,3 +103,47 @@ func (r *CategoryRepo) List(ctx context.Context, tenantID string, kind domain.Ca
 	}
 	return out, rows.Err()
 }
+
+// GetMany returns categories with translations for the provided ids
+func (r *CategoryRepo) GetMany(ctx context.Context, ids []string) (map[string]domain.Category, error) {
+    if len(ids) == 0 {
+        return map[string]domain.Category{}, nil
+    }
+    rows, err := r.pool.DB.Query(ctx,
+        `SELECT id, tenant_id, kind, code, parent_id, is_active, created_at FROM categories WHERE id = ANY($1)`, ids,
+    )
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+    res := make(map[string]domain.Category, len(ids))
+    for rows.Next() {
+        var c domain.Category
+        if err := rows.Scan(&c.ID, &c.TenantID, &c.Kind, &c.Code, &c.ParentID, &c.IsActive, &c.CreatedAt); err != nil {
+            return nil, err
+        }
+        res[c.ID] = c
+    }
+    if err := rows.Err(); err != nil {
+        return nil, err
+    }
+    // translations for all
+    trRows, err := r.pool.DB.Query(ctx,
+        `SELECT category_id, locale, name, description FROM category_i18n WHERE category_id = ANY($1)`, ids,
+    )
+    if err != nil {
+        return nil, err
+    }
+    defer trRows.Close()
+    for trRows.Next() {
+        var cid string
+        var tr domain.CategoryTranslation
+        if err := trRows.Scan(&cid, &tr.Locale, &tr.Name, &tr.Description); err != nil {
+            return nil, err
+        }
+        c := res[cid]
+        c.Translations = append(c.Translations, tr)
+        res[cid] = c
+    }
+    return res, trRows.Err()
+}

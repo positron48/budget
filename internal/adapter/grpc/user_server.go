@@ -34,6 +34,9 @@ func (s *UserServer) GetMe(ctx context.Context, _ *budgetv1.GetMeRequest) (*budg
 
 func (s *UserServer) UpdateProfile(ctx context.Context, req *budgetv1.UpdateProfileRequest) (*budgetv1.UpdateProfileResponse, error) {
     userID, _ := ctxutil.UserIDFromContext(ctx)
+    if req.GetName() == "" && req.GetLocale() == "" {
+        return nil, invalidArg("at least one of name or locale is required")
+    }
     u, err := s.svc.UpdateProfile(ctx, userID, req.GetName(), req.GetLocale())
     if err != nil {
         return nil, mapError(err)
