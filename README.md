@@ -111,9 +111,8 @@ flowchart TB
 Общие типы в `common.proto`: `Money`, `FxInfo`, `TransactionType`, `CategoryKind`, `PageRequest/PageResponse`, `DateRange`.
 
 Состояние реализации (backend):
-- Готово: Auth (Register/Login/Refresh), Tenant (Create/List), Category (CRUD+i18n) — серверные хендлеры включены.
-- В процессе: включение цепочки интерсепторов (Auth/Recovery/Logging).
-- В плане ближайшего шага: TransactionService (CRUD+фильтры/пагинация, перерасчет base_amount), ReportService (месячные агрегаты в целевой валюте).
+- Готово: Auth (Register/Login/Refresh), User, Tenant (Create/List), Category (CRUD+i18n), Transaction (CRUD+фильтры/пагинация, перерасчет base_amount), Report (MonthlySummary), Fx (Get/Upsert/Batch). Import — скелет для будущей реализации.
+- Включена цепочка интерсепторов: Auth/Logging/Recovery/TenantGuard; метрики Prometheus и базовый трейсинг OpenTelemetry.
 
 Аутентификация: передавать `authorization: Bearer <access_token>` в gRPC metadata. Активный тенант — либо в клаймах токена, либо `x-tenant-id` в metadata, если пользователь имеет несколько.
 
@@ -126,7 +125,7 @@ flowchart TB
 - State/query: TanStack Query.
 - i18n: next-intl или i18next.
 
-Фронтенд не содержит бизнес‑логики домена, только представление, валидации форм, локализация и вызовы API.
+Фронтенд не содержит бизнес‑логики домена, только представление, валидации форм, локализация и вызовы API. Подробный план фронтенда см. в `FRONTEND_IMPLEMENTATION_PLAN.md`.
 
 ### Telegram Bot (план)
 
