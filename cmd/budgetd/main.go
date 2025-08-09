@@ -12,7 +12,7 @@ import (
 	"github.com/positron48/budget/internal/adapter/postgres"
 	"github.com/positron48/budget/internal/pkg/config"
 	"github.com/positron48/budget/internal/pkg/logger"
-	_ "github.com/prometheus/client_golang/prometheus/promhttp" // ensure prometheus handler is linked
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	budgetv1 "github.com/positron48/budget/gen/go/budget/v1"
 	aauth "github.com/positron48/budget/internal/adapter/auth"
@@ -42,6 +42,16 @@ func main() {
 	}
 	defer lg.Sync() //nolint:errcheck
 	sug := lg.Sugar()
+
+	// Tracing (optional)
+	if cfg.OTelEndpoint != "" {
+		shutdown, terr := logger.SetupTracing(context.Background(), cfg.OTelEndpoint, cfg.OTelInsecure, "budgetd")
+		if terr != nil {
+			sug.Warnw("failed to setup tracing", "error", terr)
+		} else {
+			defer func() { _ = shutdown(context.Background()) }()
+		}
+	}
 
 	// DB connect
 	ctx := context.Background()
@@ -85,8 +95,7 @@ func main() {
 	// optional metrics server with Prometheus handler
 	if cfg.MetricsAddr != "" {
 		mux := http.NewServeMux()
-		// register /metrics if client_golang is linked in
-		mux.Handle("/metrics", http.DefaultServeMux)
+		mux.Handle("/metrics", promhttp.Handler())
 		stopMetrics := logger.StartMetricsServer(sug, cfg.MetricsAddr, mux)
 		defer stopMetrics(context.Background())
 	}

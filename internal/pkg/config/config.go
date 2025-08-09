@@ -14,6 +14,8 @@ type Config struct {
 	JWTAccessTTL  time.Duration
 	JWTRefreshTTL time.Duration
 	MetricsAddr   string
+	OTelEndpoint  string
+	OTelInsecure  bool
 }
 
 func getenv(key, def string) string {
@@ -30,6 +32,8 @@ func Load() (Config, error) {
 	cfg.DatabaseURL = getenv("DATABASE_URL", "")
 	cfg.JWTSignKey = getenv("JWT_SIGN_KEY", "")
 	cfg.MetricsAddr = getenv("METRICS_ADDR", "")
+	cfg.OTelEndpoint = getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
+	cfg.OTelInsecure = getenv("OTEL_EXPORTER_OTLP_INSECURE", "true") == "true"
 
 	access := getenv("JWT_ACCESS_TTL", "15m")
 	refresh := getenv("JWT_REFRESH_TTL", "720h")
