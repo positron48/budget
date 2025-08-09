@@ -33,6 +33,21 @@ ps:
 tidy:
 	go mod tidy
 
+.PHONY: test
+test:
+	go test ./... -race -coverprofile=coverage.out -covermode=atomic
+
+.PHONY: lint
+lint:
+	golangci-lint run
+
+.PHONY: vet
+vet:
+	go vet ./...
+
+.PHONY: ci
+ci: tidy vet lint test
+
 .PHONY: migrate-up
 migrate-up:
 	migrate -database "$(DB_URL)" -path migrations up
