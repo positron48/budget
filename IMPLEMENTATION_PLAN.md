@@ -2,6 +2,53 @@
 
 Ниже — детальный план, разбитый на этапы, с командами для проверки каждого этапа. Архитектура следует MVC: gRPC handlers = контроллеры (валидация/сериализация), application services = сервисы (бизнес‑логика), postgres adapters = репозитории (SQL без бизнес‑логики). Мультивалютность и многотенантность учтены.
 
+### Текущий статус (сделано)
+
+- Базовое окружение (Docker Compose: db/app/envoy), минимальный gRPC‑сервер, health.
+- Миграции PostgreSQL: tenants/users/user_tenants/refresh_tokens, categories/category_i18n, transactions (с fx snapshot), fx_rates.
+- Конфиг/логгер/pgx pool.
+- Auth слой (частично): Argon2id хешер, JWT issuer, user/refresh_token репозитории.
+- Tenant/Category: домены, usecase, репозитории (PostgreSQL).
+- CI: buf lint, golangci‑lint (docker), тесты; локальный `make check` идентичен CI.
+- gRPC‑хендлеры подготовлены как скелеты (под build‑tag), включим после генерации protobuf stubs.
+
+### Ближайшие шаги (что делать дальше)
+
+1) Протокол и stubs (выбрать стратегию)
+- Вариант A (проще): коммитить Go‑stubs в репозиторий
+  - Сгенерировать: `make dproto` → появится `gen/go/**`; закоммитить `gen/go`.
+  - Снять `//go:build ignore` с `internal/adapter/grpc/{auth,tenant,category}_server.go`.
+  - В `cmd/budgetd/main.go` зарегистрировать сервисы (Auth, Tenant, Category).
+- Вариант B: генерировать stubs в CI перед сборкой
+  - В job go выполнить `buf generate` (docker/буфер) перед линтом и тестами.
+  - Оставить `gen/` в .gitignore (на клиентские артефакты не влияем).
+
+2) Подключить gRPC‑интерсепторы
+- Auth: парсинг `authorization: Bearer`, валидация JWT; класть `user_id` и `tenant_id` в контекст.
+- Tenant: определять активный tenant (из клаймов или `x-tenant-id`) и валидировать принадлежность.
+
+3) Завершить AuthService
+- Реализовать `RefreshToken` (ротация, отзыв старого), добавить интеграционные тесты: Register → Login → Refresh → доступ к защищенному RPC.
+
+4) Завершить TenantService/CategoryService (gRPC)
+- Подключить хендлеры и добавить интеграционные тесты (валидировать уникальность code, поведение i18n).
+
+5) Реализовать TransactionService
+- Репозиторий + usecase: CRUD, фильтры, пагинация; расчет `base_amount` по `fx_rates` на день.
+- Тесты: корректность конвертации и крайние случаи.
+
+6) FxService
+- Репозиторий `fx_rates`, usecase: правила выбора курса (точная дата → предыдущая), upsert; (позже) провайдер CBR/ECB + загрузка.
+
+7) ReportService
+- Агрегаты по месяцам в целевой валюте (по умолчанию — базовая у tenant); тесты на смешанные валюты.
+
+8) Интеграционные gRPC‑тесты
+- In‑process сервер, тестовая БД; сценарии покрывают Auth/Tenant/Category/Transaction/Report.
+
+9) CI‑доработки (если выбран Вариант B)
+- Добавить шаг `buf generate` в `go` job перед линтом; при желании кэшировать `gen/go` артефактом.
+
 ### 0. Предварительные требования (локально)
 
 - Go 1.23+

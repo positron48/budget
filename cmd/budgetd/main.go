@@ -12,6 +12,7 @@ import (
 	"github.com/positron48/budget/internal/pkg/config"
 	"github.com/positron48/budget/internal/pkg/logger"
 
+	// usecase imports will be wired when generated stubs are available
 	"google.golang.org/grpc"
 	health "google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
