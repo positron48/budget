@@ -13,6 +13,7 @@ type Config struct {
 	JWTSignKey    string
 	JWTAccessTTL  time.Duration
 	JWTRefreshTTL time.Duration
+	MetricsAddr   string
 }
 
 func getenv(key, def string) string {
@@ -28,6 +29,7 @@ func Load() (Config, error) {
 	cfg.GRPCAddr = getenv("GRPC_ADDR", ":8080")
 	cfg.DatabaseURL = getenv("DATABASE_URL", "")
 	cfg.JWTSignKey = getenv("JWT_SIGN_KEY", "")
+	cfg.MetricsAddr = getenv("METRICS_ADDR", "")
 
 	access := getenv("JWT_ACCESS_TTL", "15m")
 	refresh := getenv("JWT_REFRESH_TTL", "720h")

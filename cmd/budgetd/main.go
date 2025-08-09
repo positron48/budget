@@ -79,6 +79,12 @@ func main() {
 		),
 	)
 
+	// optional metrics server
+	if cfg.MetricsAddr != "" {
+		stopMetrics := logger.StartMetricsServer(sug, cfg.MetricsAddr, nil)
+		defer stopMetrics(context.Background())
+	}
+
 	// health service
 	hs := health.NewServer()
 	healthpb.RegisterHealthServer(server, hs)
