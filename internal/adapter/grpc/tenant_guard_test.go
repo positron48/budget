@@ -23,4 +23,14 @@ func TestTenantGuard_DeniesNonMember(t *testing.T) {
     if status.Code(err) != codes.PermissionDenied { t.Fatalf("expected PermissionDenied, got %v", err) }
 }
 
+func TestTenantGuard_ErrorFromValidate(t *testing.T) {
+    it := NewTenantGuardUnaryInterceptor(func(ctx context.Context, userID, tenantID string) (bool, error) { return false, assertErr{} })
+    ctx := ctxutil.WithUserID(ctxutil.WithTenantID(context.Background(), "t1"), "u1")
+    _, err := it(ctx, nil, &grpc.UnaryServerInfo{FullMethod: "/budget.v1.ReportService/GetMonthlySummary"}, handlerOK)
+    if status.Code(err) != codes.Internal { t.Fatalf("expected Internal, got %v", err) }
+}
+
+type assertErr struct{}
+func (assertErr) Error() string { return "assert" }
+
 
