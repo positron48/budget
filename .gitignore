@@ -1,0 +1,30 @@
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Go build
+bin/
+build/
+coverage/
+
+# Generated code
+gen/
+
+# Env files
+.env
+.env.*
+
+# Node / web
+node_modules/
+web/node_modules/
+web/.next/
+web/.turbo/
+web/out/
+web/.cache/
+
+# Vendor (if ever used)
+vendor/
+
+

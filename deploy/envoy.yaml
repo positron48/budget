@@ -1,0 +1,39 @@
+static_resources:
+  listeners:
+  - name: listener_0
+    address:
+      socket_address: { address: 0.0.0.0, port_value: 8081 }
+    filter_chains:
+    - filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          stat_prefix: ingress_http
+          codec_type: AUTO
+          route_config:
+            name: local_route
+            virtual_hosts:
+            - name: local_service
+              domains: ["*"]
+              routes:
+              - match: { prefix: "/" }
+                route: { cluster: app, timeout: 0s }
+          http_filters:
+          - name: envoy.filters.http.grpc_web
+          - name: envoy.filters.http.cors
+          - name: envoy.filters.http.router
+  clusters:
+  - name: app
+    connect_timeout: 0.25s
+    type: logical_dns
+    lb_policy: round_robin
+    http2_protocol_options: {}
+    load_assignment:
+      cluster_name: app
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address: { address: app, port_value: 8080 }
+
+

@@ -162,6 +162,28 @@ buf generate
 - Миграции: `golang-migrate` против локальной БД.
 - `budgetd` запускается на :8080 (gRPC). Envoy слушает :8081 (gRPC‑Web) → проксирует на :8080.
 
+### Быстрые команды (Makefile)
+
+```bash
+# собрать бинарь
+make build
+
+# поднять окружение (db, app, envoy)
+make up
+
+# посмотреть состояние
+make ps
+
+# логи
+make logs
+
+# сгенерировать gRPC код из protobuf
+make proto
+
+# применить миграции (после их добавления)
+make migrate-up
+```
+
 ### Безопасность
 
 - Пароли — Argon2id, параметризуемые cost‑параметры.
