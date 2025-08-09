@@ -286,6 +286,20 @@ METRICS_ADDR=:9090 docker compose --profile obs up -d --build
 
 Prometheus читает метрики по адресу `app:9090`. Grafana доступна на `http://localhost:3000` (анонимный доступ включён), предустановлены дашборды в `deploy/grafana/dashboards`.
 
+Алерты Prometheus подключаются из `deploy/alert.rules.yml`.
+
+#### Локальный запуск с метриками и трейсингом (пример)
+
+```bash
+export GRPC_ADDR=:8080
+export METRICS_ADDR=:9090
+export JWT_SIGN_KEY=dev-secret
+export OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4318
+export OTEL_EXPORTER_OTLP_INSECURE=true
+
+go run ./cmd/budgetd
+```
+
 - Импорт/экспорт, интеграции с банками (парсеры/коннекторы), автоматическая категоризация.
 - Планирование бюджета и цели, теги, вложенные категории.
 - Нотификации, webhooks, публичный SDK.

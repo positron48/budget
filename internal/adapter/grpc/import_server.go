@@ -12,12 +12,14 @@ import (
 // Minimal no-op scaffold for future CSV import flow
 type ImportServer struct {
 	budgetv1.UnimplementedImportServiceServer
+	// TODO: wire storage (for temp file), parser, mapper, and transaction service
 }
 
 func NewImportServer() *ImportServer { return &ImportServer{} }
 
 func (s *ImportServer) StartCsvImport(ctx context.Context, req *budgetv1.StartCsvImportRequest) (*budgetv1.StartCsvImportResponse, error) {
-	return &budgetv1.StartCsvImportResponse{ImportId: "todo"}, nil
+	// For now, return deterministic ID for testing. Later: allocate and persist session state.
+	return &budgetv1.StartCsvImportResponse{ImportId: "imp-1"}, nil
 }
 
 func (s *ImportServer) UploadCsvChunk(ctx context.Context, req *budgetv1.UploadCsvChunkRequest) (*budgetv1.UploadCsvChunkResponse, error) {

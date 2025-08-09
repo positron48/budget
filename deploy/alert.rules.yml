@@ -1,0 +1,29 @@
+groups:
+  - name: budget-grpc
+    interval: 30s
+    rules:
+      - alert: GrpcHighErrorRate
+        expr: |
+          sum by (method) (rate(budget_grpc_requests_total{code!~"OK"}[5m]))
+            /
+          sum by (method) (rate(budget_grpc_requests_total[5m])) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High gRPC error rate"
+          description: "{{ $labels.method }} error rate > 5% for 10m"
+
+      - alert: GrpcHighLatencyP95
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le, method) (rate(budget_grpc_request_duration_seconds_bucket[5m]))
+          ) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High gRPC latency p95"
+          description: "{{ $labels.method }} p95 latency > 0.5s for 10m"
+
+
