@@ -4,11 +4,12 @@
 package grpcadapter
 
 import (
-	"context"
+    "context"
 
-	budgetv1 "github.com/positron48/budget/gen/go/budget/v1"
-	"github.com/positron48/budget/internal/domain"
-	"github.com/positron48/budget/internal/usecase/category"
+    budgetv1 "github.com/positron48/budget/gen/go/budget/v1"
+    "github.com/positron48/budget/internal/domain"
+    "github.com/positron48/budget/internal/pkg/ctxutil"
+    "github.com/positron48/budget/internal/usecase/category"
 )
 
 type CategoryServer struct {
@@ -111,4 +112,9 @@ func optString(s string) *string {
 }
 
 // контекстные helpers (интерсептор аутентификации/тенанта)
-func ctxTenantID(_ context.Context) string { return "" }
+func ctxTenantID(ctx context.Context) string {
+    if v, ok := ctxutil.TenantIDFromContext(ctx); ok {
+        return v
+    }
+    return ""
+}

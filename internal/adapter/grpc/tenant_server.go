@@ -4,10 +4,11 @@
 package grpcadapter
 
 import (
-	"context"
+    "context"
 
-	budgetv1 "github.com/positron48/budget/gen/go/budget/v1"
-	"github.com/positron48/budget/internal/usecase/tenant"
+    budgetv1 "github.com/positron48/budget/gen/go/budget/v1"
+    "github.com/positron48/budget/internal/pkg/ctxutil"
+    "github.com/positron48/budget/internal/usecase/tenant"
 )
 
 type TenantServer struct {
@@ -38,4 +39,9 @@ func (s *TenantServer) ListMyTenants(ctx context.Context, _ *budgetv1.ListMyTena
 }
 
 // ctxUserID – заглушка для извлечения user_id из контекста (интерсептор аутентификации)
-func ctxUserID(_ context.Context) string { return "" }
+func ctxUserID(ctx context.Context) string {
+    if v, ok := ctxutil.UserIDFromContext(ctx); ok {
+        return v
+    }
+    return ""
+}

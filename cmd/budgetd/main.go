@@ -17,6 +17,7 @@ import (
 	grpcadapter "github.com/positron48/budget/internal/adapter/grpc"
 	useauth "github.com/positron48/budget/internal/usecase/auth"
 	"github.com/positron48/budget/internal/usecase/category"
+	"github.com/positron48/budget/internal/usecase/transaction"
 	"github.com/positron48/budget/internal/usecase/tenant"
 
 	// usecase imports will be wired when generated stubs are available
@@ -59,13 +60,13 @@ func main() {
 		sug.Fatalw("listen failed", "error", err)
 	}
 
-	// Build gRPC server (interceptors can be chained here)
-	server := grpc.NewServer(
-	// Example: grpc.ChainUnaryInterceptor(
-	//     grpcadapter.NewAuthUnaryInterceptor(cfg.JWTSignKey),
-	//     grpcadapter.RecoveryUnaryInterceptor(sug),
-	// ),
-	)
+    // Build gRPC server with interceptors
+    server := grpc.NewServer(
+        grpc.ChainUnaryInterceptor(
+            grpcadapter.NewAuthUnaryInterceptor(cfg.JWTSignKey),
+            grpcadapter.RecoveryUnaryInterceptor(sug),
+        ),
+    )
 
 	// health service
 	hs := health.NewServer()
@@ -91,6 +92,15 @@ func main() {
 		categoryRepo := postgres.NewCategoryRepo(db)
 		categorySvc := category.NewService(categoryRepo)
 		budgetv1.RegisterCategoryServiceServer(server, grpcadapter.NewCategoryServer(categorySvc))
+
+		// Fx
+		fxRepo := postgres.NewFxRepo(db)
+		budgetv1.RegisterFxServiceServer(server, grpcadapter.NewFxServer(fxRepo))
+
+		// Transaction (wire repos into usecase)
+		txRepo := postgres.NewTransactionRepo(db)
+		txSvc := transaction.NewService(txRepo, fxRepo, tenantRepo)
+		budgetv1.RegisterTransactionServiceServer(server, grpcadapter.NewTransactionServer(txSvc))
 	}
 
 	go func() {

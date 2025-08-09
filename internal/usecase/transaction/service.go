@@ -67,3 +67,24 @@ func (s *Service) ComputeBaseAmount(ctx context.Context, tenantID string, amount
 	// base.MajorUnits вычислит repo при записи; в usecase хранится исходная модель
 	return domain.Money{CurrencyCode: tenant.DefaultCurrencyCode, MinorUnits: amount.MinorUnits}, fx, nil
 }
+
+// CRUD and query operations delegate to repository layer
+func (s *Service) Create(ctx context.Context, tx domain.Transaction) (domain.Transaction, error) {
+    return s.txs.Create(ctx, tx)
+}
+
+func (s *Service) Update(ctx context.Context, tx domain.Transaction) (domain.Transaction, error) {
+    return s.txs.Update(ctx, tx)
+}
+
+func (s *Service) Delete(ctx context.Context, id string) error {
+    return s.txs.Delete(ctx, id)
+}
+
+func (s *Service) Get(ctx context.Context, id string) (domain.Transaction, error) {
+    return s.txs.Get(ctx, id)
+}
+
+func (s *Service) List(ctx context.Context, tenantID string, filter ListFilter) ([]domain.Transaction, int64, error) {
+    return s.txs.List(ctx, tenantID, filter)
+}
