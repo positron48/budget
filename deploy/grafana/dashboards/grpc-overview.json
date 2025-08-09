@@ -1,0 +1,26 @@
+{
+  "title": "Budget gRPC Overview",
+  "timezone": "browser",
+  "schemaVersion": 37,
+  "version": 1,
+  "panels": [
+    {
+      "type": "graph",
+      "title": "gRPC Requests Total",
+      "targets": [
+        {"expr": "sum(rate(budget_grpc_requests_total[1m])) by (method, code)", "legendFormat": "{{method}} {{code}}"}
+      ],
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0}
+    },
+    {
+      "type": "graph",
+      "title": "gRPC Duration (p95)",
+      "targets": [
+        {"expr": "histogram_quantile(0.95, sum(rate(budget_grpc_request_duration_seconds_bucket[5m])) by (le, method))", "legendFormat": "{{method}} p95"}
+      ],
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+    }
+  ]
+}
+
+

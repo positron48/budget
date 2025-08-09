@@ -174,6 +174,13 @@ make dproto
 - Миграции: `golang-migrate` против локальной БД.
 - `budgetd` запускается на :8080 (gRPC). Envoy слушает :8081 (gRPC‑Web) → проксирует на :8080.
 
+Переменные окружения:
+- `GRPC_ADDR` — адрес gRPC (по умолчанию `:8080`)
+- `DATABASE_URL` — строка подключения к PostgreSQL
+- `JWT_SIGN_KEY`, `JWT_ACCESS_TTL`, `JWT_REFRESH_TTL`
+- `METRICS_ADDR` — адрес HTTP сервера метрик Prometheus (например, `:9090`)
+- `OTEL_EXPORTER_OTLP_ENDPOINT` — OTLP/HTTP endpoint (например, `otel-collector:4318`), `OTEL_EXPORTER_OTLP_INSECURE=true`
+
 Включение интерсепторов:
 - В `cmd/budgetd/main.go` включены: `Auth`, `Logging`, `Recovery`, `TenantGuard` (проверка членства в активном тенанте).
 
@@ -268,6 +275,16 @@ grpcurl -plaintext \
 ```
 
 ### Дальнейшее развитие
+
+### Observability (Prometheus/Grafana)
+
+Запуск Prometheus+Grafana (профиль `obs`) и экспорта метрик:
+
+```bash
+METRICS_ADDR=:9090 docker compose --profile obs up -d --build
+```
+
+Prometheus читает метрики по адресу `app:9090`. Grafana доступна на `http://localhost:3000` (анонимный доступ включён), предустановлены дашборды в `deploy/grafana/dashboards`.
 
 - Импорт/экспорт, интеграции с банками (парсеры/коннекторы), автоматическая категоризация.
 - Планирование бюджета и цели, теги, вложенные категории.

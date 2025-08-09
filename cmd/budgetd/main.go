@@ -25,6 +25,7 @@ import (
 	useuser "github.com/positron48/budget/internal/usecase/user"
 
 	// usecase imports will be wired when generated stubs are available
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	health "google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
@@ -81,6 +82,7 @@ func main() {
 	}
 
 	server := grpc.NewServer(
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.ChainUnaryInterceptor(
 			grpcadapter.NewAuthUnaryInterceptor(cfg.JWTSignKey),
 			grpcadapter.MetricsUnaryInterceptor(),

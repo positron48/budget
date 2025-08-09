@@ -16,6 +16,7 @@ func NewPool(ctx context.Context, databaseURL string) (*Pool, error) {
 	if err != nil {
 		return nil, err
 	}
+	// DB tracing (pgx) can be enabled in future via OTel pgx instrumentation
 	cfg.MaxConns = 10
 	cfg.MinConns = 1
 	cfg.MaxConnIdleTime = 5 * time.Minute
