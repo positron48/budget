@@ -20,7 +20,7 @@ func NewAuthUnaryInterceptor(signKey string) grpc.UnaryServerInterceptor {
 		if isPublicMethod(info.FullMethod) {
 			return handler(ctx, req)
 		}
-		if md, ok := metadata.FromIncomingContext(ctx); ok {
+        if md, ok := metadata.FromIncomingContext(ctx); ok {
 			var hasAuth bool
 			if vals := md.Get("x-tenant-id"); len(vals) > 0 && vals[0] != "" {
 				ctx = ctxutil.WithTenantID(ctx, vals[0])
@@ -50,10 +50,13 @@ func NewAuthUnaryInterceptor(signKey string) grpc.UnaryServerInterceptor {
 					}
 				}
 			}
-			if !hasAuth {
-				return nil, status.Error(codes.Unauthenticated, "missing or invalid access token")
-			}
-		}
+            if !hasAuth {
+                return nil, status.Error(codes.Unauthenticated, "missing or invalid access token")
+            }
+        } else {
+            // no metadata provided for protected method
+            return nil, status.Error(codes.Unauthenticated, "missing authorization metadata")
+        }
 		return handler(ctx, req)
 	}
 }

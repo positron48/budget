@@ -1,12 +1,12 @@
 package report
 
 import (
-	"context"
-	"math/big"
-	"time"
+    "context"
+    "math/big"
+    "time"
 
-	"github.com/positron48/budget/internal/domain"
-	txusecase "github.com/positron48/budget/internal/usecase/transaction"
+    "github.com/positron48/budget/internal/domain"
+    txusecase "github.com/positron48/budget/internal/usecase/transaction"
 )
 
 type FxRepo interface {
@@ -23,14 +23,19 @@ type CategoryRepo interface {
 }
 
 type Service struct {
-	txsvc   *txusecase.Service
+    txsvc   TxLister
 	fx      FxRepo
 	tenants TenantRepo
 	cats    CategoryRepo
 }
 
-func NewService(txsvc *txusecase.Service, fx FxRepo, tenants TenantRepo, cats CategoryRepo) *Service {
+func NewService(txsvc TxLister, fx FxRepo, tenants TenantRepo, cats CategoryRepo) *Service {
 	return &Service{txsvc: txsvc, fx: fx, tenants: tenants, cats: cats}
+}
+
+// TxLister abstracts listing transactions for reports
+type TxLister interface {
+    List(ctx context.Context, tenantID string, filter txusecase.ListFilter) ([]domain.Transaction, int64, error)
 }
 
 type MonthlyItem struct {
