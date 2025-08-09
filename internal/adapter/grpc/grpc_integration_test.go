@@ -14,6 +14,7 @@ import (
 	"github.com/positron48/budget/internal/usecase/category"
     txuse "github.com/positron48/budget/internal/usecase/transaction"
     repuse "github.com/positron48/budget/internal/usecase/report"
+    "google.golang.org/protobuf/types/known/timestamppb"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -360,5 +361,44 @@ func TestTransaction_Create_And_Report_WithAuth(t *testing.T) {
     rresp, err := rc.GetMonthlySummary(authCtx, &budgetv1.GetMonthlySummaryRequest{Year: int32(time.Now().Year()), Month: int32(time.Now().Month())})
     if err != nil || len(rresp.GetItems()) != 1 { t.Fatalf("report: %v %#v", err, rresp) }
 }
+
+// --- Fx integration (adapter server only) ---
+type memFxRepo struct{}
+func (memFxRepo) GetRateAsOf(ctx context.Context, from, to string, asOf time.Time) (string, string, error) { return "1.2345", "prov", nil }
+func (memFxRepo) UpsertRate(ctx context.Context, from, to, rateDecimal string, asOf time.Time, provider string) (struct{ From, To, Rate string; AsOf time.Time; Provider string }, error) {
+    return struct{ From, To, Rate string; AsOf time.Time; Provider string }{From: from, To: to, Rate: rateDecimal, AsOf: asOf, Provider: provider}, nil
+}
+func (memFxRepo) BatchGetRates(ctx context.Context, fromCurrencies []string, to string, asOf time.Time) ([]struct{ From, To, Rate string; AsOf time.Time; Provider string }, error) {
+    return []struct{ From, To, Rate string; AsOf time.Time; Provider string }{{From: fromCurrencies[0], To: to, Rate: "2.0", AsOf: asOf, Provider: "prov"}}, nil
+}
+
+func TestFx_Upsert_Get_Batch(t *testing.T) {
+    lis := bufconn.Listen(bufSize)
+    t.Cleanup(func() { _ = lis.Close() })
+
+    lg, _ := zap.NewDevelopment()
+    sug := lg.Sugar()
+    defer lg.Sync() //nolint:errcheck
+
+    srv := grpc.NewServer(grpc.ChainUnaryInterceptor(LoggingUnaryInterceptor(sug), RecoveryUnaryInterceptor(sug)))
+    budgetv1.RegisterFxServiceServer(srv, NewFxServer(memFxRepo{}))
+    go func() { _ = srv.Serve(lis) }()
+    t.Cleanup(srv.Stop)
+
+    ctx := context.Background()
+    conn, err := dialBufConn(ctx, lis)
+    if err != nil { t.Fatalf("dial: %v", err) }
+    t.Cleanup(func() { _ = conn.Close() })
+    c := budgetv1.NewFxServiceClient(conn)
+
+    now := time.Now()
+    u, err := c.UpsertRate(ctx, &budgetv1.UpsertRateRequest{Rate: &budgetv1.FxRate{FromCurrencyCode: "USD", ToCurrencyCode: "RUB", RateDecimal: "2.0", AsOf: timestamppb.New(now), Provider: "prov"}})
+    if err != nil || u.GetRate().GetRateDecimal() != "2.0" { t.Fatalf("upsert: %v %#v", err, u) }
+    g, err := c.GetRate(ctx, &budgetv1.GetRateRequest{FromCurrencyCode: "USD", ToCurrencyCode: "RUB", AsOf: timestamppb.New(now)})
+    if err != nil || g.GetRate().GetProvider() != "prov" { t.Fatalf("get: %v %#v", err, g) }
+    b, err := c.BatchGetRates(ctx, &budgetv1.BatchGetRatesRequest{FromCurrencyCodes: []string{"USD"}, ToCurrencyCode: "RUB", AsOf: timestamppb.New(now)})
+    if err != nil || len(b.GetRates()) == 0 { t.Fatalf("batch: %v %#v", err, b) }
+}
+
 
 
