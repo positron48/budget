@@ -1,0 +1,35 @@
+name: Generate Protobuf Stubs
+
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - 'proto/**'
+
+permissions:
+  contents: write
+
+jobs:
+  gen-stubs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: bufbuild/buf-setup-action@v1
+
+      - name: Generate stubs (Go/TS)
+        run: |
+          cd proto
+          buf lint
+          buf generate
+
+      - name: Commit generated stubs
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'build(proto): generate and commit stubs'
+          file_pattern: |
+            gen/go/**
+            gen/ts/**
+

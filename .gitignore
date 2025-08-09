@@ -10,7 +10,7 @@ build/
 coverage/
 
 # Generated code
-gen/
+gen/ts/
 coverage.out
 
 # Env files
