@@ -37,6 +37,17 @@ func TestAuthInterceptor_Protected_WithToken(t *testing.T) {
     if err != nil { t.Fatalf("unexpected error: %v", err) }
 }
 
+func TestAuthInterceptor_InvalidSignature(t *testing.T) {
+    it := NewAuthUnaryInterceptor("k")
+    // sign with different key
+    claims := jwt.MapClaims{"sub": "u1", "tenant_id": "t1", "iat": time.Now().Unix(), "exp": time.Now().Add(time.Minute).Unix()}
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+    s, _ := token.SignedString([]byte("wrong"))
+    ctx := metadataIncoming(map[string]string{"authorization": "Bearer " + s})
+    _, err := it(ctx, nil, &grpc.UnaryServerInfo{FullMethod: "/budget.v1.CategoryService/ListCategories"}, handlerOK)
+    if status.Code(err) != codes.Unauthenticated { t.Fatalf("expected Unauthenticated, got %v", err) }
+}
+
 func metadataIncoming(m map[string]string) context.Context {
     return metadata.NewIncomingContext(context.Background(), metadata.New(m))
 }

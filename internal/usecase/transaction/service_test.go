@@ -96,6 +96,33 @@ func TestService_Update_SameCurrencyNoFx(t *testing.T) {
     }
 }
 
+type otherTenantCatRepo struct{}
+func (otherTenantCatRepo) Get(ctx context.Context, id string) (domain.Category, error) { return domain.Category{ID: id, TenantID: "other", Kind: domain.CategoryKindExpense}, nil }
+
+func TestService_Update_InvalidCategoryTenant(t *testing.T) {
+    svc := NewService(noopTxRepo{}, stubFxRepo{}, stubTenantRepo{defCcy: "USD"}, otherTenantCatRepo{})
+    _, err := svc.Update(context.Background(), domain.Transaction{ID: "tx", TenantID: "t1", Amount: domain.Money{CurrencyCode: "USD", MinorUnits: 1}, OccurredAt: time.Now(), Type: domain.TransactionTypeExpense, CategoryID: "cat1"})
+    if err == nil { t.Fatal("expected invalid category/tenant error") }
+}
+
+type fxErrRepo struct{}
+func (fxErrRepo) GetRateAsOf(ctx context.Context, from, to string, asOf time.Time) (string, string, error) { return "", "", ErrFxRateNotFound }
+
+func TestService_Update_RateNotFound(t *testing.T) {
+    svc := NewService(noopTxRepo{}, fxErrRepo{}, stubTenantRepo{defCcy: "EUR"}, stubCategoryRepo{})
+    _, err := svc.Update(context.Background(), domain.Transaction{ID: "tx", TenantID: "t1", Amount: domain.Money{CurrencyCode: "USD", MinorUnits: 1}, OccurredAt: time.Now(), Type: domain.TransactionTypeExpense, CategoryID: "cat1"})
+    if err == nil { t.Fatal("expected fx rate not found error") }
+}
+
+type incomeCatRepo2 struct{}
+func (incomeCatRepo2) Get(ctx context.Context, id string) (domain.Category, error) { return domain.Category{ID: id, TenantID: "t1", Kind: domain.CategoryKindIncome}, nil }
+
+func TestService_CreateForUser_TypeMismatch(t *testing.T) {
+    svc := NewService(noopTxRepo{}, stubFxRepo{}, stubTenantRepo{defCcy: "EUR"}, incomeCatRepo2{})
+    _, err := svc.CreateForUser(context.Background(), "t1", "u1", domain.TransactionTypeExpense, "cat1", domain.Money{CurrencyCode: "EUR", MinorUnits: 100}, time.Now(), "")
+    if err == nil { t.Fatal("expected type mismatch") }
+}
+
 func TestComputeBaseAmount_SameCurrency(t *testing.T) {
 	svc := NewService(noopTxRepo{}, stubFxRepo{}, stubTenantRepo{defCcy: "USD"}, stubCategoryRepo{})
 	amount := domain.Money{CurrencyCode: "USD", MinorUnits: 12345}
