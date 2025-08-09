@@ -7,6 +7,7 @@ import (
     "time"
 
     budgetv1 "github.com/positron48/budget/gen/go/budget/v1"
+    "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type fxStub struct{
@@ -47,9 +48,10 @@ func TestFxServer_GetRate_Error(t *testing.T) {
 
 func TestFxServer_Upsert_And_Batch(t *testing.T) {
     srv := NewFxServer(fxStub{})
-    u, err := srv.UpsertRate(context.Background(), &budgetv1.UpsertRateRequest{Rate: &budgetv1.FxRate{FromCurrencyCode: "USD", ToCurrencyCode: "RUB", RateDecimal: "2.0"}})
+    now := time.Now()
+    u, err := srv.UpsertRate(context.Background(), &budgetv1.UpsertRateRequest{Rate: &budgetv1.FxRate{FromCurrencyCode: "USD", ToCurrencyCode: "RUB", RateDecimal: "2.0", AsOf: timestamppb.New(now), Provider: "prov"}})
     if err != nil || u.GetRate().GetRateDecimal() != "2.0" { t.Fatalf("upsert: %v %#v", err, u) }
-    b, err := srv.BatchGetRates(context.Background(), &budgetv1.BatchGetRatesRequest{FromCurrencyCodes: []string{"USD"}, ToCurrencyCode: "RUB"})
+    b, err := srv.BatchGetRates(context.Background(), &budgetv1.BatchGetRatesRequest{FromCurrencyCodes: []string{"USD"}, ToCurrencyCode: "RUB", AsOf: timestamppb.New(now)})
     if err != nil || len(b.GetRates()) == 0 { t.Fatalf("batch: %v %#v", err, b) }
 }
 

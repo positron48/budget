@@ -25,6 +25,15 @@ func (s txSvcStub) CreateForUser(ctx context.Context, tenantID, userID string, t
     return s.tx, s.err
 }
 
+type txSvcBaseErr struct{}
+func (txSvcBaseErr) ComputeBaseAmount(ctx context.Context, tenantID string, amount domain.Money, occurredAt time.Time) (domain.Money, *domain.FxInfo, error) { return domain.Money{}, nil, errors.New("fx err") }
+func (txSvcBaseErr) Create(ctx context.Context, tx domain.Transaction) (domain.Transaction, error) { return domain.Transaction{}, nil }
+func (txSvcBaseErr) Update(ctx context.Context, tx domain.Transaction) (domain.Transaction, error) { return domain.Transaction{}, nil }
+func (txSvcBaseErr) Delete(ctx context.Context, id string) error { return nil }
+func (txSvcBaseErr) Get(ctx context.Context, id string) (domain.Transaction, error) { return domain.Transaction{ID: id, TenantID: "t1", Amount: domain.Money{CurrencyCode: "USD", MinorUnits: 100}, OccurredAt: time.Now()}, nil }
+func (txSvcBaseErr) List(ctx context.Context, tenantID string, filter txuse.ListFilter) ([]domain.Transaction, int64, error) { return nil, 0, nil }
+func (txSvcBaseErr) CreateForUser(ctx context.Context, tenantID, userID string, txType domain.TransactionType, categoryID string, amount domain.Money, occurredAt time.Time, comment string) (domain.Transaction, error) { return domain.Transaction{}, nil }
+
 func TestTransactionServer_MapError(t *testing.T) {
     stubErr := txSvcStub{err: errors.New("boom")}
     srv := NewTransactionServer(stubErr)
@@ -56,6 +65,15 @@ func TestTransactionServer_Create_MapError(t *testing.T) {
     if _, err := srv.CreateTransaction(context.Background(), req); err == nil { t.Fatal("expected error") }
 }
 
+func TestTransactionServer_Update_ComputeBaseError(t *testing.T) {
+    srv := NewTransactionServer(txSvcBaseErr{})
+    patch := &budgetv1.Transaction{Amount: &budgetv1.Money{CurrencyCode: "USD", MinorUnits: 200}}
+    mask := &fieldmaskpb.FieldMask{Paths: []string{"amount"}}
+    if _, err := srv.UpdateTransaction(context.Background(), &budgetv1.UpdateTransactionRequest{Id: "tx1", Transaction: patch, UpdateMask: mask}); err == nil {
+        t.Fatal("expected compute base error")
+    }
+}
+
 func TestTransactionServer_Update_WithMask(t *testing.T) {
     existing := domain.Transaction{ID: "tx1", TenantID: "t1", Amount: domain.Money{CurrencyCode: "USD", MinorUnits: 100}, OccurredAt: time.Now()}
     stub := txSvcStub{tx: existing}
@@ -64,6 +82,31 @@ func TestTransactionServer_Update_WithMask(t *testing.T) {
     mask := &fieldmaskpb.FieldMask{Paths: []string{"amount"}}
     _, err := srv.UpdateTransaction(context.Background(), &budgetv1.UpdateTransactionRequest{Id: "tx1", Transaction: patch, UpdateMask: mask})
     if err != nil { t.Fatalf("update: %v", err) }
+}
+
+// echo service to verify fx propagated via toProtoTx
+type txSvcEcho struct{ cur domain.Transaction }
+func (txSvcEcho) ComputeBaseAmount(ctx context.Context, tenantID string, amount domain.Money, occurredAt time.Time) (domain.Money, *domain.FxInfo, error) {
+    fx := &domain.FxInfo{FromCurrency: amount.CurrencyCode, ToCurrency: "EUR", RateDecimal: "2.0000", AsOf: occurredAt, Provider: "prov"}
+    return domain.Money{CurrencyCode: "EUR", MinorUnits: amount.MinorUnits}, fx, nil
+}
+func (txSvcEcho) Create(ctx context.Context, tx domain.Transaction) (domain.Transaction, error) { return tx, nil }
+func (txSvcEcho) Update(ctx context.Context, tx domain.Transaction) (domain.Transaction, error) { return tx, nil }
+func (txSvcEcho) Delete(ctx context.Context, id string) error { return nil }
+func (e txSvcEcho) Get(ctx context.Context, id string) (domain.Transaction, error) { return e.cur, nil }
+func (txSvcEcho) List(ctx context.Context, tenantID string, filter txuse.ListFilter) ([]domain.Transaction, int64, error) { return nil, 0, nil }
+func (txSvcEcho) CreateForUser(ctx context.Context, tenantID, userID string, txType domain.TransactionType, categoryID string, amount domain.Money, occurredAt time.Time, comment string) (domain.Transaction, error) { return domain.Transaction{ID: "tx"}, nil }
+
+func TestTransactionServer_Update_FxIncluded(t *testing.T) {
+    cur := domain.Transaction{ID: "tx1", TenantID: "t1", Amount: domain.Money{CurrencyCode: "USD", MinorUnits: 150}, OccurredAt: time.Now()}
+    srv := NewTransactionServer(txSvcEcho{cur: cur})
+    patch := &budgetv1.Transaction{Amount: &budgetv1.Money{CurrencyCode: "USD", MinorUnits: 300}}
+    mask := &fieldmaskpb.FieldMask{Paths: []string{"amount"}}
+    out, err := srv.UpdateTransaction(context.Background(), &budgetv1.UpdateTransactionRequest{Id: "tx1", Transaction: patch, UpdateMask: mask})
+    if err != nil { t.Fatalf("update fx: %v", err) }
+    if out.GetTransaction().GetBaseAmount().GetCurrencyCode() != "EUR" || out.GetTransaction().GetFx() == nil || out.GetTransaction().GetFx().GetRateDecimal() != "2.0000" {
+        t.Fatalf("fx not propagated: %#v", out.GetTransaction())
+    }
 }
 
 func TestTransactionServer_Delete_Get_List(t *testing.T) {
