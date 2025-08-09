@@ -21,9 +21,7 @@ func NewReportServer(svc *repuse.Service) *ReportServer { return &ReportServer{s
 func (s *ReportServer) GetMonthlySummary(ctx context.Context, req *budgetv1.GetMonthlySummaryRequest) (*budgetv1.GetMonthlySummaryResponse, error) {
     tenantID, _ := ctxutil.TenantIDFromContext(ctx)
     sum, err := s.svc.GetMonthlySummary(ctx, tenantID, int(req.GetYear()), int(req.GetMonth()), req.GetLocale(), req.GetTargetCurrencyCode())
-    if err != nil {
-        return nil, err
-    }
+    if err != nil { return nil, mapError(err) }
     items := make([]*budgetv1.MonthlyCategorySummaryItem, 0, len(sum.Items))
     for _, it := range sum.Items {
         items = append(items, &budgetv1.MonthlyCategorySummaryItem{

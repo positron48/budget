@@ -29,17 +29,13 @@ func (s *TransactionServer) CreateTransaction(ctx context.Context, req *budgetv1
     occurredAt := time.Now()
     if req.GetOccurredAt() != nil { occurredAt = req.GetOccurredAt().AsTime() }
     created, err := s.svc.CreateForUser(ctx, tenantID, userID, mapTxType(req.GetType()), req.GetCategoryId(), amount, occurredAt, req.GetComment())
-    if err != nil {
-        return nil, err
-    }
+    if err != nil { return nil, mapError(err) }
     return &budgetv1.CreateTransactionResponse{Transaction: toProtoTx(created)}, nil
 }
 
 func (s *TransactionServer) UpdateTransaction(ctx context.Context, req *budgetv1.UpdateTransactionRequest) (*budgetv1.UpdateTransactionResponse, error) {
     current, err := s.svc.Get(ctx, req.GetId())
-    if err != nil {
-        return nil, err
-    }
+    if err != nil { return nil, mapError(err) }
     patch := req.GetTransaction()
     mask := req.GetUpdateMask()
     applyFieldMask(&current, patch, mask)
@@ -52,24 +48,18 @@ func (s *TransactionServer) UpdateTransaction(ctx context.Context, req *budgetv1
         current.Fx = fx
     }
     updated, err := s.svc.Update(ctx, current)
-    if err != nil {
-        return nil, err
-    }
+    if err != nil { return nil, mapError(err) }
     return &budgetv1.UpdateTransactionResponse{Transaction: toProtoTx(updated)}, nil
 }
 
 func (s *TransactionServer) DeleteTransaction(ctx context.Context, req *budgetv1.DeleteTransactionRequest) (*budgetv1.DeleteTransactionResponse, error) {
-    if err := s.svc.Delete(ctx, req.GetId()); err != nil {
-        return nil, err
-    }
+    if err := s.svc.Delete(ctx, req.GetId()); err != nil { return nil, mapError(err) }
     return &budgetv1.DeleteTransactionResponse{}, nil
 }
 
 func (s *TransactionServer) GetTransaction(ctx context.Context, req *budgetv1.GetTransactionRequest) (*budgetv1.GetTransactionResponse, error) {
     t, err := s.svc.Get(ctx, req.GetId())
-    if err != nil {
-        return nil, err
-    }
+    if err != nil { return nil, mapError(err) }
     return &budgetv1.GetTransactionResponse{Transaction: toProtoTx(t)}, nil
 }
 
@@ -112,9 +102,7 @@ func (s *TransactionServer) ListTransactions(ctx context.Context, req *budgetv1.
         f.PageSize = int(req.GetPage().GetPageSize())
     }
     items, total, err := s.svc.List(ctx, tenantID, f)
-    if err != nil {
-        return nil, err
-    }
+    if err != nil { return nil, mapError(err) }
     out := make([]*budgetv1.Transaction, 0, len(items))
     for _, it := range items {
         out = append(out, toProtoTx(it))

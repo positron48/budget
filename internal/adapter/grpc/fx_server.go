@@ -38,9 +38,7 @@ func (s *FxServer) GetRate(ctx context.Context, req *budgetv1.GetRateRequest) (*
         asOf = req.GetAsOf().AsTime()
     }
     rate, provider, err := s.repo.GetRateAsOf(ctx, req.GetFromCurrencyCode(), req.GetToCurrencyCode(), asOf)
-    if err != nil {
-        return nil, err
-    }
+    if err != nil { return nil, mapError(err) }
     return &budgetv1.GetRateResponse{Rate: &budgetv1.FxRate{FromCurrencyCode: req.GetFromCurrencyCode(), ToCurrencyCode: req.GetToCurrencyCode(), RateDecimal: rate, AsOf: timestamppb.New(asOf), Provider: provider}}, nil
 }
 
@@ -51,9 +49,7 @@ func (s *FxServer) UpsertRate(ctx context.Context, req *budgetv1.UpsertRateReque
         asOf = r.GetAsOf().AsTime()
     }
     row, err := s.repo.UpsertRate(ctx, r.GetFromCurrencyCode(), r.GetToCurrencyCode(), r.GetRateDecimal(), asOf, r.GetProvider())
-    if err != nil {
-        return nil, err
-    }
+    if err != nil { return nil, mapError(err) }
     return &budgetv1.UpsertRateResponse{Rate: &budgetv1.FxRate{FromCurrencyCode: row.From, ToCurrencyCode: row.To, RateDecimal: row.Rate, AsOf: timestamppb.New(row.AsOf), Provider: row.Provider}}, nil
 }
 
@@ -63,9 +59,7 @@ func (s *FxServer) BatchGetRates(ctx context.Context, req *budgetv1.BatchGetRate
         asOf = req.GetAsOf().AsTime()
     }
     rows, err := s.repo.BatchGetRates(ctx, req.GetFromCurrencyCodes(), req.GetToCurrencyCode(), asOf)
-    if err != nil {
-        return nil, err
-    }
+    if err != nil { return nil, mapError(err) }
     out := make([]*budgetv1.FxRate, 0, len(rows))
     for _, r := range rows {
         out = append(out, &budgetv1.FxRate{FromCurrencyCode: r.From, ToCurrencyCode: r.To, RateDecimal: r.Rate, AsOf: timestamppb.New(r.AsOf), Provider: r.Provider})

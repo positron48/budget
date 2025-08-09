@@ -24,10 +24,8 @@ func (s *CategoryServer) CreateCategory(ctx context.Context, req *budgetv1.Creat
 	for _, tr := range req.GetTranslations() {
 		trs = append(trs, domain.CategoryTranslation{Locale: tr.GetLocale(), Name: tr.GetName(), Description: tr.GetDescription()})
 	}
-	c, err := s.svc.Create(ctx, ctxTenantID(ctx), toKind(req.GetKind()), req.GetCode(), optString(req.GetParentId()), req.GetIsActive(), trs)
-	if err != nil {
-		return nil, err
-	}
+    c, err := s.svc.Create(ctx, ctxTenantID(ctx), toKind(req.GetKind()), req.GetCode(), optString(req.GetParentId()), req.GetIsActive(), trs)
+    if err != nil { return nil, mapError(err) }
 	return &budgetv1.CreateCategoryResponse{Category: toProtoCategory(c)}, nil
 }
 
@@ -36,33 +34,25 @@ func (s *CategoryServer) UpdateCategory(ctx context.Context, req *budgetv1.Updat
 	for _, tr := range req.GetTranslations() {
 		trs = append(trs, domain.CategoryTranslation{Locale: tr.GetLocale(), Name: tr.GetName(), Description: tr.GetDescription()})
 	}
-	c, err := s.svc.Update(ctx, req.GetId(), req.GetCode(), optString(req.GetParentId()), req.GetIsActive(), trs)
-	if err != nil {
-		return nil, err
-	}
+    c, err := s.svc.Update(ctx, req.GetId(), req.GetCode(), optString(req.GetParentId()), req.GetIsActive(), trs)
+    if err != nil { return nil, mapError(err) }
 	return &budgetv1.UpdateCategoryResponse{Category: toProtoCategory(c)}, nil
 }
 
 func (s *CategoryServer) DeleteCategory(ctx context.Context, req *budgetv1.DeleteCategoryRequest) (*budgetv1.DeleteCategoryResponse, error) {
-	if err := s.svc.Delete(ctx, req.GetId()); err != nil {
-		return nil, err
-	}
+    if err := s.svc.Delete(ctx, req.GetId()); err != nil { return nil, mapError(err) }
 	return &budgetv1.DeleteCategoryResponse{}, nil
 }
 
 func (s *CategoryServer) GetCategory(ctx context.Context, req *budgetv1.GetCategoryRequest) (*budgetv1.GetCategoryResponse, error) {
-	c, err := s.svc.Get(ctx, req.GetId())
-	if err != nil {
-		return nil, err
-	}
+    c, err := s.svc.Get(ctx, req.GetId())
+    if err != nil { return nil, mapError(err) }
 	return &budgetv1.GetCategoryResponse{Category: toProtoCategory(c)}, nil
 }
 
 func (s *CategoryServer) ListCategories(ctx context.Context, req *budgetv1.ListCategoriesRequest) (*budgetv1.ListCategoriesResponse, error) {
-	cs, err := s.svc.List(ctx, ctxTenantID(ctx), toKind(req.GetKind()), req.GetIncludeInactive())
-	if err != nil {
-		return nil, err
-	}
+    cs, err := s.svc.List(ctx, ctxTenantID(ctx), toKind(req.GetKind()), req.GetIncludeInactive())
+    if err != nil { return nil, mapError(err) }
 	out := make([]*budgetv1.Category, 0, len(cs))
 	for _, c := range cs {
 		out = append(out, toProtoCategory(c))

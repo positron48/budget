@@ -19,18 +19,14 @@ type TenantServer struct {
 func NewTenantServer(svc *tenant.Service) *TenantServer { return &TenantServer{svc: svc} }
 
 func (s *TenantServer) CreateTenant(ctx context.Context, req *budgetv1.CreateTenantRequest) (*budgetv1.CreateTenantResponse, error) {
-	t, err := s.svc.CreateTenant(ctx, req.GetName(), req.GetSlug(), req.GetDefaultCurrencyCode(), ctxUserID(ctx))
-	if err != nil {
-		return nil, err
-	}
+    t, err := s.svc.CreateTenant(ctx, req.GetName(), req.GetSlug(), req.GetDefaultCurrencyCode(), ctxUserID(ctx))
+    if err != nil { return nil, mapError(err) }
 	return &budgetv1.CreateTenantResponse{Tenant: &budgetv1.Tenant{Id: t.ID, Name: t.Name, Slug: t.Slug, DefaultCurrencyCode: t.DefaultCurrencyCode}}, nil
 }
 
 func (s *TenantServer) ListMyTenants(ctx context.Context, _ *budgetv1.ListMyTenantsRequest) (*budgetv1.ListMyTenantsResponse, error) {
-	ms, err := s.svc.ListMyTenants(ctx, ctxUserID(ctx))
-	if err != nil {
-		return nil, err
-	}
+    ms, err := s.svc.ListMyTenants(ctx, ctxUserID(ctx))
+    if err != nil { return nil, mapError(err) }
 	out := make([]*budgetv1.TenantMembership, 0, len(ms))
 	for _, m := range ms {
 		out = append(out, &budgetv1.TenantMembership{Tenant: &budgetv1.Tenant{Id: m.Tenant.ID, Name: m.Tenant.Name, Slug: m.Tenant.Slug, DefaultCurrencyCode: m.Tenant.DefaultCurrencyCode}, Role: mapRole(string(m.Role)), IsDefault: m.IsDefault})
