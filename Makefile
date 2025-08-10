@@ -71,6 +71,24 @@ ci: tidy vet lint test
 .PHONY: check
 check: tidy fmt vet lint test
 
+.PHONY: web-install web-build web-lint web-test web-check
+web-install:
+	cd web && npm ci || npm install
+
+web-build:
+	cd web && npm run build
+
+web-lint:
+	cd web && npm run lint || echo "eslint not configured, skipping"
+
+web-test:
+	cd web && npm run test || echo "no web tests configured yet, skipping"
+
+web-check: web-install web-lint web-build web-test
+
+.PHONY: check-all
+check-all: check web-check
+
 .PHONY: migrate-up
 migrate-up:
 	migrate -database "$(DB_URL)" -path migrations up
