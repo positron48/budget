@@ -89,7 +89,8 @@
     "close": "Close",
     "confirm": "Confirm",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "add": "Add"
   },
   "categories": {
     "title": "Categories",
@@ -112,7 +113,17 @@
     "view": "View",
     "all": "All",
     "active": "Active",
-    "inactive": "Inactive"
+    "inactive": "Inactive",
+    "expenseCategories": "Expense Categories",
+    "incomeCategories": "Income Categories",
+    "noExpenseCategories": "No expense categories found",
+    "noExpenseCategoriesDescription": "Create your first expense category",
+    "noIncomeCategories": "No income categories found",
+    "noIncomeCategoriesDescription": "Create your first income category",
+    "addExpenseCategory": "Add expense category...",
+    "addIncomeCategory": "Add income category...",
+    "category": "category",
+    "categories": "categories"
   },
   "transactions": {
     "title": "Transactions",

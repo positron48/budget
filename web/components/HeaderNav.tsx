@@ -30,7 +30,9 @@ export default function HeaderNav() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ locale: loc }),
       });
-    } catch (_) {}
+    } catch {
+      // Ignore locale change errors
+    }
     window.location.reload();
   };
 

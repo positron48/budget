@@ -90,7 +90,8 @@
     "close": "Закрыть",
     "confirm": "Подтвердить",
     "yes": "Да",
-    "no": "Нет"
+    "no": "Нет",
+    "add": "Добавить"
   },
   "categories": {
     "title": "Категории",
@@ -113,7 +114,17 @@
     "view": "Вид",
     "all": "Все",
     "active": "Активные",
-    "inactive": "Неактивные"
+    "inactive": "Неактивные",
+    "expenseCategories": "Категории расходов",
+    "incomeCategories": "Категории доходов",
+    "noExpenseCategories": "Категории расходов не найдены",
+    "noExpenseCategoriesDescription": "Создайте первую категорию расходов",
+    "noIncomeCategories": "Категории доходов не найдены",
+    "noIncomeCategoriesDescription": "Создайте первую категорию доходов",
+    "addExpenseCategory": "Добавить категорию расходов...",
+    "addIncomeCategory": "Добавить категорию доходов...",
+    "category": "категория",
+    "categories": "категорий"
   },
   "transactions": {
     "title": "Транзакции",

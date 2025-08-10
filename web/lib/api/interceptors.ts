@@ -1,5 +1,5 @@
 import type { Interceptor } from "@connectrpc/connect";
-import { Code, ConnectError, createClient } from "@connectrpc/connect";
+import { Code, createClient } from "@connectrpc/connect";
 import { AuthService } from "@/proto/budget/v1/auth_connect";
 import { transportBaseUrl } from "./transport";
 

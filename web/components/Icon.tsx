@@ -7,7 +7,7 @@ import {
   Building2,
   User,
   LogOut,
-  Plus,
+
   TrendingUp,
   TrendingDown,
   Wallet,
@@ -125,10 +125,10 @@ export type IconName =
   | "percent"
   | "minus"
   | "divide"
-  | "plus"
   | "equal"
   | "log-in"
-  | "loader-2";
+  | "loader-2"
+  | "folder-open";
 
 const iconMap: Record<IconName, LucideIcon> = {
   home: Home,
@@ -193,6 +193,7 @@ const iconMap: Record<IconName, LucideIcon> = {
   equal: Equal,
   "log-in": LogIn,
   "loader-2": Loader2,
+  "folder-open": FolderOpen,
 };
 
 interface IconProps {
