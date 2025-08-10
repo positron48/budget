@@ -136,6 +136,7 @@ function CategoriesInner() {
                   onChange={(e) => setCode(e.target.value)}
                   placeholder={t("code")}
                   required
+                  autoComplete="off"
                 />
               </div>
               <div className="flex gap-2">
@@ -224,6 +225,7 @@ function CategoriesInner() {
                           value={editCode}
                           onChange={(e) => setEditCode(e.target.value)}
                           placeholder={t("code")}
+                          autoComplete="off"
                         />
                         <Button
                           size="sm"

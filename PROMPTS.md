@@ -1125,3 +1125,15 @@ app/transactions/page.tsx (207:70) @ TransactionsInner
 
 ---
 
+при создании транзакции в форме не меняются категории при изменении типа транзакции (доход / расход)
+
+---
+
+GET http://localhost:3000/manifest.json 404 (Not Found)Understand this errorAI
+:3000/settings/profile:1 [DOM] Input elements should have autocomplete attributes (suggested: "new-password"): (More info: https://goo.gl/9p2vKq) <input class=​"border rounded px-2 py-1 w-full" type=​"password" value>​
+:3000/settings/profile:1 
+
+поправь это еще
+
+---
+

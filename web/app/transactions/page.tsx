@@ -120,7 +120,8 @@ function TransactionsInner() {
                   className="input" 
                   type="date" 
                   value={from} 
-                  onChange={(e) => setFrom(e.target.value)} 
+                  onChange={(e) => setFrom(e.target.value)}
+                  autoComplete="off"
                 />
               </div>
 
@@ -132,7 +133,8 @@ function TransactionsInner() {
                   className="input" 
                   type="date" 
                   value={to} 
-                  onChange={(e) => setTo(e.target.value)} 
+                  onChange={(e) => setTo(e.target.value)}
+                  autoComplete="off"
                 />
               </div>
 
@@ -145,6 +147,7 @@ function TransactionsInner() {
                   value={search} 
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={t("searchPlaceholder")}
+                  autoComplete="off"
                 />
               </div>
             </div>
@@ -158,6 +161,7 @@ function TransactionsInner() {
                 value={categoryIds} 
                 onChange={(e) => setCategoryIds(e.target.value)}
                 placeholder={t("categoryIdsPlaceholder")}
+                autoComplete="off"
               />
             </div>
 
@@ -354,6 +358,7 @@ function ListWithEdit({
                       placeholder={tt("comment")}
                       value={editComment}
                       onChange={(e) => setEditComment(e.target.value)}
+                      autoComplete="off"
                     />
                     <input
                       className="input w-24"
@@ -362,6 +367,7 @@ function ListWithEdit({
                       step="0.01"
                       value={editAmount}
                       onChange={(e) => setEditAmount(e.target.value ? Number(e.target.value) * 100 : "")}
+                      autoComplete="off"
                     />
                     <Button
                       size="sm"

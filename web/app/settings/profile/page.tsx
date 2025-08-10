@@ -56,11 +56,21 @@ function ProfileSettingsInner() {
         <div className="text-lg font-medium">{t("updateTitle")}</div>
         <div>
           <label className="block text-xs">{t("name")}</label>
-          <input className="border rounded px-2 py-1 w-full" value={name} onChange={(e) => setName(e.target.value)} />
+          <input 
+            className="border rounded px-2 py-1 w-full" 
+            value={name} 
+            onChange={(e) => setName(e.target.value)}
+            autoComplete="name"
+          />
         </div>
         <div>
           <label className="block text-xs">{t("locale")}</label>
-          <input className="border rounded px-2 py-1 w-40" value={locale} onChange={(e) => setLocale(e.target.value)} />
+          <input 
+            className="border rounded px-2 py-1 w-40" 
+            value={locale} 
+            onChange={(e) => setLocale(e.target.value)}
+            autoComplete="off"
+          />
         </div>
         <button className="bg-black text-white rounded px-3 py-1" disabled={updateMut.isPending}>
           {updateMut.isPending ? t("saving") : t("save")}
@@ -78,11 +88,23 @@ function ProfileSettingsInner() {
         <div className="text-lg font-medium">{t("passwordTitle")}</div>
         <div>
           <label className="block text-xs">{t("currentPassword")}</label>
-          <input type="password" className="border rounded px-2 py-1 w-full" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
+          <input 
+            type="password" 
+            className="border rounded px-2 py-1 w-full" 
+            value={currentPassword} 
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            autoComplete="current-password"
+          />
         </div>
         <div>
           <label className="block text-xs">{t("newPassword")}</label>
-          <input type="password" className="border rounded px-2 py-1 w-full" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+          <input 
+            type="password" 
+            className="border rounded px-2 py-1 w-full" 
+            value={newPassword} 
+            onChange={(e) => setNewPassword(e.target.value)}
+            autoComplete="new-password"
+          />
         </div>
         {pwOk && <div className="text-green-700 text-sm">{t("passwordChanged")}</div>}
         <button className="bg-black text-white rounded px-3 py-1" disabled={pwMut.isPending}>

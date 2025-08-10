@@ -41,7 +41,8 @@ function MonthlyReportInner() {
                 className="input w-24" 
                 type="number" 
                 value={year} 
-                onChange={(e) => setYear(Number(e.target.value))} 
+                onChange={(e) => setYear(Number(e.target.value))}
+                autoComplete="off"
               />
             </div>
             <div className="space-y-2">
@@ -52,7 +53,8 @@ function MonthlyReportInner() {
                 min={1} 
                 max={12} 
                 value={month} 
-                onChange={(e) => setMonth(Number(e.target.value))} 
+                onChange={(e) => setMonth(Number(e.target.value))}
+                autoComplete="off"
               />
             </div>
             <div className="space-y-2">
@@ -62,6 +64,7 @@ function MonthlyReportInner() {
                 value={currency} 
                 onChange={(e) => setCurrency(e.target.value)}
                 placeholder="RUB"
+                autoComplete="off"
               />
             </div>
           </div>

@@ -73,6 +73,7 @@ function FxInner() {
                 value={fromCodes} 
                 onChange={(e) => setFromCodes(e.target.value)}
                 placeholder="USD,EUR"
+                autoComplete="off"
               />
             </div>
             <div className="space-y-2">
@@ -82,6 +83,7 @@ function FxInner() {
                 value={toCode} 
                 onChange={(e) => setToCode(e.target.value)}
                 placeholder="RUB"
+                autoComplete="off"
               />
             </div>
             <div className="space-y-2">
@@ -90,7 +92,8 @@ function FxInner() {
                 className="input" 
                 type="date" 
                 value={asOf} 
-                onChange={(e) => setAsOf(e.target.value)} 
+                onChange={(e) => setAsOf(e.target.value)}
+                autoComplete="off"
               />
             </div>
           </div>
@@ -163,6 +166,7 @@ function FxInner() {
                     value={uFrom} 
                     onChange={(e) => setUFrom(e.target.value)}
                     placeholder="USD"
+                    autoComplete="off"
                   />
                 </div>
                 <div className="space-y-2">
@@ -172,6 +176,7 @@ function FxInner() {
                     value={uTo} 
                     onChange={(e) => setUTo(e.target.value)}
                     placeholder="RUB"
+                    autoComplete="off"
                   />
                 </div>
                 <div className="space-y-2">
@@ -181,6 +186,7 @@ function FxInner() {
                     value={uRate} 
                     onChange={(e) => setURate(e.target.value)}
                     placeholder="75.50"
+                    autoComplete="off"
                   />
                 </div>
                 <div className="space-y-2">
@@ -189,7 +195,8 @@ function FxInner() {
                     className="input" 
                     type="date" 
                     value={uDate} 
-                    onChange={(e) => setUDate(e.target.value)} 
+                    onChange={(e) => setUDate(e.target.value)}
+                    autoComplete="off"
                   />
                 </div>
                 <button 

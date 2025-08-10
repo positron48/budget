@@ -80,6 +80,7 @@ function RegisterForm() {
                   {...register("email")}
                   className="input"
                   placeholder={t("emailPlaceholder")}
+                  autoComplete="email"
                 />
                 {formState.errors.email && (
                   <p className="text-sm text-destructive">{formState.errors.email.message}</p>
@@ -96,6 +97,7 @@ function RegisterForm() {
                   {...register("password")}
                   className="input"
                   placeholder={t("passwordPlaceholder")}
+                  autoComplete="new-password"
                 />
                 {formState.errors.password && (
                   <p className="text-sm text-destructive">{formState.errors.password.message}</p>
@@ -111,6 +113,7 @@ function RegisterForm() {
                   {...register("name")}
                   className="input"
                   placeholder={t("namePlaceholder")}
+                  autoComplete="name"
                 />
                 {formState.errors.name && (
                   <p className="text-sm text-destructive">{formState.errors.name.message}</p>
@@ -141,6 +144,7 @@ function RegisterForm() {
                   {...register("tenantName")}
                   className="input"
                   placeholder={t("tenantNamePlaceholder")}
+                  autoComplete="organization"
                 />
                 {formState.errors.tenantName && (
                   <p className="text-sm text-destructive">{formState.errors.tenantName.message}</p>

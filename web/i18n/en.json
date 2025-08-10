@@ -142,6 +142,8 @@
     "noTransactionsDescription": "Create your first transaction to get started",
     "noComment": "No comment",
     "noCategory": "No category",
+    "loadingCategories": "Loading categories...",
+    "categoryChanged": "Categories updated for selected type",
     "filters": "Filters",
     "toggleFilters": "Toggle Filters",
     "clearFilters": "Clear Filters",

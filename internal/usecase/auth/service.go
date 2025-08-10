@@ -114,7 +114,7 @@ func (s *Service) Login(ctx context.Context, email, password string) (User, []Te
 	if tenantID == "" && len(memberships) > 0 {
 		tenantID = memberships[0].TenantID
 	}
-	
+
 	// Добавляем логирование для отладки
 	fmt.Printf("DEBUG: User %s, memberships count: %d\n", u.ID, len(memberships))
 	for i, m := range memberships {
@@ -128,7 +128,7 @@ func (s *Service) Login(ctx context.Context, email, password string) (User, []Te
 	} else {
 		fmt.Printf("DEBUG: Selected tenantID: %s\n", tenantID)
 	}
-	
+
 	tp, err := s.issuer.Issue(ctx, u.ID, tenantID, s.accessTTL, s.refreshTTL)
 	if err != nil {
 		return User{}, nil, TokenPair{}, err

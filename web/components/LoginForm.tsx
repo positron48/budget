@@ -75,6 +75,7 @@ export default function LoginForm() {
         error={errors.email?.message}
         placeholder={t("emailPlaceholder")}
         disabled={isLoading}
+        autoComplete="email"
         {...register("email")}
       />
 
@@ -87,6 +88,7 @@ export default function LoginForm() {
         error={errors.password?.message}
         placeholder={t("passwordPlaceholder")}
         disabled={isLoading}
+        autoComplete="current-password"
         {...register("password")}
       />
 

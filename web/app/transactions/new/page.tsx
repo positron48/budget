@@ -4,9 +4,9 @@ import { ClientsProvider, useClients } from "@/app/providers";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { TransactionType, CategoryKind } from "@/proto/budget/v1/common_pb";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -24,10 +24,11 @@ type FormValues = z.infer<typeof schema>;
 
 function TxForm() {
   const { transaction, category } = useClients();
+  const queryClient = useQueryClient();
   const router = useRouter();
   const t = useTranslations("transactions");
   const tc = useTranslations("common");
-  const { register, handleSubmit, reset, watch } = useForm<FormValues>({
+  const { register, handleSubmit, reset, watch, setValue } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       type: TransactionType.EXPENSE as unknown as number,
@@ -37,15 +38,45 @@ function TxForm() {
   });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [categoryChanged, setCategoryChanged] = useState(false);
   
   const typeWatch = watch("type");
-  const mappedKind = useMemo(() => (typeWatch === TransactionType.INCOME ? CategoryKind.INCOME : CategoryKind.EXPENSE), [typeWatch]);
+  const mappedKind = useMemo(() => {
+    const typeWatchNumber = Number(typeWatch);
+    return typeWatchNumber === TransactionType.INCOME ? CategoryKind.INCOME : CategoryKind.EXPENSE;
+  }, [typeWatch]);
+  const prevMappedKindRef = useRef(mappedKind);
   
-  const { data: catData } = useQuery({
+  const { data: catData, isLoading: categoriesLoading } = useQuery({
     queryKey: ["tx-new-categories", mappedKind],
-    queryFn: async () => (await category.listCategories({ kind: mappedKind } as any)) as any,
-    staleTime: 30_000,
+    queryFn: async () => {
+      return await category.listCategories({ 
+        kind: mappedKind,
+        includeInactive: false 
+      } as any);
+    },
+    staleTime: 0, // Disable caching to ensure fresh data
   });
+
+  // Reset category selection when transaction type changes
+  useEffect(() => {
+    if (prevMappedKindRef.current !== mappedKind) {
+      const currentCategoryId = watch("categoryId");
+      if (currentCategoryId) {
+        // Small delay to show loading state
+        const timer = setTimeout(() => {
+          setValue("categoryId", "");
+          setCategoryChanged(true);
+          // Hide the notification after 2 seconds
+          setTimeout(() => setCategoryChanged(false), 2000);
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+      // Invalidate and refetch categories
+      queryClient.invalidateQueries({ queryKey: ["tx-new-categories"] });
+      prevMappedKindRef.current = mappedKind;
+    }
+  }, [mappedKind, setValue, watch, queryClient]);
   
   const onSubmit = async (v: FormValues) => {
     setError(null);
@@ -100,7 +131,10 @@ function TxForm() {
                   <label className="text-sm font-medium text-foreground">
                     {t("type")}
                   </label>
-                  <select className="input" {...register("type")}>
+                  <select 
+                    className="input" 
+                    {...register("type")}
+                  >
                     <option value={TransactionType.EXPENSE}>{t("expense")}</option>
                     <option value={TransactionType.INCOME}>{t("income")}</option>
                   </select>
@@ -113,7 +147,8 @@ function TxForm() {
                   <input 
                     type="datetime-local" 
                     className="input" 
-                    {...register("occurredAt")} 
+                    {...register("occurredAt")}
+                    autoComplete="off"
                   />
                 </div>
               </div>
@@ -128,7 +163,8 @@ function TxForm() {
                     step="0.01" 
                     className="input" 
                     placeholder="0.00"
-                    {...register("amount")} 
+                    {...register("amount")}
+                    autoComplete="off"
                   />
                 </div>
                 <div className="space-y-2">
@@ -138,7 +174,8 @@ function TxForm() {
                   <input 
                     className="input" 
                     placeholder="RUB"
-                    {...register("currencyCode")} 
+                    {...register("currencyCode")}
+                    autoComplete="off"
                   />
                 </div>
               </div>
@@ -147,12 +184,28 @@ function TxForm() {
                 <label className="text-sm font-medium text-foreground">
                   {t("category")}
                 </label>
-                <select className="input" {...register("categoryId")}>
-                  <option value="">{t("noCategory")}</option>
+                <select 
+                  className="input" 
+                  {...register("categoryId")}
+                  disabled={categoriesLoading}
+                >
+                  <option value="">
+                    {categoriesLoading ? t("loading") : t("noCategory")}
+                  </option>
                   {(catData?.categories ?? []).map((c: any) => (
                     <option key={c?.id} value={c?.id}>{c?.code}</option>
                   ))}
                 </select>
+                {categoriesLoading && (
+                  <p className="text-xs text-muted-foreground">
+                    {t("loadingCategories")}
+                  </p>
+                )}
+                {categoryChanged && !categoriesLoading && (
+                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                    {t("categoryChanged")}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -162,7 +215,8 @@ function TxForm() {
                 <input 
                   className="input" 
                   placeholder={t("comment")}
-                  {...register("comment")} 
+                  {...register("comment")}
+                  autoComplete="off"
                 />
               </div>
 

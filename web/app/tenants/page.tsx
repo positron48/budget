@@ -49,15 +49,31 @@ function TenantsInner() {
       >
         <div>
           <label className="block text-xs">{t("name")}</label>
-          <input className="border rounded px-2 py-1" value={name} onChange={(e) => setName(e.target.value)} required />
+          <input 
+            className="border rounded px-2 py-1" 
+            value={name} 
+            onChange={(e) => setName(e.target.value)} 
+            required 
+            autoComplete="organization"
+          />
         </div>
         <div>
           <label className="block text-xs">{t("slugOptional")}</label>
-          <input className="border rounded px-2 py-1" value={slug} onChange={(e) => setSlug(e.target.value)} />
+          <input 
+            className="border rounded px-2 py-1" 
+            value={slug} 
+            onChange={(e) => setSlug(e.target.value)} 
+            autoComplete="off"
+          />
         </div>
         <div>
           <label className="block text-xs">{t("defaultCurrency")}</label>
-          <input className="border rounded px-2 py-1 w-24" value={currency} onChange={(e) => setCurrency(e.target.value)} />
+          <input 
+            className="border rounded px-2 py-1 w-24" 
+            value={currency} 
+            onChange={(e) => setCurrency(e.target.value)} 
+            autoComplete="off"
+          />
         </div>
         <button className="bg-black text-white rounded px-3 py-1" disabled={createMut.isPending}>
           {createMut.isPending ? tc("loading") : t("create")}
