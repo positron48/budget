@@ -587,13 +587,18 @@ function TransactionTable({
                  </td>
                 <td className="px-4 py-3 text-right">
                   {editingId === tx?.id ? (
-                    <input
+                                        <input
                       className="w-24 px-2 py-1 border border-slate-200 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-right"
-                      placeholder="Сумма"
-                      type="number"
-                      step="0.01"
+                      placeholder="0.00"
+                      type="text"
                       value={editAmount}
-                                             onChange={(e) => setEditAmount(e.target.value ? parseFloat(e.target.value) * 100 : "")}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Разрешаем только цифры, точку и запятую
+                        if (value === '' || /^[0-9]*[.,]?[0-9]{0,2}$/.test(value)) {
+                          setEditAmount(value);
+                        }
+                      }}
                       autoComplete="off"
                     />
                   ) : (
@@ -618,16 +623,16 @@ function TransactionTable({
                             editAmount,
                             editCategoryId,
                             editDate,
-                            categoryId: editCategoryId === "" ? null : editCategoryId,
+                            categoryId: editCategoryId === "" ? undefined : editCategoryId,
                             occurredAt: editDate ? { seconds: Math.floor(new Date(editDate).getTime() / 1000) } : undefined,
                           });
-                          updateMut.mutate({
-                            id: tx.id as string,
-                            comment: editComment,
-                            amountMinorUnits: editAmount ? parseFloat(editAmount) * 100 : undefined,
-                            categoryId: editCategoryId === "" ? null : editCategoryId,
-                            occurredAt: editDate ? { seconds: Math.floor(new Date(editDate).getTime() / 1000) } : undefined,
-                          });
+                                                      updateMut.mutate({
+                              id: tx.id as string,
+                              comment: editComment,
+                              amountMinorUnits: editAmount ? Math.round(parseFloat(editAmount.replace(',', '.')) * 100) : undefined,
+                              categoryId: editCategoryId === "" ? undefined : editCategoryId,
+                              occurredAt: editDate ? { seconds: Math.floor(new Date(editDate).getTime() / 1000) } : undefined,
+                            });
                         }}
                         className="bg-green-600 hover:bg-green-700 text-white px-2 py-1"
                       >
