@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -50,10 +51,11 @@ type UserRepo interface {
 }
 
 type RefreshTokenRepo interface {
-	Store(ctx context.Context, userID, token string, expiresAt time.Time) error
+	Store(ctx context.Context, userID, tenantID, token string, expiresAt time.Time) error
 	Rotate(ctx context.Context, oldToken, newToken string, newExpiresAt time.Time) error
 	GetByToken(ctx context.Context, token string) (struct {
 		UserID    string
+		TenantID  string
 		ExpiresAt time.Time
 		RevokedAt *time.Time
 	}, error)
@@ -87,7 +89,7 @@ func (s *Service) Register(ctx context.Context, email, password, name, locale, t
 	if err != nil {
 		return User{}, Tenant{}, TokenPair{}, err
 	}
-	if err := s.tokens.Store(ctx, u.ID, tp.RefreshToken, tp.RefreshTokenExpiresAt); err != nil {
+	if err := s.tokens.Store(ctx, u.ID, t.ID, tp.RefreshToken, tp.RefreshTokenExpiresAt); err != nil {
 		return User{}, Tenant{}, TokenPair{}, err
 	}
 	return u, t, tp, nil
@@ -112,11 +114,26 @@ func (s *Service) Login(ctx context.Context, email, password string) (User, []Te
 	if tenantID == "" && len(memberships) > 0 {
 		tenantID = memberships[0].TenantID
 	}
+	
+	// Добавляем логирование для отладки
+	fmt.Printf("DEBUG: User %s, memberships count: %d\n", u.ID, len(memberships))
+	for i, m := range memberships {
+		fmt.Printf("DEBUG: Membership %d: TenantID=%s, Role=%s, IsDefault=%v\n", i, m.TenantID, m.Role, m.IsDefault)
+	}
+	if tenantID == "" {
+		// Если tenantID пустой, попробуем получить его из базы данных
+		// или создать новый tenant для пользователя
+		// Пока что просто логируем проблему
+		fmt.Printf("WARNING: Empty tenantID for user %s, memberships: %+v\n", u.ID, memberships)
+	} else {
+		fmt.Printf("DEBUG: Selected tenantID: %s\n", tenantID)
+	}
+	
 	tp, err := s.issuer.Issue(ctx, u.ID, tenantID, s.accessTTL, s.refreshTTL)
 	if err != nil {
 		return User{}, nil, TokenPair{}, err
 	}
-	if err := s.tokens.Store(ctx, u.ID, tp.RefreshToken, tp.RefreshTokenExpiresAt); err != nil {
+	if err := s.tokens.Store(ctx, u.ID, tenantID, tp.RefreshToken, tp.RefreshTokenExpiresAt); err != nil {
 		return User{}, nil, TokenPair{}, err
 	}
 	return u, memberships, tp, nil
@@ -131,8 +148,8 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (TokenPair, 
 	if row.RevokedAt != nil || time.Now().After(row.ExpiresAt) {
 		return TokenPair{}, ErrInvalidCredentials
 	}
-	// issue new pair; tenantID unknown here → empty, клиент должен выбрать активный tenant заново или хранить его внешне
-	tp, err := s.issuer.Issue(ctx, row.UserID, "", s.accessTTL, s.refreshTTL)
+	// issue new pair with tenant_id from refresh token
+	tp, err := s.issuer.Issue(ctx, row.UserID, row.TenantID, s.accessTTL, s.refreshTTL)
 	if err != nil {
 		return TokenPair{}, err
 	}

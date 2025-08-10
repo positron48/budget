@@ -188,24 +188,27 @@ func (r *memUserRepo) GetByEmail(ctx context.Context, email string) (useauth.Use
 type memRTRepo struct {
 	rows map[string]struct {
 		UserID    string
+		TenantID  string
 		ExpiresAt time.Time
 		RevokedAt *time.Time
 	}
 }
 
-func (m *memRTRepo) Store(ctx context.Context, userID, token string, expiresAt time.Time) error {
+func (m *memRTRepo) Store(ctx context.Context, userID, tenantID, token string, expiresAt time.Time) error {
 	if m.rows == nil {
 		m.rows = map[string]struct {
 			UserID    string
+			TenantID  string
 			ExpiresAt time.Time
 			RevokedAt *time.Time
 		}{}
 	}
 	m.rows[token] = struct {
 		UserID    string
+		TenantID  string
 		ExpiresAt time.Time
 		RevokedAt *time.Time
-	}{UserID: userID, ExpiresAt: expiresAt}
+	}{UserID: userID, TenantID: tenantID, ExpiresAt: expiresAt}
 	return nil
 }
 
@@ -213,6 +216,7 @@ func (m *memRTRepo) Rotate(ctx context.Context, oldToken, newToken string, newEx
 	if m.rows == nil {
 		m.rows = map[string]struct {
 			UserID    string
+			TenantID  string
 			ExpiresAt time.Time
 			RevokedAt *time.Time
 		}{}
@@ -223,14 +227,16 @@ func (m *memRTRepo) Rotate(ctx context.Context, oldToken, newToken string, newEx
 	m.rows[oldToken] = row
 	m.rows[newToken] = struct {
 		UserID    string
+		TenantID  string
 		ExpiresAt time.Time
 		RevokedAt *time.Time
-	}{UserID: row.UserID, ExpiresAt: newExpiresAt}
+	}{UserID: row.UserID, TenantID: row.TenantID, ExpiresAt: newExpiresAt}
 	return nil
 }
 
 func (m *memRTRepo) GetByToken(ctx context.Context, token string) (struct {
 	UserID    string
+	TenantID  string
 	ExpiresAt time.Time
 	RevokedAt *time.Time
 }, error,
@@ -240,6 +246,7 @@ func (m *memRTRepo) GetByToken(ctx context.Context, token string) (struct {
 	}
 	return struct {
 		UserID    string
+		TenantID  string
 		ExpiresAt time.Time
 		RevokedAt *time.Time
 	}{}, nil
@@ -332,6 +339,118 @@ func TestAuth_Register_Login_Refresh_AndAccess(t *testing.T) {
 	if ref.GetTokens().GetAccessToken() == "" {
 		t.Fatalf("invalid refresh resp: %#v", ref)
 	}
+}
+
+func TestAuth_TokenRefresh_PreservesTenantID(t *testing.T) {
+	const signKey = "test-secret"
+	lis := bufconn.Listen(bufSize)
+	t.Cleanup(func() { _ = lis.Close() })
+
+	lg, _ := zap.NewDevelopment()
+	sug := lg.Sugar()
+	defer lg.Sync() //nolint:errcheck
+
+	var tenantGuard grpc.UnaryServerInterceptor = func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		return handler(ctx, req)
+	}
+	srv := grpc.NewServer(grpc.ChainUnaryInterceptor(
+		NewAuthUnaryInterceptor(signKey),
+		LoggingUnaryInterceptor(sug),
+		RecoveryUnaryInterceptor(sug),
+		func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+			return tenantGuard(ctx, req, info, handler)
+		},
+	))
+	tenantGuard = NewTenantGuardUnaryInterceptor(func(ctx context.Context, userID, tenantID string) (bool, error) { return true, nil })
+
+	// Auth service wiring with in-memory repos
+	urepo := &memUserRepo{}
+	rtrepo := &memRTRepo{}
+	issuer := aauth.NewJWTIssuer(signKey)
+	authSvc := useauth.NewService(urepo, rtrepo, hasherStub{}, issuer, 15*time.Minute, 24*time.Hour)
+	budgetv1.RegisterAuthServiceServer(srv, NewAuthServer(authSvc))
+
+	go func() { _ = srv.Serve(lis) }()
+	t.Cleanup(srv.Stop)
+
+	ctx := context.Background()
+	conn, err := dialBufConn(ctx, lis)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.Close() })
+
+	authClient := budgetv1.NewAuthServiceClient(conn)
+
+	// Register a user
+	reg, err := authClient.Register(ctx, &budgetv1.RegisterRequest{
+		Email:      "test@example.com",
+		Password:   "Passw0rd!",
+		Name:       "Test User",
+		Locale:     "en",
+		TenantName: "Test Tenant",
+	})
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	// Decode initial access token to get tenant_id
+	initialToken := reg.GetTokens().GetAccessToken()
+	initialPayload := decodeJWTToken(t, initialToken, signKey)
+	initialTenantID := initialPayload["tenant_id"].(string)
+	initialUserID := initialPayload["sub"].(string)
+
+	t.Logf("Initial token - user_id: %s, tenant_id: %s", initialUserID, initialTenantID)
+
+	// Refresh the token
+	refreshResp, err := authClient.RefreshToken(ctx, &budgetv1.RefreshTokenRequest{
+		RefreshToken: reg.GetTokens().GetRefreshToken(),
+	})
+	if err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+
+	// Decode refreshed access token to check tenant_id
+	refreshedToken := refreshResp.GetTokens().GetAccessToken()
+	refreshedPayload := decodeJWTToken(t, refreshedToken, signKey)
+	refreshedTenantID := refreshedPayload["tenant_id"].(string)
+	refreshedUserID := refreshedPayload["sub"].(string)
+
+	t.Logf("Refreshed token - user_id: %s, tenant_id: %s", refreshedUserID, refreshedTenantID)
+
+	// Verify that tenant_id is preserved
+	if initialTenantID != refreshedTenantID {
+		t.Errorf("tenant_id was lost during refresh: initial=%s, refreshed=%s", initialTenantID, refreshedTenantID)
+	}
+
+	// Verify that user_id is preserved
+	if initialUserID != refreshedUserID {
+		t.Errorf("user_id was lost during refresh: initial=%s, refreshed=%s", initialUserID, refreshedUserID)
+	}
+
+	t.Logf("✅ SUCCESS: tenant_id and user_id preserved during token refresh")
+}
+
+// Helper function to decode JWT token
+func decodeJWTToken(t *testing.T, token, signKey string) map[string]interface{} {
+	parsed, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, jwt.ErrSignatureInvalid
+		}
+		return []byte(signKey), nil
+	})
+	if err != nil {
+		t.Fatalf("failed to parse JWT: %v", err)
+	}
+	if !parsed.Valid {
+		t.Fatal("JWT token is invalid")
+	}
+
+	claims, ok := parsed.Claims.(jwt.MapClaims)
+	if !ok {
+		t.Fatal("failed to get JWT claims")
+	}
+	return claims
 }
 
 // --- Transaction & Report integration ---

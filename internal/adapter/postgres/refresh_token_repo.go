@@ -16,29 +16,31 @@ func hashToken(token string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func (r *RefreshTokenRepo) Store(ctx context.Context, userID, token string, expiresAt time.Time) error {
+func (r *RefreshTokenRepo) Store(ctx context.Context, userID, tenantID, token string, expiresAt time.Time) error {
 	_, err := r.pool.DB.Exec(ctx,
-		`INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1,$2,$3)`,
-		userID, hashToken(token), expiresAt,
+		`INSERT INTO refresh_tokens (user_id, tenant_id, token_hash, expires_at) VALUES ($1,$2,$3,$4)`,
+		userID, tenantID, hashToken(token), expiresAt,
 	)
 	return err
 }
 
 func (r *RefreshTokenRepo) GetByToken(ctx context.Context, token string) (struct {
 	UserID    string
+	TenantID  string
 	ExpiresAt time.Time
 	RevokedAt *time.Time
 }, error,
 ) {
 	var row struct {
 		UserID    string
+		TenantID  string
 		ExpiresAt time.Time
 		RevokedAt *time.Time
 	}
 	err := r.pool.DB.QueryRow(ctx,
-		`SELECT user_id, expires_at, revoked_at FROM refresh_tokens WHERE token_hash=$1 ORDER BY created_at DESC LIMIT 1`,
+		`SELECT user_id, tenant_id, expires_at, revoked_at FROM refresh_tokens WHERE token_hash=$1 ORDER BY created_at DESC LIMIT 1`,
 		hashToken(token),
-	).Scan(&row.UserID, &row.ExpiresAt, &row.RevokedAt)
+	).Scan(&row.UserID, &row.TenantID, &row.ExpiresAt, &row.RevokedAt)
 	return row, err
 }
 
@@ -51,7 +53,7 @@ func (r *RefreshTokenRepo) Rotate(ctx context.Context, oldToken, newToken string
 		return err
 	}
 	_, err = r.pool.DB.Exec(ctx,
-		`INSERT INTO refresh_tokens (user_id, token_hash, expires_at) SELECT user_id, $1, $2 FROM refresh_tokens WHERE token_hash=$3 LIMIT 1`,
+		`INSERT INTO refresh_tokens (user_id, tenant_id, token_hash, expires_at) SELECT user_id, tenant_id, $1, $2 FROM refresh_tokens WHERE token_hash=$3 LIMIT 1`,
 		hashToken(newToken), newExpiresAt, hashToken(oldToken),
 	)
 	return err

@@ -70,24 +70,27 @@ func (r *userRepoMem) GetByEmail(ctx context.Context, email string) (User, []Ten
 type tokensMem struct {
 	rows map[string]struct {
 		UserID    string
+		TenantID  string
 		ExpiresAt time.Time
 		RevokedAt *time.Time
 	}
 }
 
-func (t *tokensMem) Store(ctx context.Context, userID, token string, expiresAt time.Time) error {
+func (t *tokensMem) Store(ctx context.Context, userID, tenantID, token string, expiresAt time.Time) error {
 	if t.rows == nil {
 		t.rows = map[string]struct {
 			UserID    string
+			TenantID  string
 			ExpiresAt time.Time
 			RevokedAt *time.Time
 		}{}
 	}
 	t.rows[token] = struct {
 		UserID    string
+		TenantID  string
 		ExpiresAt time.Time
 		RevokedAt *time.Time
-	}{UserID: userID, ExpiresAt: expiresAt}
+	}{UserID: userID, TenantID: tenantID, ExpiresAt: expiresAt}
 	return nil
 }
 
@@ -101,14 +104,16 @@ func (t *tokensMem) Rotate(ctx context.Context, oldToken, newToken string, newEx
 	t.rows[oldToken] = row
 	t.rows[newToken] = struct {
 		UserID    string
+		TenantID  string
 		ExpiresAt time.Time
 		RevokedAt *time.Time
-	}{UserID: row.UserID, ExpiresAt: newExpiresAt}
+	}{UserID: row.UserID, TenantID: row.TenantID, ExpiresAt: newExpiresAt}
 	return nil
 }
 
 func (t *tokensMem) GetByToken(ctx context.Context, token string) (struct {
 	UserID    string
+	TenantID  string
 	ExpiresAt time.Time
 	RevokedAt *time.Time
 }, error,
@@ -116,6 +121,7 @@ func (t *tokensMem) GetByToken(ctx context.Context, token string) (struct {
 	if t.rows == nil {
 		return struct {
 			UserID    string
+			TenantID  string
 			ExpiresAt time.Time
 			RevokedAt *time.Time
 		}{}, errors.New("not found")
@@ -124,6 +130,7 @@ func (t *tokensMem) GetByToken(ctx context.Context, token string) (struct {
 	if !ok {
 		return struct {
 			UserID    string
+			TenantID  string
 			ExpiresAt time.Time
 			RevokedAt *time.Time
 		}{}, errors.New("not found")
@@ -237,11 +244,11 @@ type tokensErr struct {
 	tokensMem
 }
 
-func (t *tokensErr) Store(ctx context.Context, userID, token string, expiresAt time.Time) error {
+func (t *tokensErr) Store(ctx context.Context, userID, tenantID, token string, expiresAt time.Time) error {
 	if t.storeErr {
 		return errors.New("store err")
 	}
-	return t.tokensMem.Store(ctx, userID, token, expiresAt)
+	return t.tokensMem.Store(ctx, userID, tenantID, token, expiresAt)
 }
 
 func (t *tokensErr) Rotate(ctx context.Context, oldToken, newToken string, newExpiresAt time.Time) error {
