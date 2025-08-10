@@ -1186,3 +1186,47 @@ GET http://localhost:3000/manifest.json 404 (Not Found)Understand this errorAI
 
 ---
 
+давай поработаем с ui транзакций, сейчас все очень плохо
+
+---
+
+Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check the render method of `TransactionStats`.
+
+components/TransactionStats.tsx (41:13) @ TransactionStats
+
+---
+
+достаточно громоздко, много свободного пустого места, под список подошла бы больше таблица или что-то такое, id не нужно выводить клиенту
+
+---
+
+1. вместо id категории нужно выводить её код (название)
+2. при редактировании должна быть возможность менять категорию и дату
+3. при выводе сумм нужно отделять пробелами тысячи/миллионы и тп
+4. в фильтрах нужно также выбирать категории из списка, а не вводить id. При этом нужно оставить инпут с работающим поиском и мультивыбор категорий фильтра
+5. при редактировании суммы происходит какая-то ерунда, на каждую вводимую цифру вводится она и 2 нуля
+
+---
+
+Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check the render method of `CategorySelect`.
+
+components/CategorySelect.tsx (89:9) @ CategorySelect
+
+---
+
+Console ConnectError
+
+
+[internal] ERROR: invalid input value for enum category_kind: "" (SQLSTATE 22P02)
+
+lib/api/interceptors.ts (42:14) @ async eval
+
+---
+---
+---
+
+Т.к. MVP достигнут и gpt-5 лимиты исчерпаны - эксперимент по ведению промптов в файле считаю оконченным.

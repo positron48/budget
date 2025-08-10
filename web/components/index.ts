@@ -8,6 +8,11 @@ export { default as LoginForm } from "./LoginForm";
 export { default as StatCard } from "./StatCard";
 export { default as HeaderNav } from "./HeaderNav";
 export { default as Protected } from "./Protected";
+export { default as TransactionStats } from "./TransactionStats";
+export { default as EmptyTransactions } from "./EmptyTransactions";
+export { default as CategoryBadge } from "./CategoryBadge";
+export { default as CategorySelect } from "./CategorySelect";
+export { default as CategoryTagInput } from "./CategoryTagInput";
 
 export * from "./Card";
 export type { IconName } from "./Icon";
