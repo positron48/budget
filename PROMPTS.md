@@ -972,7 +972,41 @@ register перекидывает на login
 
 ---
 
-продолжай следовать плану реализации фронта x5
+продолжай следовать плану реализации фронта x6
+
+---
+
+Runtime TypeError
+
+
+Cannot mix BigInt and other types, use explicit conversions
+
+app/settings/profile/page.tsx (42:80) @ ProfileSettingsInner
+
+
+  40 |       <div className="space-y-1 text-sm mb-4">
+  41 |         <div>Email: {me.email}</div>
+> 42 |         <div>Created at: {me.createdAt?.seconds ? new Date(me.createdAt.seconds * 1000).toISOString() : ""}</div>
+     |                                                                                ^
+  43 |       </div>
+  44 |       <form
+  45 |         onSubmit={(e) => {
+Call Stack
+16
+
+Show 14 ignore-listed frame(s)
+ProfileSettingsInner
+app/settings/profile/page.tsx (42:80)
+
+---
+
+/reports/monthly
+
+[internal] can't scan into dest[2] (col: slug): cannot scan NULL into *string
+
+---
+
+продолжай следовать плану реализации фронта 
 
 ---
 

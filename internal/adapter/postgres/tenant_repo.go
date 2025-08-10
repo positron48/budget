@@ -12,9 +12,9 @@ func NewTenantRepo(pool *Pool) *TenantRepo { return &TenantRepo{pool: pool} }
 
 func (r *TenantRepo) Create(ctx context.Context, name, slug, defaultCurrency, ownerUserID string) (domain.Tenant, error) {
 	var t domain.Tenant
-	err := r.pool.DB.QueryRow(ctx,
-		`INSERT INTO tenants (name, slug, default_currency_code) VALUES ($1,$2,$3)
-         RETURNING id, name, slug, default_currency_code, created_at`,
+    err := r.pool.DB.QueryRow(ctx,
+        `INSERT INTO tenants (name, slug, default_currency_code) VALUES ($1,$2,$3)
+         RETURNING id, name, COALESCE(slug, ''), default_currency_code, created_at`,
 		name, slug, defaultCurrency,
 	).Scan(&t.ID, &t.Name, &t.Slug, &t.DefaultCurrencyCode, &t.CreatedAt)
 	if err != nil {
@@ -31,8 +31,8 @@ func (r *TenantRepo) Create(ctx context.Context, name, slug, defaultCurrency, ow
 }
 
 func (r *TenantRepo) ListForUser(ctx context.Context, userID string) ([]domain.TenantMembership, error) {
-	rows, err := r.pool.DB.Query(ctx,
-		`SELECT t.id, t.name, t.slug, t.default_currency_code, t.created_at, ut.role, ut.is_default
+    rows, err := r.pool.DB.Query(ctx,
+        `SELECT t.id, t.name, COALESCE(t.slug, ''), t.default_currency_code, t.created_at, ut.role, ut.is_default
          FROM user_tenants ut
          JOIN tenants t ON t.id = ut.tenant_id
          WHERE ut.user_id=$1
@@ -54,7 +54,7 @@ func (r *TenantRepo) ListForUser(ctx context.Context, userID string) ([]domain.T
 
 func (r *TenantRepo) GetByID(ctx context.Context, id string) (domain.Tenant, error) {
 	var t domain.Tenant
-	err := r.pool.DB.QueryRow(ctx, `SELECT id, name, slug, default_currency_code, created_at FROM tenants WHERE id=$1`, id).Scan(&t.ID, &t.Name, &t.Slug, &t.DefaultCurrencyCode, &t.CreatedAt)
+    err := r.pool.DB.QueryRow(ctx, `SELECT id, name, COALESCE(slug, ''), default_currency_code, created_at FROM tenants WHERE id=$1`, id).Scan(&t.ID, &t.Name, &t.Slug, &t.DefaultCurrencyCode, &t.CreatedAt)
 	return t, err
 }
 

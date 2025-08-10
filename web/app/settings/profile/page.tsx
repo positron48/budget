@@ -39,7 +39,9 @@ function ProfileSettingsInner() {
       {error && <div className="text-sm text-red-600">{(error as any).message}</div>}
       <div className="space-y-1 text-sm mb-4">
         <div>Email: {me.email}</div>
-        <div>Created at: {me.createdAt?.seconds ? new Date(me.createdAt.seconds * 1000).toISOString() : ""}</div>
+        <div>
+          Created at: {me.createdAt?.seconds ? new Date(Number(me.createdAt.seconds) * 1000).toISOString() : ""}
+        </div>
       </div>
       <form
         onSubmit={(e) => {

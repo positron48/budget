@@ -1,0 +1,14 @@
+{
+  "nav": {
+    "home": "Home",
+    "categories": "Categories",
+    "transactions": "Transactions",
+    "reports": "Reports",
+    "fx": "FX",
+    "tenants": "Tenants",
+    "profile": "Profile",
+    "logout": "Logout"
+  }
+}
+
+
