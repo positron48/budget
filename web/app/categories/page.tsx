@@ -3,11 +3,14 @@
 import { ClientsProvider, useClients } from "@/app/providers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 // enums are numeric in TS output; 2 = EXPENSE, 1 = INCOME
 
 function CategoriesInner() {
   const { category } = useClients();
   const qc = useQueryClient();
+  const t = useTranslations("categories");
+  const tc = useTranslations("common");
   const [kind, setKind] = useState<number>(2);
   const [includeInactive, setIncludeInactive] = useState<boolean>(false);
   const { data, error, isLoading } = useQuery({
@@ -51,8 +54,8 @@ function CategoriesInner() {
   };
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-2">Categories</h1>
-      {isLoading && <div className="text-sm text-gray-500">Loading...</div>}
+      <h1 className="text-2xl font-semibold mb-2">{t("title")}</h1>
+      {isLoading && <div className="text-sm text-gray-500">{tc("loading")}</div>}
       {error && <div className="text-sm text-red-600">{(error as any).message}</div>}
 
       <form
@@ -63,14 +66,14 @@ function CategoriesInner() {
         }}
       >
         <div>
-          <label className="block text-xs">View</label>
+          <label className="block text-xs">{t("view")}</label>
           <select
             className="border rounded px-2 py-1"
             value={String(kind)}
             onChange={(e) => setKind(Number(e.target.value))}
           >
-            <option value={2}>Expense</option>
-            <option value={1}>Income</option>
+             <option value={2}>{t("expense")}</option>
+             <option value={1}>{t("income")}</option>
           </select>
         </div>
         <label className="flex items-center gap-2 text-sm">
@@ -79,10 +82,10 @@ function CategoriesInner() {
             checked={includeInactive}
             onChange={(e) => setIncludeInactive(e.target.checked)}
           />
-          Include inactive
+          {t("includeInactive")}
         </label>
         <div>
-          <label className="block text-xs">Code</label>
+          <label className="block text-xs">{t("code")}</label>
           <input
             className="border rounded px-2 py-1"
             value={code}
@@ -98,7 +101,7 @@ function CategoriesInner() {
           </select>
         </div>
         <button className="bg-black text-white rounded px-3 py-1" disabled={createMut.isPending}>
-          {createMut.isPending ? "Adding..." : "Add"}
+          {createMut.isPending ? tc("loading") : t("add")}
         </button>
       </form>
       <ul className="list-disc pl-5">
@@ -117,14 +120,14 @@ function CategoriesInner() {
                     checked={editActive}
                     onChange={(e) => setEditActive(e.target.checked)}
                   />
-                  Active
+                  {t("active")}
                 </label>
                 <button
                   className="text-xs bg-black text-white rounded px-2 py-1"
                   disabled={updateMut.isPending}
                   onClick={() => updateMut.mutate({ id: editingId!, code: editCode, isActive: editActive })}
                 >
-                  {updateMut.isPending ? "Saving..." : "Save"}
+                  {updateMut.isPending ? tc("loading") : t("edit")}
                 </button>
                 <button
                   className="text-xs underline"
@@ -136,9 +139,7 @@ function CategoriesInner() {
             ) : (
               <>
                 <span className="min-w-20 text-sm">{c?.code ?? "unknown"}</span>
-                <span className="text-xs text-gray-500">
-                  {(c?.kind === 2 && "Expense") || (c?.kind === 1 && "Income") || "Unspecified"}
-                </span>
+                <span className="text-xs text-gray-500">{(c?.kind === 2 && t("expense")) || (c?.kind === 1 && t("income")) || ""}</span>
                 <span className={`text-[10px] px-2 py-0.5 rounded border ${c?.isActive ? "border-green-500 text-green-600" : "border-gray-400 text-gray-500"}`}>
                   {c?.isActive ? "active" : "inactive"}
                 </span>
@@ -146,13 +147,13 @@ function CategoriesInner() {
                   className="text-xs underline"
                   onClick={() => startEdit(c)}
                 >
-                  Edit
+                  {t("edit")}
                 </button>
                 <button
                   className="ml-2 text-xs text-red-600 underline"
                   onClick={() => deleteMut.mutate(c?.id as string)}
                 >
-                  Delete
+                  {t("delete")}
                 </button>
               </>
             )}

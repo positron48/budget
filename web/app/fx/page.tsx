@@ -3,10 +3,13 @@
 import { ClientsProvider, useClients } from "@/app/providers";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 
 function FxInner() {
   const { fx } = useClients();
   const qc = useQueryClient();
+  const t = useTranslations("fx");
+  const tc = useTranslations("common");
   const today = new Date().toISOString().slice(0, 10);
   const [fromCodes, setFromCodes] = useState("USD,EUR");
   const [toCode, setToCode] = useState("RUB");
@@ -49,30 +52,30 @@ function FxInner() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-2">FX Rates</h1>
+      <h1 className="text-2xl font-semibold mb-2">{t("title")}</h1>
       <div className="flex gap-3 items-end mb-4 flex-wrap">
         <div>
-          <label className="block text-xs">From Currencies (comma)</label>
+          <label className="block text-xs">{t("fromCurrencies")}</label>
           <input className="border rounded px-2 py-1 w-64" value={fromCodes} onChange={(e) => setFromCodes(e.target.value)} />
         </div>
         <div>
-          <label className="block text-xs">To</label>
+          <label className="block text-xs">{t("from")}</label>
           <input className="border rounded px-2 py-1 w-24" value={toCode} onChange={(e) => setToCode(e.target.value)} />
         </div>
         <div>
-          <label className="block text-xs">As Of</label>
+          <label className="block text-xs">{t("asOf")}</label>
           <input className="border rounded px-2 py-1" type="date" value={asOf} onChange={(e) => setAsOf(e.target.value)} />
         </div>
       </div>
-      {isLoading && <div className="text-sm text-gray-500">Loading...</div>}
+      {isLoading && <div className="text-sm text-gray-500">{tc("loading")}</div>}
       {error && <div className="text-sm text-red-600">{(error as any).message}</div>}
       <table className="text-sm w-full border-collapse">
-        <thead>
+          <thead>
           <tr className="border-b">
-            <th className="text-left py-1">Pair</th>
-            <th className="text-right py-1">Rate</th>
-            <th className="text-left py-1">Provider</th>
-            <th className="text-left py-1">As Of</th>
+              <th className="text-left py-1">{t("pair")}</th>
+              <th className="text-right py-1">{t("rate")}</th>
+              <th className="text-left py-1">{t("provider")}</th>
+              <th className="text-left py-1">{t("asOf")}</th>
           </tr>
         </thead>
         <tbody>
@@ -87,7 +90,7 @@ function FxInner() {
         </tbody>
       </table>
 
-      <h2 className="text-xl font-semibold mt-6 mb-2">Upsert Rate</h2>
+      <h2 className="text-xl font-semibold mt-6 mb-2">{t("upsertTitle")}</h2>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -96,23 +99,23 @@ function FxInner() {
         className="flex gap-3 items-end flex-wrap"
       >
         <div>
-          <label className="block text-xs">From</label>
+          <label className="block text-xs">{t("to")}</label>
           <input className="border rounded px-2 py-1 w-24" value={uFrom} onChange={(e) => setUFrom(e.target.value)} />
         </div>
         <div>
-          <label className="block text-xs">To</label>
+          <label className="block text-xs">{t("to")}</label>
           <input className="border rounded px-2 py-1 w-24" value={uTo} onChange={(e) => setUTo(e.target.value)} />
         </div>
         <div>
-          <label className="block text-xs">Rate (decimal)</label>
+          <label className="block text-xs">{t("rateDecimal")}</label>
           <input className="border rounded px-2 py-1 w-32" value={uRate} onChange={(e) => setURate(e.target.value)} />
         </div>
         <div>
-          <label className="block text-xs">As Of</label>
+          <label className="block text-xs">{t("asOf")}</label>
           <input className="border rounded px-2 py-1" type="date" value={uDate} onChange={(e) => setUDate(e.target.value)} />
         </div>
         <button className="bg-black text-white rounded px-3 py-1" disabled={upsertMut.isPending}>
-          {upsertMut.isPending ? "Saving..." : "Save"}
+          {upsertMut.isPending ? tc("loading") : t("save")}
         </button>
       </form>
     </div>

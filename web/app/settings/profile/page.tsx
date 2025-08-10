@@ -3,10 +3,13 @@
 import { ClientsProvider, useClients } from "@/app/providers";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 function ProfileSettingsInner() {
   const { user } = useClients();
   const qc = useQueryClient();
+  const t = useTranslations("profile");
+  const tc = useTranslations("common");
   const { data, isLoading, error } = useQuery({
     queryKey: ["me"],
     queryFn: async () => (await user.getMe({} as any)) as any,
@@ -34,13 +37,13 @@ function ProfileSettingsInner() {
 
   return (
     <div className="p-6 max-w-xl">
-      <h1 className="text-2xl font-semibold mb-2">Profile</h1>
-      {isLoading && <div className="text-sm text-gray-500">Loading...</div>}
+      <h1 className="text-2xl font-semibold mb-2">{t("title")}</h1>
+      {isLoading && <div className="text-sm text-gray-500">{tc("loading")}</div>}
       {error && <div className="text-sm text-red-600">{(error as any).message}</div>}
       <div className="space-y-1 text-sm mb-4">
-        <div>Email: {me.email}</div>
+        <div>{t("email")}: {me.email}</div>
         <div>
-          Created at: {me.createdAt?.seconds ? new Date(Number(me.createdAt.seconds) * 1000).toISOString() : ""}
+          {t("createdAt")}: {me.createdAt?.seconds ? new Date(Number(me.createdAt.seconds) * 1000).toISOString() : ""}
         </div>
       </div>
       <form
@@ -50,17 +53,17 @@ function ProfileSettingsInner() {
         }}
         className="space-y-3 border p-3 rounded mb-6"
       >
-        <div className="text-lg font-medium">Update profile</div>
+        <div className="text-lg font-medium">{t("updateTitle")}</div>
         <div>
-          <label className="block text-xs">Name</label>
+          <label className="block text-xs">{t("name")}</label>
           <input className="border rounded px-2 py-1 w-full" value={name} onChange={(e) => setName(e.target.value)} />
         </div>
         <div>
-          <label className="block text-xs">Locale</label>
+          <label className="block text-xs">{t("locale")}</label>
           <input className="border rounded px-2 py-1 w-40" value={locale} onChange={(e) => setLocale(e.target.value)} />
         </div>
         <button className="bg-black text-white rounded px-3 py-1" disabled={updateMut.isPending}>
-          {updateMut.isPending ? "Saving..." : "Save"}
+          {updateMut.isPending ? t("saving") : t("save")}
         </button>
       </form>
 
@@ -72,18 +75,18 @@ function ProfileSettingsInner() {
         }}
         className="space-y-3 border p-3 rounded"
       >
-        <div className="text-lg font-medium">Change password</div>
+        <div className="text-lg font-medium">{t("passwordTitle")}</div>
         <div>
-          <label className="block text-xs">Current password</label>
+          <label className="block text-xs">{t("currentPassword")}</label>
           <input type="password" className="border rounded px-2 py-1 w-full" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
         </div>
         <div>
-          <label className="block text-xs">New password</label>
+          <label className="block text-xs">{t("newPassword")}</label>
           <input type="password" className="border rounded px-2 py-1 w-full" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
         </div>
-        {pwOk && <div className="text-green-700 text-sm">Password changed</div>}
+        {pwOk && <div className="text-green-700 text-sm">{t("passwordChanged")}</div>}
         <button className="bg-black text-white rounded px-3 py-1" disabled={pwMut.isPending}>
-          {pwMut.isPending ? "Saving..." : "Change"}
+          {pwMut.isPending ? t("saving") : t("save")}
         </button>
       </form>
     </div>

@@ -4,9 +4,12 @@ import { ClientsProvider, useClients } from "@/app/providers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { TransactionType } from "@/proto/budget/v1/common_pb";
+import { useTranslations } from "next-intl";
 
 function TransactionsInner() {
   const { transaction } = useClients();
+  const t = useTranslations("transactions");
+  const tc = useTranslations("common");
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
@@ -43,30 +46,30 @@ function TransactionsInner() {
   });
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-2">Transactions</h1>
+      <h1 className="text-2xl font-semibold mb-2">{t("title")}</h1>
       <div className="flex gap-3 items-end mb-3 flex-wrap">
         <div>
-          <label className="block text-xs">Type</label>
+          <label className="block text-xs">{t("type")}</label>
           <select className="border rounded px-2 py-1" value={String(type)} onChange={(e) => setType(Number(e.target.value))}>
             <option value={0}>All</option>
-            <option value={TransactionType.EXPENSE}>Expense</option>
-            <option value={TransactionType.INCOME}>Income</option>
+            <option value={TransactionType.EXPENSE}>{t("expense") ?? "Expense"}</option>
+            <option value={TransactionType.INCOME}>{t("income") ?? "Income"}</option>
           </select>
         </div>
         <div>
-          <label className="block text-xs">From</label>
+          <label className="block text-xs">{t("from")}</label>
           <input className="border rounded px-2 py-1" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
         </div>
         <div>
-          <label className="block text-xs">To</label>
+          <label className="block text-xs">{t("to")}</label>
           <input className="border rounded px-2 py-1" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         </div>
         <div>
-          <label className="block text-xs">Category IDs (comma)</label>
+          <label className="block text-xs">{t("categoryIds")}</label>
           <input className="border rounded px-2 py-1 w-60" value={categoryIds} onChange={(e) => setCategoryIds(e.target.value)} />
         </div>
         <div>
-          <label className="block text-xs">Search</label>
+          <label className="block text-xs">{t("search")}</label>
           <input className="border rounded px-2 py-1 w-60" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <div className="ml-auto flex items-center gap-2 text-sm">
@@ -75,7 +78,7 @@ function TransactionsInner() {
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
-            Prev
+            {t("prev")}
           </button>
           <span>Page {page}</span>
           <button
@@ -83,11 +86,11 @@ function TransactionsInner() {
             disabled={Boolean(data?.page) && page >= (data?.page?.totalPages ?? page)}
             onClick={() => setPage((p) => p + 1)}
           >
-            Next
+            {t("next")}
           </button>
         </div>
       </div>
-      {isLoading && <div className="text-sm text-gray-500">Loading...</div>}
+      {isLoading && <div className="text-sm text-gray-500">{tc("loading")}</div>}
       {error && <div className="text-sm text-red-600">{(error as any).message}</div>}
       <ListWithEdit
         items={data?.transactions ?? []}
@@ -158,13 +161,13 @@ function ListWithEdit({
             <>
               <input
                 className="border rounded px-2 py-0.5 text-xs"
-                placeholder="Comment"
+                 placeholder={t("comment")}
                 value={editComment}
                 onChange={(e) => setEditComment(e.target.value)}
               />
               <input
                 className="border rounded px-2 py-0.5 text-xs w-24"
-                placeholder="Amount"
+                 placeholder={t("amount")}
                 type="number"
                 step="1"
                 value={editAmount}
@@ -181,7 +184,7 @@ function ListWithEdit({
                   })
                 }
               >
-                {updateMut.isPending ? "Saving..." : "Save"}
+                {updateMut.isPending ? t("saving") : t("edit")}
               </button>
               <button className="text-xs underline" onClick={() => setEditingId(null)}>
                 Cancel
@@ -198,7 +201,7 @@ function ListWithEdit({
                   setEditAmount(t?.amount?.minorUnits ?? "");
                 }}
               >
-                Edit
+                {t("edit")}
               </button>
             </>
           )}
@@ -207,7 +210,7 @@ function ListWithEdit({
             disabled={isDeleting}
             onClick={() => onDelete(t?.id)}
           >
-            Delete
+            {t("delete")}
           </button>
         </li>
       ))}

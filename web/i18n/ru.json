@@ -1,6 +1,7 @@
 {
   "nav": {
     "home": "Главная",
+    "login": "Вход",
     "categories": "Категории",
     "transactions": "Транзакции",
     "reports": "Отчёты",
@@ -8,6 +9,109 @@
     "tenants": "Тенанты",
     "profile": "Профиль",
     "logout": "Выйти"
+  },
+  "common": {
+    "loading": "Загрузка..."
+  },
+  "categories": {
+    "title": "Категории",
+    "view": "Вид",
+    "code": "Код",
+    "includeInactive": "Показывать неактивные",
+    "add": "Добавить",
+    "expense": "Расход",
+    "income": "Доход",
+    "active": "активна",
+    "inactive": "неактивна",
+    "edit": "Редактировать",
+    "delete": "Удалить"
+  },
+  "transactions": {
+    "title": "Транзакции",
+    "type": "Тип",
+    "from": "С",
+    "to": "По",
+    "categoryIds": "ID категорий (через запятую)",
+    "search": "Поиск",
+    "prev": "Назад",
+    "next": "Вперёд",
+    "delete": "Удалить",
+    "edit": "Изменить",
+    "saving": "Сохраняем...",
+    "expense": "Расход",
+    "income": "Доход",
+    "comment": "Комментарий",
+    "amount": "Сумма"
+  },
+  "reports": {
+    "monthlyTitle": "Месячный отчёт",
+    "year": "Год",
+    "month": "Месяц",
+    "currency": "Валюта (опционально)",
+    "totalIncome": "Доход всего",
+    "totalExpense": "Расход всего",
+    "category": "Категория",
+    "type": "Тип",
+    "total": "Сумма"
+  },
+  "fx": {
+    "title": "Курсы валют",
+    "pair": "Пара",
+    "rate": "Курс",
+    "provider": "Источник",
+    "from": "Из",
+    "fromCurrencies": "Исходные валюты (через запятую)",
+    "to": "К",
+    "asOf": "На дату",
+    "rateDecimal": "Курс (десятичный)",
+    "upsertTitle": "Сохранить курс",
+    "save": "Сохранить"
+  },
+  "home": {
+    "title": "Бюджет"
+  },
+  "tenants": {
+    "title": "Тенанты",
+    "activeTenant": "Активный тенант",
+    "name": "Название",
+    "slugOptional": "Слаг (опционально)",
+    "defaultCurrency": "Базовая валюта",
+    "create": "Создать",
+    "active": "Активен",
+    "makeActive": "Сделать активным"
+  },
+  "profile": {
+    "title": "Профиль",
+    "email": "Почта",
+    "createdAt": "Создан",
+    "updateTitle": "Обновить профиль",
+    "name": "Имя",
+    "locale": "Язык",
+    "save": "Сохранить",
+    "passwordTitle": "Сменить пароль",
+    "currentPassword": "Текущий пароль",
+    "newPassword": "Новый пароль",
+    "passwordChanged": "Пароль изменён",
+    "saving": "Сохраняем..."
+  },
+  "auth": {
+    "login": {
+      "title": "Вход",
+      "email": "Почта",
+      "password": "Пароль",
+      "submit": "Войти",
+      "submitting": "Входим..."
+    },
+    "register": {
+      "title": "Регистрация",
+      "email": "Почта",
+      "password": "Пароль",
+      "name": "Имя",
+      "locale": "Язык",
+      "tenantName": "Название тенанта",
+      "submit": "Создать аккаунт",
+      "submitting": "Создаём..."
+    }
   }
 }
 

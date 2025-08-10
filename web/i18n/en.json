@@ -1,6 +1,7 @@
 {
   "nav": {
     "home": "Home",
+    "login": "Login",
     "categories": "Categories",
     "transactions": "Transactions",
     "reports": "Reports",
@@ -8,6 +9,109 @@
     "tenants": "Tenants",
     "profile": "Profile",
     "logout": "Logout"
+  },
+  "common": {
+    "loading": "Loading..."
+  },
+  "categories": {
+    "title": "Categories",
+    "view": "View",
+    "code": "Code",
+    "includeInactive": "Include inactive",
+    "add": "Add",
+    "expense": "Expense",
+    "income": "Income",
+    "active": "active",
+    "inactive": "inactive",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "transactions": {
+    "title": "Transactions",
+    "type": "Type",
+    "from": "From",
+    "to": "To",
+    "categoryIds": "Category IDs (comma)",
+    "search": "Search",
+    "prev": "Prev",
+    "next": "Next",
+    "delete": "Delete",
+    "edit": "Edit",
+    "saving": "Saving...",
+    "expense": "Expense",
+    "income": "Income",
+    "comment": "Comment",
+    "amount": "Amount"
+  },
+  "reports": {
+    "monthlyTitle": "Monthly Report",
+    "year": "Year",
+    "month": "Month",
+    "currency": "Currency (optional)",
+    "totalIncome": "Total Income",
+    "totalExpense": "Total Expense",
+    "category": "Category",
+    "type": "Type",
+    "total": "Total"
+  },
+  "fx": {
+    "title": "FX Rates",
+    "pair": "Pair",
+    "rate": "Rate",
+    "provider": "Provider",
+    "from": "From",
+    "fromCurrencies": "From Currencies (comma)",
+    "to": "To",
+    "asOf": "As Of",
+    "rateDecimal": "Rate (decimal)",
+    "upsertTitle": "Upsert Rate",
+    "save": "Save"
+  },
+  "home": {
+    "title": "Budget"
+  },
+  "tenants": {
+    "title": "Tenants",
+    "activeTenant": "Active tenant",
+    "name": "Name",
+    "slugOptional": "Slug (optional)",
+    "defaultCurrency": "Default Currency",
+    "create": "Create",
+    "active": "Active",
+    "makeActive": "Make active"
+  },
+  "profile": {
+    "title": "Profile",
+    "email": "Email",
+    "createdAt": "Created at",
+    "updateTitle": "Update profile",
+    "name": "Name",
+    "locale": "Locale",
+    "save": "Save",
+    "passwordTitle": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "passwordChanged": "Password changed",
+    "saving": "Saving..."
+  },
+  "auth": {
+    "login": {
+      "title": "Login",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign in",
+      "submitting": "Signing in..."
+    },
+    "register": {
+      "title": "Register",
+      "email": "Email",
+      "password": "Password",
+      "name": "Name",
+      "locale": "Locale",
+      "tenantName": "Tenant Name",
+      "submit": "Create account",
+      "submitting": "Creating..."
+    }
   }
 }
 

@@ -5,7 +5,7 @@ import Protected from "@/components/Protected";
 import HeaderNav from "@/components/HeaderNav";
 import { ClientsProvider } from "./providers";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale, getMessages } from "next-intl/server";
+import { cookies } from "next/headers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,8 +23,10 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const locale = await getLocale();
-  const messages = await getMessages();
+  const cookieStore = await cookies();
+  const loc = cookieStore.get("NEXT_LOCALE")?.value;
+  const locale = loc === "ru" ? "ru" : "en";
+  const messages = (await import(`../i18n/${locale}.json`)).default as any;
   return (
     <html lang={locale}>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>

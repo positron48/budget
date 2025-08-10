@@ -1056,3 +1056,33 @@ ERR_TOO_MANY_REDIRECTS
 
 ---
 
+кнопка  смены локали  просто перезагружает страницу - я жал на ru
+
+---
+
+локали меняются только в nav баре, все страницы только на английском
+
+---
+
+добей все экраны
+
+---
+
+MISSING_MESSAGE: Could not resolve `transactions.expense` in messages for locale `ru`.
+
+app/transactions/page.tsx (55:54) @ TransactionsInner
+
+
+  53 |           <select className="border rounded px-2 py-1" value={String(type)} onChange={(e) => setType(Number(e.target.value))}>
+  54 |             <option value={0}>All</option>
+> 55 |             <option value={TransactionType.EXPENSE}>{t("expense") ?? "Expense"}</option>
+     |                                                      ^
+  56 |             <option value={TransactionType.INCOME}>{t("income") ?? "Income"}</option>
+  57 |           </select>
+  58 |         </div>
+
+
+главная осталась не переведена и заголовки курсов - Rate	Provider и тп 
+
+---
+

@@ -1,11 +1,12 @@
 "use client";
 
-import { ClientsProvider, useClients } from "@/app/providers";
+import { useClients } from "@/app/providers";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { authStore } from "@/lib/auth/store";
+import { useTranslations } from "next-intl";
 
 const schema = z.object({
   email: z.string().email(),
@@ -18,6 +19,7 @@ type FormValues = z.infer<typeof schema>;
 
 function RegisterForm() {
   const { auth } = useClients();
+  const t = useTranslations("auth.register");
   const { register, handleSubmit, formState } = useForm<FormValues>({ resolver: zodResolver(schema) });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -40,33 +42,33 @@ function RegisterForm() {
   };
   return (
     <div className="p-6 max-w-md mx-auto">
-      <h1 className="text-2xl font-semibold mb-4">Register</h1>
+      <h1 className="text-2xl font-semibold mb-4">{t("title")}</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
         <div>
-          <label className="block text-sm">Email</label>
+          <label className="block text-sm">{t("email")}</label>
           <input className="border rounded px-3 py-2 w-full" {...register("email")} />
           {formState.errors.email && <div className="text-xs text-red-600">{formState.errors.email.message}</div>}
         </div>
         <div>
-          <label className="block text-sm">Password</label>
+          <label className="block text-sm">{t("password")}</label>
           <input type="password" className="border rounded px-3 py-2 w-full" {...register("password")} />
           {formState.errors.password && <div className="text-xs text-red-600">{formState.errors.password.message}</div>}
         </div>
         <div>
-          <label className="block text-sm">Name</label>
+          <label className="block text-sm">{t("name")}</label>
           <input className="border rounded px-3 py-2 w-full" {...register("name")} />
         </div>
         <div>
-          <label className="block text-sm">Locale</label>
+          <label className="block text-sm">{t("locale")}</label>
           <input className="border rounded px-3 py-2 w-full" defaultValue="ru" {...register("locale")} />
         </div>
         <div>
-          <label className="block text-sm">Tenant Name</label>
+          <label className="block text-sm">{t("tenantName")}</label>
           <input className="border rounded px-3 py-2 w-full" {...register("tenantName")} />
         </div>
         {error && <div className="text-red-600 text-sm">{error}</div>}
         <button className="bg-black text-white rounded px-4 py-2" disabled={loading}>
-          {loading ? "Creating..." : "Create account"}
+          {loading ? t("submitting") : t("submit")}
         </button>
       </form>
     </div>

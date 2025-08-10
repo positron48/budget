@@ -12,8 +12,14 @@ export default function HeaderNav() {
     authStore.clear();
     router.replace("/login");
   };
-  const onLocale = (loc: string) => {
-    document.cookie = `NEXT_LOCALE=${loc}; path=/`;
+  const onLocale = async (loc: string) => {
+    try {
+      await fetch("/api/locale", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locale: loc }),
+      });
+    } catch (_) {}
     window.location.reload();
   };
   return (
