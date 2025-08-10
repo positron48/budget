@@ -6,12 +6,12 @@ plugins:
   - plugin: buf.build/grpc/go
     out: ../gen/go
     opt: paths=source_relative
-  - plugin: es
+  - plugin: buf.build/bufbuild/es
     out: ../web/proto
     opt:
       - target=ts
       - import_extension=none
-  - plugin: connect-es
+  - plugin: buf.build/connectrpc/es
     out: ../web/proto
     opt:
       - target=ts

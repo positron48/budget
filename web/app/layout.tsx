@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Protected from "@/components/Protected";
 import { ClientsProvider } from "./providers";
 
 const geistSans = Geist({
@@ -29,7 +30,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {/* Wrap children on client in individual pages instead of making layout client */}
-        {children}
+        <Protected>{children}</Protected>
       </body>
     </html>
   );

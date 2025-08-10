@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createTransport } from "@/lib/api/transport";
 import { createClients } from "@/lib/api/clients";
 import { authStore } from "@/lib/auth/store";
@@ -9,6 +10,7 @@ import { authInterceptor, tenantInterceptor, loggingInterceptor } from "@/lib/ap
 const ClientsContext = createContext<any>(null);
 
 export function ClientsProvider({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(() => new QueryClient());
   const interceptors = useMemo(
     () => [
       loggingInterceptor(),
@@ -19,7 +21,11 @@ export function ClientsProvider({ children }: { children: React.ReactNode }) {
   );
   const transport = useMemo(() => createTransport(interceptors), [interceptors]);
   const clients = useMemo(() => createClients(transport) as any, [transport]);
-  return <ClientsContext.Provider value={clients}>{children}</ClientsContext.Provider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ClientsContext.Provider value={clients}>{children}</ClientsContext.Provider>
+    </QueryClientProvider>
+  );
 }
 
 export function useClients(): any {

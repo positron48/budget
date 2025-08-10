@@ -926,3 +926,21 @@ CORS error x3
 
 ---
 
+продолжай следовать плану реализации фронта x3
+
+---
+
+а давай ты регистрацию сначала сделаешь и пойдешь дальше
+
+еще нужно починить ошибку CI с proto:
+0s
+Run buf generate
+Failure: plugin connect-es: could not find protoc plugin for name connect-es - please make sure protoc-gen-connect-es is installed and present on your $PATH
+plugin es: could not find protoc plugin for name es - please make sure protoc-gen-es is installed and present on your $PATH
+canceled: context canceled
+Error: Process completed with exit code 1.
+
+не забывай обновлять статусы в плане
+
+---
+

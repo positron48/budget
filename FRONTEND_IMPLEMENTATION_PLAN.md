@@ -221,14 +221,15 @@ NEXT_PUBLIC_DEFAULT_LOCALE=ru
 
 1) Scaffolding + infra (Next.js, Tailwind, ESLint/Prettier, Query, RHF, Zod) — ✅
 2) Генерация TS‑клиентов (buf) и transport — ✅
-3) Auth + TenantSwitcher + Layout — 🟡
-4) Categories (List/CRUD + i18n) — 🟡
-5) Transactions (List/Filters/CRUD) — 🟡
-6) Reports (Monthly) — 🟡
+3) Auth + TenantSwitcher + Layout — 🟡 (сделано: Login, Protected, хранение токенов; осталось: Tenant switcher)
+4) Categories (List/CRUD + i18n) — 🟡 (сделано: List)
+5) Transactions (List/Filters/CRUD) — 🟡 (сделано: минимальный List)
+6) Reports (Monthly) — 🟡 (сделано: минимальный вызов и вывод JSON)
 7) Fx (Get/Upsert/Batch) — 🟡
 8) Settings (Profile/Password) — 🟡
-9) Тесты unit/component + smoke e2e — 🟡
-10) CI job `web` — 🟡
+9) Тесты unit/component + smoke e2e — 🟡 (добавлен smoke Vitest)
+10) CI job `web` — ✅
+11) Регистрация — ✅ (страница Register, автологин, запись токенов)
 
 По мере выполнения отмечать статусы и поддерживать «зелёные» проверки.
 

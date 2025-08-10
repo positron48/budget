@@ -21,6 +21,9 @@ jobs:
             ${{ runner.os }}-buf-
       - name: Set up Buf
         uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          setup_protoc: true
       - name: Buf Lint
         working-directory: proto
         run: buf lint
