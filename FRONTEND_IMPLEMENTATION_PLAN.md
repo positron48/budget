@@ -222,8 +222,8 @@ NEXT_PUBLIC_DEFAULT_LOCALE=ru
 1) Scaffolding + infra (Next.js, Tailwind, ESLint/Prettier, Query, RHF, Zod) — ✅
 2) Генерация TS‑клиентов (buf) и transport — ✅
 3) Auth + TenantSwitcher + Layout — 🟡 (сделано: Login, Protected, хранение токенов; осталось: Tenant switcher)
-4) Categories (List/CRUD + i18n) — 🟡 (сделано: List)
-5) Transactions (List/Filters/CRUD) — 🟡 (сделано: минимальный List)
+4) Categories (List/CRUD + i18n) — 🟡 (сделано: List + Create/Delete)
+5) Transactions (List/Filters/CRUD) — 🟡 (сделано: минимальный List + Create)
 6) Reports (Monthly) — 🟡 (сделано: минимальный вызов и вывод JSON)
 7) Fx (Get/Upsert/Batch) — 🟡
 8) Settings (Profile/Password) — 🟡
