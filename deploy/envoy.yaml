@@ -16,12 +16,60 @@ static_resources:
             - name: local_service
               domains: ["*"]
               routes:
+              - match:
+                  prefix: "/"
+                  headers:
+                  - name: ":method"
+                    exact_match: "OPTIONS"
+                direct_response:
+                  status: 204
+                response_headers_to_add:
+                  - header: { key: "access-control-allow-origin", value: "*" }
+                    append_action: OVERWRITE_IF_EXISTS_OR_ADD
+                  - header: { key: "access-control-allow-methods", value: "GET, POST, OPTIONS" }
+                  - header: { key: "access-control-allow-headers", value: "keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,grpc-timeout,authorization,x-grpc-web,x-tenant-id" }
+                  - header: { key: "access-control-expose-headers", value: "grpc-status,grpc-message" }
+                  - header: { key: "vary", value: "origin" }
               - match: { prefix: "/" }
                 route: { cluster: app, timeout: 0s }
+              cors:
+                allow_origin_string_match:
+                  - exact: "http://localhost:3000"
+                  - exact: "http://127.0.0.1:3000"
+                allow_methods: "GET, POST, OPTIONS"
+                allow_headers: "keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,grpc-timeout,authorization,x-grpc-web,x-tenant-id"
+                expose_headers: "grpc-status, grpc-message"
+                max_age: "86400"
+                allow_credentials: true
           http_filters:
-          - name: envoy.filters.http.grpc_web
+          - name: envoy.filters.http.lua
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+              inline_code: |
+                function envoy_on_request(handle)
+                  local method = handle:headers():get(":method")
+                  if method == "OPTIONS" then
+                    local origin = handle:headers():get("origin") or "*"
+                    handle:respond({
+                      [":status"] = "204",
+                      ["access-control-allow-origin"] = origin,
+                      ["access-control-allow-methods"] = "GET, POST, OPTIONS",
+                      ["access-control-allow-headers"] = "keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,grpc-timeout,authorization,x-grpc-web,x-tenant-id",
+                      ["access-control-expose-headers"] = "grpc-status,grpc-message",
+                      ["access-control-allow-credentials"] = "true",
+                      ["vary"] = "origin",
+                    }, "")
+                  end
+                end
           - name: envoy.filters.http.cors
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors
+          - name: envoy.filters.http.grpc_web
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.grpc_web.v3.GrpcWeb
           - name: envoy.filters.http.router
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
   clusters:
   - name: app
     connect_timeout: 0.25s

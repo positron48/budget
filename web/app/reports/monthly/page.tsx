@@ -1,4 +1,8 @@
-export default function MonthlyReportPage() {
+"use client";
+
+import { ClientsProvider } from "@/app/providers";
+
+function MonthlyReportInner() {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-semibold">Monthly Report</h1>
@@ -7,4 +11,11 @@ export default function MonthlyReportPage() {
   );
 }
 
+export default function MonthlyReportPage() {
+  return (
+    <ClientsProvider>
+      <MonthlyReportInner />
+    </ClientsProvider>
+  );
+}
 

@@ -29,6 +29,7 @@ import (
 	"google.golang.org/grpc"
 	health "google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {
@@ -105,6 +106,8 @@ func main() {
 	// health service
 	hs := health.NewServer()
 	healthpb.RegisterHealthServer(server, hs)
+	// enable server reflection for grpcurl tooling in dev
+	reflection.Register(server)
 
 	// register services
 	if db != nil {

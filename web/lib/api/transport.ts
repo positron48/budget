@@ -1,8 +1,8 @@
-export const transportBaseUrl = process.env.NEXT_PUBLIC_GRPC_BASE_URL ?? "http://localhost:8081";
+export const transportBaseUrl = process.env.NEXT_PUBLIC_GRPC_BASE_URL ?? "http://localhost:3000/grpc";
 
-export function createTransport() {
-  const { createConnectTransport } = require("@connectrpc/connect-web");
-  return createConnectTransport({ baseUrl: transportBaseUrl });
+export function createTransport(interceptors: any[] = []) {
+  const { createGrpcWebTransport } = require("@connectrpc/connect-web");
+  return createGrpcWebTransport({ baseUrl: transportBaseUrl, interceptors });
 }
 
 

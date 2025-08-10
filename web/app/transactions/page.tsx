@@ -1,4 +1,8 @@
-export default function TransactionsPage() {
+"use client";
+
+import { ClientsProvider } from "@/app/providers";
+
+function TransactionsInner() {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-semibold">Transactions</h1>
@@ -7,4 +11,11 @@ export default function TransactionsPage() {
   );
 }
 
+export default function TransactionsPage() {
+  return (
+    <ClientsProvider>
+      <TransactionsInner />
+    </ClientsProvider>
+  );
+}
 

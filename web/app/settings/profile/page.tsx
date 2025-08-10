@@ -1,4 +1,8 @@
-export default function ProfileSettingsPage() {
+"use client";
+
+import { ClientsProvider } from "@/app/providers";
+
+function ProfileSettingsInner() {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-semibold">Profile</h1>
@@ -7,4 +11,11 @@ export default function ProfileSettingsPage() {
   );
 }
 
+export default function ProfileSettingsPage() {
+  return (
+    <ClientsProvider>
+      <ProfileSettingsInner />
+    </ClientsProvider>
+  );
+}
 
