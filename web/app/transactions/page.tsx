@@ -2,11 +2,12 @@
 
 import { ClientsProvider, useClients } from "@/app/providers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect, memo } from "react";
 import { TransactionType, CategoryKind } from "@/proto/budget/v1/common_pb";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Icon, Button, Card, CardContent, CardHeader, CardTitle, TransactionStats, CategoryBadge, CategoryTagInput } from "@/components";
+import FiltersForm from "@/components/FiltersForm";
 import { formatCurrency } from "@/lib/utils";
 
 function TransactionsInner() {
@@ -21,7 +22,25 @@ function TransactionsInner() {
   const [to, setTo] = useState<string>("");
   const [search, setSearch] = useState<string>("");
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
+
+  const setTypeCallback = useCallback((value: number) => setType(value), []);
+  const setFromCallback = useCallback((value: string) => setFrom(value), []);
+  const setToCallback = useCallback((value: string) => setTo(value), []);
+  const setSearchCallback = useCallback((value: string) => {
+    setSearch(value);
+    // Добавляем небольшую задержку для debounce
+    setTimeout(() => {
+      // Принудительно фокусируем инпут после обновления
+      const searchInput = document.querySelector('input[placeholder="Поиск..."]') as HTMLInputElement;
+      if (searchInput && document.activeElement === searchInput) {
+        searchInput.focus();
+      }
+    }, 100);
+  }, []);
+  const setSelectedCategoryIdsCallback = useCallback((value: string[]) => setSelectedCategoryIds(value), []);
+  
+
 
   const request = useMemo(() => {
     const req: any = { page: { page, pageSize } };
@@ -41,6 +60,11 @@ function TransactionsInner() {
     queryFn: async () => (await transaction.listTransactions(request as any)) as any,
     retry: false,
     refetchOnWindowFocus: false,
+    staleTime: 300000, // 5 минут
+    refetchInterval: false,
+    refetchOnMount: false,
+    gcTime: 600000, // 10 минут
+    placeholderData: (previousData) => previousData,
   });
 
   // Загружаем категории для фильтров и отображения
@@ -86,16 +110,31 @@ function TransactionsInner() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["transactions"] }),
   });
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setType(0);
     setFrom("");
     setTo("");
     setSearch("");
     setSelectedCategoryIds([]);
     setPage(1);
-  };
+  }, []);
 
   const hasActiveFilters = type || from || to || search || selectedCategoryIds.length > 0;
+
+  const filtersProps = useMemo(() => ({
+    type,
+    from,
+    to,
+    search,
+    selectedCategoryIds,
+    categoriesLoading,
+    categoriesData,
+    onTypeChange: setTypeCallback,
+    onFromChange: setFromCallback,
+    onToChange: setToCallback,
+    onSearchChange: setSearchCallback,
+    onCategoryIdsChange: setSelectedCategoryIdsCallback,
+  }), [type, from, to, search, selectedCategoryIds, categoriesLoading, categoriesData]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
@@ -137,129 +176,7 @@ function TransactionsInner() {
           </div>
         )}
 
-        {/* Filters */}
-        <Card className="mb-4 shadow-lg border-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center space-x-2">
-                <Icon name="filter" size={18} className="text-blue-600 dark:text-blue-400" />
-                <span>Фильтры</span>
-                {hasActiveFilters && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                    Активно
-                  </span>
-                )}
-              </CardTitle>
-              <div className="flex items-center space-x-2">
-                {hasActiveFilters && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    icon="trash"
-                    onClick={clearFilters}
-                    className="text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
-                  >
-                    Очистить
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="flex items-center space-x-1"
-                >
-                  <Icon name={showFilters ? "chevron-up" : "chevron-down"} size={14} />
-                  <span>{showFilters ? "Скрыть" : "Показать"}</span>
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          
-          {showFilters && (
-            <CardContent className="pt-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Тип
-                  </label>
-                  <select 
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm" 
-                    value={String(type)} 
-                    onChange={(e) => setType(Number(e.target.value))}
-                  >
-                    <option value={0}>Все типы</option>
-                    <option value={TransactionType.EXPENSE}>Расход</option>
-                    <option value={TransactionType.INCOME}>Доход</option>
-                  </select>
-                </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    От
-                  </label>
-                  <input 
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm" 
-                    type="date" 
-                    value={from} 
-                    onChange={(e) => setFrom(e.target.value)}
-                    autoComplete="off"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    До
-                  </label>
-                  <input 
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm" 
-                    type="date" 
-                    value={to} 
-                    onChange={(e) => setTo(e.target.value)}
-                    autoComplete="off"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Поиск
-                  </label>
-                  <div className="relative">
-                    <Icon 
-                      name="search" 
-                      size={14} 
-                      className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-slate-400" 
-                    />
-                    <input 
-                      className="w-full pl-8 pr-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm" 
-                      value={search} 
-                      onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Поиск..."
-                      autoComplete="off"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Категории
-                  </label>
-                  {categoriesLoading ? (
-                    <div className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-sm">
-                      Загрузка категорий...
-                    </div>
-                  ) : (
-                    <CategoryTagInput
-                      categories={categoriesData?.categories || []}
-                      selectedIds={selectedCategoryIds}
-                      onSelectionChange={setSelectedCategoryIds}
-                      placeholder="Введите код или название категории..."
-                    />
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          )}
-        </Card>
 
         {/* Content */}
         {isLoading && (
@@ -284,14 +201,27 @@ function TransactionsInner() {
 
         {!isLoading && !error && (
           <>
-            <TransactionTable
-              items={data?.transactions ?? []}
-              categories={categoriesData?.categories ?? []}
-              categoriesLoading={categoriesLoading}
-              onDelete={(id: string) => deleteMut.mutate(id)}
-              isDeleting={deleteMut.isPending}
-              onChanged={() => qc.invalidateQueries({ queryKey: ["transactions"] })}
-            />
+            <div className="relative">
+
+              
+              {/* Compact filters attached to table */}
+              {showFilters && (
+                <FiltersForm {...filtersProps} />
+              )}
+              
+              <TransactionTable
+                items={data?.transactions ?? []}
+                categories={categoriesData?.categories ?? []}
+                categoriesLoading={categoriesLoading}
+                onDelete={(id: string) => deleteMut.mutate(id)}
+                isDeleting={deleteMut.isPending}
+                onChanged={() => qc.invalidateQueries({ queryKey: ["transactions"] })}
+                showFilters={showFilters}
+                setShowFilters={setShowFilters}
+                hasActiveFilters={hasActiveFilters}
+                clearFilters={clearFilters}
+              />
+            </div>
 
             {/* Pagination */}
             {data?.page && (
@@ -342,6 +272,8 @@ export default function TransactionsPage() {
   );
 }
 
+
+
 function TransactionTable({
   items,
   categories,
@@ -349,6 +281,10 @@ function TransactionTable({
   onDelete,
   isDeleting,
   onChanged,
+  showFilters,
+  setShowFilters,
+  hasActiveFilters,
+  clearFilters,
 }: {
   items: any[];
   categories: any[];
@@ -356,6 +292,10 @@ function TransactionTable({
   onDelete: (id: string) => void;
   isDeleting: boolean;
   onChanged: () => void;
+  showFilters: boolean;
+  setShowFilters: (show: boolean) => void;
+  hasActiveFilters: boolean | string | number;
+  clearFilters: () => void;
 }) {
   const { transaction } = useClients();
   const tt = useTranslations("transactions");
@@ -459,7 +399,7 @@ function TransactionTable({
   }
 
   return (
-    <Card className="shadow-lg border-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden">
+    <Card className="shadow-lg border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden !rounded-none">
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-slate-50 dark:bg-slate-700/50">
@@ -479,8 +419,28 @@ function TransactionTable({
               <th className="px-4 py-3 text-right text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                 Сумма
               </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                Действия
+              <th className="px-4 py-3 text-right text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                <div className="flex items-center justify-end space-x-2">
+                  {hasActiveFilters && (
+                    <button
+                      onClick={clearFilters}
+                      className="inline-flex items-center p-1 text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors duration-200"
+                      title="Очистить фильтры"
+                    >
+                      <Icon name="trash" size={14} />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="inline-flex items-center p-1 text-xs text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200"
+                    title="Фильтры"
+                  >
+                    <Icon name="filter" size={14} />
+                    {hasActiveFilters && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></span>
+                    )}
+                  </button>
+                </div>
               </th>
             </tr>
           </thead>
@@ -649,10 +609,7 @@ function TransactionTable({
                     </div>
                   ) : (
                     <div className="flex items-center justify-center space-x-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        icon="edit"
+                      <button
                         onClick={() => {
                           setEditingId(tx?.id);
                           setEditComment(tx?.comment ?? "");
@@ -660,20 +617,23 @@ function TransactionTable({
                           setEditCategoryId(tx?.categoryId ?? "");
                           setEditDate(tx?.occurredAt?.seconds ? new Date(Number(tx.occurredAt.seconds) * 1000).toISOString().slice(0, 16) : "");
                         }}
-                        className="text-blue-600 border-blue-200 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-900/20 px-2 py-1"
+                        className="p-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200"
+                        title="Изменить"
                       >
-                        Изменить
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        icon="trash"
-                        loading={isDeleting}
+                        <Icon name="edit" size={16} />
+                      </button>
+                      <button
                         onClick={() => onDelete(tx?.id)}
-                        className="bg-red-600 hover:bg-red-700 text-white px-2 py-1"
+                        disabled={isDeleting}
+                        className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors duration-200 disabled:opacity-50"
+                        title="Удалить"
                       >
-                        Удалить
-                      </Button>
+                        {isDeleting ? (
+                          <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Icon name="trash" size={16} />
+                        )}
+                      </button>
                     </div>
                   )}
                 </td>
