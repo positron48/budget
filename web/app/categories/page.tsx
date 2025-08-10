@@ -3,20 +3,23 @@
 import { ClientsProvider, useClients } from "@/app/providers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+// enums are numeric in TS output; 2 = EXPENSE, 1 = INCOME
 
 function CategoriesInner() {
   const { category } = useClients();
   const qc = useQueryClient();
+  const [kind, setKind] = useState<number>(2);
   const { data, error, isLoading } = useQuery({
-    queryKey: ["categories"],
-    queryFn: async () => (await category.listCategories({} as any)) as any,
+    queryKey: ["categories", kind],
+    queryFn: async () => (await category.listCategories({ kind } as any)) as any,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
   const [code, setCode] = useState("");
-  const [kind, setKind] = useState("CATEGORY_KIND_EXPENSE");
   const createMut = useMutation({
     mutationFn: async () =>
-      await category.createCategory({ category: { code, kind } } as any),
+      await category.createCategory({ kind, code, isActive: true } as any),
     onSuccess: () => {
       setCode("");
       qc.invalidateQueries({ queryKey: ["categories"] });
@@ -42,6 +45,17 @@ function CategoriesInner() {
         }}
       >
         <div>
+          <label className="block text-xs">View</label>
+          <select
+            className="border rounded px-2 py-1"
+            value={String(kind)}
+            onChange={(e) => setKind(Number(e.target.value))}
+          >
+            <option value={2}>Expense</option>
+            <option value={1}>Income</option>
+          </select>
+        </div>
+        <div>
           <label className="block text-xs">Code</label>
           <input
             className="border rounded px-2 py-1"
@@ -50,15 +64,11 @@ function CategoriesInner() {
             required
           />
         </div>
-        <div>
+        <div className="hidden">{/* keep kind hidden for create */}
           <label className="block text-xs">Kind</label>
-          <select
-            className="border rounded px-2 py-1"
-            value={kind}
-            onChange={(e) => setKind(e.target.value)}
-          >
-            <option value="CATEGORY_KIND_EXPENSE">Expense</option>
-            <option value="CATEGORY_KIND_INCOME">Income</option>
+          <select className="border rounded px-2 py-1" value={String(kind)} onChange={(e) => setKind(Number(e.target.value))}>
+            <option value={2}>Expense</option>
+            <option value={1}>Income</option>
           </select>
         </div>
         <button className="bg-black text-white rounded px-3 py-1" disabled={createMut.isPending}>

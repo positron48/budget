@@ -952,3 +952,14 @@ register перекидывает на login
 
 ---
 
+в списке категорий ошибка sql - ERROR: invalid input value for enum category_kind: "" (SQLSTATE 22P02)
+
++ почему ошибка на фронте появляется не сразу, делается несколько одинаковых запросов и через какое-то время только появляется ошибка?
+
+---
+
+[internal] serialize binary: invalid int 32: string
+теперь такое
+
+---
+
