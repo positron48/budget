@@ -944,3 +944,7 @@ Error: Process completed with exit code 1.
 
 ---
 
+register перекидывает на login
+
+---
+
