@@ -13,6 +13,10 @@ export const authStore = {
     if (typeof window === "undefined") return undefined;
     return window.localStorage.getItem(ACCESS_KEY) ?? undefined;
   },
+  getAccessToken(): string | undefined {
+    if (typeof window === "undefined") return undefined;
+    return window.localStorage.getItem(ACCESS_KEY) ?? undefined;
+  },
   getRefresh(): string | undefined {
     if (typeof window === "undefined") return undefined;
     return window.localStorage.getItem(REFRESH_KEY) ?? undefined;
@@ -20,6 +24,12 @@ export const authStore = {
   getTenant(): string | undefined {
     if (typeof window === "undefined") return undefined;
     return window.localStorage.getItem(TENANT_KEY) ?? undefined;
+  },
+  getLocale(): string | undefined {
+    if (typeof window === "undefined") return undefined;
+    const cookies = document.cookie.split(';');
+    const localeCookie = cookies.find(cookie => cookie.trim().startsWith('NEXT_LOCALE='));
+    return localeCookie ? localeCookie.split('=')[1] : undefined;
   },
   set(state: Partial<AuthState>) {
     if (typeof window === "undefined") return;

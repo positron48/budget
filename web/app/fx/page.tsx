@@ -4,6 +4,7 @@ import { ClientsProvider, useClients } from "@/app/providers";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 function FxInner() {
   const { fx } = useClients();
@@ -51,73 +52,164 @@ function FxInner() {
   });
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-2">{t("title")}</h1>
-      <div className="flex gap-3 items-end mb-4 flex-wrap">
-        <div>
-          <label className="block text-xs">{t("fromCurrencies")}</label>
-          <input className="border rounded px-2 py-1 w-64" value={fromCodes} onChange={(e) => setFromCodes(e.target.value)} />
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-foreground">{t("title")}</h1>
+        <p className="text-muted-foreground mt-1">{t("description")}</p>
+      </div>
+
+      {/* Filters */}
+      <div className="card mb-6">
+        <div className="card-header">
+          <h3 className="card-title">{t("title")}</h3>
         </div>
-        <div>
-          <label className="block text-xs">{t("from")}</label>
-          <input className="border rounded px-2 py-1 w-24" value={toCode} onChange={(e) => setToCode(e.target.value)} />
-        </div>
-        <div>
-          <label className="block text-xs">{t("asOf")}</label>
-          <input className="border rounded px-2 py-1" type="date" value={asOf} onChange={(e) => setAsOf(e.target.value)} />
+        <div className="card-content">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">{t("fromCurrencies")}</label>
+              <input 
+                className="input w-64" 
+                value={fromCodes} 
+                onChange={(e) => setFromCodes(e.target.value)}
+                placeholder="USD,EUR"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">{t("to")}</label>
+              <input 
+                className="input w-24" 
+                value={toCode} 
+                onChange={(e) => setToCode(e.target.value)}
+                placeholder="RUB"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">{t("asOf")}</label>
+              <input 
+                className="input" 
+                type="date" 
+                value={asOf} 
+                onChange={(e) => setAsOf(e.target.value)} 
+              />
+            </div>
+          </div>
         </div>
       </div>
-      {isLoading && <div className="text-sm text-gray-500">{tc("loading")}</div>}
-      {error && <div className="text-sm text-red-600">{(error as any).message}</div>}
-      <table className="text-sm w-full border-collapse">
-          <thead>
-          <tr className="border-b">
-              <th className="text-left py-1">{t("pair")}</th>
-              <th className="text-right py-1">{t("rate")}</th>
-              <th className="text-left py-1">{t("provider")}</th>
-              <th className="text-left py-1">{t("asOf")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {(data?.rates ?? []).map((r: any, i: number) => (
-            <tr key={i} className="border-b">
-              <td className="py-1">{r?.fromCurrencyCode}/{r?.toCurrencyCode}</td>
-              <td className="py-1 text-right">{r?.rateDecimal}</td>
-              <td className="py-1">{r?.provider}</td>
-              <td className="py-1">{r?.asOf?.seconds ? new Date(r.asOf.seconds * 1000).toISOString().slice(0, 10) : ""}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
 
-      <h2 className="text-xl font-semibold mt-6 mb-2">{t("upsertTitle")}</h2>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          upsertMut.mutate();
-        }}
-        className="flex gap-3 items-end flex-wrap"
-      >
-        <div>
-          <label className="block text-xs">{t("to")}</label>
-          <input className="border rounded px-2 py-1 w-24" value={uFrom} onChange={(e) => setUFrom(e.target.value)} />
+      {/* Content */}
+      {isLoading && (
+        <LoadingSpinner text={tc("loading")} className="py-12" />
+      )}
+
+      {error && (
+        <div className="card border-destructive/20 bg-destructive/5">
+          <div className="card-content">
+            <p className="text-destructive">{(error as any).message}</p>
+          </div>
         </div>
-        <div>
-          <label className="block text-xs">{t("to")}</label>
-          <input className="border rounded px-2 py-1 w-24" value={uTo} onChange={(e) => setUTo(e.target.value)} />
+      )}
+
+      {!isLoading && !error && data && (
+        <div className="space-y-6">
+          {/* Rates Table */}
+          <div className="card">
+            <div className="card-header">
+              <h3 className="card-title">{t("title")}</h3>
+            </div>
+            <div className="card-content">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 font-medium">{t("pair")}</th>
+                    <th className="text-right py-2 font-medium">{t("rate")}</th>
+                    <th className="text-left py-2 font-medium">{t("provider")}</th>
+                    <th className="text-left py-2 font-medium">{t("asOf")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data?.rates ?? []).map((r: any, i: number) => (
+                    <tr key={i} className="border-b">
+                      <td className="py-2">{r?.fromCurrencyCode}/{r?.toCurrencyCode}</td>
+                      <td className="py-2 text-right">{r?.rateDecimal}</td>
+                      <td className="py-2">{r?.provider}</td>
+                      <td className="py-2">
+                        {r?.asOf?.seconds ? new Date(r.asOf.seconds * 1000).toISOString().slice(0, 10) : ""}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Add/Update Rate Form */}
+          <div className="card">
+            <div className="card-header">
+              <h3 className="card-title">{t("upsertTitle")}</h3>
+            </div>
+            <div className="card-content">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  upsertMut.mutate();
+                }}
+                className="flex flex-col sm:flex-row gap-4 items-start sm:items-end"
+              >
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">{t("from")}</label>
+                  <input 
+                    className="input w-24" 
+                    value={uFrom} 
+                    onChange={(e) => setUFrom(e.target.value)}
+                    placeholder="USD"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">{t("to")}</label>
+                  <input 
+                    className="input w-24" 
+                    value={uTo} 
+                    onChange={(e) => setUTo(e.target.value)}
+                    placeholder="RUB"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">{t("rateDecimal")}</label>
+                  <input 
+                    className="input w-32" 
+                    value={uRate} 
+                    onChange={(e) => setURate(e.target.value)}
+                    placeholder="75.50"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">{t("asOf")}</label>
+                  <input 
+                    className="input" 
+                    type="date" 
+                    value={uDate} 
+                    onChange={(e) => setUDate(e.target.value)} 
+                  />
+                </div>
+                <button 
+                  className="btn btn-primary" 
+                  disabled={upsertMut.isPending}
+                >
+                  {upsertMut.isPending ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span>{tc("loading")}</span>
+                    </div>
+                  ) : (
+                    <span>{t("save")}</span>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
         </div>
-        <div>
-          <label className="block text-xs">{t("rateDecimal")}</label>
-          <input className="border rounded px-2 py-1 w-32" value={uRate} onChange={(e) => setURate(e.target.value)} />
-        </div>
-        <div>
-          <label className="block text-xs">{t("asOf")}</label>
-          <input className="border rounded px-2 py-1" type="date" value={uDate} onChange={(e) => setUDate(e.target.value)} />
-        </div>
-        <button className="bg-black text-white rounded px-3 py-1" disabled={upsertMut.isPending}>
-          {upsertMut.isPending ? tc("loading") : t("save")}
-        </button>
-      </form>
+      )}
     </div>
   );
 }

@@ -1,65 +1,117 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useTranslations } from "next-intl";
 import { useClients } from "@/app/providers";
 import { authStore } from "@/lib/auth/store";
-import { useTranslations } from "next-intl";
 
-const schema = z.object({
-  email: z.string().email(),
-  password: z.string().min(4),
+const loginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
 });
 
-type FormValues = z.infer<typeof schema>;
+type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginForm() {
+  const router = useRouter();
   const { auth } = useClients();
-  const t = useTranslations("auth.login");
-  const { register, handleSubmit, formState } = useForm<FormValues>({ resolver: zodResolver(schema) });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const t = useTranslations("auth");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>("");
 
-  const onSubmit = async (values: FormValues) => {
-    setLoading(true);
-    setError(null);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  const onSubmit = async (data: LoginFormData) => {
+    setIsLoading(true);
+    setError("");
+
     try {
-      const res = await auth.login(values as any);
-      const access = res.tokens?.accessToken ?? "";
-      const refresh = res.tokens?.refreshToken ?? "";
-      authStore.set({ accessToken: access, refreshToken: refresh });
-      const tenantId = res.memberships?.[0]?.tenantId as unknown as string | undefined;
-      if (tenantId) authStore.set({ tenantId });
-      window.location.href = "/";
-    } catch (e: any) {
-      setError(e?.message ?? "Login failed");
+      const response = await auth.login({
+        email: data.email,
+        password: data.password,
+      } as any);
+
+      if (response.tokens) {
+        authStore.set({
+          accessToken: response.tokens.accessToken,
+          refreshToken: response.tokens.refreshToken,
+        });
+        router.push("/");
+      }
+    } catch (err: any) {
+      setError(err.message || t("loginError"));
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="p-6 max-w-sm mx-auto">
-      <h1 className="text-2xl font-semibold mb-4">{t("title")}</h1>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-        <div>
-          <label className="block text-sm">{t("email")}</label>
-          <input className="border rounded px-3 py-2 w-full" {...register("email")} />
-          {formState.errors.email && <div className="text-xs text-red-600">{formState.errors.email.message}</div>}
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {error && (
+        <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
+          <p className="text-sm text-destructive">{error}</p>
         </div>
-        <div>
-          <label className="block text-sm">{t("password")}</label>
-          <input type="password" className="border rounded px-3 py-2 w-full" {...register("password")} />
-          {formState.errors.password && <div className="text-xs text-red-600">{formState.errors.password.message}</div>}
-        </div>
-        {error && <div className="text-red-600 text-sm">{error}</div>}
-        <button className="bg-black text-white rounded px-4 py-2" disabled={loading}>
-          {loading ? t("submitting") : t("submit")}
-        </button>
-      </form>
-    </div>
+      )}
+
+      <div className="space-y-2">
+        <label htmlFor="email" className="text-sm font-medium text-foreground">
+          {t("email")}
+        </label>
+        <input
+          id="email"
+          type="email"
+          {...register("email")}
+          className="input"
+          placeholder={t("emailPlaceholder")}
+          disabled={isLoading}
+        />
+        {errors.email && (
+          <p className="text-sm text-destructive">{errors.email.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="password" className="text-sm font-medium text-foreground">
+          {t("password")}
+        </label>
+        <input
+          id="password"
+          type="password"
+          {...register("password")}
+          className="input"
+          placeholder={t("passwordPlaceholder")}
+          disabled={isLoading}
+        />
+        {errors.password && (
+          <p className="text-sm text-destructive">{errors.password.message}</p>
+        )}
+      </div>
+
+      <button
+        type="submit"
+        disabled={isLoading}
+        className="btn btn-primary w-full"
+      >
+        {isLoading ? (
+          <div className="flex items-center space-x-2">
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            <span>{t("signingIn")}</span>
+          </div>
+        ) : (
+          <span>{t("signIn")}</span>
+        )}
+      </button>
+    </form>
   );
 }
 

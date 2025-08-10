@@ -1083,3 +1083,29 @@ app/transactions/page.tsx (210:18) @ <unknown>
 
 ---
 
+функционально допустим ок, давай поработаем с UX/UI - фронтенд должен быть удобным для пользователя, интуитивно понятным в освоении и эстетичным
+
+---
+
+A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used
+
+---
+
+Cannot convert a BigInt value to a number
+
+app/transactions/page.tsx (207:70) @ TransactionsInner
+
+---
+
+не работает обновление access токена - просит авторизоваться заново
+
+---
+
+допереведи все сообщения на ru локаль
+
+---
+
+в отчетах, fx, teanant и profile еще куча не переведенного, например reports.monthlyTitle
+
+---
+

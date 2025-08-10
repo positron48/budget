@@ -17,7 +17,10 @@ export function ClientsProvider({ children }: { children: React.ReactNode }) {
       refreshAuthInterceptor({
         getRefreshToken: () => authStore.getRefresh(),
         setTokens: (accessToken: string, refreshToken: string) => authStore.set({ accessToken, refreshToken }),
-        onRefreshFail: () => authStore.clear(),
+        onRefreshFail: () => {
+          authStore.clear();
+          window.location.href = "/login";
+        },
       }),
       authInterceptor(() => authStore.getAccess()),
       tenantInterceptor(() => authStore.getTenant()),

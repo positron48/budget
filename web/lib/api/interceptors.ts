@@ -34,36 +34,91 @@ export function refreshAuthInterceptor(
     onRefreshFail?: () => void;
   }
 ): Interceptor {
+  let refreshing = false;
+  let refreshPromise: Promise<any> | null = null;
+
   return (next) => async (req: any) => {
     try {
       return await next(req);
     } catch (e: any) {
-      const alreadyRetried = req?.header?.get?.("x-retry-refreshed") === "1";
       const isAuthRefresh = typeof req?.url === "string" && req.url.includes("AuthService/RefreshToken");
       const code: number | undefined = e?.code;
       const unauth = code === Code.Unauthenticated || /unauth/i.test(String(e?.message ?? ""));
-      if (!unauth || alreadyRetried || isAuthRefresh) throw e;
+      
+      if (!unauth || isAuthRefresh) throw e;
 
-      const refreshToken = opts.getRefreshToken();
-      if (!refreshToken) throw e;
+      console.log("🔄 Token refresh needed:", { code, message: e?.message, url: req?.url });
+
+      // If already refreshing, wait for the current refresh to complete
+      if (refreshing && refreshPromise) {
+        console.log("⏳ Waiting for existing refresh to complete...");
+        try {
+          await refreshPromise;
+          // Retry the original request with the new token
+          const token = opts.getRefreshToken();
+          if (token) {
+            req.header.set("authorization", `Bearer ${token}`);
+            return await next(req);
+          }
+        } catch (refreshError) {
+          console.error("❌ Refresh failed while waiting:", refreshError);
+          // Refresh failed, throw original error
+          throw e;
+        }
+      }
+
+      // Start refresh process
+      console.log("🚀 Starting token refresh...");
+      refreshing = true;
+      refreshPromise = (async () => {
+        try {
+          const refreshToken = opts.getRefreshToken();
+          if (!refreshToken) {
+            throw new Error("No refresh token available");
+          }
+
+          console.log("📡 Calling refresh token endpoint...");
+
+          // Create a bare transport without interceptors to avoid recursion
+          const { createGrpcWebTransport } = await import("@connectrpc/connect-web");
+          const bareTransport = createGrpcWebTransport({ 
+            baseUrl: transportBaseUrl,
+          });
+          
+          const authClient = createClient(AuthService, bareTransport);
+          const resp: any = await authClient.refreshToken({ refreshToken });
+          
+          const newAccess = resp?.tokens?.accessToken;
+          const newRefresh = resp?.tokens?.refreshToken;
+          
+          if (!newAccess) {
+            throw new Error("No access token in refresh response");
+          }
+
+          console.log("✅ Token refresh successful");
+          opts.setTokens(newAccess, newRefresh || refreshToken);
+          return newAccess;
+        } catch (refreshError) {
+          console.error("❌ Token refresh failed:", refreshError);
+          if (opts.onRefreshFail) {
+            opts.onRefreshFail();
+          }
+          throw refreshError;
+        } finally {
+          refreshing = false;
+          refreshPromise = null;
+        }
+      })();
 
       try {
-        // create a bare transport without auth/refresh interceptors to avoid recursion
-        const { createGrpcWebTransport } = require("@connectrpc/connect-web");
-        const bareTransport = createGrpcWebTransport({ baseUrl: transportBaseUrl });
-        const authClient = createClient(AuthService as any, bareTransport);
-        const resp: any = await authClient.refreshToken({ refreshToken } as any);
-        const newAccess = resp?.tokens?.accessToken;
-        const newRefresh = resp?.tokens?.refreshToken ?? refreshToken;
-        if (!newAccess) throw e;
-
-        opts.setTokens(newAccess, newRefresh);
-        // retry original request with new access token
-        req.header.set("authorization", `Bearer ${newAccess}`);
-        req.header.set("x-retry-refreshed", "1");
+        const newAccessToken = await refreshPromise;
+        console.log("🔄 Retrying original request with new token...");
+        // Retry the original request with the new access token
+        req.header.set("authorization", `Bearer ${newAccessToken}`);
         return await next(req);
-      } catch (e2) {
-        if (opts.onRefreshFail) opts.onRefreshFail();
+      } catch (refreshError) {
+        console.error("❌ Failed to retry request after refresh:", refreshError);
+        // Refresh failed, throw original error
         throw e;
       }
     }
