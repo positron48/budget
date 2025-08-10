@@ -5,9 +5,11 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
+import { TransactionType } from "@/proto/budget/v1/common_pb";
 
 const schema = z.object({
-  type: z.enum(["TRANSACTION_TYPE_EXPENSE", "TRANSACTION_TYPE_INCOME"]),
+  // 2 = EXPENSE, 1 = INCOME
+  type: z.coerce.number().int().min(1).max(2),
   amount: z.coerce.number().min(0.01),
   currencyCode: z.string().min(3),
   occurredAt: z.string(),
@@ -21,7 +23,7 @@ function TxForm() {
   const { register, handleSubmit, formState, reset } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      type: "TRANSACTION_TYPE_EXPENSE",
+      type: TransactionType.EXPENSE as unknown as number,
       currencyCode: "RUB",
       occurredAt: new Date().toISOString(),
     },
@@ -32,15 +34,14 @@ function TxForm() {
     setError(null);
     setOk(false);
     try {
-      await transaction.createTransaction({
-        transaction: {
-          type: v.type,
-          amount: { currencyCode: v.currencyCode, minorUnits: Math.round(v.amount * 100) },
-          occurredAt: { seconds: Math.floor(new Date(v.occurredAt).getTime() / 1000) },
-          categoryId: v.categoryId,
-          comment: v.comment,
-        },
-      } as any);
+      const payload: any = {
+        type: Number(v.type),
+        amount: { currencyCode: v.currencyCode, minorUnits: Math.round(v.amount * 100) },
+        occurredAt: { seconds: Math.floor(new Date(v.occurredAt).getTime() / 1000) },
+      };
+      if (v.categoryId) payload.categoryId = v.categoryId;
+      if (v.comment) payload.comment = v.comment;
+      await transaction.createTransaction(payload as any);
       setOk(true);
       reset();
     } catch (e: any) {
@@ -54,8 +55,8 @@ function TxForm() {
         <div>
           <label className="block text-sm">Type</label>
           <select className="border rounded px-2 py-1 w-full" {...register("type")}>
-            <option value="TRANSACTION_TYPE_EXPENSE">Expense</option>
-            <option value="TRANSACTION_TYPE_INCOME">Income</option>
+            <option value={TransactionType.EXPENSE}>Expense</option>
+            <option value={TransactionType.INCOME}>Income</option>
           </select>
         </div>
         <div className="flex gap-2">
