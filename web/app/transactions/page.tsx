@@ -4,6 +4,7 @@ import { ClientsProvider, useClients } from "@/app/providers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { TransactionType } from "@/proto/budget/v1/common_pb";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 function TransactionsInner() {
@@ -46,7 +47,12 @@ function TransactionsInner() {
   });
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-2">{t("title")}</h1>
+      <div className="flex items-center mb-2">
+        <h1 className="text-2xl font-semibold">{t("title")}</h1>
+        <Link href="/transactions/new" className="ml-auto text-sm underline">
+          {t("create") ?? "Create"}
+        </Link>
+      </div>
       <div className="flex gap-3 items-end mb-3 flex-wrap">
         <div>
           <label className="block text-xs">{t("type")}</label>
@@ -122,6 +128,8 @@ function ListWithEdit({
   onChanged: () => void;
 }) {
   const { transaction } = useClients();
+  const tt = useTranslations("transactions");
+  const tc2 = useTranslations("common");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editComment, setEditComment] = useState<string>("");
   const [editAmount, setEditAmount] = useState<number | "">("");
@@ -150,24 +158,24 @@ function ListWithEdit({
   });
   return (
     <ul className="space-y-1">
-      {items.map((t: any) => (
-        <li key={t?.id} className="text-sm flex items-center gap-3">
-          {t?.occurredAt?.seconds ? new Date(t.occurredAt.seconds * 1000).toISOString().slice(0, 10) : ""}
+      {items.map((tx: any) => (
+          <li key={tx?.id} className="text-sm flex items-center gap-3">
+            {tx?.occurredAt?.seconds ? new Date(Number(tx.occurredAt.seconds) * 1000).toISOString().slice(0, 10) : ""}
           {" — "}
-          {t?.amount?.minorUnits ?? 0}
+            {Number(tx?.amount?.minorUnits ?? 0)}
           {" "}
-          {t?.amount?.currencyCode ?? ""}
-          {editingId === t?.id ? (
+          {tx?.amount?.currencyCode ?? ""}
+          {editingId === tx?.id ? (
             <>
               <input
                 className="border rounded px-2 py-0.5 text-xs"
-                 placeholder={t("comment")}
+                 placeholder={tt("comment")}
                 value={editComment}
                 onChange={(e) => setEditComment(e.target.value)}
               />
               <input
                 className="border rounded px-2 py-0.5 text-xs w-24"
-                 placeholder={t("amount")}
+                 placeholder={tt("amount")}
                 type="number"
                 step="1"
                 value={editAmount}
@@ -178,13 +186,13 @@ function ListWithEdit({
                 disabled={updateMut.isPending}
                 onClick={() =>
                   updateMut.mutate({
-                    id: t.id as string,
+                    id: tx.id as string,
                     comment: editComment,
                     amountMinorUnits: typeof editAmount === "number" ? editAmount : undefined,
                   })
                 }
               >
-                {updateMut.isPending ? t("saving") : t("edit")}
+                {updateMut.isPending ? tt("saving") : tt("edit")}
               </button>
               <button className="text-xs underline" onClick={() => setEditingId(null)}>
                 Cancel
@@ -192,25 +200,25 @@ function ListWithEdit({
             </>
           ) : (
             <>
-              <span className="text-xs text-gray-500">{t?.comment ?? ""}</span>
+              <span className="text-xs text-gray-500">{tx?.comment ?? ""}</span>
               <button
                 className="text-xs underline"
                 onClick={() => {
-                  setEditingId(t?.id);
-                  setEditComment(t?.comment ?? "");
-                  setEditAmount(t?.amount?.minorUnits ?? "");
+                  setEditingId(tx?.id);
+                  setEditComment(tx?.comment ?? "");
+                  setEditAmount(tx?.amount?.minorUnits ?? "");
                 }}
               >
-                {t("edit")}
+                {tt("edit")}
               </button>
             </>
           )}
           <button
             className="ml-auto text-xs text-red-600 underline"
             disabled={isDeleting}
-            onClick={() => onDelete(t?.id)}
+            onClick={() => onDelete(tx?.id)}
           >
-            {t("delete")}
+            {tt("delete")}
           </button>
         </li>
       ))}

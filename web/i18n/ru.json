@@ -41,7 +41,13 @@
     "expense": "Расход",
     "income": "Доход",
     "comment": "Комментарий",
-    "amount": "Сумма"
+    "amount": "Сумма",
+    "newTitle": "Новая транзакция",
+    "currency": "Валюта",
+    "occurredAt": "Дата",
+    "category": "Категория",
+    "saved": "Сохранено",
+    "create": "Создать"
   },
   "reports": {
     "monthlyTitle": "Месячный отчёт",

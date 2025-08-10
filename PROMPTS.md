@@ -983,21 +983,6 @@ Cannot mix BigInt and other types, use explicit conversions
 
 app/settings/profile/page.tsx (42:80) @ ProfileSettingsInner
 
-
-  40 |       <div className="space-y-1 text-sm mb-4">
-  41 |         <div>Email: {me.email}</div>
-> 42 |         <div>Created at: {me.createdAt?.seconds ? new Date(me.createdAt.seconds * 1000).toISOString() : ""}</div>
-     |                                                                                ^
-  43 |       </div>
-  44 |       <form
-  45 |         onSubmit={(e) => {
-Call Stack
-16
-
-Show 14 ignore-listed frame(s)
-ProfileSettingsInner
-app/settings/profile/page.tsx (42:80)
-
 ---
 
 /reports/monthly
@@ -1010,32 +995,11 @@ app/settings/profile/page.tsx (42:80)
 
 ---
 
-Error: Route "/" used `headers().get('X-NEXT-INTL-LOCALE')`. `headers()` should be awaited before using its value. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
-    at <unknown> (i18n/request.ts:3:40)
-    at RootLayout (app/layout.tsx:25:31)
-  1 | import {getRequestConfig} from 'next-intl/server';
-  2 |
-> 3 | export default getRequestConfig(async ({locale}) => {
-    |                                        ^
-  4 |   if (!['en', 'ru'].includes(locale)) locale = 'en';
-  5 |   const messages = locale === 'ru' ? (await import('./../i18n/ru.json')).default : (await import('./../i18n/en.json')).default;
-  6 |   return {locale, messages} as any;
-
-Unable to find `next-intl` locale because the middleware didn't run on this request. See https://next-intl.dev/docs/routing/middleware#unable-to-find-locale. The `notFound()` function will be called as a result.
+Error: Route "/" used `headers().get('X-NEXT-INTL-LOCALE')`. `headers()` should be awaited before using its value.
 
 ---
 
-Error: Route "/_not-found" used `headers().get('X-NEXT-INTL-LOCALE')`. `headers()` should be awaited before using its value. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
-    at <unknown> (i18n/request.ts:3:40)
-    at RootLayout (app/layout.tsx:25:31)
-  1 | import {getRequestConfig} from 'next-intl/server';
-  2 |
-> 3 | export default getRequestConfig(async ({locale}) => {
-    |                                        ^
-  4 |   const safe = (locale && ['en', 'ru'].includes(locale)) ? locale : 'en';
-  5 |   const messages = (await import(`./../i18n/${safe}.json`)).default;
-  6 |   return {locale: safe, messages} as any;
- GET /en 404 in 181ms
+Error: Route "/_not-found" used `headers().get('X-NEXT-INTL-LOCALE')`. `headers()` should be awaited before using its value. 
  
 ---
 
@@ -1073,16 +1037,49 @@ MISSING_MESSAGE: Could not resolve `transactions.expense` in messages for locale
 app/transactions/page.tsx (55:54) @ TransactionsInner
 
 
-  53 |           <select className="border rounded px-2 py-1" value={String(type)} onChange={(e) => setType(Number(e.target.value))}>
-  54 |             <option value={0}>All</option>
-> 55 |             <option value={TransactionType.EXPENSE}>{t("expense") ?? "Expense"}</option>
-     |                                                      ^
-  56 |             <option value={TransactionType.INCOME}>{t("income") ?? "Income"}</option>
-  57 |           </select>
-  58 |         </div>
-
-
 главная осталась не переведена и заголовки курсов - Rate	Provider и тп 
+
+---
+
+продолжай следовать плану реализации фронта и обнови статусы
+
+---
+
+ок
+
+---
+
+давай
+
+---
+
+чини
+
+---
+
+действуй
+
+---
+
+что с добавлением транзакции?
+
+---
+
+действуй
+
+---
+
+Cannot mix BigInt and other types, use explicit conversions
+
+app/transactions/page.tsx (155:66) @ <unknown>
+
+на странице транзакций нужна ссылка на создание транзакции
+
+---
+
+t is not a function
+
+app/transactions/page.tsx (210:18) @ <unknown>
 
 ---
 

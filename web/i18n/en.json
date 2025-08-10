@@ -41,7 +41,13 @@
     "expense": "Expense",
     "income": "Income",
     "comment": "Comment",
-    "amount": "Amount"
+    "amount": "Amount",
+    "newTitle": "New Transaction",
+    "currency": "Currency",
+    "occurredAt": "Occurred At",
+    "category": "Category",
+    "saved": "Saved",
+    "create": "Create"
   },
   "reports": {
     "monthlyTitle": "Monthly Report",

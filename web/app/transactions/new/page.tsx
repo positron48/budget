@@ -4,8 +4,11 @@ import { ClientsProvider, useClients } from "@/app/providers";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
-import { TransactionType } from "@/proto/budget/v1/common_pb";
+import { useMemo, useState } from "react";
+import { TransactionType, CategoryKind } from "@/proto/budget/v1/common_pb";
+import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 
 const schema = z.object({
   // 2 = EXPENSE, 1 = INCOME
@@ -19,7 +22,9 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 function TxForm() {
-  const { transaction } = useClients();
+  const { transaction, category } = useClients();
+  const router = useRouter();
+  const t = useTranslations("transactions");
   const { register, handleSubmit, formState, reset } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -30,6 +35,13 @@ function TxForm() {
   });
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
+  const typeWatch = (formState as any).values?.type as number | undefined;
+  const mappedKind = useMemo(() => (typeWatch === TransactionType.INCOME ? CategoryKind.INCOME : CategoryKind.EXPENSE), [typeWatch]);
+  const { data: catData } = useQuery({
+    queryKey: ["tx-new-categories", mappedKind],
+    queryFn: async () => (await category.listCategories({ kind: mappedKind } as any)) as any,
+    staleTime: 30_000,
+  });
   const onSubmit = async (v: FormValues) => {
     setError(null);
     setOk(false);
@@ -44,47 +56,53 @@ function TxForm() {
       await transaction.createTransaction(payload as any);
       setOk(true);
       reset();
+      router.push("/transactions");
     } catch (e: any) {
       setError(e?.message ?? "failed");
     }
   };
   return (
     <div className="p-6 max-w-md mx-auto">
-      <h1 className="text-2xl font-semibold mb-3">New Transaction</h1>
+      <h1 className="text-2xl font-semibold mb-3">{t("newTitle") ?? "New Transaction"}</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
         <div>
-          <label className="block text-sm">Type</label>
+          <label className="block text-sm">{t("type")}</label>
           <select className="border rounded px-2 py-1 w-full" {...register("type")}>
-            <option value={TransactionType.EXPENSE}>Expense</option>
-            <option value={TransactionType.INCOME}>Income</option>
+            <option value={TransactionType.EXPENSE}>{t("expense") ?? "Expense"}</option>
+            <option value={TransactionType.INCOME}>{t("income") ?? "Income"}</option>
           </select>
         </div>
         <div className="flex gap-2">
           <div className="flex-1">
-            <label className="block text-sm">Amount</label>
+            <label className="block text-sm">{t("amount")}</label>
             <input type="number" step="0.01" className="border rounded px-2 py-1 w-full" {...register("amount")} />
           </div>
           <div>
-            <label className="block text-sm">Currency</label>
+            <label className="block text-sm">{t("currency") ?? "Currency"}</label>
             <input className="border rounded px-2 py-1 w-24" {...register("currencyCode")} />
           </div>
         </div>
         <div>
-          <label className="block text-sm">Occurred At</label>
+          <label className="block text-sm">{t("occurredAt") ?? "Occurred At"}</label>
           <input className="border rounded px-2 py-1 w-full" {...register("occurredAt")} />
         </div>
         <div>
-          <label className="block text-sm">Category ID</label>
-          <input className="border rounded px-2 py-1 w-full" {...register("categoryId")} />
+          <label className="block text-sm">{t("category") ?? "Category"}</label>
+          <select className="border rounded px-2 py-1 w-full" {...register("categoryId")}>
+            <option value="">—</option>
+            {(catData?.categories ?? []).map((c: any) => (
+              <option key={c?.id} value={c?.id}>{c?.code}</option>
+            ))}
+          </select>
         </div>
         <div>
-          <label className="block text-sm">Comment</label>
+          <label className="block text-sm">{t("comment")}</label>
           <input className="border rounded px-2 py-1 w-full" {...register("comment")} />
         </div>
         {formState.errors.root && <div className="text-sm text-red-600">{formState.errors.root.message}</div>}
         {error && <div className="text-sm text-red-600">{error}</div>}
-        {ok && <div className="text-sm text-green-700">Saved</div>}
-        <button className="bg-black text-white rounded px-3 py-1">Create</button>
+        {ok && <div className="text-sm text-green-700">{t("saved") ?? "Saved"}</div>}
+        <button className="bg-black text-white rounded px-3 py-1">{t("create") ?? "Create"}</button>
       </form>
     </div>
   );
