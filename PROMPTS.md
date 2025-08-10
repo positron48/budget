@@ -1010,3 +1010,49 @@ app/settings/profile/page.tsx (42:80)
 
 ---
 
+Error: Route "/" used `headers().get('X-NEXT-INTL-LOCALE')`. `headers()` should be awaited before using its value. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
+    at <unknown> (i18n/request.ts:3:40)
+    at RootLayout (app/layout.tsx:25:31)
+  1 | import {getRequestConfig} from 'next-intl/server';
+  2 |
+> 3 | export default getRequestConfig(async ({locale}) => {
+    |                                        ^
+  4 |   if (!['en', 'ru'].includes(locale)) locale = 'en';
+  5 |   const messages = locale === 'ru' ? (await import('./../i18n/ru.json')).default : (await import('./../i18n/en.json')).default;
+  6 |   return {locale, messages} as any;
+
+Unable to find `next-intl` locale because the middleware didn't run on this request. See https://next-intl.dev/docs/routing/middleware#unable-to-find-locale. The `notFound()` function will be called as a result.
+
+---
+
+Error: Route "/_not-found" used `headers().get('X-NEXT-INTL-LOCALE')`. `headers()` should be awaited before using its value. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
+    at <unknown> (i18n/request.ts:3:40)
+    at RootLayout (app/layout.tsx:25:31)
+  1 | import {getRequestConfig} from 'next-intl/server';
+  2 |
+> 3 | export default getRequestConfig(async ({locale}) => {
+    |                                        ^
+  4 |   const safe = (locale && ['en', 'ru'].includes(locale)) ? locale : 'en';
+  5 |   const messages = (await import(`./../i18n/${safe}.json`)).default;
+  6 |   return {locale: safe, messages} as any;
+ GET /en 404 in 181ms
+ 
+---
+
+GET /en 404 in 2292ms
+
+---
+
+login показывает 404 вместо формы x2
+
+---
+
+404 This page could not be found.
+
+---
+
+ERR_TOO_MANY_REDIRECTS
+проблема не в редиректах, открывалась до этого корректно /login, но на самой странице в теле выводился текст о 404 ошибке
+
+---
+

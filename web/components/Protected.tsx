@@ -9,7 +9,8 @@ export default function Protected({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   useEffect(() => {
     const publicRoutes = ["/login", "/register"];
-    if (publicRoutes.includes(pathname)) return;
+    const normalized = pathname.replace(/^\/(en|ru)(?=\/|$)/, "") || "/";
+    if (publicRoutes.includes(normalized)) return;
     const token = authStore.getAccess();
     if (!token) router.replace("/login");
   }, [router, pathname]);

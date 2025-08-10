@@ -63,11 +63,7 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
-  return (
-    <ClientsProvider>
-      <LoginForm />
-    </ClientsProvider>
-  );
+  return <LoginForm />;
 }
 
 

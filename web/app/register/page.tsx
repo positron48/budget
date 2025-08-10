@@ -74,11 +74,7 @@ function RegisterForm() {
 }
 
 export default function RegisterPage() {
-  return (
-    <ClientsProvider>
-      <RegisterForm />
-    </ClientsProvider>
-  );
+  return <RegisterForm />;
 }
 
 

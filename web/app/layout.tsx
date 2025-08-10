@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Protected from "@/components/Protected";
 import HeaderNav from "@/components/HeaderNav";
+import { ClientsProvider } from "./providers";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 
@@ -28,8 +29,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={locale}>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <NextIntlClientProvider messages={messages} locale={locale}>
-          <HeaderNav />
-          <Protected>{children}</Protected>
+          <ClientsProvider>
+            <HeaderNav />
+            <Protected>{children}</Protected>
+          </ClientsProvider>
         </NextIntlClientProvider>
       </body>
     </html>
