@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { authStore } from "@/lib/auth/store";
 import { useTranslations } from "next-intl";
 import { useState, useEffect } from "react";
+import { Icon, Button } from "@/components";
 
 export default function HeaderNav() {
   const router = useRouter();
@@ -38,13 +39,13 @@ export default function HeaderNav() {
   };
 
   const navItems = [
-    { href: "/", label: t("home"), icon: "🏠" },
-    { href: "/categories", label: t("categories"), icon: "📂" },
-    { href: "/transactions", label: t("transactions"), icon: "💰" },
-    { href: "/reports/monthly", label: t("reports"), icon: "📊" },
-    { href: "/fx", label: t("fx"), icon: "💱" },
-    { href: "/tenants", label: t("tenants"), icon: "🏢" },
-    { href: "/settings/profile", label: t("profile"), icon: "👤" },
+    { href: "/", label: t("home"), icon: "home" },
+    { href: "/categories", label: t("categories"), icon: "categories" },
+    { href: "/transactions", label: t("transactions"), icon: "transactions" },
+    { href: "/reports/monthly", label: t("reports"), icon: "reports" },
+    { href: "/fx", label: t("fx"), icon: "fx" },
+    { href: "/tenants", label: t("tenants"), icon: "tenants" },
+    { href: "/settings/profile", label: t("profile"), icon: "profile" },
   ];
 
   return (
@@ -57,7 +58,7 @@ export default function HeaderNav() {
               href="/" 
               className="flex items-center space-x-2 text-xl font-bold text-primary hover:text-primary/80 transition-colors"
             >
-              <span className="text-2xl">💼</span>
+              <Icon name="wallet" size={24} className="text-primary" />
               <span>Budget Manager</span>
             </Link>
             
@@ -67,13 +68,13 @@ export default function HeaderNav() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center space-x-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                     isActive(item.href)
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-accent"
                   }`}
                 >
-                  <span>{item.icon}</span>
+                  <Icon name={item.icon as any} size={16} />
                   <span className="hidden lg:inline">{item.label}</span>
                 </Link>
               ))}
@@ -107,43 +108,27 @@ export default function HeaderNav() {
             </div>
 
             {/* Logout Button */}
-            <button
+            <Button
               onClick={onLogout}
-              className="btn btn-outline btn-sm hidden sm:inline-flex"
+              variant="outline"
+              size="sm"
+              icon="logout"
+              className="hidden sm:inline-flex"
             >
-              <span className="mr-1">🚪</span>
               {t("logout")}
-            </button>
+            </Button>
 
             {/* Mobile Menu Button */}
-            <button
+            <Button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden btn btn-ghost btn-sm p-2"
+              variant="ghost"
+              size="sm"
+              icon={isMenuOpen ? "close" : "menu"}
+              className="md:hidden p-2"
               aria-label="Toggle menu"
             >
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                {isMenuOpen ? (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                ) : (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                )}
-              </svg>
-            </button>
+              <span className="sr-only">Toggle menu</span>
+            </Button>
           </div>
         </div>
 
@@ -162,7 +147,7 @@ export default function HeaderNav() {
                       : "text-muted-foreground hover:text-foreground hover:bg-accent"
                   }`}
                 >
-                  <span className="text-lg">{item.icon}</span>
+                  <Icon name={item.icon as any} size={18} />
                   <span>{item.label}</span>
                 </Link>
               ))}
@@ -173,7 +158,7 @@ export default function HeaderNav() {
                 }}
                 className="flex items-center space-x-3 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors w-full"
               >
-                <span className="text-lg">🚪</span>
+                <Icon name="logout" size={18} />
                 <span>{t("logout")}</span>
               </button>
             </nav>

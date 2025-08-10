@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { Icon, Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components";
+import type { IconName } from "@/components/Icon";
 
 export default function HomePage() {
   const t = useTranslations("home");
@@ -11,42 +13,42 @@ export default function HomePage() {
       title: t("categories.title"),
       description: t("categories.description"),
       href: "/categories",
-      icon: "📂",
+      icon: "categories" as IconName,
       color: "bg-blue-500",
     },
     {
       title: t("transactions.title"),
       description: t("transactions.description"),
       href: "/transactions",
-      icon: "💰",
+      icon: "transactions" as IconName,
       color: "bg-green-500",
     },
     {
       title: t("reports.title"),
       description: t("reports.description"),
       href: "/reports/monthly",
-      icon: "📊",
+      icon: "reports" as IconName,
       color: "bg-purple-500",
     },
     {
       title: t("fx.title"),
       description: t("fx.description"),
       href: "/fx",
-      icon: "💱",
+      icon: "fx" as IconName,
       color: "bg-orange-500",
     },
     {
       title: t("tenants.title"),
       description: t("tenants.description"),
       href: "/tenants",
-      icon: "🏢",
+      icon: "tenants" as IconName,
       color: "bg-indigo-500",
     },
     {
       title: t("profile.title"),
       description: t("profile.description"),
       href: "/settings/profile",
-      icon: "👤",
+      icon: "profile" as IconName,
       color: "bg-pink-500",
     },
   ];
@@ -71,21 +73,21 @@ export default function HomePage() {
             href={feature.href}
             className="group block"
           >
-            <div className="card hover:shadow-lg transition-all duration-200 group-hover:scale-105">
-              <div className="card-header">
+            <Card hover className="hover:shadow-lg transition-all duration-200 group-hover:scale-105">
+              <CardHeader>
                 <div className="flex items-center space-x-3">
-                  <div className={`w-12 h-12 rounded-lg ${feature.color} flex items-center justify-center text-white text-2xl`}>
-                    {feature.icon}
+                  <div className={`w-12 h-12 rounded-lg ${feature.color} flex items-center justify-center text-white`}>
+                    <Icon name={feature.icon} size={24} />
                   </div>
                   <div>
-                    <h3 className="card-title text-lg">{feature.title}</h3>
-                    <p className="card-description text-sm">
+                    <CardTitle className="text-lg">{feature.title}</CardTitle>
+                    <CardDescription className="text-sm">
                       {feature.description}
-                    </p>
+                    </CardDescription>
                   </div>
                 </div>
-              </div>
-            </div>
+              </CardHeader>
+            </Card>
           </Link>
         ))}
       </div>
@@ -96,30 +98,38 @@ export default function HomePage() {
           {t("quickStats")}
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="card">
-            <div className="card-content text-center">
-              <div className="text-3xl font-bold text-primary mb-2">📈</div>
+          <Card>
+            <CardContent className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 dark:bg-blue-950/20 rounded-lg mb-3">
+                <Icon name="trending-up" size={24} className="text-blue-600" />
+              </div>
               <div className="text-sm text-muted-foreground">{t("stats.overview")}</div>
-            </div>
-          </div>
-          <div className="card">
-            <div className="card-content text-center">
-              <div className="text-3xl font-bold text-green-500 mb-2">💰</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-green-100 dark:bg-green-950/20 rounded-lg mb-3">
+                <Icon name="wallet" size={24} className="text-green-600" />
+              </div>
               <div className="text-sm text-muted-foreground">{t("stats.balance")}</div>
-            </div>
-          </div>
-          <div className="card">
-            <div className="card-content text-center">
-              <div className="text-3xl font-bold text-red-500 mb-2">📊</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-red-100 dark:bg-red-950/20 rounded-lg mb-3">
+                <Icon name="pie-chart" size={24} className="text-red-600" />
+              </div>
               <div className="text-sm text-muted-foreground">{t("stats.expenses")}</div>
-            </div>
-          </div>
-          <div className="card">
-            <div className="card-content text-center">
-              <div className="text-3xl font-bold text-blue-500 mb-2">🎯</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-purple-100 dark:bg-purple-950/20 rounded-lg mb-3">
+                <Icon name="target" size={24} className="text-purple-600" />
+              </div>
               <div className="text-sm text-muted-foreground">{t("stats.goals")}</div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

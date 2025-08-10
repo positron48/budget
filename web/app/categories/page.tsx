@@ -4,8 +4,7 @@ import { ClientsProvider, useClients } from "@/app/providers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import EmptyState from "@/components/EmptyState";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { EmptyState, LoadingSpinner, Icon, Button, Badge } from "@/components";
 
 // enums are numeric in TS output; 2 = EXPENSE, 1 = INCOME
 
@@ -70,13 +69,12 @@ function CategoriesInner() {
           <h1 className="text-3xl font-bold text-foreground">{t("title")}</h1>
           <p className="text-muted-foreground mt-1">{t("description")}</p>
         </div>
-        <button
+        <Button
           onClick={() => setShowCreateForm(!showCreateForm)}
-          className="btn btn-primary"
+          icon="plus"
         >
-          <span className="mr-2">➕</span>
           {t("create")}
-        </button>
+        </Button>
       </div>
 
       {/* Filters */}
@@ -84,8 +82,9 @@ function CategoriesInner() {
         <div className="card-content">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                {t("view")}
+              <label className="text-sm font-medium text-foreground flex items-center space-x-2">
+                <Icon name="filter" size={16} className="text-muted-foreground" />
+                <span>{t("view")}</span>
               </label>
               <select
                 className="input"
@@ -114,7 +113,10 @@ function CategoriesInner() {
       {showCreateForm && (
         <div className="card mb-6">
           <div className="card-header">
-            <h3 className="card-title">{t("create")}</h3>
+            <h3 className="card-title flex items-center space-x-2">
+              <Icon name="plus" size={20} />
+              <span>{t("create")}</span>
+            </h3>
           </div>
           <div className="card-content">
             <form
@@ -137,20 +139,20 @@ function CategoriesInner() {
                 />
               </div>
               <div className="flex gap-2">
-                <button
+                <Button
                   type="submit"
-                  disabled={createMut.isPending}
-                  className="btn btn-primary"
+                  loading={createMut.isPending}
+                  icon="check"
                 >
                   {createMut.isPending ? tc("saving") : t("save")}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={() => setShowCreateForm(false)}
-                  className="btn btn-outline"
+                  variant="outline"
                 >
                   {tc("cancel")}
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -165,14 +167,17 @@ function CategoriesInner() {
       {error && (
         <div className="card border-destructive/20 bg-destructive/5">
           <div className="card-content">
-            <p className="text-destructive">{(error as any).message}</p>
+            <p className="text-destructive flex items-center space-x-2">
+              <Icon name="alert-circle" size={16} />
+              <span>{(error as any).message}</span>
+            </p>
           </div>
         </div>
       )}
 
       {!isLoading && !error && data?.categories?.length === 0 && (
         <EmptyState
-          icon="📂"
+          icon="categories"
           title={t("noCategories")}
           description={t("noCategoriesDescription")}
           action={{
@@ -190,9 +195,12 @@ function CategoriesInner() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      c?.kind === 2 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
+                      c?.kind === 2 ? 'bg-red-100 text-red-600 dark:bg-red-950/20' : 'bg-green-100 text-green-600 dark:bg-green-950/20'
                     }`}>
-                      {c?.kind === 2 ? '📤' : '📥'}
+                      <Icon 
+                        name={c?.kind === 2 ? "trending-down" : "trending-up"} 
+                        size={20} 
+                      />
                     </div>
                     <div>
                       <div className="font-medium text-foreground">
@@ -205,9 +213,9 @@ function CategoriesInner() {
                   </div>
                   
                   <div className="flex items-center space-x-2">
-                    <div className={`badge ${c?.isActive ? 'badge-default' : 'badge-secondary'}`}>
+                    <Badge variant={c?.isActive ? "default" : "secondary"}>
                       {c?.isActive ? t("active") : t("inactive")}
-                    </div>
+                    </Badge>
                     
                     {editingId === c?.id ? (
                       <div className="flex items-center space-x-2">
@@ -217,9 +225,10 @@ function CategoriesInner() {
                           onChange={(e) => setEditCode(e.target.value)}
                           placeholder={t("code")}
                         />
-                        <button
-                          className="btn btn-primary btn-sm"
-                          disabled={updateMut.isPending}
+                        <Button
+                          size="sm"
+                          loading={updateMut.isPending}
+                          icon="check"
                           onClick={() =>
                             updateMut.mutate({
                               id: c.id as string,
@@ -229,29 +238,34 @@ function CategoriesInner() {
                           }
                         >
                           {updateMut.isPending ? tc("saving") : tc("save")}
-                        </button>
-                        <button
-                          className="btn btn-ghost btn-sm"
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           onClick={() => setEditingId(null)}
                         >
                           {tc("cancel")}
-                        </button>
+                        </Button>
                       </div>
                     ) : (
                       <div className="flex items-center space-x-2">
-                        <button
-                          className="btn btn-outline btn-sm"
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          icon="edit"
                           onClick={() => startEdit(c)}
                         >
-                          ✏️ {tc("edit")}
-                        </button>
-                        <button
-                          className="btn btn-destructive btn-sm"
-                          disabled={deleteMut.isPending}
+                          {tc("edit")}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          icon="trash"
+                          loading={deleteMut.isPending}
                           onClick={() => deleteMut.mutate(c?.id)}
                         >
-                          🗑️ {tc("delete")}
-                        </button>
+                          {tc("delete")}
+                        </Button>
                       </div>
                     )}
                   </div>

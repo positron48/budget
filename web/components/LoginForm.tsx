@@ -8,6 +8,9 @@ import { z } from "zod";
 import { useTranslations } from "next-intl";
 import { useClients } from "@/app/providers";
 import { authStore } from "@/lib/auth/store";
+import Button from "./Button";
+import Input from "./Input";
+import Icon from "./Icon";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -22,6 +25,7 @@ export default function LoginForm() {
   const t = useTranslations("auth");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -58,59 +62,42 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {error && (
-        <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4 flex items-start space-x-3">
+          <Icon name="alert-circle" size={20} className="text-destructive mt-0.5 flex-shrink-0" />
           <p className="text-sm text-destructive">{error}</p>
         </div>
       )}
 
-      <div className="space-y-2">
-        <label htmlFor="email" className="text-sm font-medium text-foreground">
-          {t("email")}
-        </label>
-        <input
-          id="email"
-          type="email"
-          {...register("email")}
-          className="input"
-          placeholder={t("emailPlaceholder")}
-          disabled={isLoading}
-        />
-        {errors.email && (
-          <p className="text-sm text-destructive">{errors.email.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="password" className="text-sm font-medium text-foreground">
-          {t("password")}
-        </label>
-        <input
-          id="password"
-          type="password"
-          {...register("password")}
-          className="input"
-          placeholder={t("passwordPlaceholder")}
-          disabled={isLoading}
-        />
-        {errors.password && (
-          <p className="text-sm text-destructive">{errors.password.message}</p>
-        )}
-      </div>
-
-      <button
-        type="submit"
+      <Input
+        label={t("email")}
+        type="email"
+        leftIcon="mail"
+        error={errors.email?.message}
+        placeholder={t("emailPlaceholder")}
         disabled={isLoading}
-        className="btn btn-primary w-full"
+        {...register("email")}
+      />
+
+      <Input
+        label={t("password")}
+        type={showPassword ? "text" : "password"}
+        leftIcon="lock"
+        rightIcon={showPassword ? "eye-off" : "eye"}
+        onRightIconClick={() => setShowPassword(!showPassword)}
+        error={errors.password?.message}
+        placeholder={t("passwordPlaceholder")}
+        disabled={isLoading}
+        {...register("password")}
+      />
+
+      <Button
+        type="submit"
+        loading={isLoading}
+        icon="log-in"
+        className="w-full h-11"
       >
-        {isLoading ? (
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-            <span>{t("signingIn")}</span>
-          </div>
-        ) : (
-          <span>{t("signIn")}</span>
-        )}
-      </button>
+        {isLoading ? t("signingIn") : t("signIn")}
+      </Button>
     </form>
   );
 }

@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { TransactionType } from "@/proto/budget/v1/common_pb";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { Icon, Button } from "@/components";
 
 function TransactionsInner() {
   const { transaction } = useClients();
@@ -69,8 +70,8 @@ function TransactionsInner() {
           <h1 className="text-3xl font-bold text-foreground">{t("title")}</h1>
           <p className="text-muted-foreground mt-1">{t("description")}</p>
         </div>
-        <Link href="/transactions/new" className="btn btn-primary">
-          <span className="mr-2">➕</span>
+        <Link href="/transactions/new" className="btn btn-primary inline-flex items-center">
+          <Icon name="plus" size={16} className="mr-2" />
           {t("create")}
         </Link>
       </div>
@@ -79,12 +80,16 @@ function TransactionsInner() {
       <div className="card mb-6">
         <div className="card-header">
           <div className="flex items-center justify-between">
-            <h3 className="card-title text-lg">{t("filters")}</h3>
+            <h3 className="card-title text-lg flex items-center space-x-2">
+              <Icon name="filter" size={20} />
+              <span>{t("filters")}</span>
+            </h3>
             <button
               onClick={() => setShowFilters(!showFilters)}
               className="btn btn-ghost btn-sm"
             >
-              {showFilters ? "🔽" : "🔼"} {t("toggleFilters")}
+              <Icon name={showFilters ? "chevron-up" : "chevron-down"} size={16} className="mr-1" />
+              {t("toggleFilters")}
             </button>
           </div>
         </div>
@@ -158,12 +163,14 @@ function TransactionsInner() {
 
             {hasActiveFilters && (
               <div className="mt-4 flex items-center gap-2">
-                <button
-                  onClick={clearFilters}
-                  className="btn btn-outline btn-sm"
-                >
-                  🗑️ {t("clearFilters")}
-                </button>
+                            <Button
+              size="sm"
+              variant="outline"
+              icon="trash"
+              onClick={clearFilters}
+            >
+              {t("clearFilters")}
+            </Button>
                 <span className="text-sm text-muted-foreground">
                   {t("activeFilters")}
                 </span>
@@ -186,7 +193,10 @@ function TransactionsInner() {
       {error && (
         <div className="card border-destructive/20 bg-destructive/5">
           <div className="card-content">
-            <p className="text-destructive">{(error as any).message}</p>
+            <p className="text-destructive flex items-center space-x-2">
+              <Icon name="alert-circle" size={16} />
+              <span>{(error as any).message}</span>
+            </p>
           </div>
         </div>
       )}
@@ -207,23 +217,28 @@ function TransactionsInner() {
                 {t("showing")} {((page - 1) * pageSize) + 1} - {Math.min(page * pageSize, Number(data.page.totalItems))} {t("of")} {Number(data.page.totalItems)} {t("transactions")}
               </div>
               <div className="flex items-center space-x-2">
-                <button
-                  className="btn btn-outline btn-sm"
+                <Button
+                  size="sm"
+                  variant="outline"
+                  icon="chevron-left"
                   disabled={page <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                 >
-                  ← {t("prev")}
-                </button>
+                  {t("prev")}
+                </Button>
                 <span className="px-3 py-1 text-sm bg-muted rounded">
                   {page} / {Number(data.page.totalPages)}
                 </span>
-                <button
-                  className="btn btn-outline btn-sm"
+                <Button
+                  size="sm"
+                  variant="outline"
+                  icon="chevron-right"
+                  iconPosition="right"
                   disabled={page >= Number(data.page.totalPages)}
                   onClick={() => setPage((p) => p + 1)}
                 >
-                  {t("next")} →
-                </button>
+                  {t("next")}
+                </Button>
               </div>
             </div>
           )}
@@ -285,7 +300,9 @@ function ListWithEdit({
   if (items.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="text-6xl mb-4">📭</div>
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-muted rounded-full mb-6">
+          <Icon name="receipt" size={32} className="text-muted-foreground" />
+        </div>
         <h3 className="text-lg font-medium text-foreground mb-2">{tt("noTransactions")}</h3>
         <p className="text-muted-foreground">{tt("noTransactionsDescription")}</p>
       </div>
@@ -300,9 +317,12 @@ function ListWithEdit({
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  tx?.type === TransactionType.EXPENSE ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
+                  tx?.type === TransactionType.EXPENSE ? 'bg-red-100 text-red-600 dark:bg-red-950/20' : 'bg-green-100 text-green-600 dark:bg-green-950/20'
                 }`}>
-                  {tx?.type === TransactionType.EXPENSE ? '📤' : '📥'}
+                  <Icon 
+                    name={tx?.type === TransactionType.EXPENSE ? "trending-down" : "trending-up"} 
+                    size={20} 
+                  />
                 </div>
                 <div>
                   <div className="font-medium text-foreground">
@@ -343,9 +363,10 @@ function ListWithEdit({
                       value={editAmount}
                       onChange={(e) => setEditAmount(e.target.value ? Number(e.target.value) * 100 : "")}
                     />
-                    <button
-                      className="btn btn-primary btn-sm"
-                      disabled={updateMut.isPending}
+                    <Button
+                      size="sm"
+                      loading={updateMut.isPending}
+                      icon="check"
                       onClick={() =>
                         updateMut.mutate({
                           id: tx.id as string,
@@ -355,33 +376,38 @@ function ListWithEdit({
                       }
                     >
                       {updateMut.isPending ? tt("saving") : tt("save")}
-                    </button>
-                    <button 
-                      className="btn btn-ghost btn-sm" 
+                    </Button>
+                    <Button 
+                      size="sm"
+                      variant="ghost"
                       onClick={() => setEditingId(null)}
                     >
                       {tt("cancel")}
-                    </button>
+                    </Button>
                   </div>
                 ) : (
                   <div className="flex items-center space-x-2">
-                    <button
-                      className="btn btn-outline btn-sm"
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      icon="edit"
                       onClick={() => {
                         setEditingId(tx?.id);
                         setEditComment(tx?.comment ?? "");
                         setEditAmount(tx?.amount?.minorUnits ? Number(tx.amount.minorUnits) / 100 : "");
                       }}
                     >
-                      ✏️ {tt("edit")}
-                    </button>
-                    <button
-                      className="btn btn-destructive btn-sm"
-                      disabled={isDeleting}
+                      {tt("edit")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      icon="trash"
+                      loading={isDeleting}
                       onClick={() => onDelete(tx?.id)}
                     >
-                      🗑️ {tt("delete")}
-                    </button>
+                      {tt("delete")}
+                    </Button>
                   </div>
                 )}
               </div>
