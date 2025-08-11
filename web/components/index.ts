@@ -13,6 +13,8 @@ export { default as EmptyTransactions } from "./EmptyTransactions";
 export { default as CategoryBadge } from "./CategoryBadge";
 export { default as CategorySelect } from "./CategorySelect";
 export { default as CategoryTagInput } from "./CategoryTagInput";
+export { default as CategorySingleInput } from "./CategorySingleInput";
+export { default as Modal } from "./Modal";
 
 export * from "./Card";
 export type { IconName } from "./Icon";

@@ -6,7 +6,8 @@ import { useMemo, useState, useCallback, useRef, useEffect, memo } from "react";
 import { TransactionType, CategoryKind } from "@/proto/budget/v1/common_pb";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { Icon, Button, Card, CardContent, CardHeader, CardTitle, TransactionStats, CategoryBadge, CategoryTagInput } from "@/components";
+import { Icon, Button, Card, CardContent, CardHeader, CardTitle, TransactionStats, CategoryBadge, CategoryTagInput, Modal } from "@/components";
+import NewTransactionForm, { NewTxFormRef } from "./NewTransactionForm";
 import FiltersForm from "@/components/FiltersForm";
 import { formatCurrency } from "@/lib/utils";
 
@@ -23,6 +24,8 @@ function TransactionsInner() {
   const [search, setSearch] = useState<string>("");
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const formRef = useRef<NewTxFormRef>(null);
 
   const setTypeCallback = useCallback((value: number) => setType(value), []);
   const setFromCallback = useCallback((value: string) => setFrom(value), []);
@@ -150,13 +153,13 @@ function TransactionsInner() {
                 {t("description")}
               </p>
             </div>
-            <Link 
-              href="/transactions/new" 
-              className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            <button 
+              onClick={() => setShowCreate(true)}
+              className="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md shadow-md hover:shadow-lg transition-all duration-200"
             >
               <Icon name="plus" size={16} className="mr-2" />
               {t("create")}
-            </Link>
+            </button>
           </div>
         </div>
 
@@ -221,6 +224,28 @@ function TransactionsInner() {
                 hasActiveFilters={hasActiveFilters}
                 clearFilters={clearFilters}
               />
+              <Modal
+                open={showCreate}
+                title="Новая транзакция"
+                onClose={() => setShowCreate(false)}
+                maxWidthClass="max-w-xl"
+                footer={(
+                  <>
+                    <Button variant="outline" onClick={() => setShowCreate(false)}>Отмена</Button>
+                    <Button variant="primary" id="new-tx-save" onClick={() => formRef.current?.submit()}>Сохранить</Button>
+                    <Button variant="secondary" id="new-tx-save-more" onClick={() => formRef.current?.submitAndAddMore()}>Сохранить и добавить еще</Button>
+                  </>
+                )}
+              >
+                {/* We need a form element to bind submit to footer button */}
+                <div>
+                  <NewTransactionForm
+                    ref={formRef}
+                    onClose={() => setShowCreate(false)}
+                    onSaved={() => setPage(1)}
+                  />
+                </div>
+              </Modal>
             </div>
 
             {/* Pagination */}
