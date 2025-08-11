@@ -13,6 +13,8 @@ function CategoriesInner() {
   const qc = useQueryClient();
   const t = useTranslations("categories");
   const tc = useTranslations("common");
+  const expenseInputRef = React.useRef<HTMLInputElement | null>(null);
+  const incomeInputRef = React.useRef<HTMLInputElement | null>(null);
   
   // Get all categories (both expense and income)
   const { data, error, isLoading } = useQuery({
@@ -60,9 +62,11 @@ function CategoriesInner() {
       }
       return await category.createCategory({ kind: 2, code: newExpenseCode, isActive: true } as any);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       setNewExpenseCode("");
-      qc.invalidateQueries({ queryKey: ["categories"] });
+      await qc.invalidateQueries({ queryKey: ["categories"] });
+      // Focus expense input after data refetch settles
+      setTimeout(() => expenseInputRef.current?.focus(), 0);
     },
   });
 
@@ -75,9 +79,11 @@ function CategoriesInner() {
       }
       return await category.createCategory({ kind: 1, code: newIncomeCode, isActive: true } as any);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       setNewIncomeCode("");
-      qc.invalidateQueries({ queryKey: ["categories"] });
+      await qc.invalidateQueries({ queryKey: ["categories"] });
+      // Focus income input after data refetch settles
+      setTimeout(() => incomeInputRef.current?.focus(), 0);
     },
   });
 
@@ -279,19 +285,24 @@ function CategoriesInner() {
     kind, 
     code, 
     setCode, 
-    mutation 
+    mutation,
+    inputRef,
   }: { 
     kind: number; 
     code: string; 
     setCode: (code: string) => void; 
     mutation: any;
+    inputRef: React.RefObject<HTMLInputElement | null>;
   }) => {
     const [localCode, setLocalCode] = useState(code);
+    const prevCodeRef = React.useRef<string>(code);
     
     // Sync local state with parent state
     React.useEffect(() => {
       setLocalCode(code);
     }, [code]);
+
+    // No internal focus effect; parent controls focus explicitly via ref
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
@@ -309,6 +320,7 @@ function CategoriesInner() {
             onSubmit={handleSubmit}
           >
             <input
+              ref={inputRef}
               className="flex-1 px-2 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
               value={localCode}
               onChange={(e) => setLocalCode(e.target.value)}
@@ -324,6 +336,7 @@ function CategoriesInner() {
                   : 'bg-green-500 hover:bg-green-600'
               } text-white`}
               disabled={!localCode.trim()}
+              onMouseDown={(e: any) => e.preventDefault()}
             >
               {mutation.isPending ? tc("saving") : tc("add")}
             </Button>
@@ -433,6 +446,7 @@ function CategoriesInner() {
                   code={newExpenseCode}
                   setCode={setNewExpenseCode}
                   mutation={createExpenseMut}
+                  inputRef={expenseInputRef}
                 />
               }
             />
@@ -451,6 +465,7 @@ function CategoriesInner() {
                   code={newIncomeCode}
                   setCode={setNewIncomeCode}
                   mutation={createIncomeMut}
+                  inputRef={incomeInputRef}
                 />
               }
             />
