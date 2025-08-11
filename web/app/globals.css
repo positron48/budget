@@ -106,6 +106,12 @@ body {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
 }
+/* Avoid double outline on our inputs which use ring */
+.input:focus-visible,
+textarea.input:focus-visible,
+select.input:focus-visible {
+  outline: none;
+}
 
 /* Button styles */
 .btn {
@@ -146,8 +152,25 @@ body {
 
 /* Input styles */
 .input {
-  @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-200;
+  @apply flex h-10 w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:bg-background disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-200 shadow-sm;
 }
+
+/* Remove Tailwind ring shadow if any utility sneaks in */
+.input:focus { box-shadow: none; }
+
+/* Prevent Chrome autofill overlay from hiding icons */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: inherit;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Ensure placeholder and autofill text do not overlap icons */
+input.has-left-icon { padding-left: 3rem; }
+input.has-right-icon { padding-right: 3rem; }
 
 /* Card styles */
 .card {
@@ -167,7 +190,7 @@ body {
 }
 
 .card-content {
-  @apply p-6 pt-0;
+  @apply px-6 pb-6;
 }
 
 .card-footer {

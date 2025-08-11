@@ -24,7 +24,7 @@ export default function LoginPage() {
 
         {/* Login Form */}
         <div className="card shadow-xl">
-          <div className="card-content">
+          <div className="card-content pt-8">
             <LoginForm />
           </div>
         </div>

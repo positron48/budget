@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { forwardRef, useId } from "react";
 import Icon from "./Icon";
 import type { IconName } from "./Icon";
 
@@ -21,7 +21,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     id,
     ...props 
   }, ref) => {
-    const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+    const reactId = useId();
+    const inputId = id || `input-${reactId}`;
 
     return (
       <div className="space-y-2">
@@ -32,14 +33,14 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
         <div className="relative">
           {leftIcon && (
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none">
               <Icon name={leftIcon} size={16} />
             </div>
           )}
           <input
             ref={ref}
             id={inputId}
-            className={`input ${leftIcon ? 'pl-10' : ''} ${rightIcon ? 'pr-10' : ''} ${error ? 'border-destructive' : ''} ${className}`}
+            className={`input ${leftIcon ? 'has-left-icon pl-12' : ''} ${rightIcon ? 'has-right-icon pr-12' : ''} ${error ? 'border-destructive' : ''} ${className}`}
             {...props}
           />
           {rightIcon && (

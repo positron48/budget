@@ -62,7 +62,7 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {error && (
-        <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4 flex items-start space-x-3">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4 flex items-start space-x-3 mt-2">
           <Icon name="alert-circle" size={20} className="text-destructive mt-0.5 flex-shrink-0" />
           <p className="text-sm text-destructive">{error}</p>
         </div>

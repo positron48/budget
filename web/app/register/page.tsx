@@ -8,6 +8,9 @@ import { useState } from "react";
 import { authStore } from "@/lib/auth/store";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
+import { normalizeApiErrorMessage } from "@/lib/api/errors";
+import Input from "@/components/Input";
+import Button from "@/components/Button";
 
 const schema = z.object({
   email: z.string().email(),
@@ -38,7 +41,7 @@ function RegisterForm() {
       if (tenantId) authStore.set({ tenantId });
       window.location.href = "/";
     } catch (e: any) {
-      setError(e?.message ?? tc("registerError"));
+      setError(normalizeApiErrorMessage(e, tc("registerError")));
     } finally {
       setLoading(false);
     }
@@ -62,7 +65,7 @@ function RegisterForm() {
 
         {/* Register Form */}
         <div className="card shadow-xl">
-          <div className="card-content">
+          <div className="card-content pt-8">
             {error && (
               <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3 mb-6">
                 <p className="text-sm text-destructive">{error}</p>
@@ -70,101 +73,53 @@ function RegisterForm() {
             )}
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium text-foreground">
-                  {t("email")}
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  {...register("email")}
-                  className="input"
-                  placeholder={t("emailPlaceholder")}
-                  autoComplete="email"
-                />
-                {formState.errors.email && (
-                  <p className="text-sm text-destructive">{formState.errors.email.message}</p>
-                )}
-              </div>
+              <Input
+                label={t("email")}
+                type="email"
+                placeholder={t("emailPlaceholder")}
+                leftIcon="mail"
+                autoComplete="email"
+                error={formState.errors.email?.message}
+                {...register("email")}
+              />
+
+              <Input
+                label={t("password")}
+                type="password"
+                placeholder={t("passwordPlaceholder")}
+                leftIcon="lock"
+                autoComplete="new-password"
+                error={formState.errors.password?.message}
+                {...register("password")}
+              />
+
+              <Input
+                label={t("name")}
+                placeholder={t("namePlaceholder")}
+                autoComplete="name"
+                error={formState.errors.name?.message}
+                {...register("name")}
+              />
 
               <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium text-foreground">
-                  {t("password")}
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  {...register("password")}
-                  className="input"
-                  placeholder={t("passwordPlaceholder")}
-                  autoComplete="new-password"
-                />
-                {formState.errors.password && (
-                  <p className="text-sm text-destructive">{formState.errors.password.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="name" className="text-sm font-medium text-foreground">
-                  {t("name")}
-                </label>
-                <input
-                  id="name"
-                  {...register("name")}
-                  className="input"
-                  placeholder={t("namePlaceholder")}
-                  autoComplete="name"
-                />
-                {formState.errors.name && (
-                  <p className="text-sm text-destructive">{formState.errors.name.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="locale" className="text-sm font-medium text-foreground">
-                  {t("locale")}
-                </label>
-                <select
-                  id="locale"
-                  {...register("locale")}
-                  className="input"
-                  defaultValue="ru"
-                >
+                <label htmlFor="locale" className="text-sm font-medium text-foreground">{t("locale")}</label>
+                <select id="locale" className="input" defaultValue="ru" {...register("locale")}>
                   <option value="en">English</option>
                   <option value="ru">Русский</option>
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <label htmlFor="tenantName" className="text-sm font-medium text-foreground">
-                  {t("tenantName")}
-                </label>
-                <input
-                  id="tenantName"
-                  {...register("tenantName")}
-                  className="input"
-                  placeholder={t("tenantNamePlaceholder")}
-                  autoComplete="organization"
-                />
-                {formState.errors.tenantName && (
-                  <p className="text-sm text-destructive">{formState.errors.tenantName.message}</p>
-                )}
-              </div>
+              <Input
+                label={t("tenantName")}
+                placeholder={t("tenantNamePlaceholder")}
+                autoComplete="organization"
+                error={formState.errors.tenantName?.message}
+                {...register("tenantName")}
+              />
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="btn btn-primary w-full"
-              >
-                {loading ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>{t("submitting")}</span>
-                  </div>
-                ) : (
-                  <span>{t("submit")}</span>
-                )}
-              </button>
+              <Button type="submit" className="w-full" loading={loading}>
+                {t("submit")}
+              </Button>
             </form>
           </div>
         </div>
