@@ -39,7 +39,7 @@ flowchart TB
   end
 
   subgraph Infra
-    PG[("PostgreSQL 15+) ✅"]
+    PG["PostgreSQL 15+ ✅"]
     MQ["(optional) NATS/RabbitMQ 📋"]
     S3["(optional) S3-compatible storage 📋"]
     OTEL["OpenTelemetry / Prometheus ✅"]
