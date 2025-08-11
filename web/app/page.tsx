@@ -31,13 +31,6 @@ export default function HomePage() {
       color: "bg-purple-500",
     },
     {
-      title: t("fx.title"),
-      description: t("fx.description"),
-      href: "/fx",
-      icon: "fx" as IconName,
-      color: "bg-orange-500",
-    },
-    {
       title: t("tenants.title"),
       description: t("tenants.description"),
       href: "/tenants",

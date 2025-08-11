@@ -42,10 +42,9 @@ export default function HeaderNav() {
 
   const navItems = [
     { href: "/", label: t("home"), icon: "home" },
-    { href: "/categories", label: t("categories"), icon: "categories" },
     { href: "/transactions", label: t("transactions"), icon: "transactions" },
+    { href: "/categories", label: t("categories"), icon: "categories" },
     { href: "/reports/monthly", label: t("reports"), icon: "reports" },
-    { href: "/fx", label: t("fx"), icon: "fx" },
     { href: "/tenants", label: t("tenants"), icon: "tenants" },
     { href: "/settings/profile", label: t("profile"), icon: "profile" },
   ];
