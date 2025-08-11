@@ -2,6 +2,7 @@ import type { Interceptor } from "@connectrpc/connect";
 import { Code, createClient } from "@connectrpc/connect";
 import { AuthService } from "@/proto/budget/v1/auth_connect";
 import { transportBaseUrl } from "./transport";
+import { normalizeApiErrorMessage } from "./errors";
 
 export function authInterceptor(getAccessToken: () => string | undefined): Interceptor {
   return (next) => async (req) => {
@@ -45,7 +46,11 @@ export function refreshAuthInterceptor(
       const code: number | undefined = e?.code;
       const unauth = code === Code.Unauthenticated || /unauth/i.test(String(e?.message ?? ""));
       
-      if (!unauth || isAuthRefresh) throw e;
+      if (!unauth || isAuthRefresh) {
+        // Clean up noisy bracketed prefixes before bubbling up
+        e.message = normalizeApiErrorMessage(e, e?.message || "");
+        throw e;
+      }
 
       console.log("🔄 Token refresh needed:", { code, message: e?.message, url: req?.url });
 

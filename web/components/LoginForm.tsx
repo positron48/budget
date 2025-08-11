@@ -11,6 +11,8 @@ import { authStore } from "@/lib/auth/store";
 import Button from "./Button";
 import Input from "./Input";
 import Icon from "./Icon";
+import { normalizeApiErrorMessage } from "@/lib/api/errors";
+import { Code } from "@connectrpc/connect";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -53,7 +55,12 @@ export default function LoginForm() {
         router.push("/");
       }
     } catch (err: any) {
-      setError(err.message || t("loginError"));
+      const code: number | undefined = err?.code;
+      if (code === Code.NotFound) {
+        setError(t("loginError"));
+      } else {
+        setError(normalizeApiErrorMessage(err, t("loginError")));
+      }
     } finally {
       setIsLoading(false);
     }
