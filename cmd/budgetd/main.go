@@ -55,30 +55,32 @@ func main() {
 		}
 	}
 
-    // DB connect with initial retry (helps when Postgres is still starting in docker-compose)
-    ctx := context.Background()
-    var db *postgres.Pool
-    if cfg.DatabaseURL != "" {
-        var lastErr error
-        for i := 0; i < 10; i++ { // try for ~5s total
-            db, lastErr = postgres.NewPool(ctx, cfg.DatabaseURL)
-            if lastErr == nil {
-                if pingErr := db.Ping(ctx); pingErr == nil {
-                    break
-                } else {
-                    lastErr = pingErr
-                    if db != nil { db.Close() }
-                }
-            }
-            time.Sleep(500 * time.Millisecond)
-        }
-        if lastErr != nil {
-            sug.Fatalw("db not ready after retries", "error", lastErr)
-        }
-        defer db.Close()
-    } else {
-        sug.Warn("DATABASE_URL is empty; running without DB connection")
-    }
+	// DB connect with initial retry (helps when Postgres is still starting in docker-compose)
+	ctx := context.Background()
+	var db *postgres.Pool
+	if cfg.DatabaseURL != "" {
+		var lastErr error
+		for i := 0; i < 10; i++ { // try for ~5s total
+			db, lastErr = postgres.NewPool(ctx, cfg.DatabaseURL)
+			if lastErr == nil {
+				if pingErr := db.Ping(ctx); pingErr == nil {
+					break
+				} else {
+					lastErr = pingErr
+					if db != nil {
+						db.Close()
+					}
+				}
+			}
+			time.Sleep(500 * time.Millisecond)
+		}
+		if lastErr != nil {
+			sug.Fatalw("db not ready after retries", "error", lastErr)
+		}
+		defer db.Close()
+	} else {
+		sug.Warn("DATABASE_URL is empty; running without DB connection")
+	}
 
 	lis, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {
