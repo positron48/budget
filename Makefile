@@ -1,44 +1,43 @@
 PROTO_DIR=proto
 DB_URL=postgres://budget:budget@localhost:5432/budget?sslmode=disable
 
-.PHONY: proto
-proto:
+# Список всех целей в одном месте
+.PHONY: help proto dproto build run up down logs ps tidy fmt test pgtest lint vet ci check web-install web-build web-lint web-test web-check check-all migrate-up migrate-down dmigrate-up dmigrate-down
+
+# Вывести список целей и их описание (с группировкой по разделам)
+help: ## [Meta] Показать список команд по разделам
+	@echo "Доступные цели:"; \
+	grep -E '^[a-zA-Z0-9_-]+:.*?## .+' $(MAKEFILE_LIST) | sort | \
+	awk 'BEGIN{FS=":.*?## "; n=split("Proto Go Docker Web Migrate Meta Other", ord, " "); c_reset=sprintf("%c[0m",27); c_title=sprintf("%c[1;37m",27); c_header=sprintf("%c[34m",27); c_target=sprintf("%c[32m",27); c_desc=sprintf("%c[90m",27); printf("%s\n", "");} {target=$$1; desc=$$2; cat="Other"; if (match(desc, /^\[[^]]+\] /)) {cat=substr(desc, RSTART+1, RLENGTH-3); desc=substr(desc, RSTART+RLENGTH)}; content[cat]=content[cat] sprintf("  " c_target "%-20s" c_reset " " c_desc "%s" c_reset "\n", target, desc);} END{for(i=1;i<=n;i++){cat=ord[i]; if (content[cat] != "") {printf c_header "%s" c_reset ":\n", cat; printf "%s", content[cat];}} if (content["Other"] != "") {printf c_header "Other" c_reset ":\n"; printf "%s", content["Other"];}}'
+
+proto: ## [Proto] Сгенерировать protobuf (buf lint + generate)
 	cd $(PROTO_DIR) && buf lint && buf generate
 
-.PHONY: dproto
-dproto:
+dproto: ## [Proto] Сгенерировать protobuf в docker (buf)
 	docker run --rm -v $(PWD):/workspace -w /workspace/proto bufbuild/buf:latest generate
 
-.PHONY: build
-build:
+build: ## [Go] Сборка Go бинарника (bin/budgetd)
 	go build -o bin/budgetd ./cmd/budgetd
 
-.PHONY: run
-run:
+run: ## [Go] Запуск сервера локально (GRPC_ADDR=0.0.0.0:8080)
 	GRPC_ADDR=0.0.0.0:8080 go run ./cmd/budgetd
 
-.PHONY: up
-up:
+up: ## [Docker] Запуск окружения через docker compose (-d --build)
 	docker compose up -d --build
 
-.PHONY: down
-down:
+down: ## [Docker] Остановка и удаление docker compose (-v)
 	docker compose down -v
 
-.PHONY: logs
-logs:
+logs: ## [Docker] Логи docker compose (-f --tail=200)
 	docker compose logs -f --tail=200
 
-.PHONY: ps
-ps:
+ps: ## [Docker] Список контейнеров docker compose
 	docker compose ps
 
-.PHONY: tidy
-tidy:
+tidy: ## [Go] Обновить зависимости (go mod tidy)
 	go mod tidy
 
-.PHONY: fmt
-fmt:
+fmt: ## [Go] Форматирование кода (gofumpt/gofmt)
 	@if command -v gofumpt >/dev/null 2>&1; then \
 	  gofumpt -w . ; \
 	else \
@@ -46,63 +45,51 @@ fmt:
 	fi
 	gofmt -s -w .
 
-.PHONY: test
-test:
+test: ## [Go] Запуск тестов Go (-race, coverage)
 	go test ./... -race -coverprofile=coverage.out -covermode=atomic
 
-.PHONY: pgtest
-pgtest:
+pgtest: ## [Go] Интеграционные тесты PostgreSQL (PG_INTEGRATION=1)
 	PG_INTEGRATION=1 go test ./internal/adapter/postgres -run Test.*_PG -v
 
 LINT_IMAGE_TAG ?= v1.64.8
 
-.PHONY: lint
-lint:
+lint: ## [Go] Линтер Go (golangci-lint в docker)
 	@echo "Running golangci-lint in docker ($(LINT_IMAGE_TAG))"
 	docker run --rm -e GOTOOLCHAIN=local -v $(PWD):/app -w /app golangci/golangci-lint:$(LINT_IMAGE_TAG) golangci-lint run --timeout=5m
 
-.PHONY: vet
-vet:
+vet: ## [Go] Анализ кода (go vet)
 	go vet ./...
 
-.PHONY: ci
-ci: tidy vet lint test
+ci: tidy vet lint test ## [Go] Мини CI: tidy vet lint test
 
-.PHONY: check
-check: tidy fmt vet lint test
+check: tidy fmt vet lint test ## [Go] Полная проверка Go: tidy fmt vet lint test
 
-.PHONY: web-install web-build web-lint web-test web-check
-web-install:
+web-install: ## [Web] Установка зависимостей фронта (npm ci | npm install)
 	cd web && npm ci || npm install
 
-web-build:
+web-build: ## [Web] Сборка фронта
 	cd web && npm run build
 
-web-lint:
+web-lint: ## [Web] Линт фронта (eslint)
 	cd web && npm run lint || echo "eslint not configured, skipping"
 
-web-test:
+web-test: ## [Web] Тесты фронта (vitest)
 	cd web && npm run test || echo "no web tests configured yet, skipping"
 
-web-check: web-install web-lint web-build web-test
+web-check: web-install web-lint web-build web-test ## [Web] Полная проверка фронта
 
-.PHONY: check-all
-check-all: check web-check
+check-all: check web-check ## [Meta] Полная проверка всего: Go + Web
 
-.PHONY: migrate-up
-migrate-up:
+migrate-up: ## [Migrate] Миграции вверх (локальный migrate CLI)
 	migrate -database "$(DB_URL)" -path migrations up
 
-.PHONY: migrate-down
-migrate-down:
+migrate-down: ## [Migrate] Откат одной миграции (локальный migrate CLI)
 	migrate -database "$(DB_URL)" -path migrations down 1
 
 # Dockerized migrate (no local CLI required)
-.PHONY: dmigrate-up dmigrate-down
-dmigrate-up:
+dmigrate-up: ## [Migrate] Миграции вверх в docker (без локального CLI)
 	docker run --rm -v $(PWD)/migrations:/migrations --network host migrate/migrate -database "$(DB_URL)" -path /migrations up
 
-dmigrate-down:
+dmigrate-down: ## [Migrate] Откат одной миграции в docker
 	docker run --rm -v $(PWD)/migrations:/migrations --network host migrate/migrate -database "$(DB_URL)" -path /migrations down 1
-
 
