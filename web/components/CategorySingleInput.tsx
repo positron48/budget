@@ -47,6 +47,7 @@ export default function CategorySingleInput({
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const pointerInDropdownRef = useRef(false);
 
   const selected = useMemo(() => categories.find(c => c.id === value) || null, [categories, value]);
 
@@ -119,6 +120,16 @@ export default function CategorySingleInput({
             disabled={disabled}
             onFocus={openDropdown}
             onChange={(e) => { setSearchTerm(e.target.value); setIsOpen(true); updateDropdownPosition(); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Tab' || e.key === 'Escape') {
+                setIsOpen(false);
+              }
+            }}
+            onBlur={() => {
+              // If blur was caused by clicking inside dropdown, do not close here
+              if (pointerInDropdownRef.current) return;
+              setTimeout(() => setIsOpen(false), 0);
+            }}
             autoComplete="off"
           />
           {selected && (
@@ -135,10 +146,16 @@ export default function CategorySingleInput({
           className="fixed bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md shadow-xl max-h-60 overflow-hidden"
           style={{ zIndex: 9999999, top: dropdownPosition.top, left: dropdownPosition.left, width: dropdownPosition.width || undefined, minWidth: "220px" }}
           onClick={(e) => e.stopPropagation()}
+          onMouseDown={() => { pointerInDropdownRef.current = true; }}
+          onMouseUp={() => { setTimeout(() => { pointerInDropdownRef.current = false; }, 0); }}
         >
           <div className="max-h-60 overflow-y-auto" onScroll={(e) => e.stopPropagation()}>
             {filtered.length > 0 ? filtered.map(cat => (
-              <div key={cat.id} className="px-3 py-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-600 flex items-center justify-between" onClick={() => selectCategory(cat.id)}>
+              <div
+                key={cat.id}
+                className="px-3 py-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-600 flex items-center justify-between"
+                onMouseDown={(e) => { e.preventDefault(); selectCategory(cat.id); }}
+              >
                 <div>
                   <div className="text-sm font-medium text-slate-900 dark:text-white">{getCategoryDisplayName(cat)}</div>
                   {cat.code !== getCategoryDisplayName(cat) && (
