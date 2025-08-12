@@ -8,6 +8,9 @@ const ACCESS_KEY = "budget/access";
 const REFRESH_KEY = "budget/refresh";
 const TENANT_KEY = "budget/tenant";
 
+export const AUTH_CHANGED_EVENT = "budget-auth-changed";
+export const TENANT_CHANGED_EVENT = "budget-tenant-changed";
+
 export const authStore = {
   getAccess(): string | undefined {
     if (typeof window === "undefined") return undefined;
@@ -41,13 +44,17 @@ export const authStore = {
     }
     if (state.tenantId !== undefined) {
       window.localStorage.setItem(TENANT_KEY, state.tenantId);
+      window.dispatchEvent(new Event(TENANT_CHANGED_EVENT));
     }
+    window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
   },
   clear() {
     if (typeof window === "undefined") return;
     window.localStorage.removeItem(ACCESS_KEY);
     window.localStorage.removeItem(REFRESH_KEY);
     window.localStorage.removeItem(TENANT_KEY);
+    window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+    window.dispatchEvent(new Event(TENANT_CHANGED_EVENT));
   },
 };
 

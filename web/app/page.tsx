@@ -85,46 +85,7 @@ export default function HomePage() {
         ))}
       </div>
 
-      {/* Quick Stats */}
-      <div className="mt-12">
-        <h2 className="text-2xl font-semibold text-foreground mb-6">
-          {t("quickStats")}
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 dark:bg-blue-950/20 rounded-lg mb-3">
-                <Icon name="trending-up" size={24} className="text-blue-600" />
-              </div>
-              <div className="text-sm text-muted-foreground">{t("stats.overview")}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-green-100 dark:bg-green-950/20 rounded-lg mb-3">
-                <Icon name="wallet" size={24} className="text-green-600" />
-              </div>
-              <div className="text-sm text-muted-foreground">{t("stats.balance")}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-red-100 dark:bg-red-950/20 rounded-lg mb-3">
-                <Icon name="pie-chart" size={24} className="text-red-600" />
-              </div>
-              <div className="text-sm text-muted-foreground">{t("stats.expenses")}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-purple-100 dark:bg-purple-950/20 rounded-lg mb-3">
-                <Icon name="target" size={24} className="text-purple-600" />
-              </div>
-              <div className="text-sm text-muted-foreground">{t("stats.goals")}</div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      {/* Quick Stats removed per requirement */}
     </div>
   );
 }

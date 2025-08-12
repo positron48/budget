@@ -7,12 +7,13 @@
 package budgetv1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -440,17 +441,20 @@ func file_budget_v1_fx_proto_rawDescGZIP() []byte {
 	return file_budget_v1_fx_proto_rawDescData
 }
 
-var file_budget_v1_fx_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
-var file_budget_v1_fx_proto_goTypes = []any{
-	(*FxRate)(nil),                // 0: budget.v1.FxRate
-	(*GetRateRequest)(nil),        // 1: budget.v1.GetRateRequest
-	(*GetRateResponse)(nil),       // 2: budget.v1.GetRateResponse
-	(*UpsertRateRequest)(nil),     // 3: budget.v1.UpsertRateRequest
-	(*UpsertRateResponse)(nil),    // 4: budget.v1.UpsertRateResponse
-	(*BatchGetRatesRequest)(nil),  // 5: budget.v1.BatchGetRatesRequest
-	(*BatchGetRatesResponse)(nil), // 6: budget.v1.BatchGetRatesResponse
-	(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
-}
+var (
+	file_budget_v1_fx_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+	file_budget_v1_fx_proto_goTypes  = []any{
+		(*FxRate)(nil),                // 0: budget.v1.FxRate
+		(*GetRateRequest)(nil),        // 1: budget.v1.GetRateRequest
+		(*GetRateResponse)(nil),       // 2: budget.v1.GetRateResponse
+		(*UpsertRateRequest)(nil),     // 3: budget.v1.UpsertRateRequest
+		(*UpsertRateResponse)(nil),    // 4: budget.v1.UpsertRateResponse
+		(*BatchGetRatesRequest)(nil),  // 5: budget.v1.BatchGetRatesRequest
+		(*BatchGetRatesResponse)(nil), // 6: budget.v1.BatchGetRatesResponse
+		(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
+	}
+)
+
 var file_budget_v1_fx_proto_depIdxs = []int32{
 	7,  // 0: budget.v1.FxRate.as_of:type_name -> google.protobuf.Timestamp
 	7,  // 1: budget.v1.GetRateRequest.as_of:type_name -> google.protobuf.Timestamp

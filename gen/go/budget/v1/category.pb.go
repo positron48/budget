@@ -7,12 +7,13 @@
 package budgetv1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -772,23 +773,26 @@ func file_budget_v1_category_proto_rawDescGZIP() []byte {
 	return file_budget_v1_category_proto_rawDescData
 }
 
-var file_budget_v1_category_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
-var file_budget_v1_category_proto_goTypes = []any{
-	(*CategoryTranslation)(nil),    // 0: budget.v1.CategoryTranslation
-	(*Category)(nil),               // 1: budget.v1.Category
-	(*CreateCategoryRequest)(nil),  // 2: budget.v1.CreateCategoryRequest
-	(*CreateCategoryResponse)(nil), // 3: budget.v1.CreateCategoryResponse
-	(*UpdateCategoryRequest)(nil),  // 4: budget.v1.UpdateCategoryRequest
-	(*UpdateCategoryResponse)(nil), // 5: budget.v1.UpdateCategoryResponse
-	(*DeleteCategoryRequest)(nil),  // 6: budget.v1.DeleteCategoryRequest
-	(*DeleteCategoryResponse)(nil), // 7: budget.v1.DeleteCategoryResponse
-	(*GetCategoryRequest)(nil),     // 8: budget.v1.GetCategoryRequest
-	(*GetCategoryResponse)(nil),    // 9: budget.v1.GetCategoryResponse
-	(*ListCategoriesRequest)(nil),  // 10: budget.v1.ListCategoriesRequest
-	(*ListCategoriesResponse)(nil), // 11: budget.v1.ListCategoriesResponse
-	(CategoryKind)(0),              // 12: budget.v1.CategoryKind
-	(*timestamppb.Timestamp)(nil),  // 13: google.protobuf.Timestamp
-}
+var (
+	file_budget_v1_category_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+	file_budget_v1_category_proto_goTypes  = []any{
+		(*CategoryTranslation)(nil),    // 0: budget.v1.CategoryTranslation
+		(*Category)(nil),               // 1: budget.v1.Category
+		(*CreateCategoryRequest)(nil),  // 2: budget.v1.CreateCategoryRequest
+		(*CreateCategoryResponse)(nil), // 3: budget.v1.CreateCategoryResponse
+		(*UpdateCategoryRequest)(nil),  // 4: budget.v1.UpdateCategoryRequest
+		(*UpdateCategoryResponse)(nil), // 5: budget.v1.UpdateCategoryResponse
+		(*DeleteCategoryRequest)(nil),  // 6: budget.v1.DeleteCategoryRequest
+		(*DeleteCategoryResponse)(nil), // 7: budget.v1.DeleteCategoryResponse
+		(*GetCategoryRequest)(nil),     // 8: budget.v1.GetCategoryRequest
+		(*GetCategoryResponse)(nil),    // 9: budget.v1.GetCategoryResponse
+		(*ListCategoriesRequest)(nil),  // 10: budget.v1.ListCategoriesRequest
+		(*ListCategoriesResponse)(nil), // 11: budget.v1.ListCategoriesResponse
+		(CategoryKind)(0),              // 12: budget.v1.CategoryKind
+		(*timestamppb.Timestamp)(nil),  // 13: google.protobuf.Timestamp
+	}
+)
+
 var file_budget_v1_category_proto_depIdxs = []int32{
 	12, // 0: budget.v1.Category.kind:type_name -> budget.v1.CategoryKind
 	13, // 1: budget.v1.Category.created_at:type_name -> google.protobuf.Timestamp

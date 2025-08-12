@@ -78,12 +78,13 @@ tidy: ## [Go] Обновить зависимости (go mod tidy)
 	go mod tidy
 
 fmt: ## [Go] Форматирование кода (gofumpt/gofmt)
-	@if command -v gofumpt >/dev/null 2>&1; then \
-	  gofumpt -w . ; \
+	@GOFILES="$(shell git ls-files '*.go')"; \
+	if command -v gofumpt >/dev/null 2>&1; then \
+	  if [ -n "$$GOFILES" ]; then gofumpt -w $$GOFILES; fi; \
 	else \
-	  echo "gofumpt not found, skipping" ; \
-	fi
-	gofmt -s -w .
+	  echo "gofumpt not found, skipping"; \
+	fi; \
+	if [ -n "$$GOFILES" ]; then gofmt -s -w $$GOFILES; fi
 
 test: ## [Go] Запуск тестов Go (-race, coverage)
 	go test ./... -race -coverprofile=coverage.out -covermode=atomic
