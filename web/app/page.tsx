@@ -33,7 +33,7 @@ export default function HomePage() {
     {
       title: t("tenants.title"),
       description: t("tenants.description"),
-      href: "/tenants",
+      href: "/account",
       icon: "tenants" as IconName,
       color: "bg-indigo-500",
     },

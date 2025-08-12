@@ -45,7 +45,7 @@ export default function HeaderNav() {
     { href: "/transactions", label: t("transactions"), icon: "transactions" },
     { href: "/categories", label: t("categories"), icon: "categories" },
     { href: "/reports/monthly", label: t("reports"), icon: "reports" },
-    { href: "/tenants", label: t("tenants"), icon: "tenants" },
+    { href: "/account", label: t("tenants"), icon: "tenants" },
     { href: "/settings/profile", label: t("profile"), icon: "profile" },
   ];
 

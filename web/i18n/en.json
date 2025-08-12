@@ -5,7 +5,7 @@
     "transactions": "Transactions",
     "reports": "Reports",
     "fx": "FX Rates",
-    "tenants": "Tenants",
+    "tenants": "Accounts",
     "profile": "Profile",
     "logout": "Logout"
   },
@@ -30,8 +30,8 @@
       "description": "Manage currency exchange rates"
     },
     "tenants": {
-      "title": "Tenants",
-      "description": "Switch between different accounts"
+      "title": "Accounts",
+      "description": "Switch between your accounts"
     },
     "profile": {
       "title": "Profile",
@@ -208,22 +208,33 @@
     "save": "Save"
   },
   "tenants": {
-    "title": "Tenants",
-    "description": "Manage your accounts and organizations",
-    "create": "Create Tenant",
-    "edit": "Edit Tenant",
-    "delete": "Delete Tenant",
+    "title": "Accounts",
+    "description": "Manage your accounts and access",
+    "create": "Create Account",
+    "createShort": "Create",
+    "createDescription": "Set name, optional slug and default currency",
+    "edit": "Edit Account",
+    "delete": "Delete Account",
     "name": "Name",
     "slug": "Slug",
     "switch": "Switch",
     "current": "Current",
-    "noTenants": "No tenants found",
-    "noTenantsDescription": "Create your first tenant to get started",
-    "activeTenant": "Active tenant",
+    "noTenants": "No accounts found",
+    "noTenantsDescription": "Create your first account to get started",
+    "activeTenant": "Active account",
     "slugOptional": "Slug (optional)",
     "defaultCurrency": "Default Currency",
     "active": "Active",
-    "makeActive": "Make active"
+    "makeActive": "Make active",
+    "listTitle": "Your accounts",
+    "listDescription": "Accounts you have access to",
+    "infoTitle": "What is an account?",
+    "infoWhat": "An account is a workspace with separate categories, transactions and reports. A user can have multiple accounts and share access with other users.",
+    "infoCan": "Here you can:",
+    "actionCreate": "create new accounts for personal or work purposes",
+    "actionSwitch": "switch between active accounts",
+    "actionViewRoles": "see your role in each account",
+    "infoActiveNote": "Active account ID"
   },
   "profile": {
     "title": "Profile",
