@@ -116,16 +116,29 @@ function parseAmountToMinorUnits(raw: string): number | null {
 
 function parseDateToSeconds(raw: string): number | null {
   if (!raw) return null;
-  const trimmed = raw.trim();
-  // Try common formats
-  const tryDirect = Date.parse(trimmed);
-  if (!Number.isNaN(tryDirect)) return Math.floor(tryDirect / 1000);
-  // dd.mm.yyyy
-  const m = trimmed.match(/^(\d{2})[./-](\d{2})[./-](\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+  const s = String(raw).trim();
+
+  // ISO-like: YYYY-MM-DD [HH:mm[:ss]] (allow separators -, /, . and T/space)
+  let m = s.match(/^(\d{4})[.\/-](\d{1,2})[.\/-](\d{1,2})(?:[T\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
   if (m) {
-    const [_, dd, mm, yyyy, hh = "00", min = "00", ss = "00"] = m;
-    const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(min), Number(ss));
+    const [, yyyy, mm, dd, hh = "00", mi = "00", ss = "00"] = m;
+    const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(mi), Number(ss));
     return Math.floor(d.getTime() / 1000);
+  }
+
+  // D.M.Y or D-M-Y or D/M/Y or D,M,Y (treat strictly as day-month-year)
+  m = s.match(/^(\d{1,2})[.,\/-](\d{1,2})[.,\/-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (m) {
+    let [, dd, mm, y, hh = "00", mi = "00", ss = "00"] = m;
+    if (y.length === 2) y = String(2000 + Number(y));
+    const d = new Date(Number(y), Number(mm) - 1, Number(dd), Number(hh), Number(mi), Number(ss));
+    return Math.floor(d.getTime() / 1000);
+  }
+
+  // As a last resort, accept RFC3339/ISO complete strings with Date.parse (contains 'T')
+  if (s.includes("T")) {
+    const t = Date.parse(s);
+    if (!Number.isNaN(t)) return Math.floor(t / 1000);
   }
   return null;
 }
