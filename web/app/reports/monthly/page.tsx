@@ -6,7 +6,9 @@ import { useMemo, useState } from "react";
 import { TransactionType } from "@/proto/budget/v1/common_pb";
 import { useTranslations } from "next-intl";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, DonutChart } from "@/components";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, DonutChart, Button, Icon, Select } from "@/components";
+import { formatAmountWithSpaces } from "@/lib/utils";
+import { useLocale } from "next-intl";
 
 function MonthlyReportInner() {
   const { report } = useClients();
@@ -18,28 +20,37 @@ function MonthlyReportInner() {
   const [currency, setCurrency] = useState<string>("");
   const req = useMemo(() => ({ year, month, targetCurrencyCode: currency } as any), [year, month, currency]);
 
+  const locale = useLocale();
   const years = useMemo(() => {
     const current = today.getFullYear();
     const start = current - 5;
     return Array.from({ length: 11 }, (_, i) => start + i);
   }, [today]);
-  const months = useMemo(() => (
-    [
-      { value: 1, label: "01" },
-      { value: 2, label: "02" },
-      { value: 3, label: "03" },
-      { value: 4, label: "04" },
-      { value: 5, label: "05" },
-      { value: 6, label: "06" },
-      { value: 7, label: "07" },
-      { value: 8, label: "08" },
-      { value: 9, label: "09" },
-      { value: 10, label: "10" },
-      { value: 11, label: "11" },
-      { value: 12, label: "12" },
-    ]
-  ), []);
-  const currencySuggestions = ["", "RUB", "USD", "EUR", "KZT", "TRY"];
+  const months = useMemo(() => {
+    return Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(2000, i, 1);
+      let label = d.toLocaleString(locale, { month: "long" });
+      if ((locale || "").toLowerCase().startsWith("ru") && label) {
+        label = label.charAt(0).toUpperCase() + label.slice(1);
+      }
+      return { value: i + 1, label };
+    });
+  }, [locale]);
+  const currencySuggestions: string[] = [""]; // hidden for now
+
+  const changeMonth = (delta: number) => {
+    let m = month + delta;
+    let y = year;
+    if (m < 1) {
+      m = 12;
+      y -= 1;
+    } else if (m > 12) {
+      m = 1;
+      y += 1;
+    }
+    setYear(y);
+    setMonth(m);
+  };
   const { data, isLoading, error } = useQuery({
     queryKey: ["monthly", req],
     queryFn: async () => (await report.getMonthlySummary(req)) as any,
@@ -69,42 +80,46 @@ function MonthlyReportInner() {
       {/* Filters */}
       <Card className="mb-6 bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800">
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">{t("year")}</label>
-              <select
-                className="input w-full sm:w-24"
-                value={year}
-                onChange={(e) => setYear(Number(e.target.value))}
-              >
-                {years.map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">{t("month")}</label>
-              <select
-                className="input w-full sm:w-24"
-                value={month}
-                onChange={(e) => setMonth(Number(e.target.value))}
-              >
-                {months.map((m) => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">{t("currency")}</label>
-              <select
-                className="input w-full sm:w-28"
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-              >
-                {currencySuggestions.map((c) => (
-                  <option key={c || "default"} value={c}>{c || t("currency")}</option>
-                ))}
-              </select>
+          <div className="grid grid-cols-1 gap-4">
+            {/* Year + Month steppers side-by-side */}
+            <div className="flex flex-wrap items-end gap-6">
+              {/* Year */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">{t("year")}</label>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="md" onClick={() => setYear((y) => (years.includes(y - 1) ? y - 1 : y - 1))}>
+                    <Icon name="chevron-left" />
+                  </Button>
+                  <Select
+                    className="w-32"
+                    value={year}
+                    onChange={(v) => setYear(Number(v))}
+                    options={years.map((y) => ({ value: y, label: String(y) }))}
+                  />
+                  <Button variant="outline" size="md" onClick={() => setYear((y) => (years.includes(y + 1) ? y + 1 : y + 1))}>
+                    <Icon name="chevron-right" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Month */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">{t("month")}</label>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="md" onClick={() => changeMonth(-1)}>
+                    <Icon name="chevron-left" />
+                  </Button>
+                  <Select
+                    className="w-44"
+                    value={month}
+                    onChange={(v) => setMonth(Number(v))}
+                    options={months.map((m) => ({ value: m.value, label: m.label }))}
+                  />
+                  <Button variant="outline" size="md" onClick={() => changeMonth(1)}>
+                    <Icon name="chevron-right" />
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -130,7 +145,7 @@ function MonthlyReportInner() {
             <Card>
               <CardContent className="text-center pt-6">
                 <div className="text-2xl font-bold text-green-600">
-                  {(Number(data?.totalIncome?.minorUnits ?? 0) / 100).toFixed(2)} {data?.totalIncome?.currencyCode ?? ""}
+                  {formatAmountWithSpaces(Number(data?.totalIncome?.minorUnits ?? 0) / 100)} {data?.totalIncome?.currencyCode ?? ""}
                 </div>
                 <div className="text-sm text-muted-foreground">{t("totalIncome")}</div>
               </CardContent>
@@ -138,7 +153,7 @@ function MonthlyReportInner() {
             <Card>
               <CardContent className="text-center pt-6">
                 <div className="text-2xl font-bold text-red-600">
-                  {(Number(data?.totalExpense?.minorUnits ?? 0) / 100).toFixed(2)} {data?.totalExpense?.currencyCode ?? ""}
+                  {formatAmountWithSpaces(Number(data?.totalExpense?.minorUnits ?? 0) / 100)} {data?.totalExpense?.currencyCode ?? ""}
                 </div>
                 <div className="text-sm text-muted-foreground">{t("totalExpense")}</div>
               </CardContent>
@@ -152,7 +167,7 @@ function MonthlyReportInner() {
                       : "text-red-600"
                   }`}
                 >
-                  {((Number(data?.totalIncome?.minorUnits ?? 0) - Number(data?.totalExpense?.minorUnits ?? 0)) / 100).toFixed(2)} {data?.totalIncome?.currencyCode ?? ""}
+                  {formatAmountWithSpaces((Number(data?.totalIncome?.minorUnits ?? 0) - Number(data?.totalExpense?.minorUnits ?? 0)) / 100)} {data?.totalIncome?.currencyCode ?? ""}
                 </div>
                 <div className="text-sm text-muted-foreground">{t("netIncome")}</div>
               </CardContent>
@@ -176,15 +191,16 @@ function MonthlyReportInner() {
                       <CardDescription className="text-sm">{t("description")}</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <DonutChart
+                    <DonutChart
                         data={expenses.map((it: any, idx: number) => ({
                           label: `${it?.categoryName ?? it?.categoryId}`,
                           value: Math.abs(Number(it?.total?.minorUnits ?? 0) / 100),
                           color: warmPalette[idx % warmPalette.length],
-                        }))}
-                        centerLabel={currencyCode}
-                        centerSubLabel={totalExpenses ? totalExpenses.toFixed(2) : ""}
+                      }))}
+                      centerLabel={currencyCode}
+                      centerSubLabel={totalExpenses ? formatAmountWithSpaces(totalExpenses) : ""}
                         className="flex flex-col items-center"
+                      valueFormatter={(v) => formatAmountWithSpaces(v)}
                       />
                     </CardContent>
                   </Card>
@@ -197,15 +213,16 @@ function MonthlyReportInner() {
                       <CardDescription className="text-sm">{t("description")}</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <DonutChart
+                    <DonutChart
                         data={incomes.map((it: any, idx: number) => ({
                           label: `${it?.categoryName ?? it?.categoryId}`,
                           value: Math.abs(Number(it?.total?.minorUnits ?? 0) / 100),
                           color: coolPalette[idx % coolPalette.length],
-                        }))}
-                        centerLabel={currencyCode}
-                        centerSubLabel={totalIncomes ? totalIncomes.toFixed(2) : ""}
+                      }))}
+                      centerLabel={currencyCode}
+                      centerSubLabel={totalIncomes ? formatAmountWithSpaces(totalIncomes) : ""}
                         className="flex flex-col items-center"
+                      valueFormatter={(v) => formatAmountWithSpaces(v)}
                       />
                     </CardContent>
                   </Card>
@@ -238,7 +255,7 @@ function MonthlyReportInner() {
                         {it?.type === TransactionType.EXPENSE ? t("expense") : it?.type === TransactionType.INCOME ? t("income") : ""}
                       </td>
                       <td className="py-2 text-right">
-                        {(Number(it?.total?.minorUnits ?? 0) / 100).toFixed(2)} {it?.total?.currencyCode ?? ""}
+                        {formatAmountWithSpaces(Number(it?.total?.minorUnits ?? 0) / 100)} {it?.total?.currencyCode ?? ""}
                       </td>
                     </tr>
                   ))}

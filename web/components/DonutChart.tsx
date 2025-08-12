@@ -13,6 +13,7 @@ interface DonutChartProps {
   centerLabel?: string;
   centerSubLabel?: string;
   className?: string;
+  valueFormatter?: (value: number) => string;
 }
 
 export default function DonutChart({
@@ -22,6 +23,7 @@ export default function DonutChart({
   centerLabel,
   centerSubLabel,
   className = "",
+  valueFormatter,
 }: DonutChartProps) {
   const hoverGrow = 6;
   const margin = 6;
@@ -135,7 +137,8 @@ export default function DonutChart({
                 const rect = containerRef.current?.getBoundingClientRect();
                 const x = e.clientX - (rect?.left || 0);
                 const y = e.clientY - (rect?.top || 0);
-                setTooltip({ x, y, text: `${s.label}: ${s.value} (${Math.round(s.frac * 100)}%)` });
+                const v = valueFormatter ? valueFormatter(s.value) : String(s.value);
+                setTooltip({ x, y, text: `${s.label}: ${v} (${Math.round(s.frac * 100)}%)` });
               }}
               onMouseMove={(e) => {
                 if (!tooltip || hovered !== idx) return;
@@ -172,7 +175,7 @@ export default function DonutChart({
                 style={{ fontSize: 11, opacity: 0.7 }}
               >
                 {hovered !== null
-                  ? `${processed.segments[hovered]?.value} · ${Math.round((processed.segments[hovered]?.frac || 0) * 100)}%`
+                  ? `${valueFormatter ? valueFormatter(processed.segments[hovered]!.value) : processed.segments[hovered]!.value} · ${Math.round((processed.segments[hovered]?.frac || 0) * 100)}%`
                   : centerSubLabel}
               </text>
             )}
