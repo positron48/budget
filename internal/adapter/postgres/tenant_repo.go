@@ -80,8 +80,13 @@ func (r *TenantRepo) UpdateTenant(ctx context.Context, tenantID, name, slug, def
 // ListMembers returns all memberships with roles
 func (r *TenantRepo) ListMembers(ctx context.Context, tenantID string) ([]domain.TenantMembership, error) {
 	rows, err := r.pool.DB.Query(ctx,
-		`SELECT t.id, t.name, COALESCE(t.slug, ''), t.default_currency_code, t.created_at, ut.role, ut.is_default
-         FROM user_tenants ut JOIN tenants t ON t.id = ut.tenant_id WHERE ut.tenant_id=$1 ORDER BY ut.role, t.created_at`, tenantID)
+		`SELECT t.id, t.name, COALESCE(t.slug, ''), t.default_currency_code, t.created_at,
+                ut.role, ut.is_default, u.id, u.email, COALESCE(u.name,'')
+         FROM user_tenants ut
+         JOIN tenants t ON t.id = ut.tenant_id
+         JOIN users u ON u.id = ut.user_id
+         WHERE ut.tenant_id=$1
+         ORDER BY ut.role, u.created_at`, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +94,7 @@ func (r *TenantRepo) ListMembers(ctx context.Context, tenantID string) ([]domain
 	var res []domain.TenantMembership
 	for rows.Next() {
 		var tm domain.TenantMembership
-		if err := rows.Scan(&tm.Tenant.ID, &tm.Tenant.Name, &tm.Tenant.Slug, &tm.Tenant.DefaultCurrencyCode, &tm.Tenant.CreatedAt, &tm.Role, &tm.IsDefault); err != nil {
+		if err := rows.Scan(&tm.Tenant.ID, &tm.Tenant.Name, &tm.Tenant.Slug, &tm.Tenant.DefaultCurrencyCode, &tm.Tenant.CreatedAt, &tm.Role, &tm.IsDefault, &tm.UserID, &tm.UserEmail, &tm.UserName); err != nil {
 			return nil, err
 		}
 		res = append(res, tm)
@@ -139,8 +144,12 @@ func (r *TenantRepo) GetUserRole(ctx context.Context, tenantID, userID string) (
 func (r *TenantRepo) getMembership(ctx context.Context, tenantID, userID string) (domain.TenantMembership, error) {
 	var tm domain.TenantMembership
 	err := r.pool.DB.QueryRow(ctx,
-		`SELECT t.id, t.name, COALESCE(t.slug, ''), t.default_currency_code, t.created_at, ut.role, ut.is_default
-         FROM user_tenants ut JOIN tenants t ON t.id = ut.tenant_id WHERE ut.tenant_id=$1 AND ut.user_id=$2`, tenantID, userID,
-	).Scan(&tm.Tenant.ID, &tm.Tenant.Name, &tm.Tenant.Slug, &tm.Tenant.DefaultCurrencyCode, &tm.Tenant.CreatedAt, &tm.Role, &tm.IsDefault)
+		`SELECT t.id, t.name, COALESCE(t.slug, ''), t.default_currency_code, t.created_at,
+                ut.role, ut.is_default, u.id, u.email, COALESCE(u.name,'')
+         FROM user_tenants ut
+         JOIN tenants t ON t.id = ut.tenant_id
+         JOIN users u ON u.id = ut.user_id
+         WHERE ut.tenant_id=$1 AND ut.user_id=$2`, tenantID, userID,
+	).Scan(&tm.Tenant.ID, &tm.Tenant.Name, &tm.Tenant.Slug, &tm.Tenant.DefaultCurrencyCode, &tm.Tenant.CreatedAt, &tm.Role, &tm.IsDefault, &tm.UserID, &tm.UserEmail, &tm.UserName)
 	return tm, err
 }

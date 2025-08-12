@@ -83,3 +83,5 @@ func mapRole(role string) budgetv1.TenantRole {
 		return budgetv1.TenantRole_TENANT_ROLE_UNSPECIFIED
 	}
 }
+
+// mapRoleToDomain was used earlier for conversion; currently not used

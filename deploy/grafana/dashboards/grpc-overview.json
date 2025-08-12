@@ -1,24 +1,104 @@
 {
   "title": "Budget gRPC Overview",
   "timezone": "browser",
-  "schemaVersion": 37,
-  "version": 1,
+  "schemaVersion": 39,
+  "version": 2,
   "panels": [
     {
-      "type": "graph",
-      "title": "gRPC Requests Total",
+      "type": "timeseries",
+      "title": "gRPC Requests (RPS)",
+      "fieldConfig": {
+        "defaults": { "unit": "req/s" },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
       "targets": [
-        {"expr": "sum(rate(budget_grpc_requests_total[1m])) by (method, code)", "legendFormat": "{{method}} {{code}}"}
+        {"expr": "sum(rate(budget_grpc_requests_total[1m])) by (method, code)", "legendFormat": "{{method}} {{code}}", "refId": "A"}
       ],
       "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0}
     },
     {
-      "type": "graph",
-      "title": "gRPC Duration (p95)",
+      "type": "timeseries",
+      "title": "gRPC Duration p50 (ms)",
+      "fieldConfig": {
+        "defaults": { "unit": "ms" },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
       "targets": [
-        {"expr": "histogram_quantile(0.95, sum(rate(budget_grpc_request_duration_seconds_bucket[5m])) by (le, method))", "legendFormat": "{{method}} p95"}
+        {"expr": "1e3 * histogram_quantile(0.50, sum(rate(budget_grpc_request_duration_seconds_bucket[5m])) by (le, method))", "legendFormat": "{{method}}", "refId": "A"}
       ],
-      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+    },
+    {
+      "type": "timeseries",
+      "title": "gRPC Duration p80 (ms)",
+      "fieldConfig": {
+        "defaults": { "unit": "ms" },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {"expr": "1e3 * histogram_quantile(0.80, sum(rate(budget_grpc_request_duration_seconds_bucket[5m])) by (le, method))", "legendFormat": "{{method}}", "refId": "A"}
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+    },
+    {
+      "type": "timeseries",
+      "title": "gRPC Duration p95 (ms)",
+      "fieldConfig": {
+        "defaults": { "unit": "ms" },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {"expr": "1e3 * histogram_quantile(0.95, sum(rate(budget_grpc_request_duration_seconds_bucket[5m])) by (le, method))", "legendFormat": "{{method}}", "refId": "A"}
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+    },
+    {
+      "type": "timeseries",
+      "title": "gRPC Duration p99 (ms)",
+      "fieldConfig": {
+        "defaults": { "unit": "ms" },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {"expr": "1e3 * histogram_quantile(0.99, sum(rate(budget_grpc_request_duration_seconds_bucket[5m])) by (le, method))", "legendFormat": "{{method}}", "refId": "A"}
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+    },
+    {
+      "type": "timeseries",
+      "title": "gRPC Total RPS",
+      "fieldConfig": {
+        "defaults": { "unit": "req/s" },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"displayMode": "hidden", "placement": "bottom"},
+        "tooltip": {"mode": "single", "sort": "desc"}
+      },
+      "targets": [
+        {"expr": "sum(rate(budget_grpc_requests_total[1m]))", "legendFormat": "total", "refId": "A"}
+      ],
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 24}
     }
   ]
 }

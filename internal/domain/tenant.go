@@ -22,4 +22,8 @@ type TenantMembership struct {
 	Tenant    Tenant
 	Role      TenantRole
 	IsDefault bool
+	// Optional user info for member listings
+	UserID    string
+	UserEmail string
+	UserName  string
 }
