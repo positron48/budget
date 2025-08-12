@@ -62,6 +62,7 @@ import {
   Equal,
   LogIn,
   Loader2,
+  Upload as UploadIcon,
   type LucideIcon,
 } from "lucide-react";
 

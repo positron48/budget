@@ -7,6 +7,7 @@ import { TransactionType, CategoryKind } from "@/proto/budget/v1/common_pb";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Icon, Button, Card, CardContent, CardHeader, CardTitle, TransactionStats, CategoryBadge, CategoryTagInput, Modal } from "@/components";
+import ImportWizard from "./ImportWizard";
 import NewTransactionForm, { NewTxFormRef } from "./NewTransactionForm";
 import FiltersForm from "@/components/FiltersForm";
 import { formatCurrency } from "@/lib/utils";
@@ -25,6 +26,7 @@ function TransactionsInner() {
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const formRef = useRef<NewTxFormRef>(null);
 
   const setTypeCallback = useCallback((value: number) => setType(value), []);
@@ -153,13 +155,22 @@ function TransactionsInner() {
                 {t("description")}
               </p>
             </div>
-            <button 
-              onClick={() => setShowCreate(true)}
-              className="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md shadow-md hover:shadow-lg transition-all duration-200"
-            >
-              <Icon name="plus" size={16} className="mr-2" />
-              {t("create")}
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setShowImport(true)}
+                className="inline-flex items-center px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-md shadow-md hover:shadow-lg transition-all duration-200"
+              >
+                <Icon name="download" size={16} className="mr-2" />
+                {t("import")}
+              </button>
+              <button 
+                onClick={() => setShowCreate(true)}
+                className="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md shadow-md hover:shadow-lg transition-all duration-200"
+              >
+                <Icon name="plus" size={16} className="mr-2" />
+                {t("create")}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -245,6 +256,27 @@ function TransactionsInner() {
                     onSaved={() => setPage(1)}
                   />
                 </div>
+              </Modal>
+
+              {/* Import modal */}
+              <Modal
+                open={showImport}
+                title={t("importTitle") as string}
+                onClose={() => setShowImport(false)}
+                maxWidthClass="max-w-3xl"
+                footer={(
+                  <>
+                    <Button variant="outline" onClick={() => setShowImport(false)}>{tc("close")}</Button>
+                  </>
+                )}
+              >
+                <ImportWizard
+                  onClose={() => setShowImport(false)}
+                  onCompleted={(inserted) => {
+                    setShowImport(false);
+                    setPage(1);
+                  }}
+                />
               </Modal>
             </div>
 
