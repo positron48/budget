@@ -96,7 +96,7 @@
         "tooltip": {"mode": "single", "sort": "desc"}
       },
       "targets": [
-        {"expr": "sum(rate(budget_grpc_requests_total[1m]))", "legendFormat": "total", "refId": "A"}
+        {"expr": "sum(rate(budget_grpc_requests_total[5m]))", "legendFormat": "total", "refId": "A", "interval": "15s"}
       ],
       "gridPos": {"h": 6, "w": 24, "x": 0, "y": 24}
     }
