@@ -164,7 +164,15 @@
     "of": "из",
     "transactions": "транзакций",
     "prev": "Предыдущий",
-    "next": "Следующий"
+    "next": "Следующий",
+    "periodCurrent": "за текущий период",
+    "newTransaction": "Новая транзакция",
+    "saveAndAddMore": "Сохранить и добавить еще",
+    "profit": "Прибыль",
+    "netIncome": "Чистый доход",
+    "loss": "Убыток",
+    "totalIncome": "Общий доход",
+    "totalExpenses": "Общие расходы"
   },
   "reports": {
     "title": "Отчеты",

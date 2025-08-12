@@ -1,5 +1,6 @@
 import Icon from "./Icon";
 import { formatCurrency } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 interface TransactionStatsProps {
   totalIncome: number;
@@ -14,6 +15,7 @@ export default function TransactionStats({
   currencyCode, 
   period = "за период" 
 }: TransactionStatsProps) {
+  const t = useTranslations("transactions");
   const netIncome = totalIncome - totalExpenses;
   const isPositive = netIncome >= 0;
 
@@ -25,7 +27,7 @@ export default function TransactionStats({
       <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-green-600 dark:text-green-400">Общий доход</p>
+            <p className="text-xs font-medium text-green-600 dark:text-green-400">{t("totalIncome")}</p>
             <p className="text-lg font-bold text-green-900 dark:text-green-100">
               {formatCurrency(totalIncome, currencyCode)}
             </p>
@@ -41,7 +43,7 @@ export default function TransactionStats({
       <div className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-red-600 dark:text-red-400">Общие расходы</p>
+            <p className="text-xs font-medium text-red-600 dark:text-red-400">{t("totalExpenses")}</p>
             <p className="text-lg font-bold text-red-900 dark:text-red-100">
               {formatCurrency(totalExpenses, currencyCode)}
             </p>
@@ -64,7 +66,7 @@ export default function TransactionStats({
             <p className={`text-xs font-medium ${
               isPositive ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'
             }`}>
-              Чистый доход
+              {t("netIncome")}
             </p>
             <p className={`text-lg font-bold ${
               isPositive ? 'text-blue-900 dark:text-blue-100' : 'text-orange-900 dark:text-orange-100'
@@ -74,7 +76,7 @@ export default function TransactionStats({
             <p className={`text-xs ${
               isPositive ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'
             }`}>
-              {isPositive ? 'Прибыль' : 'Убыток'} {period}
+              {isPositive ? t("profit") : t("loss")} {period}
             </p>
           </div>
           <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${

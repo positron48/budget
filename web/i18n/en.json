@@ -163,7 +163,15 @@
     "of": "of",
     "transactions": "transactions",
     "prev": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "periodCurrent": "for current period",
+    "newTransaction": "New transaction",
+    "saveAndAddMore": "Save and add more",
+    "profit": "Profit",
+    "netIncome": "Net Income",
+    "loss": "Loss",
+    "totalIncome": "Total Income",
+    "totalExpenses": "Total Expenses"
   },
   "reports": {
     "title": "Reports",

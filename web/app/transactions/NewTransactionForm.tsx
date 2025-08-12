@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useClients } from "@/app/providers";
 import { TransactionType, CategoryKind } from "@/proto/budget/v1/common_pb";
 import { Button, Icon, CategorySingleInput } from "@/components";
+import { useTranslations } from "next-intl";
 
 const schema = z.object({
   type: z.coerce.number().int().min(1).max(2),
@@ -31,6 +32,7 @@ interface Props {
 
 const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransactionForm({ onClose, onSaved }: Props, ref) {
   const { transaction, category } = useClients();
+  const t = useTranslations("transactions");
   const qc = useQueryClient();
   const { register, handleSubmit, reset, watch, setValue, getValues, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -137,7 +139,7 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-2">
       {/* Тип */}
       <div className="space-y-1">
-        <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Тип</label>
+        <label className="text-xs font-medium text-slate-700 dark:text-slate-300">{t("type")}</label>
         <div className="grid grid-cols-2 gap-2">
           <label className={`cursor-pointer rounded-md border p-2 text-sm ${typeValue === TransactionType.EXPENSE ? 'border-red-400 bg-red-50 dark:bg-red-900/20' : 'border-slate-200 dark:border-slate-600'}`}>
             <input type="radio" className="sr-only" checked={typeValue === TransactionType.EXPENSE} onChange={() => setValue('type', TransactionType.EXPENSE as unknown as number)} />
@@ -145,7 +147,7 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
               <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/30">
                 <Icon name="trending-down" size={14} className="text-red-600" />
               </span>
-              <span>Расход</span>
+              <span>{t("expense")}</span>
             </div>
           </label>
           <label className={`cursor-pointer rounded-md border p-2 text-sm ${typeValue === TransactionType.INCOME ? 'border-green-400 bg-green-50 dark:bg-green-900/20' : 'border-slate-200 dark:border-slate-600'}`}>
@@ -154,7 +156,7 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
               <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/30">
                 <Icon name="trending-up" size={14} className="text-green-600" />
               </span>
-              <span>Доход</span>
+              <span>{t("income")}</span>
             </div>
           </label>
         </div>
@@ -162,13 +164,13 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
 
       {/* Дата */}
       <div className="space-y-1">
-        <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Дата и время</label>
+        <label className="text-xs font-medium text-slate-700 dark:text-slate-300">{t("date")}</label>
         <input type="datetime-local" className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-sm" {...register('occurredAt')} />
       </div>
 
       {/* Сумма/валюта */}
       <div className="space-y-1">
-        <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Сумма</label>
+        <label className="text-xs font-medium text-slate-700 dark:text-slate-300">{t("amount")}</label>
         <div className="grid grid-cols-3 gap-2">
           <div className="col-span-2">
             <div className="relative">
@@ -188,29 +190,29 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
             </div>
             {errors.amount && <p className="text-xs text-red-600 mt-0.5">{errors.amount.message}</p>}
           </div>
-          <input className="px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-sm text-center" placeholder="RUB" {...register('currencyCode')} />
+          <input className="px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-sm text-center" placeholder={t("currency") as string} {...register('currencyCode')} />
         </div>
       </div>
 
       {/* Категория */}
       <div className="space-y-1">
-        <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Категория</label>
+        <label className="text-xs font-medium text-slate-700 dark:text-slate-300">{t("category")}</label>
         {categoriesLoading ? (
-          <div className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-500 text-sm">Загрузка категорий...</div>
+          <div className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-500 text-sm">{t("loadingCategories")}</div>
         ) : (
           <CategorySingleInput
             categories={catData?.categories || []}
             value={watch('categoryId') || null}
             onChange={(id) => setValue('categoryId', id ?? '', { shouldDirty: true })}
-            placeholder="Введите код или название категории..."
+            placeholder={t("categoryIdsPlaceholder") as string}
           />
         )}
       </div>
 
       {/* Комментарий */}
       <div className="space-y-1">
-        <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Комментарий</label>
-        <textarea rows={2} className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-sm" placeholder="Описание..." {...register('comment')} />
+        <label className="text-xs font-medium text-slate-700 dark:text-slate-300">{t("comment")}</label>
+        <textarea rows={2} className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-sm" placeholder={t("noComment") as string} {...register('comment')} />
       </div>
 
       {/* Footer buttons supplied by parent if needed */}

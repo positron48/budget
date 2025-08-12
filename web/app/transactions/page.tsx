@@ -174,7 +174,7 @@ function TransactionsInner() {
                 .filter((tx: any) => tx.type === TransactionType.EXPENSE)
                 .reduce((sum: number, tx: any) => sum + Number(tx.amount?.minorUnits || 0), 0)}
               currencyCode={data.transactions[0]?.amount?.currencyCode || "RUB"}
-              period="за текущий период"
+              period={t("periodCurrent") as string}
             />
           </div>
         )}
@@ -226,14 +226,14 @@ function TransactionsInner() {
               />
               <Modal
                 open={showCreate}
-                title="Новая транзакция"
+                title={t("newTransaction") as string}
                 onClose={() => setShowCreate(false)}
                 maxWidthClass="max-w-xl"
                 footer={(
                   <>
-                    <Button variant="outline" onClick={() => setShowCreate(false)}>Отмена</Button>
-                    <Button variant="primary" id="new-tx-save" onClick={() => formRef.current?.submit()}>Сохранить</Button>
-                    <Button variant="secondary" id="new-tx-save-more" onClick={() => formRef.current?.submitAndAddMore()}>Сохранить и добавить еще</Button>
+                    <Button variant="outline" onClick={() => setShowCreate(false)}>{tc("cancel")}</Button>
+                    <Button variant="primary" id="new-tx-save" onClick={() => formRef.current?.submit()}>{tc("save")}</Button>
+                    <Button variant="secondary" id="new-tx-save-more" onClick={() => formRef.current?.submitAndAddMore()}>{t("saveAndAddMore")}</Button>
                   </>
                 )}
               >
@@ -252,7 +252,7 @@ function TransactionsInner() {
             {data?.page && (
               <div className="flex items-center justify-between mt-4 p-4 bg-white dark:bg-slate-800 rounded-lg shadow-lg">
                 <div className="text-sm text-slate-600 dark:text-slate-300">
-                  Показано {((page - 1) * pageSize) + 1} - {Math.min(page * pageSize, Number(data.page.totalItems))} из {Number(data.page.totalItems)} транзакций
+                  {t("showing")} {((page - 1) * pageSize) + 1} - {Math.min(page * pageSize, Number(data.page.totalItems))} {t("of")} {Number(data.page.totalItems)} {t("transactions")}
                 </div>
                 <div className="flex items-center space-x-2">
                   <Button
@@ -263,7 +263,7 @@ function TransactionsInner() {
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     className="px-3 py-1"
                   >
-                    Предыдущий
+                    {t("prev")}
                   </Button>
                   <div className="px-3 py-1 text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded">
                     {page} / {Number(data.page.totalPages)}
@@ -277,7 +277,7 @@ function TransactionsInner() {
                     onClick={() => setPage((p) => p + 1)}
                     className="px-3 py-1"
                   >
-                    Следующий
+                    {t("next")}
                   </Button>
                 </div>
               </div>
