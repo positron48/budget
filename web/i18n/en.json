@@ -234,7 +234,18 @@
     "actionCreate": "create new accounts for personal or work purposes",
     "actionSwitch": "switch between active accounts",
     "actionViewRoles": "see your role in each account",
-    "infoActiveNote": "Active account ID"
+    "infoActiveNote": "Active account ID",
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "member": "Member",
+      "unknown": "Unknown"
+    },
+    "invite": "Invite",
+    "inviteTitle": "Invite user to account",
+    "inviteEmail": "User email",
+    "inviteRole": "Role",
+    "inviteNotImplemented": "Invites and member management are not implemented on backend yet."
   },
   "profile": {
     "title": "Profile",
