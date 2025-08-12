@@ -65,8 +65,8 @@ run-backend: ## [Go] Запуск только бэкенда локально (
 up: ## [Docker] Запуск окружения через docker compose (-d --build)
 	docker compose up -d
 
-down: ## [Docker] Остановка и удаление docker compose (-v)
-	docker compose down -v
+down: ## [Docker] Остановка docker compose (без удаления данных)
+	docker compose down
 
 logs: ## [Docker] Логи docker compose (-f --tail=200)
 	docker compose logs -f --tail=200

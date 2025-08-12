@@ -28,4 +28,5 @@ web/.cache/
 # Vendor (if ever used)
 vendor/
 
+.data/
 
