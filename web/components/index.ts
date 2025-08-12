@@ -15,6 +15,7 @@ export { default as CategorySelect } from "./CategorySelect";
 export { default as CategoryTagInput } from "./CategoryTagInput";
 export { default as CategorySingleInput } from "./CategorySingleInput";
 export { default as Modal } from "./Modal";
+export { default as DonutChart } from "./DonutChart";
 
 export * from "./Card";
 export type { IconName } from "./Icon";

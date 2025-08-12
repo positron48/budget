@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { TransactionType } from "@/proto/budget/v1/common_pb";
 import { useTranslations } from "next-intl";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, DonutChart } from "@/components";
 
 function MonthlyReportInner() {
   const { report } = useClients();
@@ -16,12 +17,46 @@ function MonthlyReportInner() {
   const [month, setMonth] = useState<number>(today.getMonth() + 1); // 1..12
   const [currency, setCurrency] = useState<string>("");
   const req = useMemo(() => ({ year, month, targetCurrencyCode: currency } as any), [year, month, currency]);
+
+  const years = useMemo(() => {
+    const current = today.getFullYear();
+    const start = current - 5;
+    return Array.from({ length: 11 }, (_, i) => start + i);
+  }, [today]);
+  const months = useMemo(() => (
+    [
+      { value: 1, label: "01" },
+      { value: 2, label: "02" },
+      { value: 3, label: "03" },
+      { value: 4, label: "04" },
+      { value: 5, label: "05" },
+      { value: 6, label: "06" },
+      { value: 7, label: "07" },
+      { value: 8, label: "08" },
+      { value: 9, label: "09" },
+      { value: 10, label: "10" },
+      { value: 11, label: "11" },
+      { value: 12, label: "12" },
+    ]
+  ), []);
+  const currencySuggestions = ["", "RUB", "USD", "EUR", "KZT", "TRY"];
   const { data, isLoading, error } = useQuery({
     queryKey: ["monthly", req],
     queryFn: async () => (await report.getMonthlySummary(req)) as any,
     retry: false,
     refetchOnWindowFocus: false,
   });
+
+  const items = useMemo(() => (data?.items ?? []) as any[], [data]);
+  const expenses = useMemo(() => items.filter((it) => it?.type === TransactionType.EXPENSE), [items]);
+  const incomes = useMemo(() => items.filter((it) => it?.type === TransactionType.INCOME), [items]);
+  const currencyCode = useMemo(() => data?.totalIncome?.currencyCode || data?.totalExpense?.currencyCode || "", [data]);
+  const sumAmount = (arr: any[]) => arr.reduce((s, it) => s + Math.abs(Number(it?.total?.minorUnits ?? 0) / 100), 0);
+  const totalExpenses = useMemo(() => sumAmount(expenses), [expenses]);
+  const totalIncomes = useMemo(() => sumAmount(incomes), [incomes]);
+
+  const coolPalette = ["#3b82f6", "#22c55e", "#06b6d4", "#6366f1", "#14b8a6", "#0ea5e9", "#10b981", "#60a5fa"];
+  const warmPalette = ["#ef4444", "#f59e0b", "#f97316", "#e11d48", "#fb7185", "#f43f5e", "#ea580c", "#fbbf24"];
   
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -32,44 +67,48 @@ function MonthlyReportInner() {
       </div>
 
       {/* Filters */}
-      <div className="card mb-6">
-        <div className="card-content">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
+      <Card className="mb-6 bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800">
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">{t("year")}</label>
-              <input 
-                className="input w-24" 
-                type="number" 
-                value={year} 
+              <select
+                className="input w-full sm:w-24"
+                value={year}
                 onChange={(e) => setYear(Number(e.target.value))}
-                autoComplete="off"
-              />
+              >
+                {years.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">{t("month")}</label>
-              <input 
-                className="input w-20" 
-                type="number" 
-                min={1} 
-                max={12} 
-                value={month} 
+              <select
+                className="input w-full sm:w-24"
+                value={month}
                 onChange={(e) => setMonth(Number(e.target.value))}
-                autoComplete="off"
-              />
+              >
+                {months.map((m) => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">{t("currency")}</label>
-              <input 
-                className="input w-28" 
-                value={currency} 
+              <select
+                className="input w-full sm:w-28"
+                value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
-                placeholder="RUB"
-                autoComplete="off"
-              />
+              >
+                {currencySuggestions.map((c) => (
+                  <option key={c || "default"} value={c}>{c || t("currency")}</option>
+                ))}
+              </select>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Content */}
       {isLoading && (
@@ -77,53 +116,112 @@ function MonthlyReportInner() {
       )}
 
       {error && (
-        <div className="card border-destructive/20 bg-destructive/5">
-          <div className="card-content">
+        <Card className="border-destructive/20 bg-destructive/5">
+          <CardContent>
             <p className="text-destructive">{(error as any).message}</p>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {!isLoading && !error && data && (
         <div className="space-y-6">
           {/* Summary */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="card">
-              <div className="card-content text-center">
+            <Card>
+              <CardContent className="text-center pt-6">
                 <div className="text-2xl font-bold text-green-600">
                   {(Number(data?.totalIncome?.minorUnits ?? 0) / 100).toFixed(2)} {data?.totalIncome?.currencyCode ?? ""}
                 </div>
                 <div className="text-sm text-muted-foreground">{t("totalIncome")}</div>
-              </div>
-            </div>
-            <div className="card">
-              <div className="card-content text-center">
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="text-center pt-6">
                 <div className="text-2xl font-bold text-red-600">
                   {(Number(data?.totalExpense?.minorUnits ?? 0) / 100).toFixed(2)} {data?.totalExpense?.currencyCode ?? ""}
                 </div>
                 <div className="text-sm text-muted-foreground">{t("totalExpense")}</div>
-              </div>
-            </div>
-            <div className="card">
-              <div className="card-content text-center">
-                <div className={`text-2xl font-bold ${
-                  (Number(data?.totalIncome?.minorUnits ?? 0) - Number(data?.totalExpense?.minorUnits ?? 0)) >= 0 
-                    ? 'text-green-600' 
-                    : 'text-red-600'
-                }`}>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="text-center pt-6">
+                <div
+                  className={`text-2xl font-bold ${
+                    (Number(data?.totalIncome?.minorUnits ?? 0) - Number(data?.totalExpense?.minorUnits ?? 0)) >= 0
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
                   {((Number(data?.totalIncome?.minorUnits ?? 0) - Number(data?.totalExpense?.minorUnits ?? 0)) / 100).toFixed(2)} {data?.totalIncome?.currencyCode ?? ""}
                 </div>
                 <div className="text-sm text-muted-foreground">{t("netIncome")}</div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
 
+          {/* Charts */}
+          {(expenses.length === 0 && incomes.length === 0) ? (
+            <Card>
+              <CardContent>
+                <div className="text-sm text-muted-foreground">{t("noData")}</div>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {expenses.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">{`${t("categoryBreakdown")} — ${t("expense")}`}</CardTitle>
+                      <CardDescription className="text-sm">{t("description")}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <DonutChart
+                        data={expenses.map((it: any, idx: number) => ({
+                          label: `${it?.categoryName ?? it?.categoryId}`,
+                          value: Math.abs(Number(it?.total?.minorUnits ?? 0) / 100),
+                          color: warmPalette[idx % warmPalette.length],
+                        }))}
+                        centerLabel={currencyCode}
+                        centerSubLabel={totalExpenses ? totalExpenses.toFixed(2) : ""}
+                        className="flex flex-col items-center"
+                      />
+                    </CardContent>
+                  </Card>
+                )}
+
+                {incomes.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">{`${t("categoryBreakdown")} — ${t("income")}`}</CardTitle>
+                      <CardDescription className="text-sm">{t("description")}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <DonutChart
+                        data={incomes.map((it: any, idx: number) => ({
+                          label: `${it?.categoryName ?? it?.categoryId}`,
+                          value: Math.abs(Number(it?.total?.minorUnits ?? 0) / 100),
+                          color: coolPalette[idx % coolPalette.length],
+                        }))}
+                        centerLabel={currencyCode}
+                        centerSubLabel={totalIncomes ? totalIncomes.toFixed(2) : ""}
+                        className="flex flex-col items-center"
+                      />
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+
+              
+            </>
+          )}
+
           {/* Details Table */}
-          <div className="card">
-            <div className="card-header">
-              <h3 className="card-title">{t("categoryBreakdown")}</h3>
-            </div>
-            <div className="card-content">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">{t("categoryBreakdown")}</CardTitle>
+            </CardHeader>
+            <CardContent>
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
@@ -133,7 +231,7 @@ function MonthlyReportInner() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(data?.items ?? []).map((it: any, i: number) => (
+                  {(items).map((it: any, i: number) => (
                     <tr key={i} className="border-b">
                       <td className="py-2">{it?.categoryName ?? it?.categoryId}</td>
                       <td className="py-2">
@@ -146,8 +244,8 @@ function MonthlyReportInner() {
                   ))}
                 </tbody>
               </table>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>
