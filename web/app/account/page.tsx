@@ -2,13 +2,14 @@
 
 import { ClientsProvider, useClients } from "@/app/providers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { authStore } from "@/lib/auth/store";
 import { useTranslations } from "next-intl";
 import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription, Icon, Modal } from "@/components";
+import { normalizeApiErrorMessage } from "@/lib/api/errors";
 
 function AccountInner() {
-  const { tenant } = useClients();
+  const { tenant, user } = useClients();
   const qc = useQueryClient();
   const t = useTranslations("tenants");
   const tc = useTranslations("common");
@@ -22,14 +23,28 @@ function AccountInner() {
 
   const memberships = (data?.memberships ?? []) as any[];
 
+  // current user (for "you" marks in members list)
+  const { data: me } = useQuery({
+    queryKey: ["me"],
+    queryFn: async () => (await (user as any).getMe({})) as any,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
   const [name, setName] = useState("");
   const [currency, setCurrency] = useState("RUB");
   const [slug, setSlug] = useState("");
 
-  // Invite modal state (UI only; backend not implemented yet)
+  // Invite modal state
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"owner" | "admin" | "member">("member");
+
+  // Edit account modal
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editSlug, setEditSlug] = useState("");
+  const [editCurrency, setEditCurrency] = useState("");
 
   const createMut = useMutation({
     mutationFn: async () =>
@@ -61,6 +76,80 @@ function AccountInner() {
         return t("roles.unknown");
     }
   };
+
+  const activeMembership = useMemo(() => memberships.find(m => m?.tenant?.id === currentTenantId) || memberships[0], [memberships, currentTenantId]);
+  const activeTenantId = activeMembership?.tenant?.id as string | undefined;
+
+  // Helpers to detect presence of new RPCs
+  const tenantAny = tenant as any;
+  const hasUpdate = typeof tenantAny.updateTenant === "function";
+  const hasMembers = typeof tenantAny.listMembers === "function";
+  const hasAddMember = typeof tenantAny.addMember === "function";
+  const hasUpdateMemberRole = typeof tenantAny.updateMemberRole === "function";
+  const hasRemoveMember = typeof tenantAny.removeMember === "function";
+
+  // Members list
+  const { data: membersResp, refetch: refetchMembers, isLoading: membersLoading, error: membersError } = useQuery({
+    queryKey: ["tenantMembers", activeTenantId],
+    enabled: Boolean(activeTenantId) && hasMembers,
+    queryFn: async () => (await tenantAny.listMembers({ tenantId: activeTenantId })) as any,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  const members = (membersResp?.members ?? []) as any[];
+
+  // Mutations
+  const updateTenantMut = useMutation({
+    mutationFn: async (payload: { id: string; name: string; slug?: string; defaultCurrencyCode?: string }) =>
+      await tenantAny.updateTenant(payload),
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["tenants"] }),
+        refetchMembers(),
+      ]);
+      setEditOpen(false);
+    },
+    onError: (e: any) => {
+      alert(normalizeApiErrorMessage(e, "Не удалось обновить аккаунт"));
+    },
+  });
+
+  const addMemberMut = useMutation({
+    mutationFn: async (payload: { tenantId: string; email: string; role: number }) =>
+      await tenantAny.addMember(payload),
+    onSuccess: async () => {
+      setInviteEmail("");
+      setInviteRole("member");
+      setInviteOpen(false);
+      await refetchMembers();
+    },
+    onError: (e: any) => {
+      alert(normalizeApiErrorMessage(e, "Не удалось добавить участника"));
+    },
+  });
+
+  const updateMemberRoleMut = useMutation({
+    mutationFn: async (payload: { tenantId: string; userId: string; role: number }) =>
+      await tenantAny.updateMemberRole(payload),
+    onSuccess: async () => {
+      await refetchMembers();
+    },
+    onError: (e: any) => {
+      alert(normalizeApiErrorMessage(e, "Не удалось обновить роль"));
+    },
+  });
+
+  const removeMemberMut = useMutation({
+    mutationFn: async (payload: { tenantId: string; userId: string }) => await tenantAny.removeMember(payload),
+    onSuccess: async () => {
+      await refetchMembers();
+    },
+    onError: (e: any) => {
+      alert(normalizeApiErrorMessage(e, "Не удалось удалить участника"));
+    },
+  });
+
+  const enumToNum = (r: "owner" | "admin" | "member") => (r === "owner" ? 1 : r === "admin" ? 2 : 3);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -161,9 +250,16 @@ function AccountInner() {
                 {isLoading && (
                   <span className="text-xs text-muted-foreground">{tc("loading")}</span>
                 )}
-                <Button variant="outline" size="sm" icon="plus" onClick={() => setInviteOpen(true)}>
-                  {t("invite")}
-                </Button>
+                {hasAddMember && activeTenantId && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon="plus"
+                    onClick={() => setInviteOpen(true)}
+                  >
+                    {t("invite")}
+                  </Button>
+                )}
               </div>
             </div>
           </CardHeader>
@@ -197,6 +293,21 @@ function AccountInner() {
                       {t("makeActive")}
                     </Button>
                   )}
+                  {hasUpdate && (Number(m?.role) === 1 || Number(m?.role) === 2) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => {
+                        setEditName(m?.tenant?.name ?? "");
+                        setEditSlug(m?.tenant?.slug ?? "");
+                        setEditCurrency(m?.tenant?.defaultCurrencyCode ?? "");
+                        setEditOpen(true);
+                      }}
+                    >
+                      {t("editAccount")}
+                    </Button>
+                  )}
                 </li>
               ))}
               {memberships.length === 0 && !isLoading && (
@@ -206,6 +317,7 @@ function AccountInner() {
           </CardContent>
         </Card>
 
+        {/* Invite user */}
         <Modal
           open={inviteOpen}
           onClose={() => setInviteOpen(false)}
@@ -234,16 +346,138 @@ function AccountInner() {
                 <option value="admin">{t("roles.admin")}</option>
                 <option value="owner">{t("roles.owner")}</option>
               </select>
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {t("inviteNotImplemented")}
+              <div className="text-[11px] text-muted-foreground mt-1">
+                {inviteRole === "owner" ? t("roleDescriptions.owner") : inviteRole === "admin" ? t("roleDescriptions.admin") : t("roleDescriptions.member")}
+              </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="ghost" onClick={() => setInviteOpen(false)}>{tc("cancel")}</Button>
-              <Button onClick={() => setInviteOpen(false)}>{t("invite")}</Button>
+              <Button
+                onClick={() => {
+                  if (!activeTenantId || !hasAddMember) return setInviteOpen(false);
+                  addMemberMut.mutate({ tenantId: activeTenantId, email: inviteEmail, role: enumToNum(inviteRole) });
+                }}
+                disabled={!hasAddMember || addMemberMut.isPending || !inviteEmail}
+                loading={addMemberMut.isPending}
+              >
+                {t("invite")}
+              </Button>
             </div>
+            {addMemberMut.error && (
+              <div className="text-xs text-red-600">{(addMemberMut.error as any).message}</div>
+            )}
           </div>
         </Modal>
+
+        {/* Edit account */}
+        <Modal
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          title={t("editAccount") as string}
+        >
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">{t("name")}</label>
+                <input className="w-full border rounded px-2 py-1 bg-background" value={editName} onChange={(e) => setEditName(e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">{t("slug")}</label>
+                <input className="w-full border rounded px-2 py-1 bg-background" value={editSlug} onChange={(e) => setEditSlug(e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">{t("defaultCurrency")}</label>
+                <input className="w-full border rounded px-2 py-1 bg-background" value={editCurrency} onChange={(e) => setEditCurrency(e.target.value)} />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setEditOpen(false)}>{tc("cancel")}</Button>
+              <Button
+                onClick={() => {
+                  if (!activeTenantId || !hasUpdate) return setEditOpen(false);
+                  updateTenantMut.mutate({ id: activeTenantId, name: editName, slug: editSlug, defaultCurrencyCode: editCurrency || undefined });
+                }}
+                disabled={!hasUpdate || updateTenantMut.isPending || !editName}
+                loading={updateTenantMut.isPending}
+              >
+                {t("updateShort")}
+              </Button>
+            </div>
+            {updateTenantMut.error && (
+              <div className="text-xs text-red-600">{(updateTenantMut.error as any).message}</div>
+            )}
+          </div>
+        </Modal>
+
+        {/* Members list for active tenant */}
+        {activeTenantId && hasMembers && (
+          <Card className="bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800">
+            <CardHeader>
+              <CardTitle className="text-base">{t("membersTitle")}</CardTitle>
+              <CardDescription className="text-sm">{t("membersDescription")}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {membersLoading && <div className="text-sm text-muted-foreground">{tc("loading")}</div>}
+              {membersError && <div className="text-sm text-red-600">{(membersError as any).message}</div>}
+              {!membersLoading && !membersError && (
+                <ul className="space-y-2">
+                  {members.map((m: any) => (
+                    <li key={m?.user?.id} className="flex items-center gap-3 text-sm">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-6 h-6 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex items-center justify-center">
+                          <Icon name="user" size={12} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="truncate max-w-[220px]" title={m?.user?.email}>{m?.user?.email}</div>
+                          <div className="text-[11px] text-muted-foreground truncate max-w-[220px]">
+                            {m?.user?.name}{me?.user?.email && me?.user?.email === m?.user?.email ? ` · ${t("you")}` : ""}
+                          </div>
+                        </div>
+                      </div>
+                      {/* Role selector */}
+                      {hasUpdateMemberRole && (
+                        me?.user?.id === m?.user?.id ? (
+                          <span className="ml-auto text-xs text-muted-foreground">{roleLabel(Number(m?.role))}</span>
+                        ) : (
+                          <select
+                            className="ml-auto border rounded px-2 py-1 bg-background text-xs"
+                            value={Number(m?.role) || 0}
+                            onChange={(e) => {
+                              const newRole = Number(e.target.value);
+                              if (!activeTenantId || !m?.user?.id) return;
+                              updateMemberRoleMut.mutate({ tenantId: activeTenantId, userId: m.user.id, role: newRole });
+                            }}
+                          >
+                            <option value={1}>{t("roles.owner")}</option>
+                            <option value={2}>{t("roles.admin")}</option>
+                            <option value={3}>{t("roles.member")}</option>
+                          </select>
+                        )
+                      )}
+                      {hasRemoveMember && me?.user?.id !== m?.user?.id && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => {
+                            if (!activeTenantId || !m?.user?.id) return;
+                            removeMemberMut.mutate({ tenantId: activeTenantId, userId: m.user.id });
+                          }}
+                          disabled={removeMemberMut.isPending}
+                        >
+                          {t("remove")}
+                        </Button>
+                      )}
+                    </li>
+                  ))}
+                  {members.length === 0 && (
+                    <div className="text-sm text-muted-foreground">{t("noMembers")}</div>
+                  )}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

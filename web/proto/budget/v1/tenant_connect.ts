@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CreateTenantRequest, CreateTenantResponse, ListMyTenantsRequest, ListMyTenantsResponse } from "./tenant_pb";
+import { AddMemberRequest, AddMemberResponse, CreateTenantRequest, CreateTenantResponse, ListMembersRequest, ListMembersResponse, ListMyTenantsRequest, ListMyTenantsResponse, RemoveMemberRequest, RemoveMemberResponse, UpdateMemberRoleRequest, UpdateMemberRoleResponse, UpdateTenantRequest, UpdateTenantResponse } from "./tenant_pb";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -28,6 +28,51 @@ export const TenantService = {
       name: "ListMyTenants",
       I: ListMyTenantsRequest,
       O: ListMyTenantsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc budget.v1.TenantService.UpdateTenant
+     */
+    updateTenant: {
+      name: "UpdateTenant",
+      I: UpdateTenantRequest,
+      O: UpdateTenantResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc budget.v1.TenantService.ListMembers
+     */
+    listMembers: {
+      name: "ListMembers",
+      I: ListMembersRequest,
+      O: ListMembersResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc budget.v1.TenantService.AddMember
+     */
+    addMember: {
+      name: "AddMember",
+      I: AddMemberRequest,
+      O: AddMemberResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc budget.v1.TenantService.UpdateMemberRole
+     */
+    updateMemberRole: {
+      name: "UpdateMemberRole",
+      I: UpdateMemberRoleRequest,
+      O: UpdateMemberRoleResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc budget.v1.TenantService.RemoveMember
+     */
+    removeMember: {
+      name: "RemoveMember",
+      I: RemoveMemberRequest,
+      O: RemoveMemberResponse,
       kind: MethodKind.Unary,
     },
   }

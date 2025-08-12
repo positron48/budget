@@ -7,7 +7,10 @@ import (
 	"github.com/positron48/budget/internal/domain"
 )
 
-var ErrPermissionDenied = errors.New("permission denied")
+var (
+	ErrPermissionDenied = errors.New("permission denied")
+	ErrAlreadyMember    = errors.New("already_member")
+)
 
 type Repo interface {
 	Create(ctx context.Context, name, slug, defaultCurrency string, ownerUserID string) (domain.Tenant, error)
@@ -67,6 +70,9 @@ func (s *Service) AddMember(ctx context.Context, actingUserID, tenantID, userEma
 	if ar != domain.TenantRoleOwner && ar != domain.TenantRoleAdmin {
 		return domain.TenantMembership{}, ErrPermissionDenied
 	}
+	if role == domain.TenantRoleOwner && ar != domain.TenantRoleOwner {
+		return domain.TenantMembership{}, ErrPermissionDenied
+	}
 	return s.repo.AddMember(ctx, tenantID, userEmail, role)
 }
 
@@ -82,6 +88,10 @@ func (s *Service) UpdateMemberRole(ctx context.Context, actingUserID, tenantID, 
 	if role == domain.TenantRoleOwner && ar != domain.TenantRoleOwner {
 		return domain.TenantMembership{}, ErrPermissionDenied
 	}
+	// Prevent self-demotion: owner must not downgrade own role
+	if actingUserID == userID && role != domain.TenantRoleOwner {
+		return domain.TenantMembership{}, ErrPermissionDenied
+	}
 	return s.repo.UpdateMemberRole(ctx, tenantID, userID, role)
 }
 
@@ -92,6 +102,10 @@ func (s *Service) RemoveMember(ctx context.Context, actingUserID, tenantID, user
 		return err
 	}
 	if ar != domain.TenantRoleOwner && ar != domain.TenantRoleAdmin {
+		return ErrPermissionDenied
+	}
+	// Prevent removing yourself from the account
+	if actingUserID == userID {
 		return ErrPermissionDenied
 	}
 	tr, err := s.repo.GetUserRole(ctx, tenantID, userID)

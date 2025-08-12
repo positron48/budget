@@ -5,6 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3, Timestamp } from "@bufbuild/protobuf";
+import { User } from "./user_pb";
 
 /**
  * @generated from enum budget.v1.TenantRole
@@ -309,6 +310,475 @@ export class ListMyTenantsResponse extends Message<ListMyTenantsResponse> {
 
   static equals(a: ListMyTenantsResponse | PlainMessage<ListMyTenantsResponse> | undefined, b: ListMyTenantsResponse | PlainMessage<ListMyTenantsResponse> | undefined): boolean {
     return proto3.util.equals(ListMyTenantsResponse, a, b);
+  }
+}
+
+/**
+ * Update tenant settings (name, slug, default currency)
+ *
+ * @generated from message budget.v1.UpdateTenantRequest
+ */
+export class UpdateTenantRequest extends Message<UpdateTenantRequest> {
+  /**
+   * tenant id
+   *
+   * @generated from field: string id = 1;
+   */
+  id = "";
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name = "";
+
+  /**
+   * @generated from field: string slug = 3;
+   */
+  slug = "";
+
+  /**
+   * @generated from field: string default_currency_code = 4;
+   */
+  defaultCurrencyCode = "";
+
+  constructor(data?: PartialMessage<UpdateTenantRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "budget.v1.UpdateTenantRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "slug", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "default_currency_code", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateTenantRequest {
+    return new UpdateTenantRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateTenantRequest {
+    return new UpdateTenantRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateTenantRequest {
+    return new UpdateTenantRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UpdateTenantRequest | PlainMessage<UpdateTenantRequest> | undefined, b: UpdateTenantRequest | PlainMessage<UpdateTenantRequest> | undefined): boolean {
+    return proto3.util.equals(UpdateTenantRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message budget.v1.UpdateTenantResponse
+ */
+export class UpdateTenantResponse extends Message<UpdateTenantResponse> {
+  /**
+   * @generated from field: budget.v1.Tenant tenant = 1;
+   */
+  tenant?: Tenant;
+
+  constructor(data?: PartialMessage<UpdateTenantResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "budget.v1.UpdateTenantResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "tenant", kind: "message", T: Tenant },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateTenantResponse {
+    return new UpdateTenantResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateTenantResponse {
+    return new UpdateTenantResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateTenantResponse {
+    return new UpdateTenantResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UpdateTenantResponse | PlainMessage<UpdateTenantResponse> | undefined, b: UpdateTenantResponse | PlainMessage<UpdateTenantResponse> | undefined): boolean {
+    return proto3.util.equals(UpdateTenantResponse, a, b);
+  }
+}
+
+/**
+ * Members management
+ *
+ * @generated from message budget.v1.TenantMember
+ */
+export class TenantMember extends Message<TenantMember> {
+  /**
+   * @generated from field: budget.v1.User user = 1;
+   */
+  user?: User;
+
+  /**
+   * @generated from field: budget.v1.TenantRole role = 2;
+   */
+  role = TenantRole.UNSPECIFIED;
+
+  /**
+   * @generated from field: bool is_default = 3;
+   */
+  isDefault = false;
+
+  constructor(data?: PartialMessage<TenantMember>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "budget.v1.TenantMember";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "user", kind: "message", T: User },
+    { no: 2, name: "role", kind: "enum", T: proto3.getEnumType(TenantRole) },
+    { no: 3, name: "is_default", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): TenantMember {
+    return new TenantMember().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): TenantMember {
+    return new TenantMember().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): TenantMember {
+    return new TenantMember().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: TenantMember | PlainMessage<TenantMember> | undefined, b: TenantMember | PlainMessage<TenantMember> | undefined): boolean {
+    return proto3.util.equals(TenantMember, a, b);
+  }
+}
+
+/**
+ * @generated from message budget.v1.ListMembersRequest
+ */
+export class ListMembersRequest extends Message<ListMembersRequest> {
+  /**
+   * @generated from field: string tenant_id = 1;
+   */
+  tenantId = "";
+
+  constructor(data?: PartialMessage<ListMembersRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "budget.v1.ListMembersRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "tenant_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListMembersRequest {
+    return new ListMembersRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListMembersRequest {
+    return new ListMembersRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListMembersRequest {
+    return new ListMembersRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ListMembersRequest | PlainMessage<ListMembersRequest> | undefined, b: ListMembersRequest | PlainMessage<ListMembersRequest> | undefined): boolean {
+    return proto3.util.equals(ListMembersRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message budget.v1.ListMembersResponse
+ */
+export class ListMembersResponse extends Message<ListMembersResponse> {
+  /**
+   * @generated from field: repeated budget.v1.TenantMember members = 1;
+   */
+  members: TenantMember[] = [];
+
+  constructor(data?: PartialMessage<ListMembersResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "budget.v1.ListMembersResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "members", kind: "message", T: TenantMember, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListMembersResponse {
+    return new ListMembersResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListMembersResponse {
+    return new ListMembersResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListMembersResponse {
+    return new ListMembersResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ListMembersResponse | PlainMessage<ListMembersResponse> | undefined, b: ListMembersResponse | PlainMessage<ListMembersResponse> | undefined): boolean {
+    return proto3.util.equals(ListMembersResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message budget.v1.AddMemberRequest
+ */
+export class AddMemberRequest extends Message<AddMemberRequest> {
+  /**
+   * @generated from field: string tenant_id = 1;
+   */
+  tenantId = "";
+
+  /**
+   * existing user's email
+   *
+   * @generated from field: string email = 2;
+   */
+  email = "";
+
+  /**
+   * @generated from field: budget.v1.TenantRole role = 3;
+   */
+  role = TenantRole.UNSPECIFIED;
+
+  constructor(data?: PartialMessage<AddMemberRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "budget.v1.AddMemberRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "tenant_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "email", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "role", kind: "enum", T: proto3.getEnumType(TenantRole) },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AddMemberRequest {
+    return new AddMemberRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AddMemberRequest {
+    return new AddMemberRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AddMemberRequest {
+    return new AddMemberRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: AddMemberRequest | PlainMessage<AddMemberRequest> | undefined, b: AddMemberRequest | PlainMessage<AddMemberRequest> | undefined): boolean {
+    return proto3.util.equals(AddMemberRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message budget.v1.AddMemberResponse
+ */
+export class AddMemberResponse extends Message<AddMemberResponse> {
+  /**
+   * @generated from field: budget.v1.TenantMember member = 1;
+   */
+  member?: TenantMember;
+
+  constructor(data?: PartialMessage<AddMemberResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "budget.v1.AddMemberResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "member", kind: "message", T: TenantMember },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AddMemberResponse {
+    return new AddMemberResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AddMemberResponse {
+    return new AddMemberResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AddMemberResponse {
+    return new AddMemberResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: AddMemberResponse | PlainMessage<AddMemberResponse> | undefined, b: AddMemberResponse | PlainMessage<AddMemberResponse> | undefined): boolean {
+    return proto3.util.equals(AddMemberResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message budget.v1.UpdateMemberRoleRequest
+ */
+export class UpdateMemberRoleRequest extends Message<UpdateMemberRoleRequest> {
+  /**
+   * @generated from field: string tenant_id = 1;
+   */
+  tenantId = "";
+
+  /**
+   * @generated from field: string user_id = 2;
+   */
+  userId = "";
+
+  /**
+   * @generated from field: budget.v1.TenantRole role = 3;
+   */
+  role = TenantRole.UNSPECIFIED;
+
+  constructor(data?: PartialMessage<UpdateMemberRoleRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "budget.v1.UpdateMemberRoleRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "tenant_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "role", kind: "enum", T: proto3.getEnumType(TenantRole) },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateMemberRoleRequest {
+    return new UpdateMemberRoleRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateMemberRoleRequest {
+    return new UpdateMemberRoleRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateMemberRoleRequest {
+    return new UpdateMemberRoleRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UpdateMemberRoleRequest | PlainMessage<UpdateMemberRoleRequest> | undefined, b: UpdateMemberRoleRequest | PlainMessage<UpdateMemberRoleRequest> | undefined): boolean {
+    return proto3.util.equals(UpdateMemberRoleRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message budget.v1.UpdateMemberRoleResponse
+ */
+export class UpdateMemberRoleResponse extends Message<UpdateMemberRoleResponse> {
+  /**
+   * @generated from field: budget.v1.TenantMember member = 1;
+   */
+  member?: TenantMember;
+
+  constructor(data?: PartialMessage<UpdateMemberRoleResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "budget.v1.UpdateMemberRoleResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "member", kind: "message", T: TenantMember },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateMemberRoleResponse {
+    return new UpdateMemberRoleResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateMemberRoleResponse {
+    return new UpdateMemberRoleResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateMemberRoleResponse {
+    return new UpdateMemberRoleResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UpdateMemberRoleResponse | PlainMessage<UpdateMemberRoleResponse> | undefined, b: UpdateMemberRoleResponse | PlainMessage<UpdateMemberRoleResponse> | undefined): boolean {
+    return proto3.util.equals(UpdateMemberRoleResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message budget.v1.RemoveMemberRequest
+ */
+export class RemoveMemberRequest extends Message<RemoveMemberRequest> {
+  /**
+   * @generated from field: string tenant_id = 1;
+   */
+  tenantId = "";
+
+  /**
+   * @generated from field: string user_id = 2;
+   */
+  userId = "";
+
+  constructor(data?: PartialMessage<RemoveMemberRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "budget.v1.RemoveMemberRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "tenant_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RemoveMemberRequest {
+    return new RemoveMemberRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RemoveMemberRequest {
+    return new RemoveMemberRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RemoveMemberRequest {
+    return new RemoveMemberRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RemoveMemberRequest | PlainMessage<RemoveMemberRequest> | undefined, b: RemoveMemberRequest | PlainMessage<RemoveMemberRequest> | undefined): boolean {
+    return proto3.util.equals(RemoveMemberRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message budget.v1.RemoveMemberResponse
+ */
+export class RemoveMemberResponse extends Message<RemoveMemberResponse> {
+  constructor(data?: PartialMessage<RemoveMemberResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "budget.v1.RemoveMemberResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RemoveMemberResponse {
+    return new RemoveMemberResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RemoveMemberResponse {
+    return new RemoveMemberResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RemoveMemberResponse {
+    return new RemoveMemberResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RemoveMemberResponse | PlainMessage<RemoveMemberResponse> | undefined, b: RemoveMemberResponse | PlainMessage<RemoveMemberResponse> | undefined): boolean {
+    return proto3.util.equals(RemoveMemberResponse, a, b);
   }
 }
 

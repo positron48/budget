@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/positron48/budget/internal/domain"
+	tenuse "github.com/positron48/budget/internal/usecase/tenant"
 )
 
 type TenantRepo struct{ pool *Pool }
@@ -107,6 +108,14 @@ func (r *TenantRepo) AddMember(ctx context.Context, tenantID, userEmail string, 
 	var userID string
 	if err := r.pool.DB.QueryRow(ctx, `SELECT id FROM users WHERE lower(email)=lower($1)`, userEmail).Scan(&userID); err != nil {
 		return domain.TenantMembership{}, err
+	}
+	// Reject if already a member
+	var exists bool
+	if err := r.pool.DB.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM user_tenants WHERE tenant_id=$1 AND user_id=$2)`, tenantID, userID).Scan(&exists); err != nil {
+		return domain.TenantMembership{}, err
+	}
+	if exists {
+		return domain.TenantMembership{}, tenuse.ErrAlreadyMember
 	}
 	if _, err := r.pool.DB.Exec(ctx, `INSERT INTO user_tenants (user_id, tenant_id, role) VALUES ($1,$2,$3) ON CONFLICT (user_id, tenant_id) DO UPDATE SET role=EXCLUDED.role`, userID, tenantID, string(role)); err != nil {
 		return domain.TenantMembership{}, err

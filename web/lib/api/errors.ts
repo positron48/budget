@@ -8,6 +8,10 @@ export function normalizeApiErrorMessage(err: any, fallback: string): string {
   if (code === Code.InvalidArgument) return "Некорректные данные";
   if (code === Code.AlreadyExists) return "Уже существует";
   if (code === Code.Unauthenticated) return "Требуется авторизация";
+  if (code === Code.PermissionDenied) return "Недостаточно прав";
+
+  // backend may return known keys
+  if (message === "already_member") return "Пользователь уже добавлен в этот аккаунт";
 
   if (message) {
     // remove leading [tag] prefixes like [not found], [internal]

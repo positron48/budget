@@ -24,6 +24,8 @@ func mapError(err error) error {
 		return status.Error(codes.FailedPrecondition, err.Error())
 	case errors.Is(err, tenuse.ErrPermissionDenied):
 		return status.Error(codes.PermissionDenied, err.Error())
+	case errors.Is(err, tenuse.ErrAlreadyMember):
+		return status.Error(codes.AlreadyExists, "already_member")
 	}
 	// postgres specific
 	var pgErr *pgconn.PgError

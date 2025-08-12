@@ -2,7 +2,7 @@ PROTO_DIR=proto
 DB_URL=postgres://budget:budget@localhost:5432/budget?sslmode=disable
 
 # Список всех целей в одном месте
-.PHONY: help proto dproto build run run-backend stop up down logs ps tidy fmt test pgtest lint vet ci check web-install web-build web-lint web-test web-check check-all migrate-up migrate-down dmigrate-up dmigrate-down
+.PHONY: help proto dproto tsproto build run run-backend stop up down logs ps tidy fmt test pgtest lint vet ci check web-install web-build web-lint web-test web-check check-all migrate-up migrate-down dmigrate-up dmigrate-down
 
 # Вывести список целей и их описание (с группировкой по разделам)
 help: ## [Meta] Показать список команд по разделам
@@ -15,6 +15,9 @@ proto: ## [Proto] Сгенерировать protobuf (buf lint + generate)
 
 dproto: ## [Proto] Сгенерировать protobuf в docker (buf)
 	docker run --rm -v $(PWD):/workspace -w /workspace/proto bufbuild/buf:latest generate
+
+tsproto: ## [Proto] Сгенерировать только TS stubs для фронта (локальные плагины из web/node_modules)
+	cd $(PROTO_DIR) && buf generate --template buf.gen.ts.yaml
 
 build: ## [Go] Сборка Go бинарника (bin/budgetd)
 	go build -o bin/budgetd ./cmd/budgetd
@@ -60,7 +63,7 @@ run-backend: ## [Go] Запуск только бэкенда локально (
 	GRPC_ADDR=0.0.0.0:8080 go run ./cmd/budgetd
 
 up: ## [Docker] Запуск окружения через docker compose (-d --build)
-	docker compose up -d --build
+	docker compose up -d
 
 down: ## [Docker] Остановка и удаление docker compose (-v)
 	docker compose down -v

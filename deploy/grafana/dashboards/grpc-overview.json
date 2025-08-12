@@ -2,8 +2,24 @@
   "title": "Budget gRPC Overview",
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "panels": [
+    {
+      "type": "timeseries",
+      "title": "gRPC Total RPS",
+      "fieldConfig": {
+        "defaults": { "unit": "req/s" },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "single", "sort": "desc"}
+      },
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "sum(rate(budget_grpc_requests_total[1m]))", "legendFormat": "total", "refId": "A", "instant": false}
+      ],
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0}
+    },
     {
       "type": "timeseries",
       "title": "gRPC Requests (RPS)",
@@ -16,9 +32,9 @@
         "tooltip": {"mode": "multi", "sort": "desc"}
       },
       "targets": [
-        {"expr": "sum(rate(budget_grpc_requests_total[1m])) by (method, code)", "legendFormat": "{{method}} {{code}}", "refId": "A"}
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "sum(rate(budget_grpc_requests_total[1m])) by (method, code)", "legendFormat": "{{method}} {{code}}", "refId": "A"}
       ],
-      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0}
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
     },
     {
       "type": "timeseries",
@@ -32,9 +48,9 @@
         "tooltip": {"mode": "multi", "sort": "desc"}
       },
       "targets": [
-        {"expr": "1e3 * histogram_quantile(0.50, sum(rate(budget_grpc_request_duration_seconds_bucket[5m])) by (le, method))", "legendFormat": "{{method}}", "refId": "A"}
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "1e3 * histogram_quantile(0.50, sum(rate(budget_grpc_request_duration_seconds_bucket[5m])) by (le, method))", "legendFormat": "{{method}}", "refId": "A"}
       ],
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
     },
     {
       "type": "timeseries",
@@ -48,9 +64,9 @@
         "tooltip": {"mode": "multi", "sort": "desc"}
       },
       "targets": [
-        {"expr": "1e3 * histogram_quantile(0.80, sum(rate(budget_grpc_request_duration_seconds_bucket[5m])) by (le, method))", "legendFormat": "{{method}}", "refId": "A"}
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "1e3 * histogram_quantile(0.80, sum(rate(budget_grpc_request_duration_seconds_bucket[5m])) by (le, method))", "legendFormat": "{{method}}", "refId": "A"}
       ],
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
     },
     {
       "type": "timeseries",
@@ -64,9 +80,9 @@
         "tooltip": {"mode": "multi", "sort": "desc"}
       },
       "targets": [
-        {"expr": "1e3 * histogram_quantile(0.95, sum(rate(budget_grpc_request_duration_seconds_bucket[5m])) by (le, method))", "legendFormat": "{{method}}", "refId": "A"}
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "1e3 * histogram_quantile(0.95, sum(rate(budget_grpc_request_duration_seconds_bucket[5m])) by (le, method))", "legendFormat": "{{method}}", "refId": "A"}
       ],
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
     },
     {
       "type": "timeseries",
@@ -80,25 +96,9 @@
         "tooltip": {"mode": "multi", "sort": "desc"}
       },
       "targets": [
-        {"expr": "1e3 * histogram_quantile(0.99, sum(rate(budget_grpc_request_duration_seconds_bucket[5m])) by (le, method))", "legendFormat": "{{method}}", "refId": "A"}
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "1e3 * histogram_quantile(0.99, sum(rate(budget_grpc_request_duration_seconds_bucket[5m])) by (le, method))", "legendFormat": "{{method}}", "refId": "A"}
       ],
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
-    },
-    {
-      "type": "timeseries",
-      "title": "gRPC Total RPS",
-      "fieldConfig": {
-        "defaults": { "unit": "req/s" },
-        "overrides": []
-      },
-      "options": {
-        "legend": {"displayMode": "hidden", "placement": "bottom"},
-        "tooltip": {"mode": "single", "sort": "desc"}
-      },
-      "targets": [
-        {"expr": "sum(rate(budget_grpc_requests_total[5m]))", "legendFormat": "total", "refId": "A", "interval": "15s"}
-      ],
-      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 24}
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
     }
   ]
 }

@@ -250,7 +250,15 @@
       "owner": "Full access: account settings, members & roles, operations.",
       "admin": "Manage settings and members (cannot assign/remove owners).",
       "member": "Access to operations and data without managing settings or members."
-    }
+    },
+    "editAccount": "Edit account",
+    "updateShort": "Update",
+    "membersTitle": "Members",
+    "membersDescription": "Users who have access to the current account",
+    "remove": "Remove",
+    "noMembers": "No members found",
+    "you": "you",
+    "apiNotAvailable": "Feature not available yet (update frontend proto)"
   },
   "profile": {
     "title": "Profile",

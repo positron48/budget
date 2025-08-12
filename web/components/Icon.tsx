@@ -128,7 +128,8 @@ export type IconName =
   | "equal"
   | "log-in"
   | "loader-2"
-  | "folder-open";
+  | "folder-open"
+  | "user";
 
 const iconMap: Record<IconName, LucideIcon> = {
   home: Home,
@@ -194,6 +195,7 @@ const iconMap: Record<IconName, LucideIcon> = {
   "log-in": LogIn,
   "loader-2": Loader2,
   "folder-open": FolderOpen,
+  user: User,
 };
 
 interface IconProps {
