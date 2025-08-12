@@ -394,11 +394,569 @@ func (x *ListMyTenantsResponse) GetMemberships() []*TenantMembership {
 	return nil
 }
 
+// Update tenant settings (name, slug, default currency)
+type UpdateTenantRequest struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Id                  string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"` // tenant id
+	Name                string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Slug                string                 `protobuf:"bytes,3,opt,name=slug,proto3" json:"slug,omitempty"`
+	DefaultCurrencyCode string                 `protobuf:"bytes,4,opt,name=default_currency_code,json=defaultCurrencyCode,proto3" json:"default_currency_code,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *UpdateTenantRequest) Reset() {
+	*x = UpdateTenantRequest{}
+	mi := &file_budget_v1_tenant_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateTenantRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateTenantRequest) ProtoMessage() {}
+
+func (x *UpdateTenantRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_budget_v1_tenant_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateTenantRequest.ProtoReflect.Descriptor instead.
+func (*UpdateTenantRequest) Descriptor() ([]byte, []int) {
+	return file_budget_v1_tenant_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *UpdateTenantRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateTenantRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *UpdateTenantRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *UpdateTenantRequest) GetDefaultCurrencyCode() string {
+	if x != nil {
+		return x.DefaultCurrencyCode
+	}
+	return ""
+}
+
+type UpdateTenantResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tenant        *Tenant                `protobuf:"bytes,1,opt,name=tenant,proto3" json:"tenant,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateTenantResponse) Reset() {
+	*x = UpdateTenantResponse{}
+	mi := &file_budget_v1_tenant_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateTenantResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateTenantResponse) ProtoMessage() {}
+
+func (x *UpdateTenantResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_budget_v1_tenant_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateTenantResponse.ProtoReflect.Descriptor instead.
+func (*UpdateTenantResponse) Descriptor() ([]byte, []int) {
+	return file_budget_v1_tenant_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *UpdateTenantResponse) GetTenant() *Tenant {
+	if x != nil {
+		return x.Tenant
+	}
+	return nil
+}
+
+// Members management
+type TenantMember struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	User          *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	Role          TenantRole             `protobuf:"varint,2,opt,name=role,proto3,enum=budget.v1.TenantRole" json:"role,omitempty"`
+	IsDefault     bool                   `protobuf:"varint,3,opt,name=is_default,json=isDefault,proto3" json:"is_default,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TenantMember) Reset() {
+	*x = TenantMember{}
+	mi := &file_budget_v1_tenant_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TenantMember) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TenantMember) ProtoMessage() {}
+
+func (x *TenantMember) ProtoReflect() protoreflect.Message {
+	mi := &file_budget_v1_tenant_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TenantMember.ProtoReflect.Descriptor instead.
+func (*TenantMember) Descriptor() ([]byte, []int) {
+	return file_budget_v1_tenant_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *TenantMember) GetUser() *User {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
+func (x *TenantMember) GetRole() TenantRole {
+	if x != nil {
+		return x.Role
+	}
+	return TenantRole_TENANT_ROLE_UNSPECIFIED
+}
+
+func (x *TenantMember) GetIsDefault() bool {
+	if x != nil {
+		return x.IsDefault
+	}
+	return false
+}
+
+type ListMembersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListMembersRequest) Reset() {
+	*x = ListMembersRequest{}
+	mi := &file_budget_v1_tenant_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListMembersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListMembersRequest) ProtoMessage() {}
+
+func (x *ListMembersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_budget_v1_tenant_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListMembersRequest.ProtoReflect.Descriptor instead.
+func (*ListMembersRequest) Descriptor() ([]byte, []int) {
+	return file_budget_v1_tenant_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ListMembersRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+type ListMembersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Members       []*TenantMember        `protobuf:"bytes,1,rep,name=members,proto3" json:"members,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListMembersResponse) Reset() {
+	*x = ListMembersResponse{}
+	mi := &file_budget_v1_tenant_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListMembersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListMembersResponse) ProtoMessage() {}
+
+func (x *ListMembersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_budget_v1_tenant_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListMembersResponse.ProtoReflect.Descriptor instead.
+func (*ListMembersResponse) Descriptor() ([]byte, []int) {
+	return file_budget_v1_tenant_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ListMembersResponse) GetMembers() []*TenantMember {
+	if x != nil {
+		return x.Members
+	}
+	return nil
+}
+
+type AddMemberRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"` // existing user's email
+	Role          TenantRole             `protobuf:"varint,3,opt,name=role,proto3,enum=budget.v1.TenantRole" json:"role,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddMemberRequest) Reset() {
+	*x = AddMemberRequest{}
+	mi := &file_budget_v1_tenant_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddMemberRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddMemberRequest) ProtoMessage() {}
+
+func (x *AddMemberRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_budget_v1_tenant_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddMemberRequest.ProtoReflect.Descriptor instead.
+func (*AddMemberRequest) Descriptor() ([]byte, []int) {
+	return file_budget_v1_tenant_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *AddMemberRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *AddMemberRequest) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *AddMemberRequest) GetRole() TenantRole {
+	if x != nil {
+		return x.Role
+	}
+	return TenantRole_TENANT_ROLE_UNSPECIFIED
+}
+
+type AddMemberResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Member        *TenantMember          `protobuf:"bytes,1,opt,name=member,proto3" json:"member,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddMemberResponse) Reset() {
+	*x = AddMemberResponse{}
+	mi := &file_budget_v1_tenant_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddMemberResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddMemberResponse) ProtoMessage() {}
+
+func (x *AddMemberResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_budget_v1_tenant_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddMemberResponse.ProtoReflect.Descriptor instead.
+func (*AddMemberResponse) Descriptor() ([]byte, []int) {
+	return file_budget_v1_tenant_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *AddMemberResponse) GetMember() *TenantMember {
+	if x != nil {
+		return x.Member
+	}
+	return nil
+}
+
+type UpdateMemberRoleRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Role          TenantRole             `protobuf:"varint,3,opt,name=role,proto3,enum=budget.v1.TenantRole" json:"role,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateMemberRoleRequest) Reset() {
+	*x = UpdateMemberRoleRequest{}
+	mi := &file_budget_v1_tenant_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateMemberRoleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateMemberRoleRequest) ProtoMessage() {}
+
+func (x *UpdateMemberRoleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_budget_v1_tenant_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateMemberRoleRequest.ProtoReflect.Descriptor instead.
+func (*UpdateMemberRoleRequest) Descriptor() ([]byte, []int) {
+	return file_budget_v1_tenant_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *UpdateMemberRoleRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *UpdateMemberRoleRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *UpdateMemberRoleRequest) GetRole() TenantRole {
+	if x != nil {
+		return x.Role
+	}
+	return TenantRole_TENANT_ROLE_UNSPECIFIED
+}
+
+type UpdateMemberRoleResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Member        *TenantMember          `protobuf:"bytes,1,opt,name=member,proto3" json:"member,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateMemberRoleResponse) Reset() {
+	*x = UpdateMemberRoleResponse{}
+	mi := &file_budget_v1_tenant_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateMemberRoleResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateMemberRoleResponse) ProtoMessage() {}
+
+func (x *UpdateMemberRoleResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_budget_v1_tenant_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateMemberRoleResponse.ProtoReflect.Descriptor instead.
+func (*UpdateMemberRoleResponse) Descriptor() ([]byte, []int) {
+	return file_budget_v1_tenant_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *UpdateMemberRoleResponse) GetMember() *TenantMember {
+	if x != nil {
+		return x.Member
+	}
+	return nil
+}
+
+type RemoveMemberRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveMemberRequest) Reset() {
+	*x = RemoveMemberRequest{}
+	mi := &file_budget_v1_tenant_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveMemberRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveMemberRequest) ProtoMessage() {}
+
+func (x *RemoveMemberRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_budget_v1_tenant_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveMemberRequest.ProtoReflect.Descriptor instead.
+func (*RemoveMemberRequest) Descriptor() ([]byte, []int) {
+	return file_budget_v1_tenant_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *RemoveMemberRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *RemoveMemberRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type RemoveMemberResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveMemberResponse) Reset() {
+	*x = RemoveMemberResponse{}
+	mi := &file_budget_v1_tenant_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveMemberResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveMemberResponse) ProtoMessage() {}
+
+func (x *RemoveMemberResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_budget_v1_tenant_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveMemberResponse.ProtoReflect.Descriptor instead.
+func (*RemoveMemberResponse) Descriptor() ([]byte, []int) {
+	return file_budget_v1_tenant_proto_rawDescGZIP(), []int{16}
+}
+
 var File_budget_v1_tenant_proto protoreflect.FileDescriptor
 
 const file_budget_v1_tenant_proto_rawDesc = "" +
 	"\n" +
-	"\x16budget/v1/tenant.proto\x12\tbudget.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xaf\x01\n" +
+	"\x16budget/v1/tenant.proto\x12\tbudget.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x14budget/v1/user.proto\"\xaf\x01\n" +
 	"\x06Tenant\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
@@ -419,16 +977,53 @@ const file_budget_v1_tenant_proto_rawDesc = "" +
 	"\x06tenant\x18\x01 \x01(\v2\x11.budget.v1.TenantR\x06tenant\"\x16\n" +
 	"\x14ListMyTenantsRequest\"V\n" +
 	"\x15ListMyTenantsResponse\x12=\n" +
-	"\vmemberships\x18\x01 \x03(\v2\x1b.budget.v1.TenantMembershipR\vmemberships*o\n" +
+	"\vmemberships\x18\x01 \x03(\v2\x1b.budget.v1.TenantMembershipR\vmemberships\"\x81\x01\n" +
+	"\x13UpdateTenantRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
+	"\x04slug\x18\x03 \x01(\tR\x04slug\x122\n" +
+	"\x15default_currency_code\x18\x04 \x01(\tR\x13defaultCurrencyCode\"A\n" +
+	"\x14UpdateTenantResponse\x12)\n" +
+	"\x06tenant\x18\x01 \x01(\v2\x11.budget.v1.TenantR\x06tenant\"}\n" +
+	"\fTenantMember\x12#\n" +
+	"\x04user\x18\x01 \x01(\v2\x0f.budget.v1.UserR\x04user\x12)\n" +
+	"\x04role\x18\x02 \x01(\x0e2\x15.budget.v1.TenantRoleR\x04role\x12\x1d\n" +
+	"\n" +
+	"is_default\x18\x03 \x01(\bR\tisDefault\"1\n" +
+	"\x12ListMembersRequest\x12\x1b\n" +
+	"\ttenant_id\x18\x01 \x01(\tR\btenantId\"H\n" +
+	"\x13ListMembersResponse\x121\n" +
+	"\amembers\x18\x01 \x03(\v2\x17.budget.v1.TenantMemberR\amembers\"p\n" +
+	"\x10AddMemberRequest\x12\x1b\n" +
+	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x14\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\x12)\n" +
+	"\x04role\x18\x03 \x01(\x0e2\x15.budget.v1.TenantRoleR\x04role\"D\n" +
+	"\x11AddMemberResponse\x12/\n" +
+	"\x06member\x18\x01 \x01(\v2\x17.budget.v1.TenantMemberR\x06member\"z\n" +
+	"\x17UpdateMemberRoleRequest\x12\x1b\n" +
+	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12)\n" +
+	"\x04role\x18\x03 \x01(\x0e2\x15.budget.v1.TenantRoleR\x04role\"K\n" +
+	"\x18UpdateMemberRoleResponse\x12/\n" +
+	"\x06member\x18\x01 \x01(\v2\x17.budget.v1.TenantMemberR\x06member\"K\n" +
+	"\x13RemoveMemberRequest\x12\x1b\n" +
+	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\"\x16\n" +
+	"\x14RemoveMemberResponse*o\n" +
 	"\n" +
 	"TenantRole\x12\x1b\n" +
 	"\x17TENANT_ROLE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11TENANT_ROLE_OWNER\x10\x01\x12\x15\n" +
 	"\x11TENANT_ROLE_ADMIN\x10\x02\x12\x16\n" +
-	"\x12TENANT_ROLE_MEMBER\x10\x032\xb4\x01\n" +
+	"\x12TENANT_ROLE_MEMBER\x10\x032\xc9\x04\n" +
 	"\rTenantService\x12O\n" +
 	"\fCreateTenant\x12\x1e.budget.v1.CreateTenantRequest\x1a\x1f.budget.v1.CreateTenantResponse\x12R\n" +
-	"\rListMyTenants\x12\x1f.budget.v1.ListMyTenantsRequest\x1a .budget.v1.ListMyTenantsResponseB8Z6github.com/positron48/budget/gen/go/budget/v1;budgetv1b\x06proto3"
+	"\rListMyTenants\x12\x1f.budget.v1.ListMyTenantsRequest\x1a .budget.v1.ListMyTenantsResponse\x12O\n" +
+	"\fUpdateTenant\x12\x1e.budget.v1.UpdateTenantRequest\x1a\x1f.budget.v1.UpdateTenantResponse\x12L\n" +
+	"\vListMembers\x12\x1d.budget.v1.ListMembersRequest\x1a\x1e.budget.v1.ListMembersResponse\x12F\n" +
+	"\tAddMember\x12\x1b.budget.v1.AddMemberRequest\x1a\x1c.budget.v1.AddMemberResponse\x12[\n" +
+	"\x10UpdateMemberRole\x12\".budget.v1.UpdateMemberRoleRequest\x1a#.budget.v1.UpdateMemberRoleResponse\x12O\n" +
+	"\fRemoveMember\x12\x1e.budget.v1.RemoveMemberRequest\x1a\x1f.budget.v1.RemoveMemberResponseB8Z6github.com/positron48/budget/gen/go/budget/v1;budgetv1b\x06proto3"
 
 var (
 	file_budget_v1_tenant_proto_rawDescOnce sync.Once
@@ -443,32 +1038,62 @@ func file_budget_v1_tenant_proto_rawDescGZIP() []byte {
 }
 
 var file_budget_v1_tenant_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_budget_v1_tenant_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_budget_v1_tenant_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_budget_v1_tenant_proto_goTypes = []any{
-	(TenantRole)(0),               // 0: budget.v1.TenantRole
-	(*Tenant)(nil),                // 1: budget.v1.Tenant
-	(*TenantMembership)(nil),      // 2: budget.v1.TenantMembership
-	(*CreateTenantRequest)(nil),   // 3: budget.v1.CreateTenantRequest
-	(*CreateTenantResponse)(nil),  // 4: budget.v1.CreateTenantResponse
-	(*ListMyTenantsRequest)(nil),  // 5: budget.v1.ListMyTenantsRequest
-	(*ListMyTenantsResponse)(nil), // 6: budget.v1.ListMyTenantsResponse
-	(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
+	(TenantRole)(0),                  // 0: budget.v1.TenantRole
+	(*Tenant)(nil),                   // 1: budget.v1.Tenant
+	(*TenantMembership)(nil),         // 2: budget.v1.TenantMembership
+	(*CreateTenantRequest)(nil),      // 3: budget.v1.CreateTenantRequest
+	(*CreateTenantResponse)(nil),     // 4: budget.v1.CreateTenantResponse
+	(*ListMyTenantsRequest)(nil),     // 5: budget.v1.ListMyTenantsRequest
+	(*ListMyTenantsResponse)(nil),    // 6: budget.v1.ListMyTenantsResponse
+	(*UpdateTenantRequest)(nil),      // 7: budget.v1.UpdateTenantRequest
+	(*UpdateTenantResponse)(nil),     // 8: budget.v1.UpdateTenantResponse
+	(*TenantMember)(nil),             // 9: budget.v1.TenantMember
+	(*ListMembersRequest)(nil),       // 10: budget.v1.ListMembersRequest
+	(*ListMembersResponse)(nil),      // 11: budget.v1.ListMembersResponse
+	(*AddMemberRequest)(nil),         // 12: budget.v1.AddMemberRequest
+	(*AddMemberResponse)(nil),        // 13: budget.v1.AddMemberResponse
+	(*UpdateMemberRoleRequest)(nil),  // 14: budget.v1.UpdateMemberRoleRequest
+	(*UpdateMemberRoleResponse)(nil), // 15: budget.v1.UpdateMemberRoleResponse
+	(*RemoveMemberRequest)(nil),      // 16: budget.v1.RemoveMemberRequest
+	(*RemoveMemberResponse)(nil),     // 17: budget.v1.RemoveMemberResponse
+	(*timestamppb.Timestamp)(nil),    // 18: google.protobuf.Timestamp
+	(*User)(nil),                     // 19: budget.v1.User
 }
 var file_budget_v1_tenant_proto_depIdxs = []int32{
-	7, // 0: budget.v1.Tenant.created_at:type_name -> google.protobuf.Timestamp
-	1, // 1: budget.v1.TenantMembership.tenant:type_name -> budget.v1.Tenant
-	0, // 2: budget.v1.TenantMembership.role:type_name -> budget.v1.TenantRole
-	1, // 3: budget.v1.CreateTenantResponse.tenant:type_name -> budget.v1.Tenant
-	2, // 4: budget.v1.ListMyTenantsResponse.memberships:type_name -> budget.v1.TenantMembership
-	3, // 5: budget.v1.TenantService.CreateTenant:input_type -> budget.v1.CreateTenantRequest
-	5, // 6: budget.v1.TenantService.ListMyTenants:input_type -> budget.v1.ListMyTenantsRequest
-	4, // 7: budget.v1.TenantService.CreateTenant:output_type -> budget.v1.CreateTenantResponse
-	6, // 8: budget.v1.TenantService.ListMyTenants:output_type -> budget.v1.ListMyTenantsResponse
-	7, // [7:9] is the sub-list for method output_type
-	5, // [5:7] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	18, // 0: budget.v1.Tenant.created_at:type_name -> google.protobuf.Timestamp
+	1,  // 1: budget.v1.TenantMembership.tenant:type_name -> budget.v1.Tenant
+	0,  // 2: budget.v1.TenantMembership.role:type_name -> budget.v1.TenantRole
+	1,  // 3: budget.v1.CreateTenantResponse.tenant:type_name -> budget.v1.Tenant
+	2,  // 4: budget.v1.ListMyTenantsResponse.memberships:type_name -> budget.v1.TenantMembership
+	1,  // 5: budget.v1.UpdateTenantResponse.tenant:type_name -> budget.v1.Tenant
+	19, // 6: budget.v1.TenantMember.user:type_name -> budget.v1.User
+	0,  // 7: budget.v1.TenantMember.role:type_name -> budget.v1.TenantRole
+	9,  // 8: budget.v1.ListMembersResponse.members:type_name -> budget.v1.TenantMember
+	0,  // 9: budget.v1.AddMemberRequest.role:type_name -> budget.v1.TenantRole
+	9,  // 10: budget.v1.AddMemberResponse.member:type_name -> budget.v1.TenantMember
+	0,  // 11: budget.v1.UpdateMemberRoleRequest.role:type_name -> budget.v1.TenantRole
+	9,  // 12: budget.v1.UpdateMemberRoleResponse.member:type_name -> budget.v1.TenantMember
+	3,  // 13: budget.v1.TenantService.CreateTenant:input_type -> budget.v1.CreateTenantRequest
+	5,  // 14: budget.v1.TenantService.ListMyTenants:input_type -> budget.v1.ListMyTenantsRequest
+	7,  // 15: budget.v1.TenantService.UpdateTenant:input_type -> budget.v1.UpdateTenantRequest
+	10, // 16: budget.v1.TenantService.ListMembers:input_type -> budget.v1.ListMembersRequest
+	12, // 17: budget.v1.TenantService.AddMember:input_type -> budget.v1.AddMemberRequest
+	14, // 18: budget.v1.TenantService.UpdateMemberRole:input_type -> budget.v1.UpdateMemberRoleRequest
+	16, // 19: budget.v1.TenantService.RemoveMember:input_type -> budget.v1.RemoveMemberRequest
+	4,  // 20: budget.v1.TenantService.CreateTenant:output_type -> budget.v1.CreateTenantResponse
+	6,  // 21: budget.v1.TenantService.ListMyTenants:output_type -> budget.v1.ListMyTenantsResponse
+	8,  // 22: budget.v1.TenantService.UpdateTenant:output_type -> budget.v1.UpdateTenantResponse
+	11, // 23: budget.v1.TenantService.ListMembers:output_type -> budget.v1.ListMembersResponse
+	13, // 24: budget.v1.TenantService.AddMember:output_type -> budget.v1.AddMemberResponse
+	15, // 25: budget.v1.TenantService.UpdateMemberRole:output_type -> budget.v1.UpdateMemberRoleResponse
+	17, // 26: budget.v1.TenantService.RemoveMember:output_type -> budget.v1.RemoveMemberResponse
+	20, // [20:27] is the sub-list for method output_type
+	13, // [13:20] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_budget_v1_tenant_proto_init() }
@@ -476,13 +1101,14 @@ func file_budget_v1_tenant_proto_init() {
 	if File_budget_v1_tenant_proto != nil {
 		return
 	}
+	file_budget_v1_user_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_budget_v1_tenant_proto_rawDesc), len(file_budget_v1_tenant_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   6,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
