@@ -17,6 +17,27 @@ func (stubRepo) ListForUser(ctx context.Context, userID string) ([]domain.Tenant
 	return []domain.TenantMembership{{Tenant: domain.Tenant{ID: "t1"}, Role: "owner", IsDefault: true}}, nil
 }
 
+// New interface methods
+func (stubRepo) UpdateTenant(ctx context.Context, tenantID, name, slug, defaultCurrency string) (domain.Tenant, error) {
+	return domain.Tenant{ID: tenantID, Name: name, Slug: slug, DefaultCurrencyCode: defaultCurrency}, nil
+}
+
+func (stubRepo) ListMembers(ctx context.Context, tenantID string) ([]domain.TenantMembership, error) {
+	return []domain.TenantMembership{{Tenant: domain.Tenant{ID: tenantID}, Role: domain.TenantRoleOwner}}, nil
+}
+
+func (stubRepo) AddMember(ctx context.Context, tenantID, userEmail string, role domain.TenantRole) (domain.TenantMembership, error) {
+	return domain.TenantMembership{Tenant: domain.Tenant{ID: tenantID}, Role: role}, nil
+}
+
+func (stubRepo) UpdateMemberRole(ctx context.Context, tenantID, userID string, role domain.TenantRole) (domain.TenantMembership, error) {
+	return domain.TenantMembership{Tenant: domain.Tenant{ID: tenantID}, Role: role}, nil
+}
+func (stubRepo) RemoveMember(ctx context.Context, tenantID, userID string) error { return nil }
+func (stubRepo) GetUserRole(ctx context.Context, tenantID, userID string) (domain.TenantRole, error) {
+	return domain.TenantRoleOwner, nil
+}
+
 func TestService_CreateAndList(t *testing.T) {
 	svc := NewService(stubRepo{})
 	ctx := context.Background()

@@ -245,7 +245,12 @@
     "inviteTitle": "Invite user to account",
     "inviteEmail": "User email",
     "inviteRole": "Role",
-    "inviteNotImplemented": "Invites and member management are not implemented on backend yet."
+    "inviteNotImplemented": "Invites and member management are not implemented on backend yet.",
+    "roleDescriptions": {
+      "owner": "Full access: account settings, members & roles, operations.",
+      "admin": "Manage settings and members (cannot assign/remove owners).",
+      "member": "Access to operations and data without managing settings or members."
+    }
   },
   "profile": {
     "title": "Profile",

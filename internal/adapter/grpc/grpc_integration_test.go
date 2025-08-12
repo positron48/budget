@@ -639,6 +639,28 @@ func (memTenantRepo) ListForUser(ctx context.Context, userID string) ([]domain.T
 	return []domain.TenantMembership{{Tenant: domain.Tenant{ID: "t1"}, Role: "owner", IsDefault: true}}, nil
 }
 
+func (memTenantRepo) UpdateTenant(ctx context.Context, tenantID, name, slug, defaultCurrency string) (domain.Tenant, error) {
+	return domain.Tenant{ID: tenantID, Name: name, Slug: slug, DefaultCurrencyCode: defaultCurrency}, nil
+}
+
+func (memTenantRepo) ListMembers(ctx context.Context, tenantID string) ([]domain.TenantMembership, error) {
+	return []domain.TenantMembership{{Tenant: domain.Tenant{ID: tenantID}, Role: domain.TenantRoleOwner, IsDefault: true}}, nil
+}
+
+func (memTenantRepo) AddMember(ctx context.Context, tenantID, userEmail string, role domain.TenantRole) (domain.TenantMembership, error) {
+	return domain.TenantMembership{Tenant: domain.Tenant{ID: tenantID}, Role: role, IsDefault: false}, nil
+}
+
+func (memTenantRepo) UpdateMemberRole(ctx context.Context, tenantID, userID string, role domain.TenantRole) (domain.TenantMembership, error) {
+	return domain.TenantMembership{Tenant: domain.Tenant{ID: tenantID}, Role: role, IsDefault: false}, nil
+}
+
+func (memTenantRepo) RemoveMember(ctx context.Context, tenantID, userID string) error { return nil }
+
+func (memTenantRepo) GetUserRole(ctx context.Context, tenantID, userID string) (domain.TenantRole, error) {
+	return domain.TenantRoleOwner, nil
+}
+
 func TestTenant_Create_And_List_WithAuth(t *testing.T) {
 	const signKey = "test-secret"
 	lis := bufconn.Listen(bufSize)

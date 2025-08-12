@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v5"
 	authuse "github.com/positron48/budget/internal/usecase/auth"
+	tenuse "github.com/positron48/budget/internal/usecase/tenant"
 	txuse "github.com/positron48/budget/internal/usecase/transaction"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -21,6 +22,8 @@ func mapError(err error) error {
 		return status.Error(codes.Unauthenticated, err.Error())
 	case errors.Is(err, txuse.ErrFxRateNotFound):
 		return status.Error(codes.FailedPrecondition, err.Error())
+	case errors.Is(err, tenuse.ErrPermissionDenied):
+		return status.Error(codes.PermissionDenied, err.Error())
 	}
 	// postgres specific
 	var pgErr *pgconn.PgError

@@ -40,6 +40,16 @@ func isTenantScopedMethod(fullMethod string) bool {
 		return true
 	case hasPrefix(fullMethod, "/budget.v1.ReportService/"):
 		return true
+	case hasPrefix(fullMethod, "/budget.v1.TenantService/UpdateTenant"):
+		return true
+	case hasPrefix(fullMethod, "/budget.v1.TenantService/ListMembers"):
+		return true
+	case hasPrefix(fullMethod, "/budget.v1.TenantService/AddMember"):
+		return true
+	case hasPrefix(fullMethod, "/budget.v1.TenantService/UpdateMemberRole"):
+		return true
+	case hasPrefix(fullMethod, "/budget.v1.TenantService/RemoveMember"):
+		return true
 	default:
 		return false
 	}

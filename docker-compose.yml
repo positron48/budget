@@ -17,6 +17,7 @@ services:
     environment:
       APP_ENV: dev
       GRPC_ADDR: 0.0.0.0:8080
+      METRICS_ADDR: 0.0.0.0:9090
       DATABASE_URL: postgres://budget:budget@db:5432/budget?sslmode=disable
       JWT_ACCESS_TTL: 15m
       JWT_REFRESH_TTL: 720h
@@ -55,7 +56,7 @@ services:
       - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
     ports:
-      - "3000:3000"
+      - "3002:3000"
     depends_on:
       - prometheus
 
