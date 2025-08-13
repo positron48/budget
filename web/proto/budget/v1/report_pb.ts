@@ -100,6 +100,13 @@ export class GetMonthlySummaryRequest extends Message<GetMonthlySummaryRequest> 
    */
   targetCurrencyCode = "";
 
+  /**
+   * minutes to add to local time to get UTC (JS getTimezoneOffset)
+   *
+   * @generated from field: int32 timezone_offset_minutes = 5;
+   */
+  timezoneOffsetMinutes = 0;
+
   constructor(data?: PartialMessage<GetMonthlySummaryRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -112,6 +119,7 @@ export class GetMonthlySummaryRequest extends Message<GetMonthlySummaryRequest> 
     { no: 2, name: "month", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 3, name: "locale", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 4, name: "target_currency_code", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "timezone_offset_minutes", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetMonthlySummaryRequest {

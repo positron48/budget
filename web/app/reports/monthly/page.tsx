@@ -18,7 +18,7 @@ function MonthlyReportInner() {
   const [year, setYear] = useState<number>(today.getFullYear());
   const [month, setMonth] = useState<number>(today.getMonth() + 1); // 1..12
   const [currency, setCurrency] = useState<string>("");
-  const req = useMemo(() => ({ year, month, targetCurrencyCode: currency } as any), [year, month, currency]);
+  const req = useMemo(() => ({ year, month, targetCurrencyCode: currency, timezoneOffsetMinutes: new Date().getTimezoneOffset() } as any), [year, month, currency]);
 
   const locale = useLocale();
   const years = useMemo(() => {

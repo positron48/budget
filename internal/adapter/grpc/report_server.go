@@ -14,12 +14,12 @@ import (
 type ReportServer struct {
 	budgetv1.UnimplementedReportServiceServer
 	svc interface {
-		GetMonthlySummary(ctx context.Context, tenantID string, year int, month int, locale string, targetCurrencyCode string) (repuse.MonthlySummary, error)
+    GetMonthlySummary(ctx context.Context, tenantID string, year int, month int, locale string, targetCurrencyCode string, tzOffsetMinutes int) (repuse.MonthlySummary, error)
 	}
 }
 
 func NewReportServer(svc interface {
-	GetMonthlySummary(ctx context.Context, tenantID string, year int, month int, locale string, targetCurrencyCode string) (repuse.MonthlySummary, error)
+  GetMonthlySummary(ctx context.Context, tenantID string, year int, month int, locale string, targetCurrencyCode string, tzOffsetMinutes int) (repuse.MonthlySummary, error)
 },
 ) *ReportServer {
 	return &ReportServer{svc: svc}
@@ -27,7 +27,7 @@ func NewReportServer(svc interface {
 
 func (s *ReportServer) GetMonthlySummary(ctx context.Context, req *budgetv1.GetMonthlySummaryRequest) (*budgetv1.GetMonthlySummaryResponse, error) {
 	tenantID, _ := ctxutil.TenantIDFromContext(ctx)
-	sum, err := s.svc.GetMonthlySummary(ctx, tenantID, int(req.GetYear()), int(req.GetMonth()), req.GetLocale(), req.GetTargetCurrencyCode())
+  sum, err := s.svc.GetMonthlySummary(ctx, tenantID, int(req.GetYear()), int(req.GetMonth()), req.GetLocale(), req.GetTargetCurrencyCode(), int(req.GetTimezoneOffsetMinutes()))
 	if err != nil {
 		return nil, mapError(err)
 	}

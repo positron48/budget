@@ -2,7 +2,7 @@ PROTO_DIR=proto
 DB_URL=postgres://budget:budget@localhost:5432/budget?sslmode=disable
 
 # Список всех целей в одном месте
-.PHONY: help proto dproto tsproto lproto-go build run run-backend stop up down logs ps tidy fmt test pgtest lint vet ci check web-install web-build web-lint web-test web-check check-all migrate-up migrate-down dmigrate-up dmigrate-down
+.PHONY: help proto dproto tsproto lproto-go build run run-backend stop restart up down logs ps tidy fmt test pgtest lint vet ci check web-install web-build web-lint web-test web-check check-all migrate-up migrate-down dmigrate-up dmigrate-down
 
 # Вывести список целей и их описание (с группировкой по разделам)
 help: ## [Meta] Показать список команд по разделам
@@ -61,6 +61,10 @@ stop: ## [Dev] Остановить фронтенд dev (screen/nohup) и docke
 	fi; \
 	docker compose down || true; \
 	printf "  \033[90mDocker compose остановлен\033[0m\n\n"
+
+restart: ## [Dev] Перезапуск окружения (stop -> run)
+	$(MAKE) stop
+	$(MAKE) run
 
 run-backend: ## [Go] Запуск только бэкенда локально (go run)
 	GRPC_ADDR=0.0.0.0:8080 go run ./cmd/budgetd

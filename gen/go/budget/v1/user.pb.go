@@ -7,12 +7,11 @@
 package budgetv1
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -474,20 +473,17 @@ func file_budget_v1_user_proto_rawDescGZIP() []byte {
 	return file_budget_v1_user_proto_rawDescData
 }
 
-var (
-	file_budget_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
-	file_budget_v1_user_proto_goTypes  = []interface{}{
-		(*User)(nil),                   // 0: budget.v1.User
-		(*GetMeRequest)(nil),           // 1: budget.v1.GetMeRequest
-		(*GetMeResponse)(nil),          // 2: budget.v1.GetMeResponse
-		(*UpdateProfileRequest)(nil),   // 3: budget.v1.UpdateProfileRequest
-		(*UpdateProfileResponse)(nil),  // 4: budget.v1.UpdateProfileResponse
-		(*ChangePasswordRequest)(nil),  // 5: budget.v1.ChangePasswordRequest
-		(*ChangePasswordResponse)(nil), // 6: budget.v1.ChangePasswordResponse
-		(*timestamppb.Timestamp)(nil),  // 7: google.protobuf.Timestamp
-	}
-)
-
+var file_budget_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_budget_v1_user_proto_goTypes = []interface{}{
+	(*User)(nil),                   // 0: budget.v1.User
+	(*GetMeRequest)(nil),           // 1: budget.v1.GetMeRequest
+	(*GetMeResponse)(nil),          // 2: budget.v1.GetMeResponse
+	(*UpdateProfileRequest)(nil),   // 3: budget.v1.UpdateProfileRequest
+	(*UpdateProfileResponse)(nil),  // 4: budget.v1.UpdateProfileResponse
+	(*ChangePasswordRequest)(nil),  // 5: budget.v1.ChangePasswordRequest
+	(*ChangePasswordResponse)(nil), // 6: budget.v1.ChangePasswordResponse
+	(*timestamppb.Timestamp)(nil),  // 7: google.protobuf.Timestamp
+}
 var file_budget_v1_user_proto_depIdxs = []int32{
 	7, // 0: budget.v1.User.created_at:type_name -> google.protobuf.Timestamp
 	7, // 1: budget.v1.User.updated_at:type_name -> google.protobuf.Timestamp

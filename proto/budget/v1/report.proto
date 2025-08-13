@@ -18,6 +18,7 @@ message GetMonthlySummaryRequest {
   int32 month = 2;            // 1..12
   string locale = 3;          // preferred translation
   string target_currency_code = 4; // if empty, use tenant default currency
+  int32 timezone_offset_minutes = 5; // minutes to add to local time to get UTC (JS getTimezoneOffset)
 }
 
 message GetMonthlySummaryResponse {

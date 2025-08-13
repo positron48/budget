@@ -110,9 +110,9 @@ func (r *TransactionRepo) List(ctx context.Context, tenantID string, filter txus
 	if filter.From != nil {
 		add("occurred_at >= $%d", *filter.From)
 	}
-	if filter.To != nil {
-		add("occurred_at <= $%d", *filter.To)
-	}
+    if filter.To != nil {
+        add("occurred_at < $%d", *filter.To)
+    }
 	if len(filter.CategoryIDs) > 0 {
 		add("category_id = ANY($%d)", filter.CategoryIDs)
 	}
@@ -197,9 +197,9 @@ func (r *TransactionRepo) Totals(ctx context.Context, tenantID string, filter tx
 	if filter.From != nil {
 		add("occurred_at >= $%d", *filter.From)
 	}
-	if filter.To != nil {
-		add("occurred_at <= $%d", *filter.To)
-	}
+  if filter.To != nil {
+    add("occurred_at < $%d", *filter.To)
+  }
 	if len(filter.CategoryIDs) > 0 {
 		add("category_id = ANY($%d)", filter.CategoryIDs)
 	}

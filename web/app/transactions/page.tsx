@@ -52,8 +52,15 @@ function TransactionsInner() {
     if (type) req.type = type;
     if (from || to) {
       req.dateRange = {};
-      if (from) req.dateRange.from = { seconds: Math.floor(new Date(from).getTime() / 1000) };
-      if (to) req.dateRange.to = { seconds: Math.floor(new Date(to).getTime() / 1000) };
+      if (from) {
+        const f = new Date(`${from}T00:00:00`); // local midnight
+        req.dateRange.from = { seconds: Math.floor(f.getTime() / 1000) };
+      }
+      if (to) {
+        const tdate = new Date(`${to}T00:00:00`); // local midnight
+        tdate.setDate(tdate.getDate() + 1); // upper bound exclusive: next local midnight
+        req.dateRange.to = { seconds: Math.floor(tdate.getTime() / 1000) };
+      }
     }
     if (search) req.search = search;
     if (selectedCategoryIds.length) req.categoryIds = selectedCategoryIds;
@@ -78,8 +85,15 @@ function TransactionsInner() {
     if (type) req.type = type;
     if (from || to) {
       req.dateRange = {};
-      if (from) req.dateRange.from = { seconds: Math.floor(new Date(from).getTime() / 1000) };
-      if (to) req.dateRange.to = { seconds: Math.floor(new Date(to).getTime() / 1000) };
+      if (from) {
+        const f = new Date(`${from}T00:00:00`);
+        req.dateRange.from = { seconds: Math.floor(f.getTime() / 1000) };
+      }
+      if (to) {
+        const tdate = new Date(`${to}T00:00:00`);
+        tdate.setDate(tdate.getDate() + 1);
+        req.dateRange.to = { seconds: Math.floor(tdate.getTime() / 1000) };
+      }
     }
     if (search) req.search = search;
     if (selectedCategoryIds.length) req.categoryIds = selectedCategoryIds;

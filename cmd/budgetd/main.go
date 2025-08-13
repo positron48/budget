@@ -155,7 +155,7 @@ func main() {
 		budgetv1.RegisterTransactionServiceServer(server, grpcadapter.NewTransactionServer(txSvc))
 
 		// Report
-		reportSvc := reportuse.NewService(txSvc, fxRepo, tenantRepo, categoryRepo)
+        reportSvc := reportuse.NewService(txSvc, fxRepo, tenantRepo, categoryRepo)
 		budgetv1.RegisterReportServiceServer(server, grpcadapter.NewReportServer(reportSvc))
 
 		// User
