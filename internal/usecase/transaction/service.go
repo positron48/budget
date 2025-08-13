@@ -20,6 +20,7 @@ type TxRepo interface {
 	Delete(ctx context.Context, id string) error
 	Get(ctx context.Context, id string) (domain.Transaction, error)
 	List(ctx context.Context, tenantID string, filter ListFilter) ([]domain.Transaction, int64, error)
+	Totals(ctx context.Context, tenantID string, filter ListFilter) (totalIncomeMinor int64, totalExpenseMinor int64, baseCurrency string, err error)
 }
 
 type FxRepo interface {
@@ -111,6 +112,23 @@ func (s *Service) Get(ctx context.Context, id string) (domain.Transaction, error
 
 func (s *Service) List(ctx context.Context, tenantID string, filter ListFilter) ([]domain.Transaction, int64, error) {
 	return s.txs.List(ctx, tenantID, filter)
+}
+
+// Totals returns income/expense totals in tenant base currency according to filter (ignoring pagination)
+func (s *Service) Totals(ctx context.Context, tenantID string, filter ListFilter) (domain.Money, domain.Money, error) {
+	tenant, err := s.tenants.GetByID(ctx, tenantID)
+	if err != nil {
+		return domain.Money{}, domain.Money{}, err
+	}
+	inc, exp, baseCurrency, err := s.txs.Totals(ctx, tenantID, filter)
+	if err != nil {
+		return domain.Money{}, domain.Money{}, err
+	}
+	// fall back to tenant base currency if repo did not return it
+	if baseCurrency == "" {
+		baseCurrency = tenant.DefaultCurrencyCode
+	}
+	return domain.Money{CurrencyCode: baseCurrency, MinorUnits: inc}, domain.Money{CurrencyCode: baseCurrency, MinorUnits: exp}, nil
 }
 
 // High-level API used by controller (business rules live here)

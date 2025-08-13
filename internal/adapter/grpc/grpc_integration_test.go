@@ -485,6 +485,10 @@ func (memTxSvc) List(ctx context.Context, tenantID string, filter txuse.ListFilt
 	return []domain.Transaction{{ID: "tx1"}}, 1, nil
 }
 
+func (memTxSvc) Totals(ctx context.Context, tenantID string, filter txuse.ListFilter) (domain.Money, domain.Money, error) {
+	return domain.Money{CurrencyCode: "USD", MinorUnits: 100}, domain.Money{CurrencyCode: "USD", MinorUnits: 50}, nil
+}
+
 func (memTxSvc) CreateForUser(ctx context.Context, tenantID, userID string, txType domain.TransactionType, categoryID string, amount domain.Money, occurredAt time.Time, comment string) (domain.Transaction, error) {
 	return domain.Transaction{ID: "tx1", TenantID: tenantID, UserID: userID, CategoryID: categoryID, Type: txType, Amount: amount, BaseAmount: amount, OccurredAt: occurredAt, CreatedAt: time.Now()}, nil
 }

@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CreateTransactionRequest, CreateTransactionResponse, DeleteTransactionRequest, DeleteTransactionResponse, GetTransactionRequest, GetTransactionResponse, ListTransactionsRequest, ListTransactionsResponse, UpdateTransactionRequest, UpdateTransactionResponse } from "./transaction_pb";
+import { CreateTransactionRequest, CreateTransactionResponse, DeleteTransactionRequest, DeleteTransactionResponse, GetTransactionRequest, GetTransactionResponse, GetTransactionsTotalsRequest, GetTransactionsTotalsResponse, ListTransactionsRequest, ListTransactionsResponse, UpdateTransactionRequest, UpdateTransactionResponse } from "./transaction_pb";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -55,6 +55,17 @@ export const TransactionService = {
       name: "ListTransactions",
       I: ListTransactionsRequest,
       O: ListTransactionsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Returns totals (income/expense) for the provided filters, ignoring pagination
+     *
+     * @generated from rpc budget.v1.TransactionService.GetTransactionsTotals
+     */
+    getTransactionsTotals: {
+      name: "GetTransactionsTotals",
+      I: GetTransactionsTotalsRequest,
+      O: GetTransactionsTotalsResponse,
       kind: MethodKind.Unary,
     },
   }

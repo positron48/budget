@@ -1,0 +1,19 @@
+# Exclude local data and heavy build artifacts from Docker build context
+.data
+.git
+bin
+
+# Frontend caches and deps
+web/node_modules
+web/.next
+web/.turbo
+web/coverage
+web/dist
+web/out
+web/.vercel
+
+# OS/editor junk
+.DS_Store
+*.swp
+*.log
+

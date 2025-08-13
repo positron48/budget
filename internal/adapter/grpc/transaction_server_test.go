@@ -41,6 +41,10 @@ func (s txSvcStub) List(ctx context.Context, tenantID string, filter txuse.ListF
 	return s.items, s.total, s.err
 }
 
+func (s txSvcStub) Totals(ctx context.Context, tenantID string, filter txuse.ListFilter) (domain.Money, domain.Money, error) {
+	return domain.Money{CurrencyCode: "RUB", MinorUnits: 0}, domain.Money{CurrencyCode: "RUB", MinorUnits: 0}, s.err
+}
+
 func (s txSvcStub) CreateForUser(ctx context.Context, tenantID, userID string, txType domain.TransactionType, categoryID string, amount domain.Money, occurredAt time.Time, comment string) (domain.Transaction, error) {
 	return s.tx, s.err
 }
@@ -65,6 +69,10 @@ func (txSvcBaseErr) Get(ctx context.Context, id string) (domain.Transaction, err
 
 func (txSvcBaseErr) List(ctx context.Context, tenantID string, filter txuse.ListFilter) ([]domain.Transaction, int64, error) {
 	return nil, 0, nil
+}
+
+func (txSvcBaseErr) Totals(ctx context.Context, tenantID string, filter txuse.ListFilter) (domain.Money, domain.Money, error) {
+	return domain.Money{}, domain.Money{}, errors.New("boom")
 }
 
 func (txSvcBaseErr) CreateForUser(ctx context.Context, tenantID, userID string, txType domain.TransactionType, categoryID string, amount domain.Money, occurredAt time.Time, comment string) (domain.Transaction, error) {
@@ -158,6 +166,10 @@ func (txSvcEcho) List(ctx context.Context, tenantID string, filter txuse.ListFil
 	return nil, 0, nil
 }
 
+func (txSvcEcho) Totals(ctx context.Context, tenantID string, filter txuse.ListFilter) (domain.Money, domain.Money, error) {
+	return domain.Money{CurrencyCode: "EUR", MinorUnits: 100}, domain.Money{CurrencyCode: "EUR", MinorUnits: 50}, nil
+}
+
 func (txSvcEcho) CreateForUser(ctx context.Context, tenantID, userID string, txType domain.TransactionType, categoryID string, amount domain.Money, occurredAt time.Time, comment string) (domain.Transaction, error) {
 	return domain.Transaction{ID: "tx"}, nil
 }
@@ -222,6 +234,28 @@ func TestTransactionServer_List_WithFilters(t *testing.T) {
 	ctx := ctxutil.WithTenantID(context.Background(), "t1")
 	if _, err := srv.ListTransactions(ctx, req); err != nil {
 		t.Fatalf("list with filters: %v", err)
+	}
+}
+
+func TestTransactionServer_Totals(t *testing.T) {
+	srv := NewTransactionServer(txSvcEcho{})
+	now := time.Now()
+	req := &budgetv1.GetTransactionsTotalsRequest{
+		DateRange:     &budgetv1.DateRange{From: timestamppb.New(now.Add(-24 * time.Hour)), To: timestamppb.New(now)},
+		CategoryIds:   []string{"c1"},
+		Type:          budgetv1.TransactionType_TRANSACTION_TYPE_INCOME,
+		MinMinorUnits: 10,
+		MaxMinorUnits: 1000,
+		CurrencyCode:  "USD",
+		Search:        "book",
+	}
+	ctx := ctxutil.WithTenantID(context.Background(), "t1")
+	out, err := srv.GetTransactionsTotals(ctx, req)
+	if err != nil {
+		t.Fatalf("totals: %v", err)
+	}
+	if out.GetTotalIncome().GetCurrencyCode() == "" || out.GetTotalExpense().GetCurrencyCode() == "" {
+		t.Fatalf("totals currency empty: %#v", out)
 	}
 }
 

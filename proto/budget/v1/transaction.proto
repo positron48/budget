@@ -65,6 +65,24 @@ service TransactionService {
   rpc DeleteTransaction(DeleteTransactionRequest) returns (DeleteTransactionResponse);
   rpc GetTransaction(GetTransactionRequest) returns (GetTransactionResponse);
   rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse);
+  // Returns totals (income/expense) for the provided filters, ignoring pagination
+  rpc GetTransactionsTotals(GetTransactionsTotalsRequest) returns (GetTransactionsTotalsResponse);
+}
+
+// Filtered totals for transactions (ignores pagination). Totals are returned in tenant base currency.
+message GetTransactionsTotalsRequest {
+  DateRange date_range = 1;
+  repeated string category_ids = 2;
+  TransactionType type = 3;        // optional filter
+  int64 min_minor_units = 4;        // optional amount filters (by original amount)
+  int64 max_minor_units = 5;
+  string currency_code = 6;         // optional filter by transaction currency
+  string search = 7;                // comment search
+}
+
+message GetTransactionsTotalsResponse {
+  Money total_income = 1;   // in tenant base currency
+  Money total_expense = 2;  // in tenant base currency
 }
 
 

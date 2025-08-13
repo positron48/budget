@@ -72,6 +72,35 @@ function TransactionsInner() {
     placeholderData: (previousData) => previousData,
   });
 
+  // Totals for full filtered period via RPC (ignores pagination)
+  const totalsRequest = useMemo(() => {
+    const req: any = {};
+    if (type) req.type = type;
+    if (from || to) {
+      req.dateRange = {};
+      if (from) req.dateRange.from = { seconds: Math.floor(new Date(from).getTime() / 1000) };
+      if (to) req.dateRange.to = { seconds: Math.floor(new Date(to).getTime() / 1000) };
+    }
+    if (search) req.search = search;
+    if (selectedCategoryIds.length) req.categoryIds = selectedCategoryIds;
+    return req;
+  }, [type, from, to, search, selectedCategoryIds]);
+
+  const { data: totalsData, isLoading: totalsLoading, error: totalsError } = useQuery({
+    queryKey: ["transactionsTotals", totalsRequest],
+    queryFn: async () => {
+      const resp = await transaction.getTransactionsTotals(totalsRequest as any);
+      return {
+        totalIncome: Number(resp?.totalIncome?.minorUnits || 0),
+        totalExpenses: Number(resp?.totalExpense?.minorUnits || 0),
+        currencyCode: resp?.totalIncome?.currencyCode || resp?.totalExpense?.currencyCode || "RUB",
+      };
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 300000,
+  });
+
   // Загружаем категории для фильтров и отображения
   const { data: categoriesData, isLoading: categoriesLoading, error: categoriesError } = useQuery({
     queryKey: ["categories"],
@@ -174,17 +203,13 @@ function TransactionsInner() {
           </div>
         </div>
 
-        {/* Statistics */}
-        {!isLoading && !error && data?.transactions && data.transactions.length > 0 && (
+        {/* Statistics (full filtered period, ignores pagination) */}
+        {!isLoading && !error && Number(data?.page?.totalItems || 0) > 0 && !totalsLoading && !totalsError && totalsData && (
           <div className="mb-4">
             <TransactionStats
-              totalIncome={data.transactions
-                .filter((tx: any) => tx.type === TransactionType.INCOME)
-                .reduce((sum: number, tx: any) => sum + Number(tx.amount?.minorUnits || 0), 0)}
-              totalExpenses={data.transactions
-                .filter((tx: any) => tx.type === TransactionType.EXPENSE)
-                .reduce((sum: number, tx: any) => sum + Number(tx.amount?.minorUnits || 0), 0)}
-              currencyCode={data.transactions[0]?.amount?.currencyCode || "RUB"}
+              totalIncome={totalsData.totalIncome}
+              totalExpenses={totalsData.totalExpenses}
+              currencyCode={totalsData.currencyCode || "RUB"}
               period={t("periodCurrent") as string}
             />
           </div>

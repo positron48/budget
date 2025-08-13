@@ -2,7 +2,7 @@ PROTO_DIR=proto
 DB_URL=postgres://budget:budget@localhost:5432/budget?sslmode=disable
 
 # Список всех целей в одном месте
-.PHONY: help proto dproto tsproto build run run-backend stop up down logs ps tidy fmt test pgtest lint vet ci check web-install web-build web-lint web-test web-check check-all migrate-up migrate-down dmigrate-up dmigrate-down
+.PHONY: help proto dproto tsproto lproto-go build run run-backend stop up down logs ps tidy fmt test pgtest lint vet ci check web-install web-build web-lint web-test web-check check-all migrate-up migrate-down dmigrate-up dmigrate-down
 
 # Вывести список целей и их описание (с группировкой по разделам)
 help: ## [Meta] Показать список команд по разделам
@@ -18,6 +18,9 @@ dproto: ## [Proto] Сгенерировать protobuf в docker (buf)
 
 tsproto: ## [Proto] Сгенерировать только TS stubs для фронта (локальные плагины из web/node_modules)
 	cd $(PROTO_DIR) && buf generate --template buf.gen.ts.yaml
+
+lproto-go: ## [Proto] Сгенерировать Go stubs локальными плагинами (protoc-gen-go, protoc-gen-go-grpc должны быть в PATH)
+	cd $(PROTO_DIR) && buf generate --template buf.gen.local-go.yaml
 
 build: ## [Go] Сборка Go бинарника (bin/budgetd)
 	go build -o bin/budgetd ./cmd/budgetd
@@ -62,7 +65,8 @@ stop: ## [Dev] Остановить фронтенд dev (screen/nohup) и docke
 run-backend: ## [Go] Запуск только бэкенда локально (go run)
 	GRPC_ADDR=0.0.0.0:8080 go run ./cmd/budgetd
 
-up: ## [Docker] Запуск окружения через docker compose (-d --build)
+up: ## [Docker] Запуск окружения
+	docker compose build app
 	docker compose up -d
 
 down: ## [Docker] Остановка docker compose (без удаления данных)

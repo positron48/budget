@@ -582,3 +582,133 @@ export class ListTransactionsResponse extends Message<ListTransactionsResponse> 
   }
 }
 
+/**
+ * Filtered totals for transactions (ignores pagination). Totals are returned in tenant base currency.
+ *
+ * @generated from message budget.v1.GetTransactionsTotalsRequest
+ */
+export class GetTransactionsTotalsRequest extends Message<GetTransactionsTotalsRequest> {
+  /**
+   * @generated from field: budget.v1.DateRange date_range = 1;
+   */
+  dateRange?: DateRange;
+
+  /**
+   * @generated from field: repeated string category_ids = 2;
+   */
+  categoryIds: string[] = [];
+
+  /**
+   * optional filter
+   *
+   * @generated from field: budget.v1.TransactionType type = 3;
+   */
+  type = TransactionType.UNSPECIFIED;
+
+  /**
+   * optional amount filters (by original amount)
+   *
+   * @generated from field: int64 min_minor_units = 4;
+   */
+  minMinorUnits = protoInt64.zero;
+
+  /**
+   * @generated from field: int64 max_minor_units = 5;
+   */
+  maxMinorUnits = protoInt64.zero;
+
+  /**
+   * optional filter by transaction currency
+   *
+   * @generated from field: string currency_code = 6;
+   */
+  currencyCode = "";
+
+  /**
+   * comment search
+   *
+   * @generated from field: string search = 7;
+   */
+  search = "";
+
+  constructor(data?: PartialMessage<GetTransactionsTotalsRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "budget.v1.GetTransactionsTotalsRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "date_range", kind: "message", T: DateRange },
+    { no: 2, name: "category_ids", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 3, name: "type", kind: "enum", T: proto3.getEnumType(TransactionType) },
+    { no: 4, name: "min_minor_units", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 5, name: "max_minor_units", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 6, name: "currency_code", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "search", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetTransactionsTotalsRequest {
+    return new GetTransactionsTotalsRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetTransactionsTotalsRequest {
+    return new GetTransactionsTotalsRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetTransactionsTotalsRequest {
+    return new GetTransactionsTotalsRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetTransactionsTotalsRequest | PlainMessage<GetTransactionsTotalsRequest> | undefined, b: GetTransactionsTotalsRequest | PlainMessage<GetTransactionsTotalsRequest> | undefined): boolean {
+    return proto3.util.equals(GetTransactionsTotalsRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message budget.v1.GetTransactionsTotalsResponse
+ */
+export class GetTransactionsTotalsResponse extends Message<GetTransactionsTotalsResponse> {
+  /**
+   * in tenant base currency
+   *
+   * @generated from field: budget.v1.Money total_income = 1;
+   */
+  totalIncome?: Money;
+
+  /**
+   * in tenant base currency
+   *
+   * @generated from field: budget.v1.Money total_expense = 2;
+   */
+  totalExpense?: Money;
+
+  constructor(data?: PartialMessage<GetTransactionsTotalsResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "budget.v1.GetTransactionsTotalsResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "total_income", kind: "message", T: Money },
+    { no: 2, name: "total_expense", kind: "message", T: Money },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetTransactionsTotalsResponse {
+    return new GetTransactionsTotalsResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetTransactionsTotalsResponse {
+    return new GetTransactionsTotalsResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetTransactionsTotalsResponse {
+    return new GetTransactionsTotalsResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetTransactionsTotalsResponse | PlainMessage<GetTransactionsTotalsResponse> | undefined, b: GetTransactionsTotalsResponse | PlainMessage<GetTransactionsTotalsResponse> | undefined): boolean {
+    return proto3.util.equals(GetTransactionsTotalsResponse, a, b);
+  }
+}
+

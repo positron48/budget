@@ -185,6 +185,58 @@ func (r *TransactionRepo) List(ctx context.Context, tenantID string, filter txus
 	return list, total, rows.Err()
 }
 
+// Totals computes income/expense totals in base currency according to filter (ignoring pagination)
+func (r *TransactionRepo) Totals(ctx context.Context, tenantID string, filter txusecase.ListFilter) (int64, int64, string, error) {
+	var where []string
+	var args []any
+	add := func(cond string, val any) {
+		where = append(where, fmt.Sprintf(cond, len(args)+1))
+		args = append(args, val)
+	}
+	add("tenant_id=$%d", tenantID)
+	if filter.From != nil {
+		add("occurred_at >= $%d", *filter.From)
+	}
+	if filter.To != nil {
+		add("occurred_at <= $%d", *filter.To)
+	}
+	if len(filter.CategoryIDs) > 0 {
+		add("category_id = ANY($%d)", filter.CategoryIDs)
+	}
+	if filter.Type != nil {
+		add("type = $%d", string(*filter.Type))
+	}
+	if filter.MinMinorUnits != nil {
+		add("amount_numeric >= $%d::numeric", toDecimal(*filter.MinMinorUnits))
+	}
+	if filter.MaxMinorUnits != nil {
+		add("amount_numeric <= $%d::numeric", toDecimal(*filter.MaxMinorUnits))
+	}
+	if filter.CurrencyCode != nil && *filter.CurrencyCode != "" {
+		add("currency_code = $%d", *filter.CurrencyCode)
+	}
+	if filter.Search != nil && *filter.Search != "" {
+		add("comment ILIKE $%d", "%"+*filter.Search+"%")
+	}
+	clause := strings.Join(where, " AND ")
+
+	// Sum by base amount to avoid FX conversion per-request
+	// base_currency_code is same for tenant (default), but keep it just in case
+	var incomeDec, expenseDec, baseCurrency string
+	err := r.pool.DB.QueryRow(ctx,
+		"SELECT "+
+			"COALESCE(SUM(CASE WHEN type='income' THEN base_amount_numeric END), 0)::text AS income, "+
+			"COALESCE(SUM(CASE WHEN type='expense' THEN base_amount_numeric END), 0)::text AS expense, "+
+			"COALESCE(MAX(base_currency_code), '') AS base_ccy "+
+			"FROM transactions WHERE "+clause,
+		args...,
+	).Scan(&incomeDec, &expenseDec, &baseCurrency)
+	if err != nil {
+		return 0, 0, "", err
+	}
+	return fromDecimal(incomeDec), fromDecimal(expenseDec), baseCurrency, nil
+}
+
 // Helpers
 func toDecimal(minor int64) string { // 2 decimals
 	neg := minor < 0

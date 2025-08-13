@@ -24,6 +24,7 @@ type TransactionServer struct {
 		Delete(ctx context.Context, id string) error
 		Get(ctx context.Context, id string) (domain.Transaction, error)
 		List(ctx context.Context, tenantID string, filter txusecase.ListFilter) ([]domain.Transaction, int64, error)
+		Totals(ctx context.Context, tenantID string, filter txusecase.ListFilter) (domain.Money, domain.Money, error)
 		CreateForUser(ctx context.Context, tenantID, userID string, txType domain.TransactionType, categoryID string, amount domain.Money, occurredAt time.Time, comment string) (domain.Transaction, error)
 	}
 }
@@ -35,6 +36,7 @@ func NewTransactionServer(svc interface {
 	Delete(context.Context, string) error
 	Get(context.Context, string) (domain.Transaction, error)
 	List(context.Context, string, txusecase.ListFilter) ([]domain.Transaction, int64, error)
+	Totals(context.Context, string, txusecase.ListFilter) (domain.Money, domain.Money, error)
 	CreateForUser(context.Context, string, string, domain.TransactionType, string, domain.Money, time.Time, string) (domain.Transaction, error)
 },
 ) *TransactionServer {
@@ -152,6 +154,51 @@ func (s *TransactionServer) ListTransactions(ctx context.Context, req *budgetv1.
 	}
 	totalPages := (int32(total) + pageSize - 1) / pageSize
 	return &budgetv1.ListTransactionsResponse{Transactions: out, Page: &budgetv1.PageResponse{Page: int32(f.Page), PageSize: pageSize, TotalItems: total, TotalPages: totalPages}}, nil
+}
+
+func (s *TransactionServer) GetTransactionsTotals(ctx context.Context, req *budgetv1.GetTransactionsTotalsRequest) (*budgetv1.GetTransactionsTotalsResponse, error) {
+	tenantID, _ := ctxutil.TenantIDFromContext(ctx)
+	var f txusecase.ListFilter
+	if dr := req.GetDateRange(); dr != nil {
+		if dr.GetFrom() != nil {
+			t := dr.GetFrom().AsTime()
+			f.From = &t
+		}
+		if dr.GetTo() != nil {
+			t := dr.GetTo().AsTime()
+			f.To = &t
+		}
+	}
+	f.CategoryIDs = req.GetCategoryIds()
+	if req.GetType() != budgetv1.TransactionType_TRANSACTION_TYPE_UNSPECIFIED {
+		tt := mapTxType(req.GetType())
+		f.Type = &tt
+	}
+	if req.GetMinMinorUnits() != 0 {
+		v := req.GetMinMinorUnits()
+		f.MinMinorUnits = &v
+	}
+	if req.GetMaxMinorUnits() != 0 {
+		v := req.GetMaxMinorUnits()
+		f.MaxMinorUnits = &v
+	}
+	if req.GetCurrencyCode() != "" {
+		v := req.GetCurrencyCode()
+		f.CurrencyCode = &v
+	}
+	if req.GetSearch() != "" {
+		v := req.GetSearch()
+		f.Search = &v
+	}
+
+	inc, exp, err := s.svc.Totals(ctx, tenantID, f)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return &budgetv1.GetTransactionsTotalsResponse{
+		TotalIncome:  &budgetv1.Money{CurrencyCode: inc.CurrencyCode, MinorUnits: inc.MinorUnits},
+		TotalExpense: &budgetv1.Money{CurrencyCode: exp.CurrencyCode, MinorUnits: exp.MinorUnits},
+	}, nil
 }
 
 func toProtoTx(t domain.Transaction) *budgetv1.Transaction {
