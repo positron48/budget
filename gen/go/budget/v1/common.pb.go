@@ -7,12 +7,13 @@
 package budgetv1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -481,18 +482,20 @@ func file_budget_v1_common_proto_rawDescGZIP() []byte {
 	return file_budget_v1_common_proto_rawDescData
 }
 
-var file_budget_v1_common_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_budget_v1_common_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_budget_v1_common_proto_goTypes = []any{
-	(TransactionType)(0),          // 0: budget.v1.TransactionType
-	(CategoryKind)(0),             // 1: budget.v1.CategoryKind
-	(*Money)(nil),                 // 2: budget.v1.Money
-	(*FxInfo)(nil),                // 3: budget.v1.FxInfo
-	(*PageRequest)(nil),           // 4: budget.v1.PageRequest
-	(*PageResponse)(nil),          // 5: budget.v1.PageResponse
-	(*DateRange)(nil),             // 6: budget.v1.DateRange
-	(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
-}
+var (
+	file_budget_v1_common_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+	file_budget_v1_common_proto_msgTypes  = make([]protoimpl.MessageInfo, 5)
+	file_budget_v1_common_proto_goTypes   = []any{
+		(TransactionType)(0),          // 0: budget.v1.TransactionType
+		(CategoryKind)(0),             // 1: budget.v1.CategoryKind
+		(*Money)(nil),                 // 2: budget.v1.Money
+		(*FxInfo)(nil),                // 3: budget.v1.FxInfo
+		(*PageRequest)(nil),           // 4: budget.v1.PageRequest
+		(*PageResponse)(nil),          // 5: budget.v1.PageResponse
+		(*DateRange)(nil),             // 6: budget.v1.DateRange
+		(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
+	}
+)
 var file_budget_v1_common_proto_depIdxs = []int32{
 	7, // 0: budget.v1.FxInfo.as_of:type_name -> google.protobuf.Timestamp
 	7, // 1: budget.v1.DateRange.from:type_name -> google.protobuf.Timestamp

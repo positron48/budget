@@ -7,11 +7,12 @@
 package budgetv1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -690,20 +691,22 @@ func file_budget_v1_import_proto_rawDescGZIP() []byte {
 	return file_budget_v1_import_proto_rawDescData
 }
 
-var file_budget_v1_import_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
-var file_budget_v1_import_proto_goTypes = []any{
-	(*StartCsvImportRequest)(nil),       // 0: budget.v1.StartCsvImportRequest
-	(*StartCsvImportResponse)(nil),      // 1: budget.v1.StartCsvImportResponse
-	(*UploadCsvChunkRequest)(nil),       // 2: budget.v1.UploadCsvChunkRequest
-	(*UploadCsvChunkResponse)(nil),      // 3: budget.v1.UploadCsvChunkResponse
-	(*CsvColumnMapping)(nil),            // 4: budget.v1.CsvColumnMapping
-	(*ConfigureCsvMappingRequest)(nil),  // 5: budget.v1.ConfigureCsvMappingRequest
-	(*ConfigureCsvMappingResponse)(nil), // 6: budget.v1.ConfigureCsvMappingResponse
-	(*PreviewCsvImportRequest)(nil),     // 7: budget.v1.PreviewCsvImportRequest
-	(*PreviewCsvImportResponse)(nil),    // 8: budget.v1.PreviewCsvImportResponse
-	(*CommitCsvImportRequest)(nil),      // 9: budget.v1.CommitCsvImportRequest
-	(*CommitCsvImportResponse)(nil),     // 10: budget.v1.CommitCsvImportResponse
-}
+var (
+	file_budget_v1_import_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+	file_budget_v1_import_proto_goTypes  = []any{
+		(*StartCsvImportRequest)(nil),       // 0: budget.v1.StartCsvImportRequest
+		(*StartCsvImportResponse)(nil),      // 1: budget.v1.StartCsvImportResponse
+		(*UploadCsvChunkRequest)(nil),       // 2: budget.v1.UploadCsvChunkRequest
+		(*UploadCsvChunkResponse)(nil),      // 3: budget.v1.UploadCsvChunkResponse
+		(*CsvColumnMapping)(nil),            // 4: budget.v1.CsvColumnMapping
+		(*ConfigureCsvMappingRequest)(nil),  // 5: budget.v1.ConfigureCsvMappingRequest
+		(*ConfigureCsvMappingResponse)(nil), // 6: budget.v1.ConfigureCsvMappingResponse
+		(*PreviewCsvImportRequest)(nil),     // 7: budget.v1.PreviewCsvImportRequest
+		(*PreviewCsvImportResponse)(nil),    // 8: budget.v1.PreviewCsvImportResponse
+		(*CommitCsvImportRequest)(nil),      // 9: budget.v1.CommitCsvImportRequest
+		(*CommitCsvImportResponse)(nil),     // 10: budget.v1.CommitCsvImportResponse
+	}
+)
 var file_budget_v1_import_proto_depIdxs = []int32{
 	4,  // 0: budget.v1.ConfigureCsvMappingRequest.mapping:type_name -> budget.v1.CsvColumnMapping
 	0,  // 1: budget.v1.ImportService.StartCsvImport:input_type -> budget.v1.StartCsvImportRequest

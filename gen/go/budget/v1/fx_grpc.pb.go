@@ -8,6 +8,7 @@ package budgetv1
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -97,9 +98,11 @@ type UnimplementedFxServiceServer struct{}
 func (UnimplementedFxServiceServer) GetRate(context.Context, *GetRateRequest) (*GetRateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRate not implemented")
 }
+
 func (UnimplementedFxServiceServer) UpsertRate(context.Context, *UpsertRateRequest) (*UpsertRateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpsertRate not implemented")
 }
+
 func (UnimplementedFxServiceServer) BatchGetRates(context.Context, *BatchGetRatesRequest) (*BatchGetRatesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BatchGetRates not implemented")
 }

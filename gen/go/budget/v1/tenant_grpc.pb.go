@@ -8,6 +8,7 @@ package budgetv1
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -143,21 +144,27 @@ type UnimplementedTenantServiceServer struct{}
 func (UnimplementedTenantServiceServer) CreateTenant(context.Context, *CreateTenantRequest) (*CreateTenantResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateTenant not implemented")
 }
+
 func (UnimplementedTenantServiceServer) ListMyTenants(context.Context, *ListMyTenantsRequest) (*ListMyTenantsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListMyTenants not implemented")
 }
+
 func (UnimplementedTenantServiceServer) UpdateTenant(context.Context, *UpdateTenantRequest) (*UpdateTenantResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateTenant not implemented")
 }
+
 func (UnimplementedTenantServiceServer) ListMembers(context.Context, *ListMembersRequest) (*ListMembersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListMembers not implemented")
 }
+
 func (UnimplementedTenantServiceServer) AddMember(context.Context, *AddMemberRequest) (*AddMemberResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddMember not implemented")
 }
+
 func (UnimplementedTenantServiceServer) UpdateMemberRole(context.Context, *UpdateMemberRoleRequest) (*UpdateMemberRoleResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateMemberRole not implemented")
 }
+
 func (UnimplementedTenantServiceServer) RemoveMember(context.Context, *RemoveMemberRequest) (*RemoveMemberResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveMember not implemented")
 }

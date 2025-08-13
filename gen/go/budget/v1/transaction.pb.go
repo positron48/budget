@@ -7,13 +7,14 @@
 package budgetv1
 
 import (
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
 )
 
 const (
@@ -927,30 +928,32 @@ func file_budget_v1_transaction_proto_rawDescGZIP() []byte {
 	return file_budget_v1_transaction_proto_rawDescData
 }
 
-var file_budget_v1_transaction_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
-var file_budget_v1_transaction_proto_goTypes = []any{
-	(*Transaction)(nil),                   // 0: budget.v1.Transaction
-	(*CreateTransactionRequest)(nil),      // 1: budget.v1.CreateTransactionRequest
-	(*CreateTransactionResponse)(nil),     // 2: budget.v1.CreateTransactionResponse
-	(*UpdateTransactionRequest)(nil),      // 3: budget.v1.UpdateTransactionRequest
-	(*UpdateTransactionResponse)(nil),     // 4: budget.v1.UpdateTransactionResponse
-	(*DeleteTransactionRequest)(nil),      // 5: budget.v1.DeleteTransactionRequest
-	(*DeleteTransactionResponse)(nil),     // 6: budget.v1.DeleteTransactionResponse
-	(*GetTransactionRequest)(nil),         // 7: budget.v1.GetTransactionRequest
-	(*GetTransactionResponse)(nil),        // 8: budget.v1.GetTransactionResponse
-	(*ListTransactionsRequest)(nil),       // 9: budget.v1.ListTransactionsRequest
-	(*ListTransactionsResponse)(nil),      // 10: budget.v1.ListTransactionsResponse
-	(*GetTransactionsTotalsRequest)(nil),  // 11: budget.v1.GetTransactionsTotalsRequest
-	(*GetTransactionsTotalsResponse)(nil), // 12: budget.v1.GetTransactionsTotalsResponse
-	(TransactionType)(0),                  // 13: budget.v1.TransactionType
-	(*Money)(nil),                         // 14: budget.v1.Money
-	(*FxInfo)(nil),                        // 15: budget.v1.FxInfo
-	(*timestamppb.Timestamp)(nil),         // 16: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil),         // 17: google.protobuf.FieldMask
-	(*PageRequest)(nil),                   // 18: budget.v1.PageRequest
-	(*DateRange)(nil),                     // 19: budget.v1.DateRange
-	(*PageResponse)(nil),                  // 20: budget.v1.PageResponse
-}
+var (
+	file_budget_v1_transaction_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+	file_budget_v1_transaction_proto_goTypes  = []any{
+		(*Transaction)(nil),                   // 0: budget.v1.Transaction
+		(*CreateTransactionRequest)(nil),      // 1: budget.v1.CreateTransactionRequest
+		(*CreateTransactionResponse)(nil),     // 2: budget.v1.CreateTransactionResponse
+		(*UpdateTransactionRequest)(nil),      // 3: budget.v1.UpdateTransactionRequest
+		(*UpdateTransactionResponse)(nil),     // 4: budget.v1.UpdateTransactionResponse
+		(*DeleteTransactionRequest)(nil),      // 5: budget.v1.DeleteTransactionRequest
+		(*DeleteTransactionResponse)(nil),     // 6: budget.v1.DeleteTransactionResponse
+		(*GetTransactionRequest)(nil),         // 7: budget.v1.GetTransactionRequest
+		(*GetTransactionResponse)(nil),        // 8: budget.v1.GetTransactionResponse
+		(*ListTransactionsRequest)(nil),       // 9: budget.v1.ListTransactionsRequest
+		(*ListTransactionsResponse)(nil),      // 10: budget.v1.ListTransactionsResponse
+		(*GetTransactionsTotalsRequest)(nil),  // 11: budget.v1.GetTransactionsTotalsRequest
+		(*GetTransactionsTotalsResponse)(nil), // 12: budget.v1.GetTransactionsTotalsResponse
+		(TransactionType)(0),                  // 13: budget.v1.TransactionType
+		(*Money)(nil),                         // 14: budget.v1.Money
+		(*FxInfo)(nil),                        // 15: budget.v1.FxInfo
+		(*timestamppb.Timestamp)(nil),         // 16: google.protobuf.Timestamp
+		(*fieldmaskpb.FieldMask)(nil),         // 17: google.protobuf.FieldMask
+		(*PageRequest)(nil),                   // 18: budget.v1.PageRequest
+		(*DateRange)(nil),                     // 19: budget.v1.DateRange
+		(*PageResponse)(nil),                  // 20: budget.v1.PageResponse
+	}
+)
 var file_budget_v1_transaction_proto_depIdxs = []int32{
 	13, // 0: budget.v1.Transaction.type:type_name -> budget.v1.TransactionType
 	14, // 1: budget.v1.Transaction.amount:type_name -> budget.v1.Money

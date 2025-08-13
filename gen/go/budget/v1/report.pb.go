@@ -7,11 +7,12 @@
 package budgetv1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -261,14 +262,16 @@ func file_budget_v1_report_proto_rawDescGZIP() []byte {
 	return file_budget_v1_report_proto_rawDescData
 }
 
-var file_budget_v1_report_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_budget_v1_report_proto_goTypes = []any{
-	(*MonthlyCategorySummaryItem)(nil), // 0: budget.v1.MonthlyCategorySummaryItem
-	(*GetMonthlySummaryRequest)(nil),   // 1: budget.v1.GetMonthlySummaryRequest
-	(*GetMonthlySummaryResponse)(nil),  // 2: budget.v1.GetMonthlySummaryResponse
-	(TransactionType)(0),               // 3: budget.v1.TransactionType
-	(*Money)(nil),                      // 4: budget.v1.Money
-}
+var (
+	file_budget_v1_report_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+	file_budget_v1_report_proto_goTypes  = []any{
+		(*MonthlyCategorySummaryItem)(nil), // 0: budget.v1.MonthlyCategorySummaryItem
+		(*GetMonthlySummaryRequest)(nil),   // 1: budget.v1.GetMonthlySummaryRequest
+		(*GetMonthlySummaryResponse)(nil),  // 2: budget.v1.GetMonthlySummaryResponse
+		(TransactionType)(0),               // 3: budget.v1.TransactionType
+		(*Money)(nil),                      // 4: budget.v1.Money
+	}
+)
 var file_budget_v1_report_proto_depIdxs = []int32{
 	3, // 0: budget.v1.MonthlyCategorySummaryItem.type:type_name -> budget.v1.TransactionType
 	4, // 1: budget.v1.MonthlyCategorySummaryItem.total:type_name -> budget.v1.Money

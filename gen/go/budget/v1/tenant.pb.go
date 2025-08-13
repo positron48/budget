@@ -7,12 +7,13 @@
 package budgetv1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -1037,30 +1038,32 @@ func file_budget_v1_tenant_proto_rawDescGZIP() []byte {
 	return file_budget_v1_tenant_proto_rawDescData
 }
 
-var file_budget_v1_tenant_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_budget_v1_tenant_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
-var file_budget_v1_tenant_proto_goTypes = []any{
-	(TenantRole)(0),                  // 0: budget.v1.TenantRole
-	(*Tenant)(nil),                   // 1: budget.v1.Tenant
-	(*TenantMembership)(nil),         // 2: budget.v1.TenantMembership
-	(*CreateTenantRequest)(nil),      // 3: budget.v1.CreateTenantRequest
-	(*CreateTenantResponse)(nil),     // 4: budget.v1.CreateTenantResponse
-	(*ListMyTenantsRequest)(nil),     // 5: budget.v1.ListMyTenantsRequest
-	(*ListMyTenantsResponse)(nil),    // 6: budget.v1.ListMyTenantsResponse
-	(*UpdateTenantRequest)(nil),      // 7: budget.v1.UpdateTenantRequest
-	(*UpdateTenantResponse)(nil),     // 8: budget.v1.UpdateTenantResponse
-	(*TenantMember)(nil),             // 9: budget.v1.TenantMember
-	(*ListMembersRequest)(nil),       // 10: budget.v1.ListMembersRequest
-	(*ListMembersResponse)(nil),      // 11: budget.v1.ListMembersResponse
-	(*AddMemberRequest)(nil),         // 12: budget.v1.AddMemberRequest
-	(*AddMemberResponse)(nil),        // 13: budget.v1.AddMemberResponse
-	(*UpdateMemberRoleRequest)(nil),  // 14: budget.v1.UpdateMemberRoleRequest
-	(*UpdateMemberRoleResponse)(nil), // 15: budget.v1.UpdateMemberRoleResponse
-	(*RemoveMemberRequest)(nil),      // 16: budget.v1.RemoveMemberRequest
-	(*RemoveMemberResponse)(nil),     // 17: budget.v1.RemoveMemberResponse
-	(*timestamppb.Timestamp)(nil),    // 18: google.protobuf.Timestamp
-	(*User)(nil),                     // 19: budget.v1.User
-}
+var (
+	file_budget_v1_tenant_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+	file_budget_v1_tenant_proto_msgTypes  = make([]protoimpl.MessageInfo, 17)
+	file_budget_v1_tenant_proto_goTypes   = []any{
+		(TenantRole)(0),                  // 0: budget.v1.TenantRole
+		(*Tenant)(nil),                   // 1: budget.v1.Tenant
+		(*TenantMembership)(nil),         // 2: budget.v1.TenantMembership
+		(*CreateTenantRequest)(nil),      // 3: budget.v1.CreateTenantRequest
+		(*CreateTenantResponse)(nil),     // 4: budget.v1.CreateTenantResponse
+		(*ListMyTenantsRequest)(nil),     // 5: budget.v1.ListMyTenantsRequest
+		(*ListMyTenantsResponse)(nil),    // 6: budget.v1.ListMyTenantsResponse
+		(*UpdateTenantRequest)(nil),      // 7: budget.v1.UpdateTenantRequest
+		(*UpdateTenantResponse)(nil),     // 8: budget.v1.UpdateTenantResponse
+		(*TenantMember)(nil),             // 9: budget.v1.TenantMember
+		(*ListMembersRequest)(nil),       // 10: budget.v1.ListMembersRequest
+		(*ListMembersResponse)(nil),      // 11: budget.v1.ListMembersResponse
+		(*AddMemberRequest)(nil),         // 12: budget.v1.AddMemberRequest
+		(*AddMemberResponse)(nil),        // 13: budget.v1.AddMemberResponse
+		(*UpdateMemberRoleRequest)(nil),  // 14: budget.v1.UpdateMemberRoleRequest
+		(*UpdateMemberRoleResponse)(nil), // 15: budget.v1.UpdateMemberRoleResponse
+		(*RemoveMemberRequest)(nil),      // 16: budget.v1.RemoveMemberRequest
+		(*RemoveMemberResponse)(nil),     // 17: budget.v1.RemoveMemberResponse
+		(*timestamppb.Timestamp)(nil),    // 18: google.protobuf.Timestamp
+		(*User)(nil),                     // 19: budget.v1.User
+	}
+)
 var file_budget_v1_tenant_proto_depIdxs = []int32{
 	18, // 0: budget.v1.Tenant.created_at:type_name -> google.protobuf.Timestamp
 	1,  // 1: budget.v1.TenantMembership.tenant:type_name -> budget.v1.Tenant
