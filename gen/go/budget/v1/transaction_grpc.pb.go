@@ -8,6 +8,7 @@ package budgetv1
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -117,24 +118,28 @@ type TransactionServiceServer interface {
 }
 
 // UnimplementedTransactionServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedTransactionServiceServer struct {
-}
+type UnimplementedTransactionServiceServer struct{}
 
 func (UnimplementedTransactionServiceServer) CreateTransaction(context.Context, *CreateTransactionRequest) (*CreateTransactionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateTransaction not implemented")
 }
+
 func (UnimplementedTransactionServiceServer) UpdateTransaction(context.Context, *UpdateTransactionRequest) (*UpdateTransactionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateTransaction not implemented")
 }
+
 func (UnimplementedTransactionServiceServer) DeleteTransaction(context.Context, *DeleteTransactionRequest) (*DeleteTransactionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteTransaction not implemented")
 }
+
 func (UnimplementedTransactionServiceServer) GetTransaction(context.Context, *GetTransactionRequest) (*GetTransactionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTransaction not implemented")
 }
+
 func (UnimplementedTransactionServiceServer) ListTransactions(context.Context, *ListTransactionsRequest) (*ListTransactionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListTransactions not implemented")
 }
+
 func (UnimplementedTransactionServiceServer) GetTransactionsTotals(context.Context, *GetTransactionsTotalsRequest) (*GetTransactionsTotalsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTransactionsTotals not implemented")
 }

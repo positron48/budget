@@ -2,7 +2,7 @@ PROTO_DIR=proto
 DB_URL=postgres://budget:budget@localhost:5432/budget?sslmode=disable
 
 # Список всех целей в одном месте
-.PHONY: help proto dproto tsproto lproto-go build run run-backend stop restart up down logs ps tidy fmt test pgtest lint vet ci check web-install web-build web-lint web-test web-check check-all migrate-up migrate-down dmigrate-up dmigrate-down
+.PHONY: help proto dproto tsproto lproto-go build run run-backend stop restart up down logs ps tidy fmt test pgtest lint vet ci check web-install web-build web-lint web-test web-check check-all migrate-up migrate-down dmigrate-up dmigrate-down docker-df docker-prune docker-prune-all
 
 # Вывести список целей и их описание (с группировкой по разделам)
 help: ## [Meta] Показать список команд по разделам
@@ -72,6 +72,22 @@ run-backend: ## [Go] Запуск только бэкенда локально (
 up: ## [Docker] Запуск окружения
 	docker compose build app
 	docker compose up -d
+
+docker-df: ## [Docker] Показать использование диска Docker (образы/кеши/тома)
+	@echo "Docker disk usage:"; docker system df || true; \
+	echo "\nBuilders:"; docker builder ls || true; \
+	echo "\nBuild cache (dry-run):"; docker builder prune --verbose --dry-run || true
+
+docker-prune: ## [Docker] Очистить неиспользуемое (dangling) — контейнеры/сети/образы/кеш сборки
+	docker system prune -f || true
+	docker builder prune -f || true
+	docker image prune -f || true
+
+docker-prune-all: ## [Docker] Жесткая очистка: +неиспользуемые образы (-a), кеш сборки (--all), неисп. тома (--volumes)
+	@echo "ВНИМАНИЕ: будут удалены ВСЕ неиспользуемые ресурсы Docker, включая кеши сборки и неиспользуемые тома."; \
+		echo "Продолжаю...";
+	docker system prune -a -f || true
+	docker builder prune --all -f || true
 
 down: ## [Docker] Остановка docker compose (без удаления данных)
 	docker compose down

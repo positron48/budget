@@ -7,11 +7,12 @@
 package budgetv1
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -747,24 +748,27 @@ func file_budget_v1_auth_proto_rawDescGZIP() []byte {
 	return file_budget_v1_auth_proto_rawDescData
 }
 
-var file_budget_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
-var file_budget_v1_auth_proto_goTypes = []interface{}{
-	(*TokenPair)(nil),                    // 0: budget.v1.TokenPair
-	(*RegisterRequest)(nil),              // 1: budget.v1.RegisterRequest
-	(*RegisterResponse)(nil),             // 2: budget.v1.RegisterResponse
-	(*LoginRequest)(nil),                 // 3: budget.v1.LoginRequest
-	(*LoginResponse)(nil),                // 4: budget.v1.LoginResponse
-	(*RefreshTokenRequest)(nil),          // 5: budget.v1.RefreshTokenRequest
-	(*RefreshTokenResponse)(nil),         // 6: budget.v1.RefreshTokenResponse
-	(*RequestPasswordResetRequest)(nil),  // 7: budget.v1.RequestPasswordResetRequest
-	(*RequestPasswordResetResponse)(nil), // 8: budget.v1.RequestPasswordResetResponse
-	(*ResetPasswordRequest)(nil),         // 9: budget.v1.ResetPasswordRequest
-	(*ResetPasswordResponse)(nil),        // 10: budget.v1.ResetPasswordResponse
-	(*timestamppb.Timestamp)(nil),        // 11: google.protobuf.Timestamp
-	(*User)(nil),                         // 12: budget.v1.User
-	(*Tenant)(nil),                       // 13: budget.v1.Tenant
-	(*TenantMembership)(nil),             // 14: budget.v1.TenantMembership
-}
+var (
+	file_budget_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+	file_budget_v1_auth_proto_goTypes  = []interface{}{
+		(*TokenPair)(nil),                    // 0: budget.v1.TokenPair
+		(*RegisterRequest)(nil),              // 1: budget.v1.RegisterRequest
+		(*RegisterResponse)(nil),             // 2: budget.v1.RegisterResponse
+		(*LoginRequest)(nil),                 // 3: budget.v1.LoginRequest
+		(*LoginResponse)(nil),                // 4: budget.v1.LoginResponse
+		(*RefreshTokenRequest)(nil),          // 5: budget.v1.RefreshTokenRequest
+		(*RefreshTokenResponse)(nil),         // 6: budget.v1.RefreshTokenResponse
+		(*RequestPasswordResetRequest)(nil),  // 7: budget.v1.RequestPasswordResetRequest
+		(*RequestPasswordResetResponse)(nil), // 8: budget.v1.RequestPasswordResetResponse
+		(*ResetPasswordRequest)(nil),         // 9: budget.v1.ResetPasswordRequest
+		(*ResetPasswordResponse)(nil),        // 10: budget.v1.ResetPasswordResponse
+		(*timestamppb.Timestamp)(nil),        // 11: google.protobuf.Timestamp
+		(*User)(nil),                         // 12: budget.v1.User
+		(*Tenant)(nil),                       // 13: budget.v1.Tenant
+		(*TenantMembership)(nil),             // 14: budget.v1.TenantMembership
+	}
+)
+
 var file_budget_v1_auth_proto_depIdxs = []int32{
 	11, // 0: budget.v1.TokenPair.access_token_expires_at:type_name -> google.protobuf.Timestamp
 	11, // 1: budget.v1.TokenPair.refresh_token_expires_at:type_name -> google.protobuf.Timestamp

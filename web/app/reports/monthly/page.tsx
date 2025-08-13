@@ -65,6 +65,15 @@ function MonthlyReportInner() {
   const sumAmount = (arr: any[]) => arr.reduce((s, it) => s + Math.abs(Number(it?.total?.minorUnits ?? 0) / 100), 0);
   const totalExpenses = useMemo(() => sumAmount(expenses), [expenses]);
   const totalIncomes = useMemo(() => sumAmount(incomes), [incomes]);
+  // Sort categories by descending share (equivalently descending absolute value)
+  const expensesSorted = useMemo(() =>
+    [...expenses].sort((a, b) => Math.abs(Number(b?.total?.minorUnits ?? 0)) - Math.abs(Number(a?.total?.minorUnits ?? 0))),
+    [expenses]
+  );
+  const incomesSorted = useMemo(() =>
+    [...incomes].sort((a, b) => Math.abs(Number(b?.total?.minorUnits ?? 0)) - Math.abs(Number(a?.total?.minorUnits ?? 0))),
+    [incomes]
+  );
 
   const coolPalette = ["#3b82f6", "#22c55e", "#06b6d4", "#6366f1", "#14b8a6", "#0ea5e9", "#10b981", "#60a5fa"];
   const warmPalette = ["#ef4444", "#f59e0b", "#f97316", "#e11d48", "#fb7185", "#f43f5e", "#ea580c", "#fbbf24"];
@@ -192,7 +201,7 @@ function MonthlyReportInner() {
                     </CardHeader>
                     <CardContent>
                     <DonutChart
-                        data={expenses.map((it: any, idx: number) => ({
+                        data={expensesSorted.map((it: any, idx: number) => ({
                           label: `${it?.categoryName ?? it?.categoryId}`,
                           value: Math.abs(Number(it?.total?.minorUnits ?? 0) / 100),
                           color: warmPalette[idx % warmPalette.length],
@@ -214,7 +223,7 @@ function MonthlyReportInner() {
                     </CardHeader>
                     <CardContent>
                     <DonutChart
-                        data={incomes.map((it: any, idx: number) => ({
+                        data={incomesSorted.map((it: any, idx: number) => ({
                           label: `${it?.categoryName ?? it?.categoryId}`,
                           value: Math.abs(Number(it?.total?.minorUnits ?? 0) / 100),
                           color: coolPalette[idx % coolPalette.length],
@@ -233,36 +242,86 @@ function MonthlyReportInner() {
             </>
           )}
 
-          {/* Details Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">{t("categoryBreakdown")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2 font-medium">{t("category")}</th>
-                    <th className="text-left py-2 font-medium">{t("type")}</th>
-                    <th className="text-right py-2 font-medium">{t("total")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(items).map((it: any, i: number) => (
-                    <tr key={i} className="border-b">
-                      <td className="py-2">{it?.categoryName ?? it?.categoryId}</td>
-                      <td className="py-2">
-                        {it?.type === TransactionType.EXPENSE ? t("expense") : it?.type === TransactionType.INCOME ? t("income") : ""}
-                      </td>
-                      <td className="py-2 text-right">
-                        {formatAmountWithSpaces(Number(it?.total?.minorUnits ?? 0) / 100)} {it?.total?.currencyCode ?? ""}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
+          {/* Details Tables: split by type and enhance visuals */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {expensesSorted.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">{`${t("categoryBreakdown")} — ${t("expense")}`}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 font-medium">{t("category")}</th>
+                        <th className="text-right py-2 font-medium">%</th>
+                        <th className="text-right py-2 font-medium">{t("total")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {expensesSorted.map((it: any, i: number) => {
+                        const val = Math.abs(Number(it?.total?.minorUnits ?? 0) / 100);
+                        const pct = totalExpenses ? Math.round((val / totalExpenses) * 100) : 0;
+                        return (
+                          <tr key={`exp-${i}`} className="border-b">
+                            <td className="py-2">
+                              <div className="flex items-center gap-2">
+                                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100"><Icon name="trending-down" size={12} className="text-red-600" /></span>
+                                <span>{it?.categoryName ?? it?.categoryId}</span>
+                              </div>
+                            </td>
+                            <td className="py-2 text-right text-muted-foreground text-sm">{pct}%</td>
+                            <td className="py-2 text-right text-red-600 font-medium">
+                              {formatAmountWithSpaces(val)} {it?.total?.currencyCode ?? ""}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </CardContent>
+              </Card>
+            )}
+
+            {incomesSorted.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">{`${t("categoryBreakdown")} — ${t("income")}`}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 font-medium">{t("category")}</th>
+                        <th className="text-right py-2 font-medium">%</th>
+                        <th className="text-right py-2 font-medium">{t("total")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {incomesSorted.map((it: any, i: number) => {
+                        const val = Math.abs(Number(it?.total?.minorUnits ?? 0) / 100);
+                        const pct = totalIncomes ? Math.round((val / totalIncomes) * 100) : 0;
+                        return (
+                          <tr key={`inc-${i}`} className="border-b">
+                            <td className="py-2">
+                              <div className="flex items-center gap-2">
+                                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100"><Icon name="trending-up" size={12} className="text-green-600" /></span>
+                                <span>{it?.categoryName ?? it?.categoryId}</span>
+                              </div>
+                            </td>
+                            <td className="py-2 text-right text-muted-foreground text-sm">{pct}%</td>
+                            <td className="py-2 text-right text-green-600 font-medium">
+                              {formatAmountWithSpaces(val)} {it?.total?.currencyCode ?? ""}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
       )}
     </div>

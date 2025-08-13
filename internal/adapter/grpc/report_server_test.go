@@ -14,7 +14,7 @@ import (
 
 type stubReportService struct{}
 
-func (stubReportService) GetMonthlySummary(ctx context.Context, tenantID string, year int, month int, locale string, targetCurrencyCode string) (repuse.MonthlySummary, error) {
+func (stubReportService) GetMonthlySummary(ctx context.Context, tenantID string, year int, month int, locale string, targetCurrencyCode string, tzOffsetMinutes int) (repuse.MonthlySummary, error) {
 	return repuse.MonthlySummary{Items: []repuse.MonthlyItem{{CategoryID: "c1", CategoryName: "Food", Type: domain.TransactionTypeExpense, Total: domain.Money{CurrencyCode: "RUB", MinorUnits: 100}}}, TotalExpense: domain.Money{CurrencyCode: "RUB", MinorUnits: 100}}, nil
 }
 
@@ -28,7 +28,7 @@ func TestReportServer_GetMonthlySummary(t *testing.T) {
 
 type errReportSvc struct{}
 
-func (errReportSvc) GetMonthlySummary(ctx context.Context, tenantID string, year int, month int, locale string, targetCurrencyCode string) (repuse.MonthlySummary, error) {
+func (errReportSvc) GetMonthlySummary(ctx context.Context, tenantID string, year int, month int, locale string, targetCurrencyCode string, tzOffsetMinutes int) (repuse.MonthlySummary, error) {
 	return repuse.MonthlySummary{}, errors.New("boom")
 }
 
@@ -41,7 +41,7 @@ func TestReportServer_Error(t *testing.T) {
 
 type capReportSvc struct{ got string }
 
-func (c *capReportSvc) GetMonthlySummary(ctx context.Context, tenantID string, year int, month int, locale string, targetCurrencyCode string) (repuse.MonthlySummary, error) {
+func (c *capReportSvc) GetMonthlySummary(ctx context.Context, tenantID string, year int, month int, locale string, targetCurrencyCode string, tzOffsetMinutes int) (repuse.MonthlySummary, error) {
 	c.got = tenantID
 	return repuse.MonthlySummary{}, nil
 }

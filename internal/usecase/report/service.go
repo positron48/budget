@@ -30,7 +30,7 @@ type Service struct {
 }
 
 func NewService(txsvc TxLister, fx FxRepo, tenants TenantRepo, cats CategoryRepo) *Service {
-    return &Service{txsvc: txsvc, fx: fx, tenants: tenants, cats: cats}
+	return &Service{txsvc: txsvc, fx: fx, tenants: tenants, cats: cats}
 }
 
 // TxLister abstracts listing transactions for reports
@@ -52,13 +52,13 @@ type MonthlySummary struct {
 }
 
 func (s *Service) GetMonthlySummary(ctx context.Context, tenantID string, year int, month int, locale string, targetCurrencyCode string, tzOffsetMinutes int) (MonthlySummary, error) {
-    // compute month range using client timezone offset to avoid crossing day boundaries
-    // tzOffsetMinutes comes from JS getTimezoneOffset(), e.g. Moscow is -180
-    fromLocal := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.FixedZone("client", -tzOffsetMinutes*60))
-    toLocal := fromLocal.AddDate(0, 1, 0)
-    // convert to UTC instants for DB comparison
-    from := fromLocal.UTC()
-    to := toLocal.UTC()
+	// compute month range using client timezone offset to avoid crossing day boundaries
+	// tzOffsetMinutes comes from JS getTimezoneOffset(), e.g. Moscow is -180
+	fromLocal := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.FixedZone("client", -tzOffsetMinutes*60))
+	toLocal := fromLocal.AddDate(0, 1, 0)
+	// convert to UTC instants for DB comparison
+	from := fromLocal.UTC()
+	to := toLocal.UTC()
 
 	tenant, err := s.tenants.GetByID(ctx, tenantID)
 	if err != nil {
@@ -74,8 +74,8 @@ func (s *Service) GetMonthlySummary(ctx context.Context, tenantID string, year i
 	var all []domain.Transaction
 	page := 1
 	pageSize := 500
-    for {
-        f := txusecase.ListFilter{From: &from, To: &to, Page: page, PageSize: pageSize}
+	for {
+		f := txusecase.ListFilter{From: &from, To: &to, Page: page, PageSize: pageSize}
 		items, total, err := s.txsvc.List(ctx, tenantID, f)
 		if err != nil {
 			return MonthlySummary{}, err

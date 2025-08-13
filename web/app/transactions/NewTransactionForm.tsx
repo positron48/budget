@@ -34,12 +34,17 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
   const { transaction, category } = useClients();
   const t = useTranslations("transactions");
   const qc = useQueryClient();
+  const toLocalInput = (d: Date) => {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
   const { register, handleSubmit, reset, watch, setValue, getValues, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       type: TransactionType.EXPENSE as unknown as number,
       currencyCode: "RUB",
-      occurredAt: new Date().toISOString().slice(0, 16),
+      occurredAt: toLocalInput(new Date()),
     },
   });
   const [saving, setSaving] = useState(false);

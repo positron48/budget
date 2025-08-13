@@ -153,9 +153,14 @@ function TransactionsInner() {
     staleTime: 5 * 60 * 1000, // 5 минут
   });
 
+  const refetchListAndTotals = useCallback(() => {
+    qc.invalidateQueries({ queryKey: ["transactions"] });
+    qc.invalidateQueries({ queryKey: ["transactionsTotals"] });
+  }, [qc]);
+
   const deleteMut = useMutation({
     mutationFn: async (id: string) => await transaction.deleteTransaction({ id } as any),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["transactions"] }),
+    onSuccess: () => refetchListAndTotals(),
   });
 
   const clearFilters = useCallback(() => {
@@ -268,7 +273,7 @@ function TransactionsInner() {
                 categoriesLoading={categoriesLoading}
                 onDelete={(id: string) => deleteMut.mutate(id)}
                 isDeleting={deleteMut.isPending}
-                onChanged={() => qc.invalidateQueries({ queryKey: ["transactions"] })}
+                 onChanged={refetchListAndTotals}
                 showFilters={showFilters}
                 setShowFilters={setShowFilters}
                 hasActiveFilters={hasActiveFilters}
@@ -314,6 +319,7 @@ function TransactionsInner() {
                   onCompleted={(inserted) => {
                     setShowImport(false);
                     setPage(1);
+                    refetchListAndTotals();
                   }}
                 />
               </Modal>
@@ -559,7 +565,7 @@ function TransactionTable({
                 </td>
                                  <td className="px-4 py-3">
                    {editingId === tx?.id ? (
-                     <input
+                      <input
                        type="datetime-local"
                        className="w-full px-2 py-1 border border-slate-200 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                        value={editDate}
@@ -711,7 +717,11 @@ function TransactionTable({
                           setEditComment(tx?.comment ?? "");
                           setEditAmount(tx?.amount?.minorUnits ? (Number(tx.amount.minorUnits) / 100).toString() : "");
                           setEditCategoryId(tx?.categoryId ?? "");
-                          setEditDate(tx?.occurredAt?.seconds ? new Date(Number(tx.occurredAt.seconds) * 1000).toISOString().slice(0, 16) : "");
+                          const toLocalInput = (d: Date) => {
+                            const pad = (n: number) => String(n).padStart(2, "0");
+                            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                          };
+                          setEditDate(tx?.occurredAt?.seconds ? toLocalInput(new Date(Number(tx.occurredAt.seconds) * 1000)) : "");
                         }}
                         className="p-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200"
                         title="Изменить"

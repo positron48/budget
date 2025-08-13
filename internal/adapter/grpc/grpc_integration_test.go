@@ -495,7 +495,7 @@ func (memTxSvc) CreateForUser(ctx context.Context, tenantID, userID string, txTy
 
 type memReportSvc struct{}
 
-func (memReportSvc) GetMonthlySummary(ctx context.Context, tenantID string, year int, month int, locale string, targetCurrencyCode string) (repuse.MonthlySummary, error) {
+func (memReportSvc) GetMonthlySummary(ctx context.Context, tenantID string, year int, month int, locale string, targetCurrencyCode string, tzOffsetMinutes int) (repuse.MonthlySummary, error) {
 	return repuse.MonthlySummary{
 		Items:        []repuse.MonthlyItem{{CategoryID: "c1", CategoryName: "Food", Type: domain.TransactionTypeExpense, Total: domain.Money{CurrencyCode: "USD", MinorUnits: 500}}},
 		TotalIncome:  domain.Money{CurrencyCode: "USD", MinorUnits: 0},
