@@ -18,6 +18,7 @@ export { default as Modal } from "./Modal";
 export { default as DonutChart } from "./DonutChart";
 export { default as Select } from "./Select";
 export { SortableHeader } from "./SortableHeader";
+export { default as ExportButton } from "./ExportButton";
 
 export * from "./Card";
 export type { IconName } from "./Icon";

@@ -212,7 +212,19 @@
       "importing": "Importing...",
       "importStatusPreparing": "Preparing import...",
       "importStatusCreatingCategory": "Creating category",
-      "importStatusInserting": "Inserting records"
+      "importStatusInserting": "Inserting records",
+      "export": "Export CSV",
+      "exportTitle": "Export Transactions",
+      "exportDescription": "Export transactions to CSV file",
+      "exportPreparing": "Preparing...",
+      "exportConfirm": "Export",
+      "exportCancel": "Cancel",
+      "exportLoading": "Loading transactions...",
+      "exportError": "Loading error",
+      "exportNoTransactions": "No transactions to export",
+      "exportWillExport": "Will export",
+      "exportTransactions": "transactions",
+      "exportWithFilters": "File will be downloaded in CSV format with all applied filters"
   },
   "reports": {
     "title": "Reports",

@@ -214,7 +214,19 @@
       "importing": "Импорт...",
       "importStatusPreparing": "Подготовка к импорту...",
       "importStatusCreatingCategory": "Создание категории",
-      "importStatusInserting": "Вставка записей"
+      "importStatusInserting": "Вставка записей",
+      "export": "Экспорт CSV",
+      "exportTitle": "Экспорт транзакций",
+      "exportDescription": "Экспортировать транзакции в CSV файл",
+      "exportPreparing": "Подготовка...",
+      "exportConfirm": "Экспортировать",
+      "exportCancel": "Отмена",
+      "exportLoading": "Загрузка транзакций...",
+      "exportError": "Ошибка загрузки",
+      "exportNoTransactions": "Нет транзакций для экспорта",
+      "exportWillExport": "Будет экспортировано",
+      "exportTransactions": "транзакций",
+      "exportWithFilters": "Файл будет скачан в формате CSV с учетом всех примененных фильтров"
   },
   "reports": {
     "title": "Отчеты",

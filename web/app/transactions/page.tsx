@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState, useCallback, useRef } from "react";
 import { TransactionType, CategoryKind } from "@/proto/budget/v1/common_pb";
 import { useTranslations } from "next-intl";
-import { Icon, Button, Card, CardContent, TransactionStats, CategoryBadge, Modal, SortableHeader } from "@/components";
+import { Icon, Button, Card, CardContent, TransactionStats, CategoryBadge, Modal, SortableHeader, ExportButton } from "@/components";
 import ImportWizard from "./ImportWizard";
 import NewTransactionForm, { NewTxFormRef } from "./NewTransactionForm";
 import FiltersForm from "@/components/FiltersForm";
@@ -214,11 +214,19 @@ function TransactionsInner() {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <ExportButton
+                type={type}
+                from={from}
+                to={to}
+                search={search}
+                selectedCategoryIds={selectedCategoryIds}
+                disabled={isLoading || !!error}
+              />
               <button 
                 onClick={() => setShowImport(true)}
                 className="inline-flex items-center px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-md shadow-md hover:shadow-lg transition-all duration-200"
               >
-                <Icon name="download" size={16} className="mr-2" />
+                <Icon name="upload" size={16} className="mr-2" />
                 {t("import")}
               </button>
               <button 

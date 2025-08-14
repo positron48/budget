@@ -17,8 +17,8 @@ This document describes the target architecture and API-first specification for 
 - 🟡 For the future:
   - ✅ i18n interface and data (categories)
   - ✅ CSV import with column mapping and category matching
+  - ✅ CSV export with filters and localization support
   - 📋 Telegram bot for adding transactions
-  - 📋 XLSX report export
   - 📋 Bank/statement integrations
 
 ## 🏗️ High-Level Architecture
@@ -73,6 +73,7 @@ flowchart TB
 - ✅ **Report**: monthly reports by categories
 - ✅ **Fx**: currency rate management
 - ✅ **Import**: CSV file import with column mapping and category matching
+- ✅ **Export**: transaction export to CSV with filters and localization support
 - ✅ **Observability**: Prometheus metrics, OpenTelemetry tracing
 - ✅ **Security**: Argon2id hashing, JWT with refresh tokens
 
@@ -86,6 +87,7 @@ flowchart TB
 - ✅ **Profile**: profile settings and password change
 - ✅ **Tenants**: organization management and switching between them
 - ✅ **Import**: CSV file import with column mapping and category configuration
+- ✅ **Export**: transaction export to CSV with filters and localization support
 - ✅ **i18n**: full support for Russian and English languages
 - ✅ **UX/UI**: modern design with responsiveness and animations
 - ✅ **Auto-refresh**: automatic access token refresh
@@ -208,11 +210,20 @@ The application fully supports Russian and English languages:
 - ✅ **Batch processing**: import of large files with progress bar
 - ✅ **Error handling**: detailed information about data issues
 
+## 📤 CSV Export
+
+- ✅ **Filtered export**: export transactions with respect to all applied filters (type, dates, search, categories)
+- ✅ **Localization**: automatic detection of interface language and export headers in the corresponding language
+- ✅ **Compatible format**: CSV file in the same format expected for import
+- ✅ **Category names**: export category names in the selected language
+- ✅ **Auto download**: file downloads with name `transactions_YYYY-MM-DD.csv`
+- ✅ **Confirmation modal**: shows the number of transactions to be exported
+- ✅ **Error handling**: proper handling of BigInt values and other data types
+
 ## 📋 What's Next
 
 ### Planned features:
 - 📋 Telegram bot for quick transaction addition
-- 📋 XLSX report export
 - 📋 Bank integrations for automatic import
 - 📋 Budget planning and financial goals
 - 📋 Mobile application
