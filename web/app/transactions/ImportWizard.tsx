@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useClients } from "@/app/providers";
-import { Button, Icon, Select } from "@/components";
+import { Button, Icon } from "@/components";
 import { useLocale, useTranslations } from "next-intl";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CategoryKind, TransactionType } from "@/proto/budget/v1/common_pb";
@@ -129,8 +129,8 @@ function parseDateToSeconds(raw: string): number | null {
   // D.M.Y or D-M-Y or D/M/Y or D,M,Y (treat strictly as day-month-year)
   m = s.match(/^(\d{1,2})[.,\/-](\d{1,2})[.,\/-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
   if (m) {
-    let [, dd, mm, y, hh = "00", mi = "00", ss = "00"] = m;
-    if (y.length === 2) y = String(2000 + Number(y));
+    const [, dd, mm, yRaw, hh = "00", mi = "00", ss = "00"] = m;
+    const y = yRaw.length === 2 ? String(2000 + Number(yRaw)) : yRaw;
     const d = new Date(Number(y), Number(mm) - 1, Number(dd), Number(hh), Number(mi), Number(ss));
     return Math.floor(d.getTime() / 1000);
   }
@@ -164,7 +164,7 @@ export default function ImportWizard({ onClose, onCompleted }: Props) {
   const qc = useQueryClient();
 
   const [step, setStep] = useState<number>(0);
-  const [file, setFile] = useState<File | null>(null);
+  const [_file, setFile] = useState<File | null>(null);
   const [delimiter, setDelimiter] = useState<string>(",");
   const [quote, setQuote] = useState<string>('"');
   const [text, setText] = useState<string>("");
@@ -576,8 +576,8 @@ export default function ImportWizard({ onClose, onCompleted }: Props) {
               <select className="w-full border rounded px-2 py-1 bg-white dark:bg-slate-700" value={quote} onChange={(e) => {
                 const q = e.target.value; setQuote(q); if (text) { const res = parseCsv(text, delimiter, q); setParsed(res); setMapping(guessMapping(res.headers)); }
               }}>
-                <option value='"'>"</option>
-                <option value="'">'</option>
+                <option value='"'>&quot;</option>
+                <option value="'">&apos;</option>
               </select>
             </div>
             {(["dateColumn","amountColumn","currencyCodeColumn","typeColumn","categoryColumn","commentColumn"] as (keyof CsvMapping)[]).map((key) => (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Button, Select } from "@/components";
+import { Button } from "@/components";
 import { CategoryKind } from "@/proto/budget/v1/common_pb";
 
 interface Props {

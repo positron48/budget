@@ -35,7 +35,7 @@ export default function DonutChart({
   const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
-  const palette = [
+  const palette = useMemo(() => [
     "#6366f1", // indigo-500
     "#22c55e", // green-500
     "#ef4444", // red-500
@@ -45,7 +45,7 @@ export default function DonutChart({
     "#14b8a6", // teal-500
     "#3b82f6", // blue-500
     "#f97316", // orange-500
-  ];
+  ], []);
 
   const processed = useMemo(() => {
     const total = data.reduce((s, d) => s + Math.max(0, d.value), 0);
@@ -73,7 +73,7 @@ export default function DonutChart({
       return seg;
     });
     return { total, segments };
-  }, [data, circumference]);
+  }, [data, circumference, palette]);
 
   const outerR = radius + strokeWidth / 2; // outer bound for wedge
   const toXY = (r: number, angle: number) => {

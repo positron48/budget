@@ -14,10 +14,10 @@ function MonthlyReportInner() {
   const { report } = useClients();
   const t = useTranslations("reports");
   const tc = useTranslations("common");
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
   const [year, setYear] = useState<number>(today.getFullYear());
   const [month, setMonth] = useState<number>(today.getMonth() + 1); // 1..12
-  const [currency, setCurrency] = useState<string>("");
+  const [currency] = useState<string>("");
   const req = useMemo(() => ({ year, month, targetCurrencyCode: currency, timezoneOffsetMinutes: new Date().getTimezoneOffset() } as any), [year, month, currency]);
 
   const locale = useLocale();
@@ -36,7 +36,7 @@ function MonthlyReportInner() {
       return { value: i + 1, label };
     });
   }, [locale]);
-  const currencySuggestions: string[] = [""]; // hidden for now
+  // const currencySuggestions: string[] = [""]; // reserved for future
 
   const changeMonth = (delta: number) => {
     let m = month + delta;

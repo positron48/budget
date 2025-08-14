@@ -1,13 +1,13 @@
 "use client";
 
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useClients } from "@/app/providers";
 import { TransactionType, CategoryKind } from "@/proto/budget/v1/common_pb";
-import { Button, Icon, CategorySingleInput } from "@/components";
+import { Icon, CategorySingleInput } from "@/components";
 import { useTranslations } from "next-intl";
 
 const schema = z.object({
@@ -47,7 +47,7 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
       occurredAt: toLocalInput(new Date()),
     },
   });
-  const [saving, setSaving] = useState(false);
+  // removed saving state
   const amountRef = useRef<HTMLInputElement>(null);
   const [amountInput, setAmountInput] = useState<string>("");
 
@@ -63,9 +63,7 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
     staleTime: 0,
   });
 
-  const submitInternal = async (v: FormValues) => {
-    setSaving(true);
-    try {
+  const submitInternal = useMemo(() => async (v: FormValues) => {
       const payload: any = {
         type: Number(v.type),
         amount: { currencyCode: v.currencyCode, minorUnits: Math.round(v.amount * 100) },
@@ -75,48 +73,41 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
       if (v.comment) payload.comment = v.comment;
       await transaction.createTransaction(payload as any);
       qc.invalidateQueries({ queryKey: ["transactions"] });
-    } finally {
-      setSaving(false);
-    }
-  };
+  }, [transaction, qc]);
 
-  const onSubmit = async (v: FormValues) => {
-    await submitInternal(v);
-    onSaved();
-    onClose();
-  };
+  const onSubmit = useMemo(() => {
+    return async (v: FormValues) => {
+      await submitInternal(v);
+      onSaved();
+      onClose();
+    };
+  }, [submitInternal, onSaved, onClose]);
 
-  const onSubmitAndAddMore = async (v: FormValues) => {
-    await submitInternal(v);
-    // Очищаем сумма, категория, комментарий, фокус в сумму
-    const current = getValues();
-    reset({
-      ...current,
-      amount: undefined as any,
-      categoryId: "",
-      comment: "",
-    }, { keepDefaultValues: true });
-    setAmountInput("");
-    setTimeout(() => amountRef.current?.focus(), 0);
-  };
+  const onSubmitAndAddMore = useMemo(() => {
+    return async (v: FormValues) => {
+      await submitInternal(v);
+      const current = getValues();
+      reset({
+        ...current,
+        amount: undefined as any,
+        categoryId: "",
+        comment: "",
+      }, { keepDefaultValues: true });
+      setAmountInput("");
+      setTimeout(() => amountRef.current?.focus(), 0);
+    };
+  }, [submitInternal, getValues, reset]);
 
   // expose submit methods for parent modal footer buttons
   useImperativeHandle(ref, () => ({
     submit: handleSubmit(onSubmit),
     submitAndAddMore: handleSubmit(onSubmitAndAddMore),
-  }), [handleSubmit]);
+  }), [handleSubmit, onSubmit, onSubmitAndAddMore]);
 
   // hidden registered input to keep RHF value; visible input is controlled
   const { ref: hiddenAmountRef } = register('amount');
 
-  const formatWithSpaces = (numStr: string): string => {
-    const [intPart, fracPart] = numStr.split(/[.,]/);
-    const intFormatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-    if (fracPart !== undefined) {
-      return `${intFormatted},${fracPart}`; // show comma visually
-    }
-    return intFormatted;
-  };
+  // removed unused formatWithSpaces
 
   const handleAmountChange = (raw: string) => {
     const noSpaces = raw.replace(/\s+/g, "");

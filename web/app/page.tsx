@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { Icon, Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components";
+import { Icon, Card, CardHeader, CardTitle, CardDescription } from "@/components";
 import type { IconName } from "@/components/Icon";
 
 export default function HomePage() {

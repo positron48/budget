@@ -2,11 +2,10 @@
 
 import { ClientsProvider, useClients } from "@/app/providers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState, useCallback, useRef, useEffect, memo } from "react";
+import { useMemo, useState, useCallback, useRef } from "react";
 import { TransactionType, CategoryKind } from "@/proto/budget/v1/common_pb";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { Icon, Button, Card, CardContent, CardHeader, CardTitle, TransactionStats, CategoryBadge, CategoryTagInput, Modal } from "@/components";
+import { Icon, Button, Card, CardContent, TransactionStats, CategoryBadge, Modal } from "@/components";
 import ImportWizard from "./ImportWizard";
 import NewTransactionForm, { NewTxFormRef } from "./NewTransactionForm";
 import FiltersForm from "@/components/FiltersForm";
@@ -116,7 +115,7 @@ function TransactionsInner() {
   });
 
   // Загружаем категории для фильтров и отображения
-  const { data: categoriesData, isLoading: categoriesLoading, error: categoriesError } = useQuery({
+  const { data: categoriesData, isLoading: categoriesLoading } = useQuery({
     queryKey: ["categories"],
     queryFn: async () => {
       console.log('Fetching categories...');
@@ -187,7 +186,7 @@ function TransactionsInner() {
     onToChange: setToCallback,
     onSearchChange: setSearchCallback,
     onCategoryIdsChange: setSelectedCategoryIdsCallback,
-  }), [type, from, to, search, selectedCategoryIds, categoriesLoading, categoriesData]);
+  }), [type, from, to, search, selectedCategoryIds, categoriesLoading, categoriesData, setTypeCallback, setFromCallback, setToCallback, setSearchCallback, setSelectedCategoryIdsCallback]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
@@ -316,7 +315,7 @@ function TransactionsInner() {
               >
                 <ImportWizard
                   onClose={() => setShowImport(false)}
-                  onCompleted={(inserted) => {
+                  onCompleted={(_inserted) => {
                     setShowImport(false);
                     setPage(1);
                     refetchListAndTotals();
@@ -400,7 +399,6 @@ function TransactionTable({
   clearFilters: () => void;
 }) {
   const { transaction } = useClients();
-  const tt = useTranslations("transactions");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editComment, setEditComment] = useState<string>("");
   const [editAmount, setEditAmount] = useState<string>("");

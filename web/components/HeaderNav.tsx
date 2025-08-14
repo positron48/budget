@@ -103,7 +103,7 @@ export default function HeaderNav() {
     retry: false,
     refetchOnWindowFocus: false,
   });
-  const memberships = (tenantsData?.memberships ?? []) as any[];
+  const memberships = useMemo(() => (tenantsData?.memberships ?? []) as any[], [tenantsData?.memberships]);
   const activeMembership = useMemo(
     () => memberships.find((m) => m?.tenant?.id === currentTenantId) || memberships[0],
     [memberships, currentTenantId]

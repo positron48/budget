@@ -49,13 +49,13 @@ function ProfileSettingsInner() {
           });
           // reload to re-hydrate translations
           window.location.reload();
-        } catch (e) {
+        } catch {
           // ignore
         }
       }
     },
-    onError: (e: any) => {
-      alert(normalizeApiErrorMessage(e, "Не удалось обновить профиль"));
+    onError: (err: any) => {
+      alert(normalizeApiErrorMessage(err, "Не удалось обновить профиль"));
     },
   });
 

@@ -21,7 +21,7 @@ function AccountInner() {
     refetchOnWindowFocus: false,
   });
 
-  const memberships = (data?.memberships ?? []) as any[];
+  const memberships = useMemo(() => (data?.memberships ?? []) as any[], [data?.memberships]);
 
   // current user (for "you" marks in members list)
   const { data: me } = useQuery({

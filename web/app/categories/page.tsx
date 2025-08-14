@@ -295,7 +295,7 @@ function CategoriesInner() {
     inputRef: React.RefObject<HTMLInputElement | null>;
   }) => {
     const [localCode, setLocalCode] = useState(code);
-    const prevCodeRef = React.useRef<string>(code);
+    const _prevCodeRef = React.useRef<string>(code);
     
     // Sync local state with parent state
     React.useEffect(() => {
