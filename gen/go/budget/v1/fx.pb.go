@@ -454,6 +454,7 @@ var (
 		(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
 	}
 )
+
 var file_budget_v1_fx_proto_depIdxs = []int32{
 	7,  // 0: budget.v1.FxRate.as_of:type_name -> google.protobuf.Timestamp
 	7,  // 1: budget.v1.GetRateRequest.as_of:type_name -> google.protobuf.Timestamp

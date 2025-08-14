@@ -436,6 +436,7 @@ var (
 		(*timestamppb.Timestamp)(nil),  // 7: google.protobuf.Timestamp
 	}
 )
+
 var file_budget_v1_user_proto_depIdxs = []int32{
 	7, // 0: budget.v1.User.created_at:type_name -> google.protobuf.Timestamp
 	7, // 1: budget.v1.User.updated_at:type_name -> google.protobuf.Timestamp

@@ -954,6 +954,7 @@ var (
 		(*PageResponse)(nil),                  // 20: budget.v1.PageResponse
 	}
 )
+
 var file_budget_v1_transaction_proto_depIdxs = []int32{
 	13, // 0: budget.v1.Transaction.type:type_name -> budget.v1.TransactionType
 	14, // 1: budget.v1.Transaction.amount:type_name -> budget.v1.Money

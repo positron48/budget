@@ -1064,6 +1064,7 @@ var (
 		(*User)(nil),                     // 19: budget.v1.User
 	}
 )
+
 var file_budget_v1_tenant_proto_depIdxs = []int32{
 	18, // 0: budget.v1.Tenant.created_at:type_name -> google.protobuf.Timestamp
 	1,  // 1: budget.v1.TenantMembership.tenant:type_name -> budget.v1.Tenant

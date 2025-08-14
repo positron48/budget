@@ -272,6 +272,7 @@ var (
 		(*Money)(nil),                      // 4: budget.v1.Money
 	}
 )
+
 var file_budget_v1_report_proto_depIdxs = []int32{
 	3, // 0: budget.v1.MonthlyCategorySummaryItem.type:type_name -> budget.v1.TransactionType
 	4, // 1: budget.v1.MonthlyCategorySummaryItem.total:type_name -> budget.v1.Money

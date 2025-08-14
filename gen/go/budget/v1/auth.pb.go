@@ -675,6 +675,7 @@ var (
 		(*TenantMembership)(nil),             // 14: budget.v1.TenantMembership
 	}
 )
+
 var file_budget_v1_auth_proto_depIdxs = []int32{
 	11, // 0: budget.v1.TokenPair.access_token_expires_at:type_name -> google.protobuf.Timestamp
 	11, // 1: budget.v1.TokenPair.refresh_token_expires_at:type_name -> google.protobuf.Timestamp

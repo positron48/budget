@@ -792,6 +792,7 @@ var (
 		(*timestamppb.Timestamp)(nil),  // 13: google.protobuf.Timestamp
 	}
 )
+
 var file_budget_v1_category_proto_depIdxs = []int32{
 	12, // 0: budget.v1.Category.kind:type_name -> budget.v1.CategoryKind
 	13, // 1: budget.v1.Category.created_at:type_name -> google.protobuf.Timestamp

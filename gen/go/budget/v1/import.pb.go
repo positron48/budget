@@ -707,6 +707,7 @@ var (
 		(*CommitCsvImportResponse)(nil),     // 10: budget.v1.CommitCsvImportResponse
 	}
 )
+
 var file_budget_v1_import_proto_depIdxs = []int32{
 	4,  // 0: budget.v1.ConfigureCsvMappingRequest.mapping:type_name -> budget.v1.CsvColumnMapping
 	0,  // 1: budget.v1.ImportService.StartCsvImport:input_type -> budget.v1.StartCsvImportRequest
