@@ -237,6 +237,28 @@ func TestTransactionServer_List_WithFilters(t *testing.T) {
 	}
 }
 
+func TestTransactionServer_List_WithSorting(t *testing.T) {
+	srv := NewTransactionServer(txSvcStub{})
+	req := &budgetv1.ListTransactionsRequest{
+		Page: &budgetv1.PageRequest{Page: 1, PageSize: 10, Sort: "amount_numeric desc"},
+	}
+	ctx := ctxutil.WithTenantID(context.Background(), "t1")
+	if _, err := srv.ListTransactions(ctx, req); err != nil {
+		t.Fatalf("list with sorting: %v", err)
+	}
+}
+
+func TestTransactionServer_List_WithCategorySorting(t *testing.T) {
+	srv := NewTransactionServer(txSvcStub{})
+	req := &budgetv1.ListTransactionsRequest{
+		Page: &budgetv1.PageRequest{Page: 1, PageSize: 10, Sort: "category_code asc"},
+	}
+	ctx := ctxutil.WithTenantID(context.Background(), "t1")
+	if _, err := srv.ListTransactions(ctx, req); err != nil {
+		t.Fatalf("list with category sorting: %v", err)
+	}
+}
+
 func TestTransactionServer_Totals(t *testing.T) {
 	srv := NewTransactionServer(txSvcEcho{})
 	now := time.Now()

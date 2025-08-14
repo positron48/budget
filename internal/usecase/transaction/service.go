@@ -46,6 +46,7 @@ type ListFilter struct {
 	Search        *string
 	Page          int
 	PageSize      int
+	Sort          string // e.g. "occurred_at desc", "amount_numeric asc", "comment asc"
 }
 
 type Service struct {

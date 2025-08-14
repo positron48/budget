@@ -83,7 +83,7 @@ docker-prune: ## [Docker] Очистить неиспользуемое (danglin
 	docker builder prune -f || true
 	docker image prune -f || true
 
-docker-prune-all: ## [Docker] Жесткая очистка: +неиспользуемые образы (-a), кеш сборки (--all), неисп. тома (--volumes)
+docker-prune-all: ## [Docker] Жесткая очистка: +неиспользуемые образы (-a), кеш сборки (--all)
 	@echo "ВНИМАНИЕ: будут удалены ВСЕ неиспользуемые ресурсы Docker, включая кеши сборки и неиспользуемые тома."; \
 		echo "Продолжаю...";
 	docker system prune -a -f || true

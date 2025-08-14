@@ -152,10 +152,53 @@ func (r *TransactionRepo) List(ctx context.Context, tenantID string, filter txus
 	// OFFSET/LIMIT placeholders
 	offIdx := len(args) + 1
 	limIdx := len(args) + 2
-	query := fmt.Sprintf(
-		"SELECT id, tenant_id, user_id, category_id, type::text, amount_numeric::text, currency_code, base_amount_numeric::text, base_currency_code, fx_rate::text, fx_provider, fx_as_of, occurred_at, comment, created_at FROM transactions WHERE %s ORDER BY occurred_at DESC OFFSET $%d LIMIT $%d",
-		clause, offIdx, limIdx,
-	)
+	
+	// Build ORDER BY clause
+	orderBy := "occurred_at DESC" // default sort
+	if filter.Sort != "" {
+		// Validate and sanitize sort parameter
+		validSortFields := map[string]string{
+			"occurred_at":        "occurred_at",
+			"occurred_at asc":    "occurred_at ASC",
+			"occurred_at desc":   "occurred_at DESC",
+			"amount_numeric":     "CASE WHEN type = 'expense' THEN -amount_numeric ELSE amount_numeric END",
+			"amount_numeric asc": "CASE WHEN type = 'expense' THEN -amount_numeric ELSE amount_numeric END ASC",
+			"amount_numeric desc": "CASE WHEN type = 'expense' THEN -amount_numeric ELSE amount_numeric END DESC",
+			"comment":            "comment",
+			"comment asc":        "comment ASC",
+			"comment desc":       "comment DESC",
+			"type":               "type",
+			"type asc":           "type ASC",
+			"type desc":          "type DESC",
+			"created_at":         "created_at",
+			"created_at asc":     "created_at ASC",
+			"created_at desc":    "created_at DESC",
+			"category_code":      "category_code",
+			"category_code asc":  "category_code ASC",
+			"category_code desc": "category_code DESC",
+		}
+		if validSort, exists := validSortFields[strings.ToLower(filter.Sort)]; exists {
+			orderBy = validSort
+		}
+	}
+	
+	// Check if we need to join with categories for sorting
+	needsCategoryJoin := strings.Contains(strings.ToLower(filter.Sort), "category_code")
+	
+	var query string
+	if needsCategoryJoin {
+		// Replace category_code with c.code in ORDER BY clause
+		orderByWithJoin := strings.ReplaceAll(orderBy, "category_code", "c.code")
+		query = fmt.Sprintf(
+			"SELECT t.id, t.tenant_id, t.user_id, t.category_id, t.type::text, t.amount_numeric::text, t.currency_code, t.base_amount_numeric::text, t.base_currency_code, t.fx_rate::text, t.fx_provider, t.fx_as_of, t.occurred_at, t.comment, t.created_at FROM transactions t LEFT JOIN categories c ON t.category_id = c.id WHERE %s ORDER BY %s OFFSET $%d LIMIT $%d",
+			strings.ReplaceAll(clause, "tenant_id=$1", "t.tenant_id=$1"), orderByWithJoin, offIdx, limIdx,
+		)
+	} else {
+		query = fmt.Sprintf(
+			"SELECT id, tenant_id, user_id, category_id, type::text, amount_numeric::text, currency_code, base_amount_numeric::text, base_currency_code, fx_rate::text, fx_provider, fx_as_of, occurred_at, comment, created_at FROM transactions WHERE %s ORDER BY %s OFFSET $%d LIMIT $%d",
+			clause, orderBy, offIdx, limIdx,
+		)
+	}
 	rows, err := r.pool.DB.Query(ctx, query, append(args, offset, size)...)
 	if err != nil {
 		return nil, 0, err

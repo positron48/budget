@@ -139,6 +139,9 @@ func (s *TransactionServer) ListTransactions(ctx context.Context, req *budgetv1.
 	if req.GetPage() != nil {
 		f.Page = int(req.GetPage().GetPage())
 		f.PageSize = int(req.GetPage().GetPageSize())
+		if req.GetPage().GetSort() != "" {
+			f.Sort = req.GetPage().GetSort()
+		}
 	}
 	items, total, err := s.svc.List(ctx, tenantID, f)
 	if err != nil {

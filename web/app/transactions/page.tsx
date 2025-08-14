@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState, useCallback, useRef } from "react";
 import { TransactionType, CategoryKind } from "@/proto/budget/v1/common_pb";
 import { useTranslations } from "next-intl";
-import { Icon, Button, Card, CardContent, TransactionStats, CategoryBadge, Modal } from "@/components";
+import { Icon, Button, Card, CardContent, TransactionStats, CategoryBadge, Modal, SortableHeader } from "@/components";
 import ImportWizard from "./ImportWizard";
 import NewTransactionForm, { NewTxFormRef } from "./NewTransactionForm";
 import FiltersForm from "@/components/FiltersForm";
@@ -26,6 +26,7 @@ function TransactionsInner() {
   const [showFilters, setShowFilters] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [sort, setSort] = useState<string>("occurred_at desc"); // Default sort by date descending
   const formRef = useRef<NewTxFormRef>(null);
 
   const setTypeCallback = useCallback((value: number) => setType(value), []);
@@ -43,11 +44,20 @@ function TransactionsInner() {
     }, 100);
   }, []);
   const setSelectedCategoryIdsCallback = useCallback((value: string[]) => setSelectedCategoryIds(value), []);
+
+  const handleSort = useCallback((field: string, direction: "asc" | "desc" | null) => {
+    if (direction === null) {
+      setSort("occurred_at desc"); // Reset to default
+    } else {
+      setSort(`${field} ${direction}`);
+    }
+    setPage(1); // Reset to first page when sorting changes
+  }, []);
   
 
 
   const request = useMemo(() => {
-    const req: any = { page: { page, pageSize } };
+    const req: any = { page: { page, pageSize, sort } };
     if (type) req.type = type;
     if (from || to) {
       req.dateRange = {};
@@ -64,7 +74,7 @@ function TransactionsInner() {
     if (search) req.search = search;
     if (selectedCategoryIds.length) req.categoryIds = selectedCategoryIds;
     return req;
-  }, [page, pageSize, type, from, to, search, selectedCategoryIds]);
+  }, [page, pageSize, sort, type, from, to, search, selectedCategoryIds]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["transactions", request],
@@ -168,6 +178,7 @@ function TransactionsInner() {
     setTo("");
     setSearch("");
     setSelectedCategoryIds([]);
+    setSort("occurred_at desc");
     setPage(1);
   }, []);
 
@@ -272,11 +283,13 @@ function TransactionsInner() {
                 categoriesLoading={categoriesLoading}
                 onDelete={(id: string) => deleteMut.mutate(id)}
                 isDeleting={deleteMut.isPending}
-                 onChanged={refetchListAndTotals}
+                onChanged={refetchListAndTotals}
                 showFilters={showFilters}
                 setShowFilters={setShowFilters}
                 hasActiveFilters={hasActiveFilters}
                 clearFilters={clearFilters}
+                currentSort={sort}
+                onSort={handleSort}
               />
               <Modal
                 open={showCreate}
@@ -386,6 +399,8 @@ function TransactionTable({
   setShowFilters,
   hasActiveFilters,
   clearFilters,
+  currentSort,
+  onSort,
 }: {
   items: any[];
   categories: any[];
@@ -397,6 +412,8 @@ function TransactionTable({
   setShowFilters: (show: boolean) => void;
   hasActiveFilters: boolean | string | number;
   clearFilters: () => void;
+  currentSort: string;
+  onSort: (field: string, direction: "asc" | "desc" | null) => void;
 }) {
   const { transaction } = useClients();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -504,21 +521,47 @@ function TransactionTable({
         <table className="w-full">
           <thead className="bg-slate-50 dark:bg-slate-700/50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+              <SortableHeader
+                field="type"
+                currentSort={currentSort}
+                onSort={onSort}
+                defaultDirection="asc"
+              >
                 Тип
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+              </SortableHeader>
+              <SortableHeader
+                field="occurred_at"
+                currentSort={currentSort}
+                onSort={onSort}
+                defaultDirection="desc"
+              >
                 Дата
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+              </SortableHeader>
+              <SortableHeader
+                field="comment"
+                currentSort={currentSort}
+                onSort={onSort}
+                defaultDirection="asc"
+              >
                 Описание
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+              </SortableHeader>
+              <SortableHeader
+                field="category_code"
+                currentSort={currentSort}
+                onSort={onSort}
+                defaultDirection="asc"
+              >
                 Категория
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+              </SortableHeader>
+              <SortableHeader
+                field="amount_numeric"
+                currentSort={currentSort}
+                onSort={onSort}
+                className="text-right"
+                defaultDirection="asc"
+              >
                 Сумма
-              </th>
+              </SortableHeader>
               <th className="px-4 py-3 text-right text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                 <div className="flex items-center justify-end space-x-2">
                   {hasActiveFilters && (
