@@ -108,13 +108,13 @@ make up
 ```
 
 2. **Access the application**:
-- Frontend: http://localhost:3000
+- Frontend: http://localhost:3030
 - Backend gRPC: localhost:8080
 - Envoy (gRPC-Web): localhost:8081
 - Grafana: http://localhost:3002
 
 3. **Registration and usage**:
-- Open http://localhost:3000
+- Open http://localhost:3030
 - Register with email/password
 - Create your first organization
 - Start adding categories and transactions

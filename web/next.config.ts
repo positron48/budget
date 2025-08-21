@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
   // Add some performance optimizations
   poweredByHeader: false,
   compress: true,
+  // Set custom port
+  env: {
+    PORT: '3030',
+  },
   async rewrites() {
     return [
       {

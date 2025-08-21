@@ -27,7 +27,7 @@ build: ## [Go] Сборка Go бинарника (bin/budgetd)
 
 run: up web-install ## [Dev] Запустить бэкенд (docker) и фронтенд (Next dev)
 	@printf "\n\033[34mDev окружение запущено:\033[0m\n"; \
-	printf "  \033[32mFrontend\033[0m: \033[90mhttp://localhost:3000\033[0m\n"; \
+	printf "  \033[32mFrontend\033[0m: \033[90mhttp://localhost:3030\033[0m\n"; \
 	printf "  \033[32mgRPC-Web (через Envoy)\033[0m: \033[90mhttp://localhost:8081/grpc\033[0m\n"; \
 	printf "  \033[32mBackend gRPC\033[0m: \033[90m0.0.0.0:8080\033[0m (в контейнере, проброшено на хост)\n"; \
 	printf "  \033[32mRewrites\033[0m: \033[90mweb/next.config.ts\033[0m — /grpc -> localhost:8081\n"; \
