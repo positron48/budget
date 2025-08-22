@@ -12,27 +12,29 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // TODO: Реализовать вызов gRPC сервиса для проверки статуса
-    // Пока возвращаем заглушку
-    const response = await fetch(`${process.env.GRPC_GATEWAY_URL}/v1/oauth/status`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ auth_token: token }),
+    // Создаем gRPC клиент как в других местах фронтенда
+    const { createClient } = require('@connectrpc/connect');
+    const { createGrpcWebTransport } = require('@connectrpc/connect-web');
+    const { OAuthService } = require('../../../../proto/budget/v1/oauth_connect');
+    
+    const transport = createGrpcWebTransport({ 
+      baseUrl: process.env.NEXT_PUBLIC_GRPC_BASE_URL ?? "http://localhost:3030/grpc" 
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to check token status');
-    }
-
-    const data = await response.json();
+    
+    const oauthClient = createClient(OAuthService, transport);
+    
+    console.log('Calling gRPC service for auth status with token:', token);
+    
+    // Вызываем gRPC метод
+    const response = await oauthClient.getAuthStatus({ authToken: token });
+    
+    console.log('gRPC service response:', response);
     
     return NextResponse.json({
-      status: data.status,
-      createdAt: data.created_at,
-      expiresAt: data.expires_at,
-      email: data.email,
+      status: response.status,
+      createdAt: response.createdAt,
+      expiresAt: response.expiresAt,
+      email: response.email,
     });
   } catch (error) {
     console.error('Error checking OAuth status:', error);

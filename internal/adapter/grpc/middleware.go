@@ -67,7 +67,7 @@ func isPublicMethod(fullMethod string) bool {
 		return true
 	case "/budget.v1.AuthService/Register", "/budget.v1.AuthService/Login", "/budget.v1.AuthService/RefreshToken":
 		return true
-	case "/budget.v1.OAuthService/GenerateAuthLink", "/budget.v1.OAuthService/VerifyAuthCode",
+	case "/budget.v1.OAuthService/GenerateAuthLink", "/budget.v1.OAuthService/GetVerificationCode", "/budget.v1.OAuthService/VerifyAuthCode",
 		"/budget.v1.OAuthService/CancelAuth", "/budget.v1.OAuthService/GetAuthStatus":
 		return true
 	default:

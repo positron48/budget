@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 
 const (
 	OAuthService_GenerateAuthLink_FullMethodName      = "/budget.v1.OAuthService/GenerateAuthLink"
+	OAuthService_GetVerificationCode_FullMethodName   = "/budget.v1.OAuthService/GetVerificationCode"
 	OAuthService_VerifyAuthCode_FullMethodName        = "/budget.v1.OAuthService/VerifyAuthCode"
 	OAuthService_CancelAuth_FullMethodName            = "/budget.v1.OAuthService/CancelAuth"
 	OAuthService_GetAuthStatus_FullMethodName         = "/budget.v1.OAuthService/GetAuthStatus"
@@ -35,6 +36,7 @@ const (
 type OAuthServiceClient interface {
 	// Основные методы OAuth2 flow
 	GenerateAuthLink(ctx context.Context, in *GenerateAuthLinkRequest, opts ...grpc.CallOption) (*GenerateAuthLinkResponse, error)
+	GetVerificationCode(ctx context.Context, in *GetVerificationCodeRequest, opts ...grpc.CallOption) (*GetVerificationCodeResponse, error)
 	VerifyAuthCode(ctx context.Context, in *VerifyAuthCodeRequest, opts ...grpc.CallOption) (*VerifyAuthCodeResponse, error)
 	CancelAuth(ctx context.Context, in *CancelAuthRequest, opts ...grpc.CallOption) (*CancelAuthResponse, error)
 	GetAuthStatus(ctx context.Context, in *GetAuthStatusRequest, opts ...grpc.CallOption) (*GetAuthStatusResponse, error)
@@ -57,6 +59,15 @@ func NewOAuthServiceClient(cc grpc.ClientConnInterface) OAuthServiceClient {
 func (c *oAuthServiceClient) GenerateAuthLink(ctx context.Context, in *GenerateAuthLinkRequest, opts ...grpc.CallOption) (*GenerateAuthLinkResponse, error) {
 	out := new(GenerateAuthLinkResponse)
 	err := c.cc.Invoke(ctx, OAuthService_GenerateAuthLink_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *oAuthServiceClient) GetVerificationCode(ctx context.Context, in *GetVerificationCodeRequest, opts ...grpc.CallOption) (*GetVerificationCodeResponse, error) {
+	out := new(GetVerificationCodeResponse)
+	err := c.cc.Invoke(ctx, OAuthService_GetVerificationCode_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -132,6 +143,7 @@ func (c *oAuthServiceClient) GetAuthLogs(ctx context.Context, in *GetAuthLogsReq
 type OAuthServiceServer interface {
 	// Основные методы OAuth2 flow
 	GenerateAuthLink(context.Context, *GenerateAuthLinkRequest) (*GenerateAuthLinkResponse, error)
+	GetVerificationCode(context.Context, *GetVerificationCodeRequest) (*GetVerificationCodeResponse, error)
 	VerifyAuthCode(context.Context, *VerifyAuthCodeRequest) (*VerifyAuthCodeResponse, error)
 	CancelAuth(context.Context, *CancelAuthRequest) (*CancelAuthResponse, error)
 	GetAuthStatus(context.Context, *GetAuthStatusRequest) (*GetAuthStatusResponse, error)
@@ -150,6 +162,9 @@ type UnimplementedOAuthServiceServer struct {
 
 func (UnimplementedOAuthServiceServer) GenerateAuthLink(context.Context, *GenerateAuthLinkRequest) (*GenerateAuthLinkResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GenerateAuthLink not implemented")
+}
+func (UnimplementedOAuthServiceServer) GetVerificationCode(context.Context, *GetVerificationCodeRequest) (*GetVerificationCodeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetVerificationCode not implemented")
 }
 func (UnimplementedOAuthServiceServer) VerifyAuthCode(context.Context, *VerifyAuthCodeRequest) (*VerifyAuthCodeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VerifyAuthCode not implemented")
@@ -199,6 +214,24 @@ func _OAuthService_GenerateAuthLink_Handler(srv interface{}, ctx context.Context
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(OAuthServiceServer).GenerateAuthLink(ctx, req.(*GenerateAuthLinkRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OAuthService_GetVerificationCode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetVerificationCodeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OAuthServiceServer).GetVerificationCode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OAuthService_GetVerificationCode_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OAuthServiceServer).GetVerificationCode(ctx, req.(*GetVerificationCodeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -339,6 +372,10 @@ var OAuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GenerateAuthLink",
 			Handler:    _OAuthService_GenerateAuthLink_Handler,
+		},
+		{
+			MethodName: "GetVerificationCode",
+			Handler:    _OAuthService_GetVerificationCode_Handler,
 		},
 		{
 			MethodName: "VerifyAuthCode",

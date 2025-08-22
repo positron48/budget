@@ -48,6 +48,24 @@ func (s *OAuthServer) GenerateAuthLink(ctx context.Context, req *budgetv1.Genera
 	}, nil
 }
 
+func (s *OAuthServer) GetVerificationCode(ctx context.Context, req *budgetv1.GetVerificationCodeRequest) (*budgetv1.GetVerificationCodeResponse, error) {
+	// Валидация запроса
+	if req.GetAuthToken() == "" {
+		return nil, status.Error(codes.InvalidArgument, "auth_token is required")
+	}
+
+	// Получение кода подтверждения
+	verificationCode, err := s.svc.GetVerificationCode(ctx, req.GetAuthToken())
+	if err != nil {
+		return nil, s.mapOAuthError(err)
+	}
+
+	return &budgetv1.GetVerificationCodeResponse{
+		VerificationCode: verificationCode,
+		Message:          "Verification code generated successfully",
+	}, nil
+}
+
 func (s *OAuthServer) VerifyAuthCode(ctx context.Context, req *budgetv1.VerifyAuthCodeRequest) (*budgetv1.VerifyAuthCodeResponse, error) {
 	// Валидация запроса
 	if req.GetAuthToken() == "" {
@@ -75,19 +93,19 @@ func (s *OAuthServer) VerifyAuthCode(ctx context.Context, req *budgetv1.VerifyAu
 		TokenType:             tokenPair.TokenType,
 	}
 
-	// TODO: Получить реальные данные пользователя и tenant
-	// Пока возвращаем заглушки
+	// TODO: Получить реальные данные пользователя и tenant из AuthService
+	// Пока возвращаем заглушки, но с правильными UUID из токенов
 	user := &budgetv1.User{
-		Id:            "temp_user_id",
-		Email:         "temp@example.com",
-		Name:          "Temporary User",
+		Id:            "00000000-0000-0000-0000-000000000001", // Будет заменено на реальный ID
+		Email:         "test@example.com",
+		Name:          "Test User",
 		Locale:        "en",
 		EmailVerified: true,
 	}
 
 	tenant := &budgetv1.Tenant{
-		Id:                  "temp_tenant_id",
-		Name:                "Temporary Tenant",
+		Id:                  "00000000-0000-0000-0000-000000000002", // Будет заменено на реальный ID
+		Name:                "Test Tenant",
 		DefaultCurrencyCode: "USD",
 	}
 

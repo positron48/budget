@@ -12,25 +12,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Реализовать вызов gRPC сервиса для отмены
-    const response = await fetch(`${process.env.GRPC_GATEWAY_URL}/v1/oauth/cancel`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        auth_token: token,
-        telegram_user_id: 'temp_user_id', // В реальной реализации это будет передаваться
-      }),
+    // Создаем gRPC клиент как в других местах фронтенда
+    const { createClient } = require('@connectrpc/connect');
+    const { createGrpcWebTransport } = require('@connectrpc/connect-web');
+    const { OAuthService } = require('../../../../proto/budget/v1/oauth_connect');
+    
+    const transport = createGrpcWebTransport({ 
+      baseUrl: process.env.NEXT_PUBLIC_GRPC_BASE_URL ?? "http://localhost:3030/grpc" 
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      return NextResponse.json(
-        { error: error.message || 'Failed to cancel authorization' },
-        { status: 400 }
-      );
-    }
+    
+    const oauthClient = createClient(OAuthService, transport);
+    
+    console.log('Calling gRPC service for cancellation');
+    
+    // Вызываем gRPC метод
+    await oauthClient.cancelAuth({
+      authToken: token,
+      telegramUserId: 'temp_user_id', // В реальной реализации это будет передаваться
+    });
 
     return NextResponse.json({
       success: true,

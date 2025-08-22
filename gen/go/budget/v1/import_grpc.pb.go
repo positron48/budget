@@ -8,7 +8,6 @@ package budgetv1
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -104,24 +103,21 @@ type ImportServiceServer interface {
 }
 
 // UnimplementedImportServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedImportServiceServer struct{}
+type UnimplementedImportServiceServer struct {
+}
 
 func (UnimplementedImportServiceServer) StartCsvImport(context.Context, *StartCsvImportRequest) (*StartCsvImportResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method StartCsvImport not implemented")
 }
-
 func (UnimplementedImportServiceServer) UploadCsvChunk(context.Context, *UploadCsvChunkRequest) (*UploadCsvChunkResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UploadCsvChunk not implemented")
 }
-
 func (UnimplementedImportServiceServer) ConfigureCsvMapping(context.Context, *ConfigureCsvMappingRequest) (*ConfigureCsvMappingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ConfigureCsvMapping not implemented")
 }
-
 func (UnimplementedImportServiceServer) PreviewCsvImport(context.Context, *PreviewCsvImportRequest) (*PreviewCsvImportResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PreviewCsvImport not implemented")
 }
-
 func (UnimplementedImportServiceServer) CommitCsvImport(context.Context, *CommitCsvImportRequest) (*CommitCsvImportResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CommitCsvImport not implemented")
 }

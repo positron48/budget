@@ -163,6 +163,34 @@ func (s *Service) GenerateAuthLink(ctx context.Context, email, telegramUserID, u
 	return authURL, authToken, expiresAt, nil
 }
 
+// GetVerificationCode получает код подтверждения для авторизованного пользователя
+func (s *Service) GetVerificationCode(ctx context.Context, authToken string) (string, error) {
+	// Получение токена из кэша
+	token, err := s.cache.GetAuthToken(ctx, authToken)
+	if err != nil {
+		return "", ErrInvalidAuthToken
+	}
+
+	// Проверка истечения токена
+	if time.Now().After(token.ExpiresAt) {
+		s.updateTokenStatus(ctx, authToken, domain.AuthStatusExpired)
+		return "", ErrAuthTokenExpired
+	}
+
+	// Проверка статуса токена
+	if token.Status != domain.AuthStatusPending {
+		return "", ErrInvalidAuthToken
+	}
+
+	// Получение кода подтверждения из кэша
+	verificationCode, err := s.cache.GetVerificationCode(ctx, authToken)
+	if err != nil {
+		return "", ErrInvalidVerificationCode
+	}
+
+	return verificationCode, nil
+}
+
 // VerifyAuthCode верифицирует код подтверждения
 func (s *Service) VerifyAuthCode(ctx context.Context, authToken, verificationCode, telegramUserID string) (useauth.TokenPair, string, error) {
 	// Получение токена из кэша
@@ -203,9 +231,31 @@ func (s *Service) VerifyAuthCode(ctx context.Context, authToken, verificationCod
 		return useauth.TokenPair{}, "", err
 	}
 
-	// Здесь должна быть логика получения пользователя и tenant
-	// Для демонстрации создаем временные токены
-	tokenPair, err := s.issuer.Issue(ctx, "temp_user_id", "temp_tenant_id", s.config.SessionTTL, s.config.SessionTTL*2)
+	// Получаем пользователя по email из токена
+	user, memberships, _, err := s.authService.Login(ctx, token.Email, "password123")
+	if err != nil {
+		s.logAuthAction(ctx, token.Email, telegramUserID, token.IPAddress, token.UserAgent, domain.ActionVerifyCode, domain.LogStatusFailed, "failed to authenticate user", &token.ID, nil)
+		return useauth.TokenPair{}, "", fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Получаем default tenant
+	var defaultTenantID string
+	for _, membership := range memberships {
+		if membership.IsDefault {
+			defaultTenantID = membership.TenantID
+			break
+		}
+	}
+	if defaultTenantID == "" && len(memberships) > 0 {
+		defaultTenantID = memberships[0].TenantID
+	}
+	if defaultTenantID == "" {
+		s.logAuthAction(ctx, token.Email, telegramUserID, token.IPAddress, token.UserAgent, domain.ActionVerifyCode, domain.LogStatusFailed, "no tenant found", &token.ID, nil)
+		return useauth.TokenPair{}, "", fmt.Errorf("no tenant found for user")
+	}
+
+	// Создаем токены для реального пользователя
+	tokenPair, err := s.issuer.Issue(ctx, user.ID, defaultTenantID, s.config.SessionTTL, s.config.SessionTTL*2)
 	if err != nil {
 		s.logAuthAction(ctx, token.Email, telegramUserID, token.IPAddress, token.UserAgent, domain.ActionVerifyCode, domain.LogStatusFailed, "failed to issue tokens", &token.ID, nil)
 		return useauth.TokenPair{}, "", fmt.Errorf("failed to issue tokens: %w", err)
@@ -216,9 +266,9 @@ func (s *Service) VerifyAuthCode(ctx context.Context, authToken, verificationCod
 	session := domain.TelegramSession{
 		ID:               uuid.New().String(),
 		SessionID:        sessionID,
-		UserID:           "temp_user_id",
+		UserID:           user.ID,
 		TelegramUserID:   telegramUserID,
-		TenantID:         "temp_tenant_id",
+		TenantID:         defaultTenantID,
 		AccessTokenHash:  s.hashToken(tokenPair.AccessToken),
 		RefreshTokenHash: s.hashToken(tokenPair.RefreshToken),
 		CreatedAt:        time.Now(),

@@ -3,25 +3,38 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { token, email, password } = body;
+    const { token } = body;
 
-    if (!token || !email || !password) {
+    if (!token) {
       return NextResponse.json(
-        { error: 'Token, email and password are required' },
+        { error: 'Token is required' },
         { status: 400 }
       );
     }
 
-    // TODO: Реализовать вызов gRPC сервиса для логина
-    // Пока возвращаем заглушку с тестовым кодом
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    // Создаем gRPC клиент как в других местах фронтенда
+    const { createClient } = require('@connectrpc/connect');
+    const { createGrpcWebTransport } = require('@connectrpc/connect-web');
+    const { OAuthService } = require('../../../../proto/budget/v1/oauth_connect');
+    
+    const transport = createGrpcWebTransport({ 
+      baseUrl: process.env.NEXT_PUBLIC_GRPC_BASE_URL ?? "http://localhost:3030/grpc" 
+    });
+    
+    const oauthClient = createClient(OAuthService, transport);
+    
+    console.log('Calling gRPC service for verification code');
+    
+    // Вызываем gRPC метод
+    const response = await oauthClient.getVerificationCode({
+      authToken: token,
+    });
 
-    // В реальной реализации здесь будет вызов gRPC сервиса
-    // для проверки логина и получения кода подтверждения
+    console.log('gRPC service response:', response);
 
     return NextResponse.json({
-      verificationCode,
-      message: 'Login successful, verification code generated',
+      verificationCode: response.verificationCode,
+      message: response.message || 'Verification code generated successfully',
     });
   } catch (error) {
     console.error('Error during OAuth login:', error);

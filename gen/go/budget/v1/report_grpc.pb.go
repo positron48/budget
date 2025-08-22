@@ -8,7 +8,6 @@ package budgetv1
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -56,7 +55,8 @@ type ReportServiceServer interface {
 }
 
 // UnimplementedReportServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedReportServiceServer struct{}
+type UnimplementedReportServiceServer struct {
+}
 
 func (UnimplementedReportServiceServer) GetMonthlySummary(context.Context, *GetMonthlySummaryRequest) (*GetMonthlySummaryResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetMonthlySummary not implemented")

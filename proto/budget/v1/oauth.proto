@@ -63,6 +63,15 @@ message GetAuthStatusResponse {
   string email = 4;
 }
 
+message GetVerificationCodeRequest {
+  string auth_token = 1;
+}
+
+message GetVerificationCodeResponse {
+  string verification_code = 1;
+  string message = 2;
+}
+
 message TelegramSession {
   string session_id = 1;
   string user_id = 2;
@@ -125,6 +134,7 @@ message GetAuthLogsResponse {
 service OAuthService {
   // Основные методы OAuth2 flow
   rpc GenerateAuthLink(GenerateAuthLinkRequest) returns (GenerateAuthLinkResponse);
+  rpc GetVerificationCode(GetVerificationCodeRequest) returns (GetVerificationCodeResponse);
   rpc VerifyAuthCode(VerifyAuthCodeRequest) returns (VerifyAuthCodeResponse);
   rpc CancelAuth(CancelAuthRequest) returns (CancelAuthResponse);
   rpc GetAuthStatus(GetAuthStatusRequest) returns (GetAuthStatusResponse);
