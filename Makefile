@@ -2,7 +2,7 @@ PROTO_DIR=proto
 DB_URL=postgres://budget:budget@localhost:5432/budget?sslmode=disable
 
 # Список всех целей в одном месте
-.PHONY: help proto dproto tsproto lproto-go build run run-backend stop restart up down logs ps tidy fmt test pgtest lint vet ci check web-install web-build web-lint web-test web-check check-all migrate-up migrate-down dmigrate-up dmigrate-down docker-df docker-prune docker-prune-all
+.PHONY: help proto dproto tsproto lproto-go build run run-backend stop restart up down logs ps tidy fmt test pgtest lint vet ci check web-install web-build web-lint web-test web-check check-all migrate-up migrate-down dmigrate-up dmigrate-down docker-df docker-prune docker-prune-all oauth-test oauth-cleanup
 
 # Вывести список целей и их описание (с группировкой по разделам)
 help: ## [Meta] Показать список команд по разделам
@@ -97,6 +97,22 @@ logs: ## [Docker] Логи docker compose (-f --tail=200)
 
 ps: ## [Docker] Список контейнеров docker compose
 	docker compose ps
+
+oauth-test: ## [OAuth] Тестирование OAuth2 функциональности
+	@echo "Тестирование OAuth2 функциональности..."
+	@echo "1. Проверка подключения к Redis..."
+	@docker compose exec redis redis-cli ping || echo "Redis недоступен"
+	@echo "2. Проверка миграций OAuth..."
+	@docker compose exec app migrate -path migrations -database "$(DB_URL)" version || echo "Миграции недоступны"
+	@echo "3. Проверка gRPC сервиса..."
+	@grpcurl -plaintext localhost:8080 list | grep -i oauth || echo "OAuth сервис недоступен"
+	@echo "4. Проверка веб-интерфейса..."
+	@curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/oauth/auth || echo "Веб-интерфейс недоступен"
+
+oauth-cleanup: ## [OAuth] Очистка OAuth данных (токены, сессии, логи)
+	@echo "Очистка OAuth данных..."
+	@docker compose exec redis redis-cli --eval - <<< "local keys = redis.call('keys', 'oauth:*') for i=1,#keys do redis.call('del', keys[i]) end return #keys" || echo "Ошибка очистки Redis"
+	@echo "OAuth данные очищены"
 
 tidy: ## [Go] Обновить зависимости (go mod tidy)
 	go mod tidy

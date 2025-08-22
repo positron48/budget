@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/positron48/budget/internal/adapter/postgres"
+	"github.com/positron48/budget/internal/adapter/redis"
 	"github.com/positron48/budget/internal/pkg/config"
 	"github.com/positron48/budget/internal/pkg/logger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -17,8 +18,10 @@ import (
 	budgetv1 "github.com/positron48/budget/gen/go/budget/v1"
 	aauth "github.com/positron48/budget/internal/adapter/auth"
 	grpcadapter "github.com/positron48/budget/internal/adapter/grpc"
+	"github.com/positron48/budget/internal/domain"
 	useauth "github.com/positron48/budget/internal/usecase/auth"
 	"github.com/positron48/budget/internal/usecase/category"
+	useoauth "github.com/positron48/budget/internal/usecase/oauth"
 	reportuse "github.com/positron48/budget/internal/usecase/report"
 	"github.com/positron48/budget/internal/usecase/tenant"
 	"github.com/positron48/budget/internal/usecase/transaction"
@@ -123,6 +126,21 @@ func main() {
 	// register services
 	if db != nil {
 
+		// Redis connection
+		var redisClient *redis.Client
+		if cfg.RedisURL != "" {
+			redisClient, err = redis.NewClient(cfg.RedisURL)
+			if err != nil {
+				sug.Warnw("failed to connect to Redis", "error", err)
+			} else {
+				defer func() {
+					if err := redisClient.Close(); err != nil {
+						sug.Warnw("failed to close Redis client", "error", err)
+					}
+				}()
+			}
+		}
+
 		// Auth
 		userRepo := postgres.NewUserRepo(db)
 		rtRepo := postgres.NewRefreshTokenRepo(db)
@@ -130,6 +148,23 @@ func main() {
 		issuer := aauth.NewJWTIssuer(cfg.JWTSignKey)
 		authSvc := useauth.NewService(userRepo, rtRepo, hasher, issuer, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
 		budgetv1.RegisterAuthServiceServer(server, grpcadapter.NewAuthServer(authSvc))
+
+		// OAuth (if Redis is available)
+		if redisClient != nil {
+			oauthRepo := postgres.NewOAuthRepo(db)
+			oauthCache := redis.NewOAuthCache(redisClient)
+			configOAuth := cfg.GetOAuthConfig()
+			oauthConfig := domain.OAuthConfig{
+				AuthTokenTTL:        configOAuth.AuthTokenTTL,
+				SessionTTL:          configOAuth.SessionTTL,
+				VerificationCodeTTL: configOAuth.VerificationCodeTTL,
+				MaxAttemptsPerHour:  configOAuth.MaxAttemptsPerHour,
+				MaxAttemptsPer10Min: configOAuth.MaxAttemptsPer10Min,
+				WebBaseURL:          configOAuth.WebBaseURL,
+			}
+			oauthSvc := useoauth.NewService(oauthRepo, oauthCache, authSvc, issuer, oauthConfig)
+			budgetv1.RegisterOAuthServiceServer(server, grpcadapter.NewOAuthServer(oauthSvc))
+		}
 
 		// Tenant
 		tenantRepo := postgres.NewTenantRepo(db)
