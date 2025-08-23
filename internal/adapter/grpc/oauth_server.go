@@ -364,6 +364,8 @@ func (s *OAuthServer) mapOAuthError(err error) error {
 		return status.Error(codes.DeadlineExceeded, "session expired")
 	case errors.Is(err, useoauth.ErrInvalidEmail):
 		return status.Error(codes.InvalidArgument, "invalid email format")
+	case errors.Is(err, useoauth.ErrUserNotFound):
+		return status.Error(codes.NotFound, "user not found")
 	default:
 		return status.Error(codes.Internal, fmt.Sprintf("internal error: %v", err))
 	}

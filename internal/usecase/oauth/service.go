@@ -73,6 +73,7 @@ var (
 	ErrSessionNotFound         = errors.New("session not found")
 	ErrSessionExpired          = errors.New("session expired")
 	ErrInvalidEmail            = errors.New("invalid email format")
+	ErrUserNotFound            = errors.New("user not found")
 )
 
 // Service OAuth2 сервис
@@ -115,6 +116,13 @@ func (s *Service) GenerateAuthLink(ctx context.Context, email, telegramUserID, u
 	// Проверка rate limit
 	if err := s.checkRateLimit(ctx, telegramUserID, "generate_link", ipAddress); err != nil {
 		return "", "", time.Time{}, err
+	}
+
+	// Проверка существования пользователя
+	_, _, err = s.repo.GetUserByEmail(ctx, email)
+	if err != nil {
+		s.logAuthAction(ctx, email, telegramUserID, ipAddress, userAgent, domain.ActionGenerateLink, domain.LogStatusFailed, "user not found", nil, nil)
+		return "", "", time.Time{}, ErrUserNotFound
 	}
 
 	// Генерация токена и кода
