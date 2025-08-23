@@ -79,12 +79,12 @@ func (s *OAuthServer) VerifyAuthCode(ctx context.Context, req *budgetv1.VerifyAu
 	}
 
 	// Верификация кода
-	tokenPair, sessionID, err := s.svc.VerifyAuthCode(ctx, req.GetAuthToken(), req.GetVerificationCode(), req.GetTelegramUserId())
+	tokenPair, user, memberships, sessionID, err := s.svc.VerifyAuthCode(ctx, req.GetAuthToken(), req.GetVerificationCode(), req.GetTelegramUserId())
 	if err != nil {
 		return nil, s.mapOAuthError(err)
 	}
 
-	// Преобразование в proto формат
+	// Преобразование токенов в proto формат
 	protoTokenPair := &budgetv1.TokenPair{
 		AccessToken:           tokenPair.AccessToken,
 		RefreshToken:          tokenPair.RefreshToken,
@@ -93,34 +93,34 @@ func (s *OAuthServer) VerifyAuthCode(ctx context.Context, req *budgetv1.VerifyAu
 		TokenType:             tokenPair.TokenType,
 	}
 
-	// TODO: Получить реальные данные пользователя и tenant из AuthService
-	// Пока возвращаем заглушки, но с правильными UUID из токенов
-	user := &budgetv1.User{
-		Id:            "00000000-0000-0000-0000-000000000001", // Будет заменено на реальный ID
-		Email:         "test@example.com",
-		Name:          "Test User",
-		Locale:        "en",
-		EmailVerified: true,
+	// Преобразование пользователя в proto формат
+	protoUser := &budgetv1.User{
+		Id:            user.ID,
+		Email:         user.Email,
+		Name:          user.Name,
+		Locale:        user.Locale,
+		EmailVerified: true, // Пока считаем, что email верифицирован
 	}
 
-	tenant := &budgetv1.Tenant{
-		Id:                  "00000000-0000-0000-0000-000000000002", // Будет заменено на реальный ID
-		Name:                "Test Tenant",
-		DefaultCurrencyCode: "USD",
-	}
-
-	memberships := []*budgetv1.TenantMembership{
-		{
-			Tenant:    tenant,
-			Role:      budgetv1.TenantRole_TENANT_ROLE_OWNER,
-			IsDefault: true,
-		},
+	// Преобразование memberships в proto формат
+	var protoMemberships []*budgetv1.TenantMembership
+	for _, membership := range memberships {
+		protoMembership := &budgetv1.TenantMembership{
+			Tenant: &budgetv1.Tenant{
+				Id:                  membership.TenantID,
+				Name:                "Tenant", // TODO: получить реальное имя tenant
+				DefaultCurrencyCode: "USD",    // TODO: получить реальную валюту
+			},
+			Role:      budgetv1.TenantRole_TENANT_ROLE_OWNER, // TODO: преобразовать роль
+			IsDefault: membership.IsDefault,
+		}
+		protoMemberships = append(protoMemberships, protoMembership)
 	}
 
 	return &budgetv1.VerifyAuthCodeResponse{
 		Tokens:      protoTokenPair,
-		User:        user,
-		Memberships: memberships,
+		User:        protoUser,
+		Memberships: protoMemberships,
 		SessionId:   sessionID,
 	}, nil
 }

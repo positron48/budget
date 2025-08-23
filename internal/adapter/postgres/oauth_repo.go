@@ -5,9 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/positron48/budget/internal/domain"
+	useauth "github.com/positron48/budget/internal/usecase/auth"
 )
 
 type OAuthRepo struct {
@@ -381,4 +383,38 @@ func (r *OAuthRepo) CleanupExpiredData(ctx context.Context) error {
 	`)
 
 	return err
+}
+
+// GetUserByEmail получает пользователя по email с его tenant memberships
+func (r *OAuthRepo) GetUserByEmail(ctx context.Context, email string) (useauth.User, []useauth.TenantMembership, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	var u useauth.User
+	err := r.db.DB.QueryRow(ctx,
+		`SELECT id, email, name, locale, password_hash FROM users WHERE email=$1`, email,
+	).Scan(&u.ID, &u.Email, &u.Name, &u.Locale, &u.PasswordHash)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return useauth.User{}, nil, err
+		}
+		return useauth.User{}, nil, err
+	}
+	rows, err := r.db.DB.Query(ctx,
+		`SELECT tenant_id, role, is_default FROM user_tenants WHERE user_id=$1`, u.ID,
+	)
+	if err != nil {
+		return useauth.User{}, nil, err
+	}
+	defer rows.Close()
+	var ms []useauth.TenantMembership
+	for rows.Next() {
+		var m useauth.TenantMembership
+		if err := rows.Scan(&m.TenantID, &m.Role, &m.IsDefault); err != nil {
+			return useauth.User{}, nil, err
+		}
+		ms = append(ms, m)
+	}
+	if err := rows.Err(); err != nil {
+		return useauth.User{}, nil, err
+	}
+	return u, ms, nil
 }

@@ -33,6 +33,7 @@ type OAuthRepo interface {
 	CheckAccountBlock(ctx context.Context, telegramUserID string) (*domain.AccountBlock, error)
 	CreateAccountBlock(ctx context.Context, block domain.AccountBlock) error
 	CleanupExpiredData(ctx context.Context) error
+	GetUserByEmail(ctx context.Context, email string) (useauth.User, []useauth.TenantMembership, error)
 }
 
 type OAuthCache interface {
@@ -192,50 +193,50 @@ func (s *Service) GetVerificationCode(ctx context.Context, authToken string) (st
 }
 
 // VerifyAuthCode верифицирует код подтверждения
-func (s *Service) VerifyAuthCode(ctx context.Context, authToken, verificationCode, telegramUserID string) (useauth.TokenPair, string, error) {
+func (s *Service) VerifyAuthCode(ctx context.Context, authToken, verificationCode, telegramUserID string) (useauth.TokenPair, useauth.User, []useauth.TenantMembership, string, error) {
 	// Получение токена из кэша
 	token, err := s.cache.GetAuthToken(ctx, authToken)
 	if err != nil {
 		s.logAuthAction(ctx, "", telegramUserID, "", "", domain.ActionVerifyCode, domain.LogStatusFailed, "auth token not found", nil, nil)
-		return useauth.TokenPair{}, "", ErrInvalidAuthToken
+		return useauth.TokenPair{}, useauth.User{}, nil, "", ErrInvalidAuthToken
 	}
 
 	// Проверка истечения токена
 	if time.Now().After(token.ExpiresAt) {
 		s.updateTokenStatus(ctx, authToken, domain.AuthStatusExpired)
 		s.logAuthAction(ctx, token.Email, telegramUserID, token.IPAddress, token.UserAgent, domain.ActionVerifyCode, domain.LogStatusExpired, "token expired", &token.ID, nil)
-		return useauth.TokenPair{}, "", ErrAuthTokenExpired
+		return useauth.TokenPair{}, useauth.User{}, nil, "", ErrAuthTokenExpired
 	}
 
 	// Проверка статуса токена
 	if token.Status != domain.AuthStatusPending {
 		s.logAuthAction(ctx, token.Email, telegramUserID, token.IPAddress, token.UserAgent, domain.ActionVerifyCode, domain.LogStatusFailed, "invalid token status", &token.ID, nil)
-		return useauth.TokenPair{}, "", ErrInvalidAuthToken
+		return useauth.TokenPair{}, useauth.User{}, nil, "", ErrInvalidAuthToken
 	}
 
 	// Получение кода подтверждения из кэша
 	storedCode, err := s.cache.GetVerificationCode(ctx, authToken)
 	if err != nil {
 		s.logAuthAction(ctx, token.Email, telegramUserID, token.IPAddress, token.UserAgent, domain.ActionVerifyCode, domain.LogStatusFailed, "verification code not found", &token.ID, nil)
-		return useauth.TokenPair{}, "", ErrInvalidVerificationCode
+		return useauth.TokenPair{}, useauth.User{}, nil, "", ErrInvalidVerificationCode
 	}
 
 	// Проверка кода
 	if storedCode != verificationCode {
 		s.logAuthAction(ctx, token.Email, telegramUserID, token.IPAddress, token.UserAgent, domain.ActionVerifyCode, domain.LogStatusFailed, "invalid verification code", &token.ID, nil)
-		return useauth.TokenPair{}, "", ErrInvalidVerificationCode
+		return useauth.TokenPair{}, useauth.User{}, nil, "", ErrInvalidVerificationCode
 	}
 
 	// Проверка rate limit
 	if err := s.checkRateLimit(ctx, telegramUserID, "verify_code", token.IPAddress); err != nil {
-		return useauth.TokenPair{}, "", err
+		return useauth.TokenPair{}, useauth.User{}, nil, "", err
 	}
 
 	// Получаем пользователя по email из токена
-	user, memberships, _, err := s.authService.Login(ctx, token.Email, "password123")
+	user, memberships, err := s.repo.GetUserByEmail(ctx, token.Email)
 	if err != nil {
-		s.logAuthAction(ctx, token.Email, telegramUserID, token.IPAddress, token.UserAgent, domain.ActionVerifyCode, domain.LogStatusFailed, "failed to authenticate user", &token.ID, nil)
-		return useauth.TokenPair{}, "", fmt.Errorf("failed to authenticate user: %w", err)
+		s.logAuthAction(ctx, token.Email, telegramUserID, token.IPAddress, token.UserAgent, domain.ActionVerifyCode, domain.LogStatusFailed, "user not found", &token.ID, nil)
+		return useauth.TokenPair{}, useauth.User{}, nil, "", fmt.Errorf("user not found: %w", err)
 	}
 
 	// Получаем default tenant
@@ -251,14 +252,14 @@ func (s *Service) VerifyAuthCode(ctx context.Context, authToken, verificationCod
 	}
 	if defaultTenantID == "" {
 		s.logAuthAction(ctx, token.Email, telegramUserID, token.IPAddress, token.UserAgent, domain.ActionVerifyCode, domain.LogStatusFailed, "no tenant found", &token.ID, nil)
-		return useauth.TokenPair{}, "", fmt.Errorf("no tenant found for user")
+		return useauth.TokenPair{}, useauth.User{}, nil, "", fmt.Errorf("no tenant found for user")
 	}
 
-	// Создаем токены для реального пользователя
+	// Создаем токены для пользователя с default tenant
 	tokenPair, err := s.issuer.Issue(ctx, user.ID, defaultTenantID, s.config.SessionTTL, s.config.SessionTTL*2)
 	if err != nil {
 		s.logAuthAction(ctx, token.Email, telegramUserID, token.IPAddress, token.UserAgent, domain.ActionVerifyCode, domain.LogStatusFailed, "failed to issue tokens", &token.ID, nil)
-		return useauth.TokenPair{}, "", fmt.Errorf("failed to issue tokens: %w", err)
+		return useauth.TokenPair{}, useauth.User{}, nil, "", fmt.Errorf("failed to issue tokens: %w", err)
 	}
 
 	// Создание сессии Telegram
@@ -278,12 +279,12 @@ func (s *Service) VerifyAuthCode(ctx context.Context, authToken, verificationCod
 
 	// Сохранение сессии
 	if err := s.cache.StoreTelegramSession(ctx, session); err != nil {
-		return useauth.TokenPair{}, "", fmt.Errorf("failed to store telegram session: %w", err)
+		return useauth.TokenPair{}, useauth.User{}, nil, "", fmt.Errorf("failed to store telegram session: %w", err)
 	}
 
 	if err := s.repo.CreateTelegramSession(ctx, session); err != nil {
 		_ = s.cache.DeleteTelegramSession(ctx, sessionID)
-		return useauth.TokenPair{}, "", fmt.Errorf("failed to store telegram session in database: %w", err)
+		return useauth.TokenPair{}, useauth.User{}, nil, "", fmt.Errorf("failed to store telegram session in database: %w", err)
 	}
 
 	// Обновление статуса токена
@@ -298,7 +299,7 @@ func (s *Service) VerifyAuthCode(ctx context.Context, authToken, verificationCod
 	// Логирование успешной операции
 	s.logAuthAction(ctx, token.Email, telegramUserID, token.IPAddress, token.UserAgent, domain.ActionVerifyCode, domain.LogStatusSuccess, "", &token.ID, &session.ID)
 
-	return tokenPair, sessionID, nil
+	return tokenPair, user, memberships, sessionID, nil
 }
 
 // CancelAuth отменяет авторизацию
