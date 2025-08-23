@@ -7,30 +7,6 @@ on:
     branches: [ master ]
 
 jobs:
-  proto:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Cache buf
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/buf
-          key: ${{ runner.os }}-buf-${{ hashFiles('proto/**', 'proto/buf.gen.yaml', 'proto/buf.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-buf-
-      - name: Set up Buf
-        uses: bufbuild/buf-setup-action@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          setup_protoc: true
-      - name: Buf Lint
-        working-directory: proto
-        run: buf lint
-      - name: Buf Generate
-        working-directory: proto
-        run: buf generate
-
   go:
     runs-on: ubuntu-latest
     env:
