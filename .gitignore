@@ -33,3 +33,4 @@ vendor/
 deploy/
 DEPLOYMENT_GUIDE.md
 deploy.sh
+docker-compose.override.yml
