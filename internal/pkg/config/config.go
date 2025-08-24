@@ -29,17 +29,46 @@ func getenv(key, def string) string {
 
 func Load() (Config, error) {
 	var cfg Config
-	cfg.AppEnv = getenv("APP_ENV", "dev")
-	cfg.GRPCAddr = getenv("GRPC_ADDR", ":8080")
+	
+	// Обязательные переменные окружения
+	cfg.AppEnv = getenv("APP_ENV", "")
+	if cfg.AppEnv == "" {
+		return Config{}, fmt.Errorf("APP_ENV is required")
+	}
+	
+	cfg.GRPCAddr = getenv("GRPC_ADDR", "")
+	if cfg.GRPCAddr == "" {
+		return Config{}, fmt.Errorf("GRPC_ADDR is required")
+	}
+	
 	cfg.DatabaseURL = getenv("DATABASE_URL", "")
-	cfg.RedisURL = getenv("REDIS_URL", "redis://localhost:6379")
+	if cfg.DatabaseURL == "" {
+		return Config{}, fmt.Errorf("DATABASE_URL is required")
+	}
+	
+	cfg.RedisURL = getenv("REDIS_URL", "")
+	if cfg.RedisURL == "" {
+		return Config{}, fmt.Errorf("REDIS_URL is required")
+	}
+	
 	cfg.JWTSignKey = getenv("JWT_SIGN_KEY", "")
+	if cfg.JWTSignKey == "" {
+		return Config{}, fmt.Errorf("JWT_SIGN_KEY is required")
+	}
+	
 	cfg.MetricsAddr = getenv("METRICS_ADDR", "")
 	cfg.OTelEndpoint = getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
 	cfg.OTelInsecure = getenv("OTEL_EXPORTER_OTLP_INSECURE", "true") == "true"
 
-	access := getenv("JWT_ACCESS_TTL", "15m")
-	refresh := getenv("JWT_REFRESH_TTL", "720h")
+	access := getenv("JWT_ACCESS_TTL", "")
+	if access == "" {
+		return Config{}, fmt.Errorf("JWT_ACCESS_TTL is required")
+	}
+	
+	refresh := getenv("JWT_REFRESH_TTL", "")
+	if refresh == "" {
+		return Config{}, fmt.Errorf("JWT_REFRESH_TTL is required")
+	}
 
 	var err error
 	if cfg.JWTAccessTTL, err = time.ParseDuration(access); err != nil {
@@ -58,30 +87,56 @@ func Load() (Config, error) {
 func loadOAuthConfig() OAuthConfig {
 	var oauth OAuthConfig
 
-	authTokenTTL := getenv("OAUTH_AUTH_TOKEN_TTL", "5m")
-	if ttl, err := time.ParseDuration(authTokenTTL); err == nil {
+	authTokenTTL := getenv("OAUTH_AUTH_TOKEN_TTL", "")
+	if authTokenTTL == "" {
+		panic("OAUTH_AUTH_TOKEN_TTL is required")
+	}
+	if ttl, err := time.ParseDuration(authTokenTTL); err != nil {
+		panic(fmt.Sprintf("invalid OAUTH_AUTH_TOKEN_TTL: %v", err))
+	} else {
 		oauth.AuthTokenTTL = ttl
-	} else {
-		oauth.AuthTokenTTL = 5 * time.Minute
 	}
 
-	sessionTTL := getenv("OAUTH_SESSION_TTL", "24h")
-	if ttl, err := time.ParseDuration(sessionTTL); err == nil {
+	sessionTTL := getenv("OAUTH_SESSION_TTL", "")
+	if sessionTTL == "" {
+		panic("OAUTH_SESSION_TTL is required")
+	}
+	if ttl, err := time.ParseDuration(sessionTTL); err != nil {
+		panic(fmt.Sprintf("invalid OAUTH_SESSION_TTL: %v", err))
+	} else {
 		oauth.SessionTTL = ttl
-	} else {
-		oauth.SessionTTL = 24 * time.Hour
 	}
 
-	verificationCodeTTL := getenv("OAUTH_VERIFICATION_CODE_TTL", "10m")
-	if ttl, err := time.ParseDuration(verificationCodeTTL); err == nil {
+	verificationCodeTTL := getenv("OAUTH_VERIFICATION_CODE_TTL", "")
+	if verificationCodeTTL == "" {
+		panic("OAUTH_VERIFICATION_CODE_TTL is required")
+	}
+	if ttl, err := time.ParseDuration(verificationCodeTTL); err != nil {
+		panic(fmt.Sprintf("invalid OAUTH_VERIFICATION_CODE_TTL: %v", err))
+	} else {
 		oauth.VerificationCodeTTL = ttl
-	} else {
-		oauth.VerificationCodeTTL = 10 * time.Minute
 	}
 
-	oauth.MaxAttemptsPerHour = 10 // TODO: добавить парсинг из env
-	oauth.MaxAttemptsPer10Min = 3 // TODO: добавить парсинг из env
-	oauth.WebBaseURL = getenv("OAUTH_WEB_BASE_URL", "http://localhost:3000")
+	maxAttemptsPerHour := getenv("OAUTH_MAX_ATTEMPTS_PER_HOUR", "")
+	if maxAttemptsPerHour == "" {
+		panic("OAUTH_MAX_ATTEMPTS_PER_HOUR is required")
+	}
+	if attempts, err := fmt.Sscanf(maxAttemptsPerHour, "%d", &oauth.MaxAttemptsPerHour); err != nil || attempts != 1 {
+		panic(fmt.Sprintf("invalid OAUTH_MAX_ATTEMPTS_PER_HOUR: %v", err))
+	}
+
+	maxAttemptsPer10Min := getenv("OAUTH_MAX_ATTEMPTS_PER_10MIN", "")
+	if maxAttemptsPer10Min == "" {
+		panic("OAUTH_MAX_ATTEMPTS_PER_10MIN is required")
+	}
+	if attempts, err := fmt.Sscanf(maxAttemptsPer10Min, "%d", &oauth.MaxAttemptsPer10Min); err != nil || attempts != 1 {
+		panic(fmt.Sprintf("invalid OAUTH_MAX_ATTEMPTS_PER_10MIN: %v", err))
+	}
+
+	oauth.WebBaseURL = getenv("OAUTH_WEB_BASE_URL", "")
+	if oauth.WebBaseURL == "" {
+		panic("OAUTH_WEB_BASE_URL is required")
+	}
 
 	return oauth
 }

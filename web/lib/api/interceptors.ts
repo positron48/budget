@@ -86,6 +86,9 @@ export function refreshAuthInterceptor(
 
           // Create a bare transport without interceptors to avoid recursion
           const { createGrpcWebTransport } = await import("@connectrpc/connect-web");
+          if (!transportBaseUrl) {
+            throw new Error("NEXT_PUBLIC_GRPC_BASE_URL is not configured");
+          }
           const bareTransport = createGrpcWebTransport({ 
             baseUrl: transportBaseUrl,
           });

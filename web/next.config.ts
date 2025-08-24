@@ -14,10 +14,11 @@ const nextConfig: NextConfig = {
     PORT: '3030',
   },
   async rewrites() {
+    const envoyUrl = process.env.ENVOY_URL || "http://localhost:8081";
     return [
       {
         source: "/grpc/:path*",
-        destination: "http://localhost:8081/:path*",
+        destination: `${envoyUrl}/:path*`,
       },
     ];
   },

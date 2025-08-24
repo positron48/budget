@@ -22,26 +22,28 @@ services:
     build:
       context: .
       dockerfile: deploy/Dockerfile
-    environment:
-      APP_ENV: dev
-      GRPC_ADDR: 0.0.0.0:8080
-      METRICS_ADDR: 0.0.0.0:9090
-      DATABASE_URL: postgres://budget:budget@db:5432/budget?sslmode=disable
-      REDIS_URL: redis://redis:6379
-      JWT_ACCESS_TTL: 15m
-      JWT_REFRESH_TTL: 720h
-      JWT_SIGN_KEY: dev-secret-change
-      OAUTH_AUTH_TOKEN_TTL: 5m
-      OAUTH_SESSION_TTL: 24h
-      OAUTH_VERIFICATION_CODE_TTL: 10m
-      OAUTH_MAX_ATTEMPTS_PER_HOUR: 10
-      OAUTH_MAX_ATTEMPTS_PER_10MIN: 3
-      OAUTH_WEB_BASE_URL: http://localhost:3000
+    env_file:
+      - .env
     depends_on:
       - db
       - redis
     ports:
       - "8080:8080"
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_GRPC_BASE_URL: ${NEXT_PUBLIC_GRPC_BASE_URL}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        ENVOY_URL: ${ENVOY_URL}
+    env_file:
+      - .env
+    ports:
+      - "3030:3000"
+    depends_on:
+      - envoy
 
   envoy:
     image: envoyproxy/envoy:v1.31.0

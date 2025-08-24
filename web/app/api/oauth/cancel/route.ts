@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const { OAuthService } = require('../../../../proto/budget/v1/oauth_connect');
     
     const transport = createGrpcWebTransport({ 
-      baseUrl: process.env.NEXT_PUBLIC_GRPC_BASE_URL ?? "http://localhost:3030/grpc" 
+      baseUrl: process.env.ENVOY_URL 
     });
     
     const oauthClient = createClient(OAuthService, transport);
@@ -35,10 +35,27 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Authorization cancelled successfully',
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error cancelling OAuth authorization:', error);
+    
+    // Проверяем тип ошибки и возвращаем понятное сообщение
+    if (error?.code === 3 && error?.rawMessage === 'invalid auth token') {
+      return NextResponse.json(
+        { error: 'Authorization token has expired or is invalid' },
+        { status: 401 }
+      );
+    }
+    
+    if (error?.code === 5 && error?.rawMessage?.includes('not found')) {
+      return NextResponse.json(
+        { error: 'Authorization token not found' },
+        { status: 404 }
+      );
+    }
+    
+    // Для других ошибок возвращаем общее сообщение
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to cancel authorization' },
       { status: 500 }
     );
   }

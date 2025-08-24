@@ -25,40 +25,19 @@ lproto-go: ## [Proto] Сгенерировать Go stubs локальными �
 build: ## [Go] Сборка Go бинарника (bin/budgetd)
 	go build -o bin/budgetd ./cmd/budgetd
 
-run: up web-install ## [Dev] Запустить бэкенд (docker) и фронтенд (Next dev)
+run: up ## [Dev] Запустить полное окружение (Docker)
 	@printf "\n\033[34mDev окружение запущено:\033[0m\n"; \
 	printf "  \033[32mFrontend\033[0m: \033[90mhttp://localhost:3030\033[0m\n"; \
 	printf "  \033[32mgRPC-Web (через Envoy)\033[0m: \033[90mhttp://localhost:8081/grpc\033[0m\n"; \
 	printf "  \033[32mBackend gRPC\033[0m: \033[90m0.0.0.0:8080\033[0m (в контейнере, проброшено на хост)\n"; \
-	printf "  \033[32mRewrites\033[0m: \033[90mweb/next.config.ts\033[0m — /grpc -> localhost:8081\n"; \
-	printf "  \033[32mDB\033[0m: \033[90mpostgres://budget:budget@localhost:5432/budget?sslmode=disable\033[0m\n\n"; \
-	if command -v screen >/dev/null 2>&1; then \
-	  screen -S budget-web -X quit >/dev/null 2>&1 || true; \
-	  screen -dmS budget-web bash -lc 'cd web && npm run dev'; \
-	  printf "\033[34m[screen]\033[0m Сессия: \033[32mbudget-web\033[0m\n"; \
-	  printf "  Подключиться: \033[90mscreen -r budget-web\033[0m\n"; \
-	  printf "  Отсоединиться: \033[90mCtrl-A, D\033[0m\n"; \
-	  printf "  Остановить: \033[90mscreen -S budget-web -X quit\033[0m\n\n"; \
-	else \
-	  printf "\033[33m(screen не найден)\033[0m Запускаю фронтенд через nohup...\n"; \
-	  cd web && nohup npm run dev >/dev/null 2>&1 & echo $$! > .next-dev.pid; \
-	  printf "  PID: \033[90m$$(cat web/.next-dev.pid)\033[0m\n"; \
-	  printf "  Остановить: \033[90mkill $$(cat web/.next-dev.pid)\033[0m\n\n"; \
-	fi
+	printf "  \033[32mDB\033[0m: \033[90mpostgres://budget:budget@localhost:5432/budget?sslmode=disable\033[0m\n"; \
+	printf "  \033[32mRedis\033[0m: \033[90mredis://localhost:6379\033[0m\n\n"; \
+	printf "  \033[34mЛоги:\033[0m \033[90mmake logs\033[0m\n"; \
+	printf "  \033[34mСтатус:\033[0m \033[90mmake ps\033[0m\n"; \
+	printf "  \033[34mОстановка:\033[0m \033[90mmake stop\033[0m\n\n"
 
-stop: ## [Dev] Остановить фронтенд dev (screen/nohup) и docker compose
-	@printf "\n\033[34mОстановка dev окружения...\033[0m\n"; \
-	if command -v screen >/dev/null 2>&1; then \
-	  if screen -list | grep -q \.budget-web; then \
-	    screen -S budget-web -X quit || true; \
-	    printf "  \033[32mЗакрыта screen-сессия\033[0m: budget-web\n"; \
-	  fi; \
-	fi; \
-	if [ -f web/.next-dev.pid ]; then \
-	  PID=$$(cat web/.next-dev.pid); \
-	  if kill $$PID >/dev/null 2>&1; then printf "  \033[32mОстановлен фронтенд по PID\033[0m: $$PID\n"; fi; \
-	  rm -f web/.next-dev.pid; \
-	fi; \
+stop: ## [Dev] Остановить Docker окружение
+	@printf "\n\033[34mОстановка Docker окружения...\033[0m\n"; \
 	docker compose down || true; \
 	printf "  \033[90mDocker compose остановлен\033[0m\n\n"
 
@@ -66,11 +45,7 @@ restart: ## [Dev] Перезапуск окружения (stop -> run)
 	$(MAKE) stop
 	$(MAKE) run
 
-run-backend: ## [Go] Запуск только бэкенда локально (go run)
-	GRPC_ADDR=0.0.0.0:8080 go run ./cmd/budgetd
-
-up: ## [Docker] Запуск окружения
-	docker compose build app
+up: ## [Docker] Запуск полного окружения
 	docker compose up -d
 
 docker-df: ## [Docker] Показать использование диска Docker (образы/кеши/тома)
@@ -95,42 +70,17 @@ down: ## [Docker] Остановка docker compose (без удаления д�
 logs: ## [Docker] Логи docker compose (-f --tail=200)
 	docker compose logs -f --tail=200
 
-ps: ## [Docker] Список контейнеров docker compose
-	docker compose ps
-
-oauth-test: ## [OAuth] Тестирование OAuth2 функциональности
-	@echo "Тестирование OAuth2 функциональности..."
-	@echo "1. Проверка подключения к Redis..."
-	@docker compose exec redis redis-cli ping || echo "Redis недоступен"
-	@echo "2. Проверка миграций OAuth..."
-	@docker compose exec app migrate -path migrations -database "$(DB_URL)" version || echo "Миграции недоступны"
-	@echo "3. Проверка gRPC сервиса..."
-	@grpcurl -plaintext localhost:8080 list | grep -i oauth || echo "OAuth сервис недоступен"
-	@echo "4. Проверка веб-интерфейса..."
-	@curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/oauth/auth || echo "Веб-интерфейс недоступен"
-
-oauth-cleanup: ## [OAuth] Очистка OAuth данных (токены, сессии, логи)
-	@echo "Очистка OAuth данных..."
-	@docker compose exec redis redis-cli --eval - <<< "local keys = redis.call('keys', 'oauth:*') for i=1,#keys do redis.call('del', keys[i]) end return #keys" || echo "Ошибка очистки Redis"
-	@echo "OAuth данные очищены"
-
 tidy: ## [Go] Обновить зависимости (go mod tidy)
-	go mod tidy
+	docker run --rm -v $(PWD):/app -w /app golang:1.24 go mod tidy
 
 fmt: ## [Go] Форматирование кода (gofumpt/gofmt)
-	@GOFILES="$(shell git ls-files '*.go')"; \
-	if command -v gofumpt >/dev/null 2>&1; then \
-	  if [ -n "$$GOFILES" ]; then gofumpt -w $$GOFILES; fi; \
-	else \
-	  echo "gofumpt not found, skipping"; \
-	fi; \
-	if [ -n "$$GOFILES" ]; then gofmt -s -w $$GOFILES; fi
+	docker run --rm -v $(PWD):/app -w /app golang:1.24 bash -c "go install mvdan.cc/gofumpt@latest && gofumpt -w . && gofmt -s -w ."
 
 test: ## [Go] Запуск тестов Go (-race, coverage)
-	go test ./... -race -coverprofile=coverage.out -covermode=atomic
+	docker run --rm -v $(PWD):/app -w /app golang:1.24 go test ./... -race -coverprofile=coverage.out -covermode=atomic
 
 pgtest: ## [Go] Интеграционные тесты PostgreSQL (PG_INTEGRATION=1)
-	PG_INTEGRATION=1 go test ./internal/adapter/postgres -run Test.*_PG -v
+	docker run --rm -v $(PWD):/app -w /app --network host golang:1.24 bash -c "PG_INTEGRATION=1 go test ./internal/adapter/postgres -run Test.*_PG -v"
 
 LINT_IMAGE_TAG ?= v1.64.8
 
@@ -139,38 +89,38 @@ lint: ## [Go] Линтер Go (golangci-lint в docker)
 	docker run --rm -e GOTOOLCHAIN=local -v $(PWD):/app -w /app golangci/golangci-lint:$(LINT_IMAGE_TAG) golangci-lint run --timeout=5m
 
 vet: ## [Go] Анализ кода (go vet)
-	go vet ./...
+	docker run --rm -v $(PWD):/app -w /app golang:1.24 go vet ./...
 
 ci: tidy vet lint test ## [Go] Мини CI: tidy vet lint test
 
 check: tidy fmt vet lint test ## [Go] Полная проверка Go: tidy fmt vet lint test
 
-web-install: ## [Web] Установка зависимостей фронта (npm ci | npm install)
-	cd web && npm ci || npm install
+web-install: ## [Web] Установка зависимостей фронта (Docker)
+	docker run --rm -v $(PWD)/web:/app -w /app node:18-alpine npm ci || docker run --rm -v $(PWD)/web:/app -w /app node:18-alpine npm install
 
-web-build: ## [Web] Сборка фронта
-	cd web && npm run build
+web-build: ## [Web] Сборка фронта (Docker)
+	docker run --rm -v $(PWD)/web:/app -w /app node:18-alpine npm run build
 
-web-lint: ## [Web] Линт фронта (eslint)
-	cd web && npm run lint || echo "eslint not configured, skipping"
+web-lint: ## [Web] Линт фронта (Docker)
+	docker run --rm -v $(PWD)/web:/app -w /app node:18-alpine npm run lint || echo "eslint not configured, skipping"
 
-web-test: ## [Web] Тесты фронта (vitest)
-	cd web && npm run test || echo "no web tests configured yet, skipping"
+web-test: ## [Web] Тесты фронта (Docker)
+	docker run --rm -v $(PWD)/web:/app -w /app node:18-alpine npm run test || echo "no web tests configured yet, skipping"
 
 web-check: web-install web-lint web-build web-test ## [Web] Полная проверка фронта
 
 check-all: check web-check ## [Meta] Полная проверка всего: Go + Web
 
-migrate-up: ## [Migrate] Миграции вверх (локальный migrate CLI)
-	migrate -database "$(DB_URL)" -path migrations up
+migrate-up: ## [Migrate] Миграции вверх (Docker)
+	docker run --rm -v $(PWD)/migrations:/migrations --network host migrate/migrate -database "postgres://budget:budget@localhost:5432/budget?sslmode=disable" -path /migrations up
 
-migrate-down: ## [Migrate] Откат одной миграции (локальный migrate CLI)
-	migrate -database "$(DB_URL)" -path migrations down 1
+migrate-down: ## [Migrate] Откат одной миграции (Docker)
+	docker run --rm -v $(PWD)/migrations:/migrations --network host migrate/migrate -database "postgres://budget:budget@localhost:5432/budget?sslmode=disable" -path /migrations down 1
 
 # Dockerized migrate (no local CLI required)
 dmigrate-up: ## [Migrate] Миграции вверх в docker (без локального CLI)
-	docker run --rm -v $(PWD)/migrations:/migrations --network host migrate/migrate -database "$(DB_URL)" -path /migrations up
+	docker run --rm -v $(PWD)/migrations:/migrations --network host migrate/migrate -database "postgres://budget:budget@localhost:5432/budget?sslmode=disable" -path /migrations up
 
 dmigrate-down: ## [Migrate] Откат одной миграции в docker
-	docker run --rm -v $(PWD)/migrations:/migrations --network host migrate/migrate -database "$(DB_URL)" -path /migrations down 1
+	docker run --rm -v $(PWD)/migrations:/migrations --network host migrate/migrate -database "postgres://budget:budget@localhost:5432/budget?sslmode=disable" -path /migrations down 1
 

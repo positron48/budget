@@ -34,11 +34,11 @@ export default function OAuthAuthPage() {
   const checkTokenStatus = async (token: string) => {
     try {
       const response = await fetch(`/api/oauth/status?token=${token}`);
-      if (!response.ok) {
-        throw new Error('Failed to check token status');
-      }
-
       const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to check token status');
+      }
       
       if (data.status === 'completed') {
         setState({ step: 'success', token });
@@ -51,7 +51,7 @@ export default function OAuthAuthPage() {
         getVerificationCode(token);
       }
     } catch (_error) {
-      setState({ step: 'error', error: 'Failed to check authorization status' });
+      setState({ step: 'error', error: _error instanceof Error ? _error.message : 'Failed to check authorization status' });
     }
   };
 
@@ -63,12 +63,12 @@ export default function OAuthAuthPage() {
         body: JSON.stringify({ token }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to get verification code');
+        throw new Error(data.error || 'Failed to get verification code');
       }
 
-      const data = await response.json();
       setState({ 
         step: 'verification', 
         token, 
