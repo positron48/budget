@@ -30,3 +30,6 @@ vendor/
 
 .data/
 
+deploy/
+DEPLOYMENT_GUIDE.md
+deploy.sh

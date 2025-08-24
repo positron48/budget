@@ -10,9 +10,9 @@ services:
     restart: unless-stopped
     networks:
       - budget-network
-    # Production: убираем порты, оставляем только для разработки
-    ports:
-      - "5432:5432"
+    # Порт доступен только внутри Docker сети
+    expose:
+      - "5432"
 
   redis:
     image: redis:7-alpine
@@ -22,9 +22,9 @@ services:
     restart: unless-stopped
     networks:
       - budget-network
-    # Production: убираем порты, оставляем только для разработки
-    ports:
-      - "6379:6379"
+    # Порт доступен только внутри Docker сети
+    expose:
+      - "6379"
 
   app:
     build:
@@ -38,12 +38,12 @@ services:
     restart: unless-stopped
     networks:
       - budget-network
-    # Production: используем expose вместо ports для внутренней сети
+    # Порт доступен только внутри Docker сети
     expose:
       - "8080"
-    # Development: оставляем порт для локальной разработки
+    # Development: порт для локальной разработки
     ports:
-      - "8080:8080"
+      - "${GRPC_PORT:-8080}:8080"
 
   web:
     build:
@@ -58,12 +58,12 @@ services:
     restart: unless-stopped
     networks:
       - budget-network
-    # Production: используем expose вместо ports для внутренней сети
+    # Порт доступен только внутри Docker сети
     expose:
       - "3000"
-    # Development: оставляем порт для локальной разработки
+    # Development: порт для локальной разработки
     ports:
-      - "3030:3000"
+      - "${WEB_PORT:-3030}:3000"
     depends_on:
       - envoy
 
@@ -76,12 +76,12 @@ services:
     restart: unless-stopped
     networks:
       - budget-network
-    # Production: используем expose вместо ports для внутренней сети
+    # Порт доступен только внутри Docker сети
     expose:
       - "8081"
-    # Development: оставляем порт для локальной разработки
+    # Development: порт для локальной разработки
     ports:
-      - "8081:8081"
+      - "${ENVOY_PORT:-8081}:8081"
 
   prometheus:
     image: prom/prometheus:v2.51.2
@@ -91,12 +91,12 @@ services:
     restart: unless-stopped
     networks:
       - budget-network
-    # Production: используем expose вместо ports для внутренней сети
+    # Порт доступен только внутри Docker сети
     expose:
       - "9090"
-    # Development: оставляем порт для локальной разработки
+    # Development: порт для локальной разработки
     ports:
-      - "9090:9090"
+      - "${PROMETHEUS_PORT:-9090}:9090"
     depends_on:
       - app
 
@@ -112,12 +112,12 @@ services:
     restart: unless-stopped
     networks:
       - budget-network
-    # Production: используем expose вместо ports для внутренней сети
+    # Порт доступен только внутри Docker сети
     expose:
       - "3000"
-    # Development: оставляем порт для локальной разработки
+    # Development: порт для локальной разработки
     ports:
-      - "3002:3000"
+      - "${GRAFANA_PORT:-3002}:3000"
     depends_on:
       - prometheus
 
@@ -129,12 +129,14 @@ services:
     restart: unless-stopped
     networks:
       - budget-network
-    # Production: используем expose вместо ports для внутренней сети
+    # Порт доступен только внутри Docker сети
     expose:
       - "4318"
-    # Development: оставляем порт для локальной разработки
+    # Development: порт для локальной разработки
     ports:
-      - "4318:4318"
+      - "${OTEL_PORT:-4318}:4318"
+
+
 
 # Сетевая конфигурация для production
 networks:
