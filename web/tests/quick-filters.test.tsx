@@ -12,11 +12,11 @@ describe('QuickFilters', () => {
     vi.clearAllMocks();
   });
 
-  it('renders all quick filter buttons', () => {
+  it('renders MonthYearPicker and quick filter buttons', () => {
     renderWithIntl(
       <QuickFilters
-        from=""
-        to=""
+        from="2025-08-01"
+        to="2025-08-31"
         onFromChange={mockOnFromChange}
         onToChange={mockOnToChange}
       />,
@@ -24,9 +24,6 @@ describe('QuickFilters', () => {
         locale: "en",
         messages: {
           transactions: {
-            quickFilters: "Quick filters",
-            currentMonth: "Current month",
-            lastMonth: "Last month",
             currentYear: "Current year",
             last30Days: "Last 30 days"
           }
@@ -34,18 +31,16 @@ describe('QuickFilters', () => {
       }
     );
 
-    expect(screen.getByText('quickFilters:')).toBeTruthy();
-    expect(screen.getByText('currentMonth')).toBeTruthy();
-    expect(screen.getByText('lastMonth')).toBeTruthy();
+    // Проверяем наличие кнопок быстрых фильтров
     expect(screen.getByText('currentYear')).toBeTruthy();
     expect(screen.getByText('last30Days')).toBeTruthy();
   });
 
-  it('calls onFromChange and onToChange when current month button is clicked', () => {
+  it('calls onFromChange and onToChange when current year button is clicked', () => {
     renderWithIntl(
       <QuickFilters
-        from=""
-        to=""
+        from="2025-08-01"
+        to="2025-08-31"
         onFromChange={mockOnFromChange}
         onToChange={mockOnToChange}
       />,
@@ -53,9 +48,6 @@ describe('QuickFilters', () => {
         locale: "en",
         messages: {
           transactions: {
-            quickFilters: "Quick filters",
-            currentMonth: "Current month",
-            lastMonth: "Last month",
             currentYear: "Current year",
             last30Days: "Last 30 days"
           }
@@ -63,25 +55,58 @@ describe('QuickFilters', () => {
       }
     );
 
-    const currentMonthButton = screen.getByText('currentMonth');
-    fireEvent.click(currentMonthButton);
+    const currentYearButton = screen.getByText('currentYear');
+    fireEvent.click(currentYearButton);
 
     expect(mockOnFromChange).toHaveBeenCalledTimes(1);
     expect(mockOnToChange).toHaveBeenCalledTimes(1);
     
-    // Проверяем, что передаются корректные даты для текущего месяца
+    // Проверяем, что передаются корректные даты для текущего года
     const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const firstDay = new Date(now.getFullYear(), 0, 1);
+    const lastDay = new Date(now.getFullYear(), 11, 31);
     
     expect(mockOnFromChange).toHaveBeenCalledWith(firstDay.toISOString().split('T')[0]);
     expect(mockOnToChange).toHaveBeenCalledWith(lastDay.toISOString().split('T')[0]);
   });
 
-  it('highlights current month button when dates match current month', () => {
+  it('calls onFromChange and onToChange when last 30 days button is clicked', () => {
+    renderWithIntl(
+      <QuickFilters
+        from="2025-08-01"
+        to="2025-08-31"
+        onFromChange={mockOnFromChange}
+        onToChange={mockOnToChange}
+      />,
+      {
+        locale: "en",
+        messages: {
+          transactions: {
+            currentYear: "Current year",
+            last30Days: "Last 30 days"
+          }
+        }
+      }
+    );
+
+    const last30DaysButton = screen.getByText('last30Days');
+    fireEvent.click(last30DaysButton);
+
+    expect(mockOnFromChange).toHaveBeenCalledTimes(1);
+    expect(mockOnToChange).toHaveBeenCalledTimes(1);
+    
+    // Проверяем, что передаются корректные даты для последних 30 дней
     const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    
+    expect(mockOnFromChange).toHaveBeenCalledWith(thirtyDaysAgo.toISOString().split('T')[0]);
+    expect(mockOnToChange).toHaveBeenCalledWith(now.toISOString().split('T')[0]);
+  });
+
+  it('highlights current year button when dates match current year', () => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), 0, 1);
+    const lastDay = new Date(now.getFullYear(), 11, 31);
     
     renderWithIntl(
       <QuickFilters
@@ -94,9 +119,6 @@ describe('QuickFilters', () => {
         locale: "en",
         messages: {
           transactions: {
-            quickFilters: "Quick filters",
-            currentMonth: "Current month",
-            lastMonth: "Last month",
             currentYear: "Current year",
             last30Days: "Last 30 days"
           }
@@ -104,11 +126,11 @@ describe('QuickFilters', () => {
       }
     );
 
-    const currentMonthButton = screen.getByText('currentMonth');
-    expect(currentMonthButton.className).toContain('btn-primary'); // primary variant
+    const currentYearButton = screen.getByText('currentYear');
+    expect(currentYearButton.className).toContain('btn-primary'); // primary variant
   });
 
-  it('does not highlight current month button when dates do not match', () => {
+  it('does not highlight current year button when dates do not match', () => {
     renderWithIntl(
       <QuickFilters
         from="2023-01-01"
@@ -120,9 +142,6 @@ describe('QuickFilters', () => {
         locale: "en",
         messages: {
           transactions: {
-            quickFilters: "Quick filters",
-            currentMonth: "Current month",
-            lastMonth: "Last month",
             currentYear: "Current year",
             last30Days: "Last 30 days"
           }
@@ -130,7 +149,7 @@ describe('QuickFilters', () => {
       }
     );
 
-    const currentMonthButton = screen.getByText('currentMonth');
-    expect(currentMonthButton.className).toContain('btn-outline'); // outline variant
+    const currentYearButton = screen.getByText('currentYear');
+    expect(currentYearButton.className).toContain('btn-outline'); // outline variant
   });
 });

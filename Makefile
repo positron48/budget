@@ -114,16 +114,16 @@ ci: tidy vet lint test ## [Go] Мини CI: tidy vet lint test
 check: tidy fmt vet lint test ## [Go] Полная проверка Go: tidy fmt vet lint test
 
 web-install: ## [Web] Установка зависимостей фронта (Docker)
-	docker run --rm -v $(PWD)/web:/app -w /app node:18-alpine npm ci || docker run --rm -v $(PWD)/web:/app -w /app node:18-alpine npm install
+	docker run --rm -v $(PWD)/web:/app -w /app node:20-alpine npm ci || docker run --rm -v $(PWD)/web:/app -w /app node:20-alpine npm install
 
 web-build: ## [Web] Сборка фронта (Docker)
-	docker run --rm -v $(PWD)/web:/app -w /app node:18-alpine npm run build
+	docker run --rm -v $(PWD)/web:/app -w /app node:20-alpine npm run build
 
 web-lint: ## [Web] Линт фронта (Docker)
-	docker run --rm -v $(PWD)/web:/app -w /app node:18-alpine npm run lint || echo "eslint not configured, skipping"
+	docker run --rm -v $(PWD)/web:/app -w /app node:20-alpine npm run lint || echo "eslint not configured, skipping"
 
 web-test: ## [Web] Тесты фронта (Docker)
-	docker run --rm -v $(PWD)/web:/app -w /app node:18-alpine npm run test || echo "no web tests configured yet, skipping"
+	docker run --rm -v $(PWD)/web:/app -w /app node:20-alpine npm run test || echo "no web tests configured yet, skipping"
 
 web-check: web-install web-lint web-build web-test ## [Web] Полная проверка фронта
 

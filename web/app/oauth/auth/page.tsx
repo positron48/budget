@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/Card';
 import Button from '@/components/Button';
-import Input from '@/components/Input';
+
 import LoadingSpinner from '@/components/LoadingSpinner';
 import Icon from '@/components/Icon';
 
@@ -20,42 +20,7 @@ export default function OAuthAuthPage() {
   const _router = useRouter();
   const [state, setState] = useState<AuthState>({ step: 'loading' });
 
-  useEffect(() => {
-    const token = searchParams.get('token');
-    if (!token) {
-      setState({ step: 'error', error: 'Missing authorization token' });
-      return;
-    }
-
-    // Проверяем статус токена
-    checkTokenStatus(token);
-  }, [searchParams]);
-
-  const checkTokenStatus = async (token: string) => {
-    try {
-      const response = await fetch(`/api/oauth/status?token=${token}`);
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to check token status');
-      }
-      
-      if (data.status === 'completed') {
-        setState({ step: 'success', token });
-      } else if (data.status === 'expired') {
-        setState({ step: 'error', error: 'Authorization link has expired' });
-      } else if (data.status === 'cancelled') {
-        setState({ step: 'error', error: 'Authorization was cancelled' });
-      } else {
-        // Сразу получаем код подтверждения
-        getVerificationCode(token);
-      }
-    } catch (_error) {
-      setState({ step: 'error', error: _error instanceof Error ? _error.message : 'Failed to check authorization status' });
-    }
-  };
-
-  const getVerificationCode = async (token: string) => {
+  const getVerificationCode = useCallback(async (token: string) => {
     try {
       const response = await fetch('/api/oauth/login', {
         method: 'POST',
@@ -81,7 +46,42 @@ export default function OAuthAuthPage() {
         error: _error instanceof Error ? _error.message : 'Failed to get verification code' 
       });
     }
-  };
+  }, []);
+
+  const checkTokenStatus = useCallback(async (token: string) => {
+    try {
+      const response = await fetch(`/api/oauth/status?token=${token}`);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to check token status');
+      }
+      
+      if (data.status === 'completed') {
+        setState({ step: 'success', token });
+      } else if (data.status === 'expired') {
+        setState({ step: 'error', error: 'Authorization link has expired' });
+      } else if (data.status === 'cancelled') {
+        setState({ step: 'error', error: 'Authorization was cancelled' });
+      } else {
+        // Сразу получаем код подтверждения
+        getVerificationCode(token);
+      }
+    } catch (_error) {
+      setState({ step: 'error', error: _error instanceof Error ? _error.message : 'Failed to check authorization status' });
+    }
+  }, [getVerificationCode]);
+
+  useEffect(() => {
+    const token = searchParams.get('token');
+    if (!token) {
+      setState({ step: 'error', error: 'Missing authorization token' });
+      return;
+    }
+
+    // Проверяем статус токена
+    checkTokenStatus(token);
+  }, [searchParams, checkTokenStatus]);
 
 
 
