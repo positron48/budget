@@ -254,6 +254,14 @@ function TransactionsInner() {
           </div>
         </div>
 
+        {/* Quick Filters */}
+        <QuickFilters
+          from={from}
+          to={to}
+          onFromChange={setFromCallback}
+          onToChange={setToCallback}
+        />
+
         {/* Statistics (full filtered period, ignores pagination) */}
         {!isLoading && !error && Number(data?.page?.totalItems || 0) > 0 && !totalsLoading && !totalsError && totalsData && (
           <div className="mb-4">
@@ -265,14 +273,6 @@ function TransactionsInner() {
             />
           </div>
         )}
-
-        {/* Quick Filters */}
-        <QuickFilters
-          from={from}
-          to={to}
-          onFromChange={setFromCallback}
-          onToChange={setToCallback}
-        />
 
 
 
