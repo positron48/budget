@@ -1,18 +1,24 @@
 package config
 
 import (
-	"os"
 	"testing"
 	"time"
 )
 
 func TestLoad_Defaults(t *testing.T) {
-	_ = os.Unsetenv("APP_ENV")
-	_ = os.Unsetenv("GRPC_ADDR")
-	_ = os.Unsetenv("DATABASE_URL")
-	_ = os.Unsetenv("JWT_SIGN_KEY")
-	_ = os.Unsetenv("JWT_ACCESS_TTL")
-	_ = os.Unsetenv("JWT_REFRESH_TTL")
+	t.Setenv("APP_ENV", "dev")
+	t.Setenv("GRPC_ADDR", ":8080")
+	t.Setenv("DATABASE_URL", "postgres://test:test@localhost:5432/test")
+	t.Setenv("REDIS_URL", "redis://localhost:6379")
+	t.Setenv("JWT_SIGN_KEY", "test-secret-key")
+	t.Setenv("JWT_ACCESS_TTL", "15m")
+	t.Setenv("JWT_REFRESH_TTL", "168h")
+	t.Setenv("OAUTH_AUTH_TOKEN_TTL", "5m")
+	t.Setenv("OAUTH_SESSION_TTL", "24h")
+	t.Setenv("OAUTH_VERIFICATION_CODE_TTL", "10m")
+	t.Setenv("OAUTH_MAX_ATTEMPTS_PER_HOUR", "10")
+	t.Setenv("OAUTH_MAX_ATTEMPTS_PER_10MIN", "3")
+	t.Setenv("OAUTH_WEB_BASE_URL", "http://localhost:3000")
 
 	cfg, err := Load()
 	if err != nil {
@@ -30,8 +36,19 @@ func TestLoad_Defaults(t *testing.T) {
 }
 
 func TestLoad_ParseTTLs(t *testing.T) {
+	t.Setenv("APP_ENV", "dev")
+	t.Setenv("GRPC_ADDR", ":8080")
+	t.Setenv("DATABASE_URL", "postgres://test:test@localhost:5432/test")
+	t.Setenv("REDIS_URL", "redis://localhost:6379")
+	t.Setenv("JWT_SIGN_KEY", "test-secret-key")
 	t.Setenv("JWT_ACCESS_TTL", "10m")
 	t.Setenv("JWT_REFRESH_TTL", "24h")
+	t.Setenv("OAUTH_AUTH_TOKEN_TTL", "5m")
+	t.Setenv("OAUTH_SESSION_TTL", "24h")
+	t.Setenv("OAUTH_VERIFICATION_CODE_TTL", "10m")
+	t.Setenv("OAUTH_MAX_ATTEMPTS_PER_HOUR", "10")
+	t.Setenv("OAUTH_MAX_ATTEMPTS_PER_10MIN", "3")
+	t.Setenv("OAUTH_WEB_BASE_URL", "http://localhost:3000")
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("Load() error: %v", err)

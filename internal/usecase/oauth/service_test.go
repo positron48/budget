@@ -103,6 +103,25 @@ func (m *mockOAuthRepo) CreateAuthLog(ctx context.Context, log domain.AuthLogEnt
 	return nil
 }
 
+func (m *mockOAuthRepo) GetUserByEmail(ctx context.Context, email string) (useauth.User, []useauth.TenantMembership, error) {
+	// Возвращаем тестового пользователя
+	user := useauth.User{
+		ID:    uuid.New().String(),
+		Email: email,
+		Name:  "Test User",
+	}
+
+	memberships := []useauth.TenantMembership{
+		{
+			TenantID:  uuid.New().String(),
+			Role:      "owner",
+			IsDefault: true,
+		},
+	}
+
+	return user, memberships, nil
+}
+
 func (m *mockOAuthRepo) GetAuthLogs(ctx context.Context, telegramUserID string, limit, offset int) ([]domain.AuthLogEntry, int, error) {
 	var userLogs []domain.AuthLogEntry
 	for _, log := range m.logs {
@@ -378,13 +397,21 @@ func TestVerifyAuthCode(t *testing.T) {
 	_ = cache.StoreVerificationCode(ctx, authToken, verificationCode, 10*time.Minute)
 
 	// Тестируем верификацию
-	tokenPair, sessionID, err := service.VerifyAuthCode(ctx, authToken, verificationCode, telegramUserID)
+	tokenPair, user, memberships, sessionID, err := service.VerifyAuthCode(ctx, authToken, verificationCode, telegramUserID)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
 	if tokenPair.AccessToken == "" {
 		t.Error("Expected non-empty access token")
+	}
+
+	if user.ID == "" {
+		t.Error("Expected non-empty user ID")
+	}
+
+	if len(memberships) == 0 {
+		t.Error("Expected non-empty memberships")
 	}
 
 	if sessionID == "" {

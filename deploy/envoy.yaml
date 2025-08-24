@@ -32,10 +32,13 @@ static_resources:
                   - header: { key: "vary", value: "origin" }
               - match: { prefix: "/" }
                 route: { cluster: app, timeout: 0s }
+                # Убираем /grpc из пути при проксировании к gRPC сервису
+                path_rewrite: { path: "/" }
               cors:
                 allow_origin_string_match:
                   - exact: "http://localhost:3030"
                   - exact: "http://127.0.0.1:3030"
+                  - exact: "https://budget.positroid.tech"
                 allow_methods: "GET, POST, OPTIONS"
                 allow_headers: "keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,grpc-timeout,authorization,x-grpc-web,x-tenant-id"
                 expose_headers: "grpc-status, grpc-message"

@@ -25,10 +25,10 @@ type BotState struct {
 
 // TelegramBot представляет Telegram бота с OAuth2 функциональностью
 type TelegramBot struct {
-	bot           *tgbotapi.BotAPI
-	oauthClient   budgetv1.OAuthServiceClient
-	userStates    map[int64]*BotState // userID -> state
-	webBaseURL    string
+	bot         *tgbotapi.BotAPI
+	oauthClient budgetv1.OAuthServiceClient
+	userStates  map[int64]*BotState // userID -> state
+	webBaseURL  string
 }
 
 // NewTelegramBot создает новый экземпляр бота
@@ -138,10 +138,10 @@ func (b *TelegramBot) startLogin(chatID int64, state *BotState) {
 	state.Email = ""
 	state.Token = ""
 
-	msg := tgbotapi.NewMessage(chatID, 
-		"Для авторизации введите ваш email адрес:\n\n" +
-		"Этот email должен совпадать с email в вашем аккаунте Budget.")
-	
+	msg := tgbotapi.NewMessage(chatID,
+		"Для авторизации введите ваш email адрес:\n\n"+
+			"Этот email должен совпадать с email в вашем аккаунте Budget.")
+
 	msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("Отмена", "cancel"),
@@ -186,15 +186,15 @@ func (b *TelegramBot) handleEmailInput(message *tgbotapi.Message, state *BotStat
 	)
 
 	expiresIn := time.Until(expiresAt.AsTime())
-	msg := tgbotapi.NewMessage(chatID, 
+	msg := tgbotapi.NewMessage(chatID,
 		fmt.Sprintf("Ссылка для авторизации создана!\n\n"+
 			"1. Нажмите кнопку 'Открыть в браузере'\n"+
 			"2. Введите логин и пароль от вашего аккаунта\n"+
 			"3. Скопируйте код подтверждения\n"+
 			"4. Введите код в этом чате\n\n"+
-			"⏰ Ссылка действительна %d минут", 
+			"⏰ Ссылка действительна %d минут",
 			int(expiresIn.Minutes())))
-	
+
 	msg.ReplyMarkup = keyboard
 	b.bot.Send(msg)
 }
@@ -223,13 +223,13 @@ func (b *TelegramBot) handleCodeInput(message *tgbotapi.Message, state *BotState
 	state.Email = ""
 	state.Token = ""
 
-	msg := tgbotapi.NewMessage(chatID, 
+	msg := tgbotapi.NewMessage(chatID,
 		fmt.Sprintf("✅ Авторизация успешна!\n\n"+
 			"Добро пожаловать, %s!\n"+
 			"Теперь вы можете использовать все функции бота.\n\n"+
-			"Используйте /help для просмотра доступных команд.", 
+			"Используйте /help для просмотра доступных команд.",
 			message.From.FirstName))
-	
+
 	b.bot.Send(msg)
 
 	// Сохраняем информацию о сессии (в реальном приложении)
@@ -262,9 +262,9 @@ func (b *TelegramBot) verifyAuthCode(authToken, verificationCode string, userID 
 	defer cancel()
 
 	req := &budgetv1.VerifyAuthCodeRequest{
-		AuthToken:       authToken,
+		AuthToken:        authToken,
 		VerificationCode: verificationCode,
-		TelegramUserId:  strconv.FormatInt(userID, 10),
+		TelegramUserId:   strconv.FormatInt(userID, 10),
 	}
 
 	resp, err := b.oauthClient.VerifyAuthCode(ctx, req)

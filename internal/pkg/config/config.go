@@ -29,33 +29,33 @@ func getenv(key, def string) string {
 
 func Load() (Config, error) {
 	var cfg Config
-	
+
 	// Обязательные переменные окружения
 	cfg.AppEnv = getenv("APP_ENV", "")
 	if cfg.AppEnv == "" {
 		return Config{}, fmt.Errorf("APP_ENV is required")
 	}
-	
+
 	cfg.GRPCAddr = getenv("GRPC_ADDR", "")
 	if cfg.GRPCAddr == "" {
 		return Config{}, fmt.Errorf("GRPC_ADDR is required")
 	}
-	
+
 	cfg.DatabaseURL = getenv("DATABASE_URL", "")
 	if cfg.DatabaseURL == "" {
 		return Config{}, fmt.Errorf("DATABASE_URL is required")
 	}
-	
+
 	cfg.RedisURL = getenv("REDIS_URL", "")
 	if cfg.RedisURL == "" {
 		return Config{}, fmt.Errorf("REDIS_URL is required")
 	}
-	
+
 	cfg.JWTSignKey = getenv("JWT_SIGN_KEY", "")
 	if cfg.JWTSignKey == "" {
 		return Config{}, fmt.Errorf("JWT_SIGN_KEY is required")
 	}
-	
+
 	cfg.MetricsAddr = getenv("METRICS_ADDR", "")
 	cfg.OTelEndpoint = getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
 	cfg.OTelInsecure = getenv("OTEL_EXPORTER_OTLP_INSECURE", "true") == "true"
@@ -64,7 +64,7 @@ func Load() (Config, error) {
 	if access == "" {
 		return Config{}, fmt.Errorf("JWT_ACCESS_TTL is required")
 	}
-	
+
 	refresh := getenv("JWT_REFRESH_TTL", "")
 	if refresh == "" {
 		return Config{}, fmt.Errorf("JWT_REFRESH_TTL is required")
