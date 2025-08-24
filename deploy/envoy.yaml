@@ -32,8 +32,6 @@ static_resources:
                   - header: { key: "vary", value: "origin" }
               - match: { prefix: "/" }
                 route: { cluster: app, timeout: 0s }
-                # Убираем /grpc из пути при проксировании к gRPC сервису
-                path_rewrite: { path: "/" }
               cors:
                 allow_origin_string_match:
                   - exact: "http://localhost:3030"
