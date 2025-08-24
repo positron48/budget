@@ -43,7 +43,7 @@ services:
       - "8080"
     # Development: порт для локальной разработки
     ports:
-      - "${GRPC_PORT:-8080}:8080"
+      - "${GRPC_PORT:-}:8080"
 
   web:
     build:
@@ -63,7 +63,7 @@ services:
       - "3000"
     # Development: порт для локальной разработки
     ports:
-      - "${WEB_PORT:-3030}:3000"
+      - "${WEB_PORT:-}:3000"
     depends_on:
       - envoy
 
@@ -81,7 +81,7 @@ services:
       - "8081"
     # Development: порт для локальной разработки
     ports:
-      - "${ENVOY_PORT:-8081}:8081"
+      - "${ENVOY_PORT:-}:8081"
 
   prometheus:
     image: prom/prometheus:v2.51.2
@@ -96,7 +96,7 @@ services:
       - "9090"
     # Development: порт для локальной разработки
     ports:
-      - "${PROMETHEUS_PORT:-9090}:9090"
+      - "${PROMETHEUS_PORT:-}:9090"
     depends_on:
       - app
 
@@ -117,7 +117,7 @@ services:
       - "3000"
     # Development: порт для локальной разработки
     ports:
-      - "${GRAFANA_PORT:-3002}:3000"
+      - "${GRAFANA_PORT:-}:3000"
     depends_on:
       - prometheus
 
@@ -134,7 +134,7 @@ services:
       - "4318"
     # Development: порт для локальной разработки
     ports:
-      - "${OTEL_PORT:-4318}:4318"
+      - "${OTEL_PORT:-}:4318"
 
 
 
