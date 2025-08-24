@@ -5,18 +5,26 @@ services:
       POSTGRES_DB: budget
       POSTGRES_USER: budget
       POSTGRES_PASSWORD: budget
-    ports:
-      - "5432:5432"
     volumes:
       - ./.data/postgres:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - budget-network
+    # Production: убираем порты, оставляем только для разработки
+    ports:
+      - "5432:5432"
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     volumes:
       - ./.data/redis:/data
     command: redis-server --appendonly yes
+    restart: unless-stopped
+    networks:
+      - budget-network
+    # Production: убираем порты, оставляем только для разработки
+    ports:
+      - "6379:6379"
 
   app:
     build:
@@ -27,6 +35,13 @@ services:
     depends_on:
       - db
       - redis
+    restart: unless-stopped
+    networks:
+      - budget-network
+    # Production: используем expose вместо ports для внутренней сети
+    expose:
+      - "8080"
+    # Development: оставляем порт для локальной разработки
     ports:
       - "8080:8080"
 
@@ -40,6 +55,13 @@ services:
         ENVOY_URL: ${ENVOY_URL}
     env_file:
       - .env
+    restart: unless-stopped
+    networks:
+      - budget-network
+    # Production: используем expose вместо ports для внутренней сети
+    expose:
+      - "3000"
+    # Development: оставляем порт для локальной разработки
     ports:
       - "3030:3000"
     depends_on:
@@ -47,18 +69,32 @@ services:
 
   envoy:
     image: envoyproxy/envoy:v1.31.0
-    ports:
-      - "8081:8081"
     volumes:
       - ./deploy/envoy.yaml:/etc/envoy/envoy.yaml:ro
     depends_on:
       - app
+    restart: unless-stopped
+    networks:
+      - budget-network
+    # Production: используем expose вместо ports для внутренней сети
+    expose:
+      - "8081"
+    # Development: оставляем порт для локальной разработки
+    ports:
+      - "8081:8081"
 
   prometheus:
     image: prom/prometheus:v2.51.2
     profiles: ["obs"]
     volumes:
       - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    restart: unless-stopped
+    networks:
+      - budget-network
+    # Production: используем expose вместо ports для внутренней сети
+    expose:
+      - "9090"
+    # Development: оставляем порт для локальной разработки
     ports:
       - "9090:9090"
     depends_on:
@@ -73,6 +109,13 @@ services:
     volumes:
       - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    restart: unless-stopped
+    networks:
+      - budget-network
+    # Production: используем expose вместо ports для внутренней сети
+    expose:
+      - "3000"
+    # Development: оставляем порт для локальной разработки
     ports:
       - "3002:3000"
     depends_on:
@@ -83,6 +126,18 @@ services:
     profiles: ["obs"]
     volumes:
       - ./deploy/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    restart: unless-stopped
+    networks:
+      - budget-network
+    # Production: используем expose вместо ports для внутренней сети
+    expose:
+      - "4318"
+    # Development: оставляем порт для локальной разработки
     ports:
       - "4318:4318"
+
+# Сетевая конфигурация для production
+networks:
+  budget-network:
+    driver: bridge
 
