@@ -18,6 +18,8 @@ export default function TransactionStats({
   const t = useTranslations("transactions");
   const netIncome = totalIncome - totalExpenses;
   const isPositive = netIncome >= 0;
+  
+
 
 
 
@@ -79,16 +81,27 @@ export default function TransactionStats({
               {isPositive ? t("profit") : t("loss")} {period}
             </p>
           </div>
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-            isPositive 
-              ? 'bg-blue-100 dark:bg-blue-900/30' 
-              : 'bg-orange-100 dark:bg-orange-900/30'
-          }`}>
-            <Icon 
-              name={isPositive ? "trending-up" : "trending-down"} 
-              size={20} 
-              className={isPositive ? "text-blue-600 dark:text-blue-400" : "text-orange-600 dark:text-orange-400"} 
-            />
+          <div className="flex items-center space-x-2">
+            {/* Крупный процент слева от иконки */}
+            {totalIncome > 0 && (
+              <div className={`text-2xl font-bold ${
+                isPositive ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'
+              }`}>
+                {isPositive ? '+' : '-'}{Math.round(Math.abs((netIncome / totalIncome) * 100))}%
+              </div>
+            )}
+            {/* Иконка по центру */}
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+              isPositive 
+                ? 'bg-blue-100 dark:bg-blue-900/30' 
+                : 'bg-orange-100 dark:bg-orange-900/30'
+            }`}>
+              <Icon 
+                name={isPositive ? "trending-up" : "trending-down"} 
+                size={16} 
+                className={isPositive ? "text-blue-600 dark:text-blue-400" : "text-orange-600 dark:text-orange-400"} 
+              />
+            </div>
           </div>
         </div>
       </div>

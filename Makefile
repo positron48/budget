@@ -2,7 +2,7 @@ PROTO_DIR=proto
 DB_URL=postgres://budget:budget@localhost:5432/budget?sslmode=disable
 
 # Список всех целей в одном месте
-.PHONY: help proto dproto tsproto lproto-go build run run-backend stop restart up down logs ps tidy fmt test pgtest lint vet ci check web-install web-build web-lint web-test web-check check-all migrate-up migrate-down dmigrate-up dmigrate-down docker-df docker-prune docker-prune-all oauth-test oauth-cleanup
+.PHONY: help proto dproto tsproto lproto-go build run run-dev run-backend stop restart up down logs logs-dev ps tidy fmt test pgtest lint vet ci check web-install web-build web-lint web-test web-check check-all migrate-up migrate-down dmigrate-up dmigrate-down docker-df docker-prune docker-prune-all oauth-test oauth-cleanup
 
 # Вывести список целей и их описание (с группировкой по разделам)
 help: ## [Meta] Показать список команд по разделам
@@ -36,6 +36,18 @@ run: up ## [Dev] Запустить полное окружение (Docker)
 	printf "  \033[34mСтатус:\033[0m \033[90mmake ps\033[0m\n"; \
 	printf "  \033[34mОстановка:\033[0m \033[90mmake stop\033[0m\n\n"
 
+run-dev: up-dev ## [Dev] Запустить окружение с hot reload для фронтенда
+	@printf "\n\033[34mDev окружение с hot reload запущено:\033[0m\n"; \
+	printf "  \033[32mFrontend (hot reload)\033[0m: \033[90mhttp://localhost:3030\033[0m\n"; \
+	printf "  \033[32mgRPC-Web (через Envoy)\033[0m: \033[90mhttp://localhost:8081/grpc\033[0m\n"; \
+	printf "  \033[32mBackend gRPC\033[0m: \033[90m0.0.0.0:8080\033[0m (в контейнере, проброшено на хост)\n"; \
+	printf "  \033[32mDB\033[0m: \033[90mpostgres://budget:budget@localhost:5432/budget?sslmode=disable\033[0m\n"; \
+	printf "  \033[32mRedis\033[0m: \033[90mredis://localhost:6379\033[0m\n\n"; \
+	printf "  \033[34mЛоги:\033[0m \033[90mmake logs-dev\033[0m\n"; \
+	printf "  \033[34mСтатус:\033[0m \033[90mmake ps\033[0m\n"; \
+	printf "  \033[34mОстановка:\033[0m \033[90mmake stop\033[0m\n"; \
+	printf "  \033[34mHot reload:\033[0m \033[90mИзменения в ./web автоматически пересобираются\033[0m\n\n"
+
 stop: ## [Dev] Остановить Docker окружение
 	@printf "\n\033[34mОстановка Docker окружения...\033[0m\n"; \
 	docker compose down || true; \
@@ -47,6 +59,9 @@ restart: ## [Dev] Перезапуск окружения (stop -> run)
 
 up: ## [Docker] Запуск полного окружения
 	docker compose up -d
+
+up-dev: ## [Docker] Запуск окружения с hot reload для фронтенда
+	docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
 docker-df: ## [Docker] Показать использование диска Docker (образы/кеши/тома)
 	@echo "Docker disk usage:"; docker system df || true; \
@@ -69,6 +84,9 @@ down: ## [Docker] Остановка docker compose (без удаления д�
 
 logs: ## [Docker] Логи docker compose (-f --tail=200)
 	docker compose logs -f --tail=200
+
+logs-dev: ## [Docker] Логи docker compose в режиме разработки (-f --tail=200)
+	docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f --tail=200
 
 tidy: ## [Go] Обновить зависимости (go mod tidy)
 	docker run --rm -v $(PWD):/app -w /app golang:1.24 go mod tidy

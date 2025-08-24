@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState, useCallback, useRef } from "react";
 import { TransactionType, CategoryKind } from "@/proto/budget/v1/common_pb";
 import { useTranslations } from "next-intl";
-import { Icon, Button, Card, CardContent, TransactionStats, CategoryBadge, Modal, SortableHeader, ExportButton } from "@/components";
+import { Icon, Button, Card, CardContent, TransactionStats, CategoryBadge, Modal, SortableHeader, ExportButton, QuickFilters } from "@/components";
 import ImportWizard from "./ImportWizard";
 import NewTransactionForm, { NewTxFormRef } from "./NewTransactionForm";
 import FiltersForm from "@/components/FiltersForm";
@@ -19,8 +19,21 @@ function TransactionsInner() {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
   const [type, setType] = useState<number>(0);
-  const [from, setFrom] = useState<string>("");
-  const [to, setTo] = useState<string>("");
+  // Устанавливаем фильтр по умолчанию на текущий месяц
+  const getCurrentMonthRange = () => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    return {
+      from: firstDay.toISOString().split('T')[0],
+      to: lastDay.toISOString().split('T')[0]
+    };
+  };
+
+  const defaultRange = getCurrentMonthRange();
+  const [from, setFrom] = useState<string>(defaultRange.from);
+  const [to, setTo] = useState<string>(defaultRange.to);
   const [search, setSearch] = useState<string>("");
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
@@ -174,8 +187,9 @@ function TransactionsInner() {
 
   const clearFilters = useCallback(() => {
     setType(0);
-    setFrom("");
-    setTo("");
+    const defaultRange = getCurrentMonthRange();
+    setFrom(defaultRange.from);
+    setTo(defaultRange.to);
     setSearch("");
     setSelectedCategoryIds([]);
     setSort("occurred_at desc");
@@ -251,6 +265,14 @@ function TransactionsInner() {
             />
           </div>
         )}
+
+        {/* Quick Filters */}
+        <QuickFilters
+          from={from}
+          to={to}
+          onFromChange={setFromCallback}
+          onToChange={setToCallback}
+        />
 
 
 
