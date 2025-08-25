@@ -44,7 +44,17 @@ jobs:
         
     - name: Check for Go vulnerabilities
       run: |
-        go list -json -deps ./... | nancy sleuth --exit-code
+        # Run nancy and check for vulnerabilities
+        OUTPUT=$(go list -json -deps ./... | nancy sleuth -q 2>&1)
+        echo "$OUTPUT"
+        
+        # Check if the output contains any vulnerability details
+        if echo "$OUTPUT" | grep -q "CVE-"; then
+          echo "❌ Vulnerabilities found"
+          exit 1
+        fi
+        
+        echo "✅ No vulnerabilities found"
         
   # Node.js Security Audit
   node-security:
@@ -69,7 +79,11 @@ jobs:
     - name: Run npm audit
       run: |
         cd web
-        npm audit --audit-level=moderate
+        npm audit --audit-level=moderate || {
+          echo "❌ npm audit found vulnerabilities"
+          exit 1
+        }
+        echo "✅ npm audit passed"
         
     - name: Check for outdated packages
       run: |
