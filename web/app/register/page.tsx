@@ -16,7 +16,7 @@ const schema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   name: z.string().min(1),
-  locale: z.string().default("ru"),
+  locale: z.string(),
   tenantName: z.string().min(1),
 });
 type FormValues = z.infer<typeof schema>;
@@ -25,7 +25,12 @@ function RegisterForm() {
   const { auth } = useClients();
   const t = useTranslations("auth.register");
   const tc = useTranslations("auth");
-  const { register, handleSubmit, formState } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  const { register, handleSubmit, formState } = useForm<FormValues>({ 
+    resolver: zodResolver(schema),
+    defaultValues: {
+      locale: "ru"
+    }
+  });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   
