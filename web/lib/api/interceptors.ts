@@ -1,5 +1,5 @@
 import type { Interceptor } from "@connectrpc/connect";
-import { Code, createClient } from "@connectrpc/connect";
+import { Code, createPromiseClient } from "@connectrpc/connect";
 import { AuthService } from "@/proto/budget/v1/auth_connect";
 import { transportBaseUrl } from "./transport";
 import { normalizeApiErrorMessage } from "./errors";
@@ -93,7 +93,7 @@ export function refreshAuthInterceptor(
             baseUrl: transportBaseUrl,
           });
           
-          const authClient = createClient(AuthService, bareTransport);
+          const authClient = createPromiseClient(AuthService, bareTransport);
           const resp: any = await authClient.refreshToken({ refreshToken });
           
           const newAccess = resp?.tokens?.accessToken;

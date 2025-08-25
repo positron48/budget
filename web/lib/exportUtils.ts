@@ -37,7 +37,7 @@ export function exportTransactionsToCsv(transactions: ExportTransaction[], local
     const date = new Date(seconds * 1000);
     const formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD
     
-    const type = tx.type === TransactionType.EXPENSE 
+    const type = tx.type === TransactionType.EXPENSE
       ? (locale === "en" ? "Expense" : "Расход") 
       : (locale === "en" ? "Income" : "Доход");
     
