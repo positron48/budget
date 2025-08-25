@@ -3,6 +3,7 @@ import { screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { renderWithIntl } from "./utils";
 import QuickFilters from "../components/QuickFilters";
+import { formatDateLocal } from "../lib/utils";
 
 describe('QuickFilters', () => {
   const mockOnFromChange = vi.fn();
@@ -66,8 +67,8 @@ describe('QuickFilters', () => {
     const firstDay = new Date(now.getFullYear(), 0, 1);
     const lastDay = new Date(now.getFullYear(), 11, 31);
     
-    expect(mockOnFromChange).toHaveBeenCalledWith(firstDay.toISOString().split('T')[0]);
-    expect(mockOnToChange).toHaveBeenCalledWith(lastDay.toISOString().split('T')[0]);
+    expect(mockOnFromChange).toHaveBeenCalledWith(formatDateLocal(firstDay));
+    expect(mockOnToChange).toHaveBeenCalledWith(formatDateLocal(lastDay));
   });
 
   it('calls onFromChange and onToChange when last 30 days button is clicked', () => {
@@ -99,8 +100,8 @@ describe('QuickFilters', () => {
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     
-    expect(mockOnFromChange).toHaveBeenCalledWith(thirtyDaysAgo.toISOString().split('T')[0]);
-    expect(mockOnToChange).toHaveBeenCalledWith(now.toISOString().split('T')[0]);
+    expect(mockOnFromChange).toHaveBeenCalledWith(formatDateLocal(thirtyDaysAgo));
+    expect(mockOnToChange).toHaveBeenCalledWith(formatDateLocal(now));
   });
 
   it('highlights current year button when dates match current year', () => {
@@ -110,8 +111,8 @@ describe('QuickFilters', () => {
     
     renderWithIntl(
       <QuickFilters
-        from={firstDay.toISOString().split('T')[0]}
-        to={lastDay.toISOString().split('T')[0]}
+        from={formatDateLocal(firstDay)}
+        to={formatDateLocal(lastDay)}
         onFromChange={mockOnFromChange}
         onToChange={mockOnToChange}
       />,

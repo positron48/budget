@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components";
+import { formatDateLocal } from "@/lib/utils";
 
 interface QuickFiltersProps {
   from: string;
@@ -23,8 +24,8 @@ const QuickFilters = memo(function QuickFilters({
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     
     return {
-      from: firstDay.toISOString().split('T')[0],
-      to: lastDay.toISOString().split('T')[0]
+      from: formatDateLocal(firstDay),
+      to: formatDateLocal(lastDay)
     };
   };
 
@@ -34,8 +35,8 @@ const QuickFilters = memo(function QuickFilters({
     const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
     
     return {
-      from: firstDay.toISOString().split('T')[0],
-      to: lastDay.toISOString().split('T')[0]
+      from: formatDateLocal(firstDay),
+      to: formatDateLocal(lastDay)
     };
   };
 
@@ -45,8 +46,8 @@ const QuickFilters = memo(function QuickFilters({
     const lastDay = new Date(now.getFullYear(), 11, 31);
     
     return {
-      from: firstDay.toISOString().split('T')[0],
-      to: lastDay.toISOString().split('T')[0]
+      from: formatDateLocal(firstDay),
+      to: formatDateLocal(lastDay)
     };
   };
 
@@ -55,8 +56,8 @@ const QuickFilters = memo(function QuickFilters({
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     
     return {
-      from: thirtyDaysAgo.toISOString().split('T')[0],
-      to: now.toISOString().split('T')[0]
+      from: formatDateLocal(thirtyDaysAgo),
+      to: formatDateLocal(now)
     };
   };
 

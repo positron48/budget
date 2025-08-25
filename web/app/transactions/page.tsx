@@ -6,6 +6,7 @@ import { useMemo, useState, useCallback, useRef } from "react";
 import { TransactionType, CategoryKind } from "@/proto/budget/v1/common_pb";
 import { useTranslations } from "next-intl";
 import { Icon, Button, Card, CardContent, TransactionStats, CategoryBadge, Modal, SortableHeader, ExportButton, QuickFilters } from "@/components";
+import { formatDateLocal } from "@/lib/utils";
 import ImportWizard from "./ImportWizard";
 import NewTransactionForm, { NewTxFormRef } from "./NewTransactionForm";
 import FiltersForm from "@/components/FiltersForm";
@@ -26,8 +27,8 @@ function TransactionsInner() {
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     
     return {
-      from: firstDay.toISOString().split('T')[0],
-      to: lastDay.toISOString().split('T')[0]
+      from: formatDateLocal(firstDay),
+      to: formatDateLocal(lastDay)
     };
   };
 

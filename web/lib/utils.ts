@@ -12,3 +12,14 @@ export function formatCurrency(amount: number, currencyCode: string = "RUB"): st
 export function formatAmountWithSpaces(amount: number): string {
   return new Intl.NumberFormat('ru-RU').format(amount);
 }
+
+/**
+ * Форматирует дату в формат YYYY-MM-DD без учета часового пояса
+ * Используется для быстрых фильтров и других случаев, где нужно локальное представление даты
+ */
+export const formatDateLocal = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
