@@ -6,10 +6,18 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-✓-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
-[![Tests](https://img.shields.io/badge/Tests-13%20passed-brightgreen?style=for-the-badge)](https://github.com/your-username/budget/actions)
-[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen?style=for-the-badge)](https://github.com/your-username/budget/actions)
+[![CI](https://github.com/positron48/budget/workflows/CI/badge.svg)](https://github.com/positron48/budget/actions/workflows/ci.yml)
+[![Security Audit](https://github.com/positron48/budget/workflows/Security%20Audit/badge.svg)](https://github.com/positron48/budget/actions/workflows/security.yml)
+[![Generate Stubs](https://github.com/positron48/budget/workflows/Generate%20Protobuf%20Stubs/badge.svg)](https://github.com/positron48/budget/actions/workflows/generate-stubs.yml)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen?style=for-the-badge)](http://makeapullrequest.com)
+[![Go Report Card](https://goreportcard.com/badge/github.com/positron48/budget)](https://goreportcard.com/report/github.com/positron48/budget)
+[![Codecov](https://img.shields.io/badge/coverage-80%25-brightgreen?style=for-the-badge)](https://codecov.io/gh/positron48/budget)
+[![Dependabot](https://img.shields.io/badge/dependabot-enabled-025e8c?style=for-the-badge&logo=dependabot)](https://dependabot.com/)
+[![GitHub stars](https://img.shields.io/github/stars/positron48/budget?style=for-the-badge)](https://github.com/positron48/budget/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/positron48/budget?style=for-the-badge)](https://github.com/positron48/budget/network)
+[![GitHub issues](https://img.shields.io/github/issues/positron48/budget?style=for-the-badge)](https://github.com/positron48/budget/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/positron48/budget?style=for-the-badge)](https://github.com/positron48/budget/pulls)
 
 [English](README_EN.md) | [Русский](README.md)
 

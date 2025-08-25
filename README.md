@@ -6,16 +6,32 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-✓-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
-[![Tests](https://img.shields.io/badge/Tests-13%20passed-brightgreen?style=for-the-badge)](https://github.com/your-username/budget/actions)
-[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen?style=for-the-badge)](https://github.com/your-username/budget/actions)
+[![CI](https://github.com/positron48/budget/workflows/CI/badge.svg)](https://github.com/positron48/budget/actions/workflows/ci.yml)
+[![Security Audit](https://github.com/positron48/budget/workflows/Security%20Audit/badge.svg)](https://github.com/positron48/budget/actions/workflows/security.yml)
+[![Generate Stubs](https://github.com/positron48/budget/workflows/Generate%20Protobuf%20Stubs/badge.svg)](https://github.com/positron48/budget/actions/workflows/generate-stubs.yml)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen?style=for-the-badge)](http://makeapullrequest.com)
+[![Go Report Card](https://goreportcard.com/badge/github.com/positron48/budget)](https://goreportcard.com/report/github.com/positron48/budget)
+[![Codecov](https://img.shields.io/badge/coverage-80%25-brightgreen?style=for-the-badge)](https://codecov.io/gh/positron48/budget)
+[![Dependabot](https://img.shields.io/badge/dependabot-enabled-025e8c?style=for-the-badge&logo=dependabot)](https://dependabot.com/)
+[![GitHub stars](https://img.shields.io/github/stars/positron48/budget?style=for-the-badge)](https://github.com/positron48/budget/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/positron48/budget?style=for-the-badge)](https://github.com/positron48/budget/network)
+[![GitHub issues](https://img.shields.io/github/issues/positron48/budget?style=for-the-badge)](https://github.com/positron48/budget/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/positron48/budget?style=for-the-badge)](https://github.com/positron48/budget/pulls)
 
 [English](README_EN.md) | [Русский](README.md)
 
 > Современное веб-приложение для учета личных финансов с поддержкой многопользовательности, импорта/экспорта данных и красивым интерфейсом.
 
 ## 🚀 Быстрый старт
+
+<div align="center">
+
+[![Deploy with Docker](https://img.shields.io/badge/Deploy%20with-Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/positron48/budget#%EF%B8%8F-установка-и-запуск)
+[![Run with Make](https://img.shields.io/badge/Run%20with-Make-FF6B6B?style=for-the-badge&logo=gnu&logoColor=white)](https://github.com/positron48/budget#%EF%B8%8F-установка-и-запуск)
+[![View Demo](https://img.shields.io/badge/View-Demo-00C851?style=for-the-badge&logo=github&logoColor=white)](https://github.com/positron48/budget#доступ-к-сервисам)
+
+</div>
 
 ### Предварительные требования
 - Docker и Docker Compose
@@ -47,6 +63,16 @@ make logs
 4. Начните добавлять категории и транзакции
 
 ## ✨ Основные возможности
+
+<div align="center">
+
+[![Transactions](https://img.shields.io/badge/💳-Transactions-00BCD4?style=for-the-badge)](https://github.com/positron48/budget#-управление-транзакциями)
+[![Analytics](https://img.shields.io/badge/📊-Analytics-4CAF50?style=for-the-badge)](https://github.com/positron48/budget#-аналитика-и-отчеты)
+[![Import/Export](https://img.shields.io/badge/🔄-Import/Export-FF9800?style=for-the-badge)](https://github.com/positron48/budget#-импортэкспорт-данных)
+[![Multi-User](https://img.shields.io/badge/👥-Multi--User-9C27B0?style=for-the-badge)](https://github.com/positron48/budget#-многопользовательность)
+[![i18n](https://img.shields.io/badge/🌍-i18n-2196F3?style=for-the-badge)](https://github.com/positron48/budget#-интернационализация)
+
+</div>
 
 ### 💳 Управление транзакциями
 - ✅ CRUD операции с транзакциями (доходы/расходы)
@@ -112,6 +138,22 @@ flowchart TB
 ```
 
 ## 🛠️ Технологический стек
+
+<div align="center">
+
+[![Go](https://img.shields.io/badge/Backend-Go%201.23+-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://golang.org/)
+[![gRPC](https://img.shields.io/badge/API-gRPC-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://grpc.io/)
+[![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL%2015+-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+
+[![Next.js](https://img.shields.io/badge/Frontend-Next.js%2014-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/Language-TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind](https://img.shields.io/badge/Styling-Tailwind%20CSS-06B6D4?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+
+[![Docker](https://img.shields.io/badge/DevOps-Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Prometheus](https://img.shields.io/badge/Monitoring-Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)](https://prometheus.io/)
+[![GitHub Actions](https://img.shields.io/badge/CI/CD-GitHub%20Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)](https://github.com/features/actions)
+
+</div>
 
 ### Backend
 - **Go 1.23+** - основной язык сервера
@@ -333,6 +375,22 @@ budget/
 - [gRPC](https://grpc.io/) - за эффективный API протокол
 
 ---
+
+<div align="center">
+
+[![Star on GitHub](https://img.shields.io/github/stars/positron48/budget?style=for-the-badge&logo=github)](https://github.com/positron48/budget/stargazers)
+[![Fork on GitHub](https://img.shields.io/github/forks/positron48/budget?style=for-the-badge&logo=github)](https://github.com/positron48/budget/network)
+[![Watch on GitHub](https://img.shields.io/github/watchers/positron48/budget?style=for-the-badge&logo=github)](https://github.com/positron48/budget/watchers)
+
+[![Issues](https://img.shields.io/github/issues/positron48/budget?style=for-the-badge&logo=github)](https://github.com/positron48/budget/issues)
+[![Pull Requests](https://img.shields.io/github/issues-pr/positron48/budget?style=for-the-badge&logo=github)](https://github.com/positron48/budget/pulls)
+[![Discussions](https://img.shields.io/github/discussions/positron48/budget?style=for-the-badge&logo=github)](https://github.com/positron48/budget/discussions)
+
+[![Contributors](https://img.shields.io/github/contributors/positron48/budget?style=for-the-badge&logo=github)](https://github.com/positron48/budget/graphs/contributors)
+[![Last Commit](https://img.shields.io/github/last-commit/positron48/budget?style=for-the-badge&logo=github)](https://github.com/positron48/budget/commits)
+[![Release](https://img.shields.io/github/release/positron48/budget?style=for-the-badge&logo=github)](https://github.com/positron48/budget/releases)
+
+</div>
 
 **⭐ Если проект вам понравился, поставьте звездочку!**
 
