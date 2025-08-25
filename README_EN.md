@@ -1,4 +1,4 @@
-# 💰 Budget - Multi-user Income and Expense Tracking
+# Budget - Multi-user Income and Expense Tracking
 
 [![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://golang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-14+-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
@@ -14,16 +14,20 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/positron48/budget)](https://goreportcard.com/report/github.com/positron48/budget)
 [![Codecov](https://img.shields.io/badge/coverage-80%25-brightgreen?style=for-the-badge)](https://codecov.io/gh/positron48/budget)
 [![Dependabot](https://img.shields.io/badge/dependabot-enabled-025e8c?style=for-the-badge&logo=dependabot)](https://dependabot.com/)
-[![GitHub stars](https://img.shields.io/github/stars/positron48/budget?style=for-the-badge)](https://github.com/positron48/budget/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/positron48/budget?style=for-the-badge)](https://github.com/positron48/budget/network)
-[![GitHub issues](https://img.shields.io/github/issues/positron48/budget?style=for-the-badge)](https://github.com/positron48/budget/issues)
-[![GitHub pull requests](https://img.shields.io/github/issues-pr/positron48/budget?style=for-the-badge)](https://github.com/positron48/budget/pulls)
+
+<div align="center">
+
+[![Contributors](https://img.shields.io/github/contributors/positron48/budget?style=for-the-badge&logo=github)](https://github.com/positron48/budget/graphs/contributors)
+[![Last Commit](https://img.shields.io/github/last-commit/positron48/budget?style=for-the-badge&logo=github)](https://github.com/positron48/budget/commits)
+[![Release](https://img.shields.io/github/release/positron48/budget?style=for-the-badge&logo=github)](https://github.com/positron48/budget/releases)
+
+</div>
 
 [English](README_EN.md) | [Русский](README.md)
 
 > Modern web application for personal finance tracking with multi-user support, data import/export, and beautiful interface.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Docker and Docker Compose
@@ -32,7 +36,7 @@
 ### Installation and Setup
 ```bash
 # Clone repository
-git clone <repository>
+git clone https://github.com/positron48/budget
 cd budget
 
 # Start entire environment
@@ -43,10 +47,10 @@ make logs
 ```
 
 ### Access to Services
-- 🌐 **Frontend**: http://localhost:3030
-- 🔧 **Backend gRPC**: localhost:8080
-- 📊 **Grafana**: http://localhost:3002
-- 📈 **Prometheus**: http://localhost:9090
+- **Frontend**: http://localhost:3030
+- **Backend gRPC**: localhost:8080
+- **Grafana**: http://localhost:3002
+- **Prometheus**: http://localhost:9090
 
 ### First Steps
 1. Open http://localhost:3030
@@ -54,39 +58,39 @@ make logs
 3. Create your first organization
 4. Start adding categories and transactions
 
-## ✨ Key Features
+## Key Features
 
-### 💳 Transaction Management
+### Transaction Management
 - ✅ CRUD operations for transactions (income/expense)
 - ✅ Categorization with i18n support
 - ✅ Filtering and search with quick filters
 - ✅ Pagination and sorting
 - ✅ CSV export with filters
 
-### 📊 Analytics and Reports
+### Analytics and Reports
 - ✅ Monthly reports by categories
 - ✅ Data visualization with charts
 - ✅ Period comparison
 - ✅ Income and expense statistics
 
-### 🔄 Data Import/Export
+### Data Import/Export
 - ✅ CSV file import with mapping configuration
 - ✅ Automatic encoding detection
 - ✅ Data preview
 - ✅ Export with all filters applied
 
-### 👥 Multi-user Support
+### Multi-user Support
 - ✅ Multi-tenant architecture
 - ✅ Roles: Owner, Admin, Member
 - ✅ Organization management
 - ✅ Data isolation between accounts
 
-### 🌍 Internationalization
+### Internationalization
 - ✅ Support for Russian and English languages
 - ✅ Localized categories
 - ✅ Automatic language switching
 
-## 🏗️ Architecture
+## Architecture
 
 ```mermaid
 flowchart TB
@@ -118,7 +122,7 @@ flowchart TB
   Budgetd --> OTEL
 ```
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### Backend
 - **Go 1.23+** - main server language
@@ -140,43 +144,7 @@ flowchart TB
 - **OpenTelemetry** - tracing and metrics
 - **GitHub Actions** - CI/CD
 
-## 📊 Implementation Status
-
-| Component | Status | Description |
-|-----------|--------|-------------|
-| 🔐 **Authentication** | ✅ Ready | Registration, login, JWT tokens |
-| 👤 **Users** | ✅ Ready | Profiles, password change |
-| 🏢 **Organizations** | ✅ Ready | Multi-tenant, roles |
-| 📂 **Categories** | ✅ Ready | CRUD with i18n |
-| 💰 **Transactions** | ✅ Ready | CRUD, filters, pagination |
-| 📈 **Reports** | ✅ Ready | Monthly analytics |
-| 💱 **Currency Rates** | ✅ Ready | FX management |
-| 📥 **Import** | ✅ Ready | CSV with mapping |
-| 📤 **Export** | ✅ Ready | CSV with filters |
-| 🌐 **Frontend** | ✅ Ready | Modern UI/UX |
-| 📊 **Monitoring** | ✅ Ready | Prometheus + Grafana |
-| 🧪 **Tests** | ✅ Ready | Unit + Integration |
-
-## 🧪 Testing
-
-```bash
-# Backend tests
-make test
-
-# Frontend tests
-cd web && npm test
-
-# All tests
-make check
-```
-
-**Test Results:**
-- ✅ **13 tests** - all passing
-- ✅ **Backend** - unit and integration tests
-- ✅ **Frontend** - component tests
-- ✅ **API** - gRPC integration tests
-
-## 🚀 Deployment
+## Deployment
 
 ### Local Development
 ```bash
@@ -205,7 +173,7 @@ docker-compose -f docker-compose.yml up -d
 docker-compose -f docker-compose.yml logs -f
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 budget/
@@ -226,7 +194,7 @@ budget/
 └── 📁 docs/                    # Documentation
 ```
 
-## 🔧 Main Commands
+## Main Commands
 
 | Command | Description |
 |---------|-------------|
@@ -238,69 +206,36 @@ budget/
 | `make test` | Run tests |
 | `make logs` | View logs |
 
-## 🌍 Internationalization
+## Roadmap
 
-The application fully supports **Russian** and **English** languages:
+### In Development
+- **Telegram bot** for quick transaction addition
+- **Bank integrations** for automatic import
+- **Budget planning** and financial goals
 
-- ✅ **Backend**: i18n for categories and messages
-- ✅ **Frontend**: complete interface localization
-- ✅ **Automatic language switching**
-- ✅ **Saving** selected language in profile
+### Planned
+- **Mobile application** (React Native)
+- **E2E tests** with Playwright
+- **Performance optimizations**
+- **PWA functionality**
+- **Offline mode**
+- **Push notifications**
 
-## 🔐 Security
-
-- ✅ **Argon2id** password hashing
-- ✅ **JWT** with access/refresh tokens
-- ✅ **Multi-tenant** data isolation
-- ✅ **Roles** in accounts (Owner/Admin/Member)
-- ✅ **Validation** at all levels
-- ✅ **Automatic token refresh**
-
-## 📈 Monitoring
-
-- ✅ **Prometheus** metrics
-- ✅ **OpenTelemetry** tracing
-- ✅ **Grafana** dashboards
-- ✅ **Structured** logging
-
-## 🎨 UI/UX
-
-- ✅ **Modern design** with Tailwind CSS
-- ✅ **Responsive layout** for all devices
-- ✅ **Smooth animations** and transitions
-- ✅ **Intuitive navigation**
-- ✅ **Feedback** for all actions
-
-## 📋 Roadmap
-
-### 🚧 In Development
-- 📱 **Telegram bot** for quick transaction addition
-- 🏦 **Bank integrations** for automatic import
-- 📊 **Budget planning** and financial goals
-
-### 🔮 Planned
-- 📱 **Mobile application** (React Native)
-- 🧪 **E2E tests** with Playwright
-- ⚡ **Performance optimizations**
-- 📱 **PWA functionality**
-- 🔄 **Offline mode**
-- 🔔 **Push notifications**
-
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions to the project! Please read our [contributing guidelines](CONTRIBUTING.md).
 
 ### How to help:
-1. 🐛 **Report a bug** - create an issue
-2. 💡 **Suggest an idea** - create a feature request
-3. 🔧 **Fix a bug** - create a pull request
-4. 📚 **Improve documentation** - edit README
+1. **Report a bug** - create an issue
+2. **Suggest an idea** - create a feature request
+3. **Fix a bug** - create a pull request
+4. **Improve documentation** - edit README
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [Go](https://golang.org/) - for the excellent programming language
 - [Next.js](https://nextjs.org/) - for the modern React framework
