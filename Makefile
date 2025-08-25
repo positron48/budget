@@ -2,7 +2,7 @@ PROTO_DIR=proto
 DB_URL=postgres://budget:budget@localhost:5432/budget?sslmode=disable
 
 # Список всех целей в одном месте
-.PHONY: help proto dproto tsproto lproto-go build run run-dev run-backend stop restart up down logs logs-dev ps tidy fmt test pgtest lint vet ci check web-install web-build web-lint web-test web-check check-all migrate-up migrate-down dmigrate-up dmigrate-down docker-df docker-prune docker-prune-all oauth-test oauth-cleanup
+.PHONY: help proto dproto tsproto lproto-go build run run-dev run-backend stop restart up down logs logs-dev ps tidy fmt test pgtest lint vet ci check web-install web-build web-lint web-test web-check check-all deploy-frontend deploy-backend deploy-all deploy-frontend-force migrate-up migrate-down dmigrate-up dmigrate-down docker-df docker-prune docker-prune-all oauth-test oauth-cleanup
 
 # Вывести список целей и их описание (с группировкой по разделам)
 help: ## [Meta] Показать список команд по разделам
@@ -128,6 +128,37 @@ web-test: ## [Web] Тесты фронта (Docker)
 web-check: web-install web-lint web-build web-test ## [Web] Полная проверка фронта
 
 check-all: check web-check ## [Meta] Полная проверка всего: Go + Web
+
+# =============================================================================
+# PRODUCTION DEPLOYMENT
+# =============================================================================
+
+deploy-frontend: ## [Deploy] Обновить фронтенд на проде (пересборка + перезапуск)
+	@printf "\n\033[34mОбновление фронтенда на проде...\033[0m\n"; \
+	docker compose build web --no-cache; \
+	docker compose up -d web; \
+	printf "  \033[32m✓ Фронтенд обновлен\033[0m\n\n"
+
+deploy-backend: ## [Deploy] Обновить бэкенд на проде (пересборка + перезапуск)
+	@printf "\n\033[34mОбновление бэкенда на проде...\033[0m\n"; \
+	docker compose build app --no-cache; \
+	docker compose up -d app; \
+	printf "  \033[32m✓ Бэкенд обновлен\033[0m\n\n"
+
+deploy-all: ## [Deploy] Обновить все сервисы на проде
+	@printf "\n\033[34mПолное обновление на проде...\033[0m\n"; \
+	docker compose build --no-cache; \
+	docker compose up -d; \
+	printf "  \033[32m✓ Все сервисы обновлены\033[0m\n\n"
+
+deploy-frontend-force: ## [Deploy] Принудительное обновление фронтенда (удаление + пересборка)
+	@printf "\n\033[34mПринудительное обновление фронтенда...\033[0m\n"; \
+	docker compose stop web; \
+	docker compose rm -f web; \
+	docker rmi budget-web || true; \
+	docker compose build web --no-cache; \
+	docker compose up -d web; \
+	printf "  \033[32m✓ Фронтенд принудительно обновлен\033[0m\n\n"
 
 migrate-up: ## [Migrate] Миграции вверх (Docker)
 	docker run --rm -v $(PWD)/migrations:/migrations --network host migrate/migrate -database "postgres://budget:budget@localhost:5432/budget?sslmode=disable" -path /migrations up
