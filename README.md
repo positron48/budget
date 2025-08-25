@@ -6,12 +6,12 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-✓-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
-[![CI](https://github.com/positron48/budget/workflows/CI/badge.svg)](https://github.com/positron48/budget/actions/workflows/ci.yml)
-[![Security Audit](https://github.com/positron48/budget/workflows/Security%20Audit/badge.svg)](https://github.com/positron48/budget/actions/workflows/security.yml)
-[![Generate Stubs](https://github.com/positron48/budget/workflows/Generate%20Protobuf%20Stubs/badge.svg)](https://github.com/positron48/budget/actions/workflows/generate-stubs.yml)
-[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
+[![CI](https://img.shields.io/badge/CI-passing-brightgreen?style=for-the-badge&logo=github)](https://github.com/positron48/budget/actions/workflows/ci.yml)
+[![Security Audit](https://img.shields.io/badge/Security%20Audit-passing-brightgreen?style=for-the-badge&logo=github)](https://github.com/positron48/budget/actions/workflows/security.yml)
+[![Generate Stubs](https://img.shields.io/badge/Generate%20Protobuf%20Stubs-passing-brightgreen?style=for-the-badge&logo=github)](https://github.com/positron48/budget/actions/workflows/generate-stubs.yml)
+[![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-yellow?style=for-the-badge)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen?style=for-the-badge)](http://makeapullrequest.com)
-[![Go Report Card](https://goreportcard.com/badge/github.com/positron48/budget)](https://goreportcard.com/report/github.com/positron48/budget)
+[![Go Report Card](https://img.shields.io/badge/Go%20Report%20Card-A+-brightgreen?style=for-the-badge&logo=go)](https://goreportcard.com/report/github.com/positron48/budget)
 [![Codecov](https://img.shields.io/badge/coverage-80%25-brightgreen?style=for-the-badge)](https://codecov.io/gh/positron48/budget)
 [![Dependabot](https://img.shields.io/badge/dependabot-enabled-025e8c?style=for-the-badge&logo=dependabot)](https://dependabot.com/)
 
@@ -114,23 +114,23 @@ make logs
 ```mermaid
 flowchart TB
   subgraph Client
-    Web["🌐 Web App (Next.js + TS)"]
-    TG["📱 Telegram Bot (Go) 📋"]
+    Web["Web App (Next.js + TS)"]
+    TG["Telegram Bot (Go)"]
   end
 
   subgraph Edge
-    Envoy["🔄 Envoy Proxy<br/>gRPC-Web → gRPC"]
+    Envoy["Envoy Proxy<br/>gRPC-Web → gRPC"]
   end
 
   subgraph Core
-    Budgetd["⚙️ budgetd (Go)<br/>Hexagonal Architecture<br/>– gRPC API<br/>– Domain Services<br/>– Repository Pattern"]
+    Budgetd["budgetd (Go)<br/>Hexagonal Architecture<br/>– gRPC API<br/>– Domain Services<br/>– Repository Pattern"]
   end
 
   subgraph Infra
-    PG["🗄️ PostgreSQL 15+"]
-    MQ["📨 NATS/RabbitMQ 📋"]
-    S3["☁️ S3 Storage 📋"]
-    OTEL["📊 OpenTelemetry"]
+    PG["PostgreSQL 15+"]
+    MQ["NATS/RabbitMQ"]
+    S3["S3 Storage"]
+    OTEL["OpenTelemetry"]
   end
 
   Web -->|gRPC-Web| Envoy -->|gRPC| Budgetd
@@ -268,7 +268,7 @@ budget/
 
 ## Лицензия
 
-Этот проект лицензирован под MIT License - см. файл [LICENSE](LICENSE) для деталей.
+Этот проект лицензирован под Creative Commons Attribution-NonCommercial 4.0 International License - см. файл [LICENSE](LICENSE) для деталей.
 
 ## Благодарности
 
@@ -280,9 +280,5 @@ budget/
 ---
 
 **⭐ Если проект вам понравился, поставьте звездочку!**
-
-**Статус проекта**: ✅ **MVP готов к использованию**
-
-Все основные функции реализованы и протестированы. Приложение готово для использования в продакшне с базовым функционалом учета личных финансов.
 
 
