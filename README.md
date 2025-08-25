@@ -1,41 +1,26 @@
 # Budget - Многопользовательский учет доходов и расходов
 
-[![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://golang.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-14+-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Docker](https://img.shields.io/badge/Docker-✓-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+**Технологии**
 
-[![CI](https://img.shields.io/badge/CI-passing-brightgreen?style=for-the-badge&logo=github)](https://github.com/positron48/budget/actions/workflows/ci.yml)
-[![Security Audit](https://img.shields.io/badge/Security%20Audit-passing-brightgreen?style=for-the-badge&logo=github)](https://github.com/positron48/budget/actions/workflows/security.yml)
-[![Generate Stubs](https://img.shields.io/badge/Generate%20Protobuf%20Stubs-passing-brightgreen?style=for-the-badge&logo=github)](https://github.com/positron48/budget/actions/workflows/generate-stubs.yml)
-[![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-yellow?style=for-the-badge)](LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen?style=for-the-badge)](http://makeapullrequest.com)
-[![Go Report Card](https://img.shields.io/badge/Go%20Report%20Card-A+-brightgreen?style=for-the-badge&logo=go)](https://goreportcard.com/report/github.com/positron48/budget)
-[![Codecov](https://img.shields.io/badge/coverage-80%25-brightgreen?style=for-the-badge)](https://codecov.io/gh/positron48/budget)
-[![Dependabot](https://img.shields.io/badge/dependabot-enabled-025e8c?style=for-the-badge&logo=dependabot)](https://dependabot.com/)
+[![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://golang.org/) [![Next.js](https://img.shields.io/badge/Next.js-14+-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/) [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/) [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/) [![Docker](https://img.shields.io/badge/Docker-✓-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
-<div align="center">
+**Статус проекта**
 
-[![Contributors](https://img.shields.io/github/contributors/positron48/budget?style=for-the-badge&logo=github)](https://github.com/positron48/budget/graphs/contributors)
-[![Last Commit](https://img.shields.io/github/last-commit/positron48/budget?style=for-the-badge&logo=github)](https://github.com/positron48/budget/commits)
-[![Release](https://img.shields.io/github/release/positron48/budget?style=for-the-badge&logo=github)](https://github.com/positron48/budget/releases)
+[![CI](https://img.shields.io/badge/CI-passing-brightgreen?style=for-the-badge&logo=github)](https://github.com/positron48/budget/actions/workflows/ci.yml) [![Security Audit](https://img.shields.io/badge/Security%20Audit-passing-brightgreen?style=for-the-badge&logo=github)](https://github.com/positron48/budget/actions/workflows/security.yml) [![Generate Stubs](https://img.shields.io/badge/Generate%20Protobuf%20Stubs-passing-brightgreen?style=for-the-badge&logo=github)](https://github.com/positron48/budget/actions/workflows/generate-stubs.yml) [![Go Report Card](https://img.shields.io/badge/Go%20Report%20Card-A+-brightgreen?style=for-the-badge&logo=go)](https://goreportcard.com/report/github.com/positron48/budget) [![Codecov](https://img.shields.io/badge/coverage-80%25-brightgreen?style=for-the-badge)](https://codecov.io/gh/positron48/budget) [![Dependabot](https://img.shields.io/badge/dependabot-enabled-025e8c?style=for-the-badge&logo=dependabot)](https://dependabot.com/)
 
-</div>
+**Лицензия и участие**
+
+[![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-yellow?style=for-the-badge)](LICENSE) [![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen?style=for-the-badge)](http://makeapullrequest.com)
+
+**Статистика**
+
+[![Contributors](https://img.shields.io/github/contributors/positron48/budget?style=for-the-badge&logo=github)](https://github.com/positron48/budget/graphs/contributors) [![Last Commit](https://img.shields.io/github/last-commit/positron48/budget?style=for-the-badge&logo=github)](https://github.com/positron48/budget/commits) [![Release](https://img.shields.io/github/release/positron48/budget?style=for-the-badge&logo=github)](https://github.com/positron48/budget/releases)
 
 [English](README_EN.md) | [Русский](README.md)
 
 > Современное веб-приложение для учета личных финансов с поддержкой многопользовательности, импорта/экспорта данных и красивым интерфейсом.
 
 ## Быстрый старт
-
-<div align="center">
-
-[![Deploy with Docker](https://img.shields.io/badge/Deploy%20with-Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/positron48/budget#%EF%B8%8F-установка-и-запуск)
-[![Run with Make](https://img.shields.io/badge/Run%20with-Make-FF6B6B?style=for-the-badge&logo=gnu&logoColor=white)](https://github.com/positron48/budget#%EF%B8%8F-установка-и-запуск)
-[![View Demo](https://img.shields.io/badge/View-Demo-00C851?style=for-the-badge&logo=github&logoColor=white)](https://github.com/positron48/budget#доступ-к-сервисам)
-
-</div>
 
 ### Предварительные требования
 - Docker и Docker Compose
@@ -142,22 +127,6 @@ flowchart TB
 ```
 
 ## Технологический стек
-
-<div align="center">
-
-[![Go](https://img.shields.io/badge/Backend-Go%201.23+-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://golang.org/)
-[![gRPC](https://img.shields.io/badge/API-gRPC-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://grpc.io/)
-[![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL%2015+-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-
-[![Next.js](https://img.shields.io/badge/Frontend-Next.js%2014-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/Language-TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Tailwind](https://img.shields.io/badge/Styling-Tailwind%20CSS-06B6D4?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-
-[![Docker](https://img.shields.io/badge/DevOps-Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
-[![Prometheus](https://img.shields.io/badge/Monitoring-Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)](https://prometheus.io/)
-[![GitHub Actions](https://img.shields.io/badge/CI/CD-GitHub%20Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)](https://github.com/features/actions)
-
-</div>
 
 ### Backend
 - **Go 1.23+** - основной язык сервера
