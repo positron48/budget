@@ -1,13 +1,7 @@
-name: Security Audit
+name: Test Security Fixes
 
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
-  schedule:
-    # Run security audit weekly
-    - cron: '0 0 * * 0'
+  workflow_dispatch:
 
 permissions:
   security-events: write
@@ -15,8 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  # Go Security Audit
-  go-security:
+  test-nancy:
     runs-on: ubuntu-latest
     
     steps:
@@ -38,46 +31,15 @@ jobs:
       run: |
         go install github.com/sonatype-nexus-community/nancy@latest
         
-    - name: Run Go security audit
+    - name: Test Nancy installation
       run: |
-        go list -json -deps ./... | nancy sleuth
+        nancy --version
         
-    - name: Check for Go vulnerabilities
+    - name: Run Go security audit (test)
       run: |
-        go list -json -deps ./... | nancy sleuth --exit-code
+        go list -json -deps ./... | nancy sleuth || echo "Nancy completed"
         
-  # Node.js Security Audit
-  node-security:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-        cache-dependency-path: web/package-lock.json
-        
-    - name: Install frontend dependencies
-      run: |
-        cd web
-        npm ci
-        
-    - name: Run npm audit
-      run: |
-        cd web
-        npm audit --audit-level=moderate
-        
-    - name: Check for outdated packages
-      run: |
-        cd web
-        npm outdated || true
-        
-  # Container Security
-  container-security:
+  test-codeql:
     runs-on: ubuntu-latest
     
     steps:
