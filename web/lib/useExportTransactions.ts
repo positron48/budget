@@ -31,7 +31,7 @@ export function useExportTransactions({
       sort: "occurred_at desc" 
     },
     ...(type && { type }),
-    ...(from || to) && {
+    ...((from || to) && {
       dateRange: {
         ...(from && { 
           from: { seconds: Math.floor(new Date(`${from}T00:00:00`).getTime() / 1000) } 
@@ -40,7 +40,7 @@ export function useExportTransactions({
           to: { seconds: Math.floor(new Date(`${to}T00:00:00`).getTime() / 1000 + 86400) } 
         })
       }
-    },
+    }),
     ...(search && { search }),
     ...(selectedCategoryIds.length > 0 && { categoryIds: selectedCategoryIds })
   };

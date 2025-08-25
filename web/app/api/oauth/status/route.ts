@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     // Создаем gRPC клиент как в других местах фронтенда
     const { createClient } = require('@connectrpc/connect');
     const { createGrpcWebTransport } = require('@connectrpc/connect-web');
-    const { OAuthService } = require('../../../../proto/budget/v1/oauth_connect');
+    const { OAuthService } = require('../../../../proto/budget/v1/oauth_pb');
     
     const transport = createGrpcWebTransport({ 
       baseUrl: process.env.ENVOY_URL 

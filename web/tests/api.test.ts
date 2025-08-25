@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createConnectTransport } from "@connectrpc/connect-web";
-import { createPromiseClient } from "@connectrpc/connect";
-import { AuthService } from "@/proto/budget/v1/auth_connect";
-import { CategoryService } from "@/proto/budget/v1/category_connect";
-import { TransactionService } from "@/proto/budget/v1/transaction_connect";
+import { createClient } from "@connectrpc/connect";
+import { AuthService } from "@/proto/budget/v1/auth_pb";
+import { CategoryService } from "@/proto/budget/v1/category_pb";
+import { TransactionService } from "@/proto/budget/v1/transaction_pb";
 
 // Mock the transport
 vi.mock("@connectrpc/connect-web", () => ({
@@ -17,48 +17,48 @@ vi.mock("@connectrpc/connect-web", () => ({
 vi.mock("@/proto/budget/v1/auth_connect", () => ({
   AuthService: {
     typeName: "budget.v1.AuthService",
-    methods: {
-      register: {
+    methods: new Map([
+      ["register", {
         name: "Register",
         I: {},
         O: {},
         kind: "unary",
-      },
-      login: {
+      }],
+      ["login", {
         name: "Login",
         I: {},
         O: {},
         kind: "unary",
-      },
-    },
+      }],
+    ]),
   },
 }));
 
 vi.mock("@/proto/budget/v1/category_connect", () => ({
   CategoryService: {
     typeName: "budget.v1.CategoryService",
-    methods: {
-      listCategories: {
+    methods: new Map([
+      ["listCategories", {
         name: "ListCategories",
         I: {},
         O: {},
         kind: "unary",
-      },
-    },
+      }],
+    ]),
   },
 }));
 
 vi.mock("@/proto/budget/v1/transaction_connect", () => ({
   TransactionService: {
     typeName: "budget.v1.TransactionService",
-    methods: {
-      listTransactions: {
+    methods: new Map([
+      ["listTransactions", {
         name: "ListTransactions",
         I: {},
         O: {},
         kind: "unary",
-      },
-    },
+      }],
+    ]),
   },
 }));
 
@@ -87,7 +87,7 @@ describe('API', () => {
       const transport = createConnectTransport({
         baseUrl: "http://localhost:8081",
       });
-      const client = createPromiseClient(AuthService, transport);
+      const client = createClient(AuthService, transport);
 
       expect(client).toBeDefined();
       expect(AuthService.typeName).toBe("budget.v1.AuthService");
@@ -97,7 +97,7 @@ describe('API', () => {
       const transport = createConnectTransport({
         baseUrl: "http://localhost:8081",
       });
-      const client = createPromiseClient(CategoryService, transport);
+      const client = createClient(CategoryService, transport);
 
       expect(client).toBeDefined();
       expect(CategoryService.typeName).toBe("budget.v1.CategoryService");
@@ -107,7 +107,7 @@ describe('API', () => {
       const transport = createConnectTransport({
         baseUrl: "http://localhost:8081",
       });
-      const client = createPromiseClient(TransactionService, transport);
+      const client = createClient(TransactionService, transport);
 
       expect(client).toBeDefined();
       expect(TransactionService.typeName).toBe("budget.v1.TransactionService");
