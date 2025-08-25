@@ -24,7 +24,7 @@ export default function LoadingSpinner({ text, className = "", size = "md" }: Lo
   return (
     <div className={`flex items-center justify-center ${className}`}>
       <div className="flex items-center space-x-3">
-        <div className={`${sizeClasses[size]} border-2 border-primary/30 border-t-primary rounded-full animate-spin`}></div>
+        <div className={`${sizeClasses[size]} border-2 border-primary/30 border-t-primary rounded-full animate-spin`} data-testid="loading-spinner"></div>
         {text && (
           <span className="text-muted-foreground flex items-center space-x-2">
             <Icon name="loader-2" size={iconSizes[size]} className="animate-spin" />

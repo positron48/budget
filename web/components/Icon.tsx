@@ -213,5 +213,5 @@ export default function Icon({ name, size = 20, className = "" }: IconProps) {
     return null;
   }
 
-  return <IconComponent size={size} className={className} />;
+  return <IconComponent size={size} className={className} data-testid={`icon-${name}`} />;
 }

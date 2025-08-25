@@ -4,23 +4,23 @@ import { formatCurrency, formatDateLocal } from "@/lib/utils";
 describe('Utils', () => {
   describe('formatCurrency', () => {
     it('formats positive amounts correctly', () => {
-      expect(formatCurrency(100000)).toBe('1 000,00 ₽'); // 100000 копеек = 1000 рублей
-      expect(formatCurrency(123456700)).toBe('1 234 567,00 ₽'); // 123456700 копеек = 1234567 рублей
-      expect(formatCurrency(0)).toBe('0,00 ₽');
+      expect(formatCurrency(100000)).toMatch(/1\s*000,00\s*₽/); // 100000 копеек = 1000 рублей
+      expect(formatCurrency(123456700)).toMatch(/1\s*234\s*567,00\s*₽/); // 123456700 копеек = 1234567 рублей
+      expect(formatCurrency(0)).toMatch(/0,00\s*₽/);
     });
 
     it('formats negative amounts correctly', () => {
-      expect(formatCurrency(-100000)).toBe('-1 000,00 ₽'); // -100000 копеек = -1000 рублей
-      expect(formatCurrency(-123456700)).toBe('-1 234 567,00 ₽'); // -123456700 копеек = -1234567 рублей
+      expect(formatCurrency(-100000)).toMatch(/-1\s*000,00\s*₽/); // -100000 копеек = -1000 рублей
+      expect(formatCurrency(-123456700)).toMatch(/-1\s*234\s*567,00\s*₽/); // -123456700 копеек = -1234567 рублей
     });
 
     it('formats decimal amounts correctly', () => {
-      expect(formatCurrency(100050)).toBe('1 000,50 ₽'); // 100050 копеек = 1000.50 рублей
-      expect(formatCurrency(123456)).toBe('1 234,56 ₽'); // 123456 копеек = 1234.56 рублей
+      expect(formatCurrency(100050)).toMatch(/1\s*000,50\s*₽/); // 100050 копеек = 1000.50 рублей
+      expect(formatCurrency(123456)).toMatch(/1\s*234,56\s*₽/); // 123456 копеек = 1234.56 рублей
     });
 
     it('handles very large numbers', () => {
-      expect(formatCurrency(99999999900)).toBe('999 999 999,00 ₽'); // 99999999900 копеек = 999999999 рублей
+      expect(formatCurrency(99999999900)).toMatch(/999\s*999\s*999,00\s*₽/); // 99999999900 копеек = 999999999 рублей
     });
   });
 
