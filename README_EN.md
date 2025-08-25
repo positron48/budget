@@ -61,34 +61,34 @@ make logs
 ## Key Features
 
 ### Transaction Management
-- ✅ CRUD operations for transactions (income/expense)
-- ✅ Categorization with i18n support
-- ✅ Filtering and search with quick filters
-- ✅ Pagination and sorting
-- ✅ CSV export with filters
+- CRUD operations for transactions (income/expense)
+- Categorization with i18n support
+- Filtering and search with quick filters
+- Pagination and sorting
+- CSV export with filters
 
 ### Analytics and Reports
-- ✅ Monthly reports by categories
-- ✅ Data visualization with charts
-- ✅ Period comparison
-- ✅ Income and expense statistics
+- Monthly reports by categories
+- Data visualization with charts
+- Period comparison
+- Income and expense statistics
 
 ### Data Import/Export
-- ✅ CSV file import with mapping configuration
-- ✅ Automatic encoding detection
-- ✅ Data preview
-- ✅ Export with all filters applied
+- CSV file import with mapping configuration
+- Automatic encoding detection
+- Data preview
+- Export with all filters applied
 
 ### Multi-user Support
-- ✅ Multi-tenant architecture
-- ✅ Roles: Owner, Admin, Member
-- ✅ Organization management
-- ✅ Data isolation between accounts
+- Multi-tenant architecture
+- Roles: Owner, Admin, Member
+- Organization management
+- Data isolation between accounts
 
 ### Internationalization
-- ✅ Support for Russian and English languages
-- ✅ Localized categories
-- ✅ Automatic language switching
+- Support for Russian and English languages
+- Localized categories
+- Automatic language switching
 
 ## Architecture
 
