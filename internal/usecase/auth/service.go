@@ -139,6 +139,11 @@ func (s *Service) Login(ctx context.Context, email, password string) (User, []Te
 	return u, memberships, tp, nil
 }
 
+// StoreRefreshToken сохраняет refresh token в базе данных
+func (s *Service) StoreRefreshToken(ctx context.Context, userID, tenantID, refreshToken string, expiresAt time.Time) error {
+	return s.tokens.Store(ctx, userID, tenantID, refreshToken, expiresAt)
+}
+
 // Refresh performs single-use refresh token rotation
 func (s *Service) Refresh(ctx context.Context, refreshToken string) (TokenPair, error) {
 	row, err := s.tokens.GetByToken(ctx, refreshToken)

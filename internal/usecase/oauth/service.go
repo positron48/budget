@@ -57,6 +57,7 @@ type OAuthCache interface {
 
 type AuthService interface {
 	Login(ctx context.Context, email, password string) (useauth.User, []useauth.TenantMembership, useauth.TokenPair, error)
+	StoreRefreshToken(ctx context.Context, userID, tenantID, refreshToken string, expiresAt time.Time) error
 }
 
 type TokenIssuer interface {
@@ -83,15 +84,19 @@ type Service struct {
 	authService AuthService
 	issuer      TokenIssuer
 	config      domain.OAuthConfig
+	accessTTL   time.Duration
+	refreshTTL  time.Duration
 }
 
-func NewService(repo OAuthRepo, cache OAuthCache, authService AuthService, issuer TokenIssuer, config domain.OAuthConfig) *Service {
+func NewService(repo OAuthRepo, cache OAuthCache, authService AuthService, issuer TokenIssuer, config domain.OAuthConfig, accessTTL, refreshTTL time.Duration) *Service {
 	return &Service{
 		repo:        repo,
 		cache:       cache,
 		authService: authService,
 		issuer:      issuer,
 		config:      config,
+		accessTTL:   accessTTL,
+		refreshTTL:  refreshTTL,
 	}
 }
 
@@ -264,10 +269,17 @@ func (s *Service) VerifyAuthCode(ctx context.Context, authToken, verificationCod
 	}
 
 	// Создаем токены для пользователя с default tenant
-	tokenPair, err := s.issuer.Issue(ctx, user.ID, defaultTenantID, s.config.SessionTTL, s.config.SessionTTL*2)
+	// Используем стандартные JWT TTL вместо OAuth SessionTTL
+	tokenPair, err := s.issuer.Issue(ctx, user.ID, defaultTenantID, s.accessTTL, s.refreshTTL)
 	if err != nil {
 		s.logAuthAction(ctx, token.Email, telegramUserID, token.IPAddress, token.UserAgent, domain.ActionVerifyCode, domain.LogStatusFailed, "failed to issue tokens", &token.ID, nil)
 		return useauth.TokenPair{}, useauth.User{}, nil, "", fmt.Errorf("failed to issue tokens: %w", err)
+	}
+
+	// Сохраняем refresh token в таблице refresh_tokens для совместимости с Auth сервисом
+	if err := s.authService.StoreRefreshToken(ctx, user.ID, defaultTenantID, tokenPair.RefreshToken, tokenPair.RefreshTokenExpiresAt); err != nil {
+		s.logAuthAction(ctx, token.Email, telegramUserID, token.IPAddress, token.UserAgent, domain.ActionVerifyCode, domain.LogStatusFailed, "failed to store refresh token", &token.ID, nil)
+		return useauth.TokenPair{}, useauth.User{}, nil, "", fmt.Errorf("failed to store refresh token: %w", err)
 	}
 
 	// Создание сессии Telegram

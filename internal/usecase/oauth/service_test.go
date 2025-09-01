@@ -295,6 +295,10 @@ func (m *mockAuthService) Login(ctx context.Context, email, password string) (us
 	return useauth.User{}, nil, useauth.TokenPair{}, nil
 }
 
+func (m *mockAuthService) StoreRefreshToken(ctx context.Context, userID, tenantID, refreshToken string, expiresAt time.Time) error {
+	return nil
+}
+
 type mockTokenIssuer struct{}
 
 func (m *mockTokenIssuer) Issue(ctx context.Context, userID, tenantID string, accessTTL, refreshTTL time.Duration) (useauth.TokenPair, error) {
@@ -322,7 +326,7 @@ func TestGenerateAuthLink(t *testing.T) {
 		WebBaseURL:          "http://localhost:3000",
 	}
 
-	service := NewService(repo, cache, authService, issuer, config)
+	service := NewService(repo, cache, authService, issuer, config, 15*time.Minute, 720*time.Hour)
 
 	ctx := context.Background()
 	email := "test@example.com"
@@ -369,7 +373,7 @@ func TestVerifyAuthCode(t *testing.T) {
 		WebBaseURL:          "http://localhost:3000",
 	}
 
-	service := NewService(repo, cache, authService, issuer, config)
+	service := NewService(repo, cache, authService, issuer, config, 15*time.Minute, 720*time.Hour)
 
 	ctx := context.Background()
 
@@ -444,7 +448,7 @@ func TestRateLimitExceeded(t *testing.T) {
 		WebBaseURL:          "http://localhost:3000",
 	}
 
-	service := NewService(repo, cache, authService, issuer, config)
+	service := NewService(repo, cache, authService, issuer, config, 15*time.Minute, 720*time.Hour)
 
 	ctx := context.Background()
 	telegramUserID := "123456"
@@ -474,7 +478,7 @@ func TestAccountBlocked(t *testing.T) {
 		WebBaseURL:          "http://localhost:3000",
 	}
 
-	service := NewService(repo, cache, authService, issuer, config)
+	service := NewService(repo, cache, authService, issuer, config, 15*time.Minute, 720*time.Hour)
 
 	ctx := context.Background()
 	telegramUserID := "123456"
@@ -512,7 +516,7 @@ func TestInvalidEmail(t *testing.T) {
 		WebBaseURL:          "http://localhost:3000",
 	}
 
-	service := NewService(repo, cache, authService, issuer, config)
+	service := NewService(repo, cache, authService, issuer, config, 15*time.Minute, 720*time.Hour)
 
 	ctx := context.Background()
 	telegramUserID := "123456"

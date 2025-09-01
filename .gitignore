@@ -32,5 +32,7 @@ vendor/
 
 deploy/
 DEPLOYMENT_GUIDE.md
-deploy.sh
+OAUTH_CLI_COMMANDS.md
+
 docker-compose.override.yml
+budgetd

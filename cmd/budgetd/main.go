@@ -162,7 +162,7 @@ func main() {
 				MaxAttemptsPer10Min: configOAuth.MaxAttemptsPer10Min,
 				WebBaseURL:          configOAuth.WebBaseURL,
 			}
-			oauthSvc := useoauth.NewService(oauthRepo, oauthCache, authSvc, issuer, oauthConfig)
+			oauthSvc := useoauth.NewService(oauthRepo, oauthCache, authSvc, issuer, oauthConfig, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
 			budgetv1.RegisterOAuthServiceServer(server, grpcadapter.NewOAuthServer(oauthSvc))
 		}
 
