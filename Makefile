@@ -100,7 +100,7 @@ test: ## [Go] Запуск тестов Go (-race, coverage)
 pgtest: ## [Go] Интеграционные тесты PostgreSQL (PG_INTEGRATION=1)
 	docker run --rm -v $(PWD):/app -w /app --network host golang:1.24 bash -c "PG_INTEGRATION=1 go test ./internal/adapter/postgres -run Test.*_PG -v"
 
-LINT_IMAGE_TAG ?= v1.64.8
+LINT_IMAGE_TAG ?= v2.1.0
 
 lint: ## [Go] Линтер Go (golangci-lint в docker)
 	@echo "Running golangci-lint in docker ($(LINT_IMAGE_TAG))"
