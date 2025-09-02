@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/positron48/budget/internal/domain"
@@ -307,7 +308,9 @@ func (c *OAuthCache) CleanupExpiredKeys(ctx context.Context) error {
 
 		// Если TTL отрицательный (ключ истек), удаляем его
 		if ttl < 0 {
-			c.client.Client.Del(ctx, key)
+			if err := c.client.Client.Del(ctx, key).Err(); err != nil {
+				log.Printf("Failed to delete expired key %s: %v", key, err)
+			}
 		}
 	}
 

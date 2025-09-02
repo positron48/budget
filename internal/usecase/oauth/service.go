@@ -480,10 +480,11 @@ func (s *Service) updateTokenStatus(ctx context.Context, authToken string, statu
 	// Обновляем в кэше
 	if token, err := s.cache.GetAuthToken(ctx, authToken); err == nil {
 		token.Status = status
-		if status == domain.AuthStatusCompleted {
+		switch status {
+		case domain.AuthStatusCompleted:
 			now := time.Now()
 			token.CompletedAt = &now
-		} else if status == domain.AuthStatusCancelled {
+		case domain.AuthStatusCancelled:
 			now := time.Now()
 			token.CancelledAt = &now
 		}

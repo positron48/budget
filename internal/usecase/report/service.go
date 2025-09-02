@@ -114,9 +114,10 @@ func (s *Service) GetMonthlySummary(ctx context.Context, tenantID string, year i
 		}
 		k := key{CatID: t.CategoryID, Type: t.Type}
 		sums[k] += minor
-		if t.Type == domain.TransactionTypeIncome {
+		switch t.Type {
+		case domain.TransactionTypeIncome:
 			totalIncomeMinor += minor
-		} else if t.Type == domain.TransactionTypeExpense {
+		case domain.TransactionTypeExpense:
 			totalExpenseMinor += minor
 		}
 	}

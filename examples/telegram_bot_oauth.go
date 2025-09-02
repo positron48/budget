@@ -39,7 +39,7 @@ func NewTelegramBot(token, grpcAddr, webBaseURL string) (*TelegramBot, error) {
 	}
 
 	// Подключение к gRPC сервису
-	conn, err := grpc.Dial(grpcAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(grpcAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to gRPC server: %w", err)
 	}
@@ -148,7 +148,9 @@ func (b *TelegramBot) startLogin(chatID int64, state *BotState) {
 		),
 	)
 
-	b.bot.Send(msg)
+	if _, err := b.bot.Send(msg); err != nil {
+		log.Printf("Failed to send message: %v", err)
+	}
 }
 
 // handleEmailInput обрабатывает ввод email
@@ -196,7 +198,9 @@ func (b *TelegramBot) handleEmailInput(message *tgbotapi.Message, state *BotStat
 			int(expiresIn.Minutes())))
 
 	msg.ReplyMarkup = keyboard
-	b.bot.Send(msg)
+	if _, err := b.bot.Send(msg); err != nil {
+		log.Printf("Failed to send message: %v", err)
+	}
 }
 
 // handleCodeInput обрабатывает ввод кода подтверждения
@@ -230,7 +234,9 @@ func (b *TelegramBot) handleCodeInput(message *tgbotapi.Message, state *BotState
 			"Используйте /help для просмотра доступных команд.",
 			message.From.FirstName))
 
-	b.bot.Send(msg)
+	if _, err := b.bot.Send(msg); err != nil {
+		log.Printf("Failed to send message: %v", err)
+	}
 
 	// Сохраняем информацию о сессии (в реальном приложении)
 	log.Printf("User %d authorized successfully, session ID: %s", message.From.ID, sessionID)
@@ -292,7 +298,9 @@ func (b *TelegramBot) cancelCurrentProcess(chatID int64, state *BotState) {
 			TelegramUserId: "temp_user_id", // В реальном приложении передавать userID
 		}
 
-		b.oauthClient.CancelAuth(ctx, req)
+		if _, err := b.oauthClient.CancelAuth(ctx, req); err != nil {
+			log.Printf("Failed to cancel auth: %v", err)
+		}
 	}
 
 	// Сбрасываем состояние
@@ -338,7 +346,9 @@ func (b *TelegramBot) showHelp(chatID int64) {
 // sendMessage отправляет сообщение
 func (b *TelegramBot) sendMessage(chatID int64, text string) {
 	msg := tgbotapi.NewMessage(chatID, text)
-	b.bot.Send(msg)
+	if _, err := b.bot.Send(msg); err != nil {
+		log.Printf("Failed to send message: %v", err)
+	}
 }
 
 func main() {
