@@ -29,3 +29,5 @@ services:
     # Дополнительные опции для разработки
     stdin_open: true
     tty: true
+    # Устанавливаем зависимости при монтировании исходников и запускаем Next.js dev
+    command: sh -c "npm ci || npm install && npm run dev -- --hostname 0.0.0.0 --port 3000"

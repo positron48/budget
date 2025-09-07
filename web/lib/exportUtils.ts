@@ -19,14 +19,14 @@ export function exportTransactionsToCsv(transactions: ExportTransaction[], local
     "Amount",
     "Currency",
     "Category",
-    "Description"
+    "Comment"
   ] : [
     "Дата",
     "Тип", 
     "Сумма",
     "Валюта",
     "Категория",
-    "Описание"
+    "Комментарий"
   ];
 
   const rows = transactions.map(tx => {

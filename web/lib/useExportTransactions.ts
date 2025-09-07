@@ -23,33 +23,54 @@ export function useExportTransactions({
 }: UseExportTransactionsProps) {
   const { transaction, category } = useClients();
 
-  // Создаем запрос для получения всех транзакций (без пагинации)
-  const exportRequest = {
-    page: { 
-      page: 1, 
-      pageSize: 10000, // Большой размер страницы для получения всех данных
-      sort: "occurred_at desc" 
-    },
+  // Базовый фильтр для экспорта (страницы добавим в запросе)
+  const baseExportFilter = {
     ...(type && { type }),
     ...((from || to) && {
       dateRange: {
-        ...(from && { 
-          from: { seconds: Math.floor(new Date(`${from}T00:00:00`).getTime() / 1000) } 
+        ...(from && {
+          from: { seconds: Math.floor(new Date(`${from}T00:00:00`).getTime() / 1000) }
         }),
-        ...(to && { 
-          to: { seconds: Math.floor(new Date(`${to}T00:00:00`).getTime() / 1000 + 86400) } 
+        ...(to && {
+          to: { seconds: Math.floor(new Date(`${to}T00:00:00`).getTime() / 1000 + 86400) }
         })
       }
     }),
     ...(search && { search }),
     ...(selectedCategoryIds.length > 0 && { categoryIds: selectedCategoryIds })
-  };
+  } as any;
 
   const { data: transactionsData, isLoading, error } = useQuery({
-    queryKey: ["exportTransactions", exportRequest],
+    queryKey: ["exportTransactions", baseExportFilter],
     queryFn: async () => {
-      const result = await transaction.listTransactions(exportRequest as any);
-      return result;
+      // Сервер ограничивает размер страницы до 500, поэтому пагинируем
+      const pageSize = 500;
+      let currentPage = 1;
+
+      // Первый запрос, чтобы узнать общее количество и страницы
+      const firstRequest = {
+        ...baseExportFilter,
+        page: { page: currentPage, pageSize, sort: "occurred_at desc" }
+      };
+      const firstResponse = await transaction.listTransactions(firstRequest);
+
+      const allTransactions: any[] = [...(firstResponse.transactions || [])];
+      const totalPages: number = firstResponse.page?.totalPages ?? 1;
+
+      // Догружаем остальные страницы, если есть
+      for (currentPage = 2; currentPage <= totalPages; currentPage++) {
+        const req = {
+          ...baseExportFilter,
+          page: { page: currentPage, pageSize, sort: "occurred_at desc" }
+        } as any;
+        const resp = await transaction.listTransactions(req);
+        if (!resp.transactions || resp.transactions.length === 0) {
+          break;
+        }
+        allTransactions.push(...resp.transactions);
+      }
+
+      return { transactions: allTransactions, page: firstResponse.page } as any;
     },
     enabled,
     retry: false,
