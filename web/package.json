@@ -19,7 +19,7 @@
     "@hookform/resolvers": "^3.10.0",
     "@tanstack/react-query": "^5.85.5",
     "@testing-library/dom": "^10.4.1",
-    "lucide-react": "^0.541.0",
+    "lucide-react": "^0.542.0",
     "next": "^15.5.2",
     "next-intl": "^4.3.5",
     "react": "^19.1.1",
