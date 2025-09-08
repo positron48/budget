@@ -29,7 +29,7 @@
   },
   "devDependencies": {
     "@bufbuild/protoc-gen-es": "^2.7.0",
-    "@tailwindcss/postcss": "^4.1.12",
+    "@tailwindcss/postcss": "^4.1.13",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.0.1",
     "@types/node": "^24.3.0",
