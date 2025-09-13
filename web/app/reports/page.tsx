@@ -18,9 +18,12 @@ import {
   Select,
   Tabs,
   SummaryReportFilters,
-  CategoryToggleChart
+  CategoryToggleChart,
+  InteractiveChart,
+  CombinedChart
 } from "@/components";
 import { formatAmountWithSpaces, formatDateLocal } from "@/lib/utils";
+import { getCategoryColor } from "@/lib/categoryColors";
 import { useLocale } from "next-intl";
 
 // Monthly Report Component
@@ -375,22 +378,26 @@ function SummaryReportInner() {
   const incomes = useMemo(() => categories.filter((cat) => cat?.type === TransactionType.INCOME), [categories]);
 
   const expensesData = useMemo(() => {
-    const warmPalette = ["#ef4444", "#f59e0b", "#f97316", "#e11d48", "#fb7185", "#f43f5e", "#ea580c", "#fbbf24"];
-    return expenses.map((cat: any, idx: number) => ({
+    const result = expenses.map((cat: any) => ({
       id: cat.categoryId,
       name: cat.categoryName || cat.categoryId,
-      color: warmPalette[idx % warmPalette.length],
-      values: (cat.monthlyTotals || []).map((money: any) => Math.abs(Number(money?.minorUnits ?? 0) / 100)),
+      color: getCategoryColor(cat.categoryName || cat.categoryId, 'expense'),
+      values: (cat.monthlyTotals || []).map((money: any) => {
+        const value = Number(money?.minorUnits ?? 0) / 100;
+        // Для расходов берем абсолютное значение, так как они отрицательные
+        return Math.abs(value);
+      }),
       total: Math.abs(Number(cat?.total?.minorUnits ?? 0) / 100),
     }));
+    
+    return result;
   }, [expenses]);
 
   const incomesData = useMemo(() => {
-    const coolPalette = ["#3b82f6", "#22c55e", "#06b6d4", "#6366f1", "#14b8a6", "#0ea5e9", "#10b981", "#60a5fa"];
-    return incomes.map((cat: any, idx: number) => ({
+    return incomes.map((cat: any) => ({
       id: cat.categoryId,
       name: cat.categoryName || cat.categoryId,
-      color: coolPalette[idx % coolPalette.length],
+      color: getCategoryColor(cat.categoryName || cat.categoryId, 'income'),
       values: (cat.monthlyTotals || []).map((money: any) => Math.abs(Number(money?.minorUnits ?? 0) / 100)),
       total: Math.abs(Number(cat?.total?.minorUnits ?? 0) / 100),
     }));
@@ -468,8 +475,21 @@ function SummaryReportInner() {
             </Card>
           ) : (
             <div className="space-y-6">
+              {/* Combined Chart */}
+              {(expensesData.length > 0 || incomesData.length > 0) && (
+                <CombinedChart
+                  title="Сравнение доходов и расходов"
+                  description="Общий обзор финансовых потоков по месяцам"
+                  expenses={expensesData}
+                  incomes={incomesData}
+                  months={months}
+                  currencyCode={currencyCode}
+                />
+              )}
+
+              {/* Individual Charts */}
               {expensesData.length > 0 && (
-                <CategoryToggleChart
+                <InteractiveChart
                   title={t("expensesByMonth")}
                   description={t("monthlyTrends")}
                   categories={expensesData}
@@ -479,7 +499,7 @@ function SummaryReportInner() {
               )}
 
               {incomesData.length > 0 && (
-                <CategoryToggleChart
+                <InteractiveChart
                   title={t("incomeByMonth")}
                   description={t("monthlyTrends")}
                   categories={incomesData}

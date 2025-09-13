@@ -62,6 +62,8 @@ import {
   Equal,
   LogIn,
   Loader2,
+  BarChart,
+  Layers,
   // Upload as UploadIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -130,7 +132,10 @@ export type IconName =
   | "log-in"
   | "loader-2"
   | "folder-open"
-  | "user";
+  | "user"
+  | "bar-chart"
+  | "layers"
+  | "trending-up";
 
 const iconMap: Record<IconName, LucideIcon> = {
   home: Home,
@@ -197,6 +202,9 @@ const iconMap: Record<IconName, LucideIcon> = {
   "loader-2": Loader2,
   "folder-open": FolderOpen,
   user: User,
+  "bar-chart": BarChart,
+  layers: Layers,
+  "trending-up": TrendingUp,
 };
 
 interface IconProps {

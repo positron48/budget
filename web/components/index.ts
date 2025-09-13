@@ -23,6 +23,8 @@ export { default as QuickFilters } from "./QuickFilters";
 export { default as Tabs } from "./Tabs";
 export { default as SummaryReportFilters } from "./SummaryReportFilters";
 export { default as CategoryToggleChart } from "./CategoryToggleChart";
+export { default as InteractiveChart } from "./InteractiveChart";
+export { default as CombinedChart } from "./CombinedChart";
 
 export * from "./Card";
 export type { IconName } from "./Icon";
