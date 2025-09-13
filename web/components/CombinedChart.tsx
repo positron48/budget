@@ -130,7 +130,7 @@ const CombinedChart = memo(function CombinedChart({
                   .map((month, index) => `${xScale(index)},${yScale(month.expenses)}`)
                   .join(' ')}
                 fill="none"
-                stroke={getCategoryColor("Расходы", "expense")}
+                stroke={getCategoryColor("Expenses", "expense")}
                 strokeWidth="3"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -141,7 +141,7 @@ const CombinedChart = memo(function CombinedChart({
                   cx={xScale(index)}
                   cy={yScale(month.expenses)}
                   r="4"
-                  fill={getCategoryColor("Расходы", "expense")}
+                  fill={getCategoryColor("Expenses", "expense")}
                   stroke="white"
                   strokeWidth="2"
                 />
@@ -157,7 +157,7 @@ const CombinedChart = memo(function CombinedChart({
                   .map((month, index) => `${xScale(index)},${yScale(month.incomes)}`)
                   .join(' ')}
                 fill="none"
-                stroke={getCategoryColor("Доходы", "income")}
+                stroke={getCategoryColor("Income", "income")}
                 strokeWidth="3"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -168,7 +168,7 @@ const CombinedChart = memo(function CombinedChart({
                   cx={xScale(index)}
                   cy={yScale(month.incomes)}
                   r="4"
-                  fill={getCategoryColor("Доходы", "income")}
+                  fill={getCategoryColor("Income", "income")}
                   stroke="white"
                   strokeWidth="2"
                 />
@@ -276,7 +276,7 @@ const CombinedChart = memo(function CombinedChart({
                     y={yScale(monthData.expenses)}
                     width={barWidth / 2}
                     height={padding.top + chartHeight - yScale(monthData.expenses)}
-                    fill={getCategoryColor("Расходы", "expense")}
+                    fill={getCategoryColor("Expenses", "expense")}
                     opacity="0.8"
                   />
                 )}
@@ -288,7 +288,7 @@ const CombinedChart = memo(function CombinedChart({
                     y={yScale(monthData.incomes)}
                     width={barWidth / 2}
                     height={padding.top + chartHeight - yScale(monthData.incomes)}
-                    fill={getCategoryColor("Доходы", "income")}
+                    fill={getCategoryColor("Income", "income")}
                     opacity="0.8"
                   />
                 )}
@@ -346,7 +346,7 @@ const CombinedChart = memo(function CombinedChart({
       <CardContent>
         {/* Toggle buttons */}
         <div className="mb-6">
-          <h4 className="text-sm font-medium text-foreground mb-3">Показать данные</h4>
+          <h4 className="text-sm font-medium text-foreground mb-3">{t("toggleCategories")}</h4>
           <div className="flex flex-wrap gap-2">
             <Button
               size="sm"
@@ -356,9 +356,9 @@ const CombinedChart = memo(function CombinedChart({
             >
               <div 
                 className="w-3 h-3 rounded-full" 
-                style={{ backgroundColor: getCategoryColor("Расходы", "expense") }}
+                style={{ backgroundColor: getCategoryColor("Expenses", "expense") }}
               />
-              Расходы
+              {t("expense")}
             </Button>
             <Button
               size="sm"
@@ -368,9 +368,9 @@ const CombinedChart = memo(function CombinedChart({
             >
               <div 
                 className="w-3 h-3 rounded-full" 
-                style={{ backgroundColor: getCategoryColor("Доходы", "income") }}
+                style={{ backgroundColor: getCategoryColor("Income", "income") }}
               />
-              Доходы
+              {t("income")}
             </Button>
           </div>
         </div>
@@ -382,25 +382,25 @@ const CombinedChart = memo(function CombinedChart({
 
         {/* Summary */}
         <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-          <h4 className="text-sm font-medium text-foreground mb-3">Итоги за период</h4>
+          <h4 className="text-sm font-medium text-foreground mb-3">{t("categoryTotals")}</h4>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="text-center">
               <div className="text-lg font-bold text-red-600">
                 {formatAmountWithSpaces(totalExpenses)} {currencyCode}
               </div>
-              <div className="text-xs text-muted-foreground">Общие расходы</div>
+              <div className="text-xs text-muted-foreground">{t("totalExpenses")}</div>
             </div>
             <div className="text-center">
               <div className="text-lg font-bold text-green-600">
                 {formatAmountWithSpaces(totalIncomes)} {currencyCode}
               </div>
-              <div className="text-xs text-muted-foreground">Общие доходы</div>
+              <div className="text-xs text-muted-foreground">{t("totalIncome")}</div>
             </div>
             <div className="text-center">
               <div className={`text-lg font-bold ${netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {formatAmountWithSpaces(netIncome)} {currencyCode}
               </div>
-              <div className="text-xs text-muted-foreground">Чистый доход</div>
+              <div className="text-xs text-muted-foreground">{t("netIncome")}</div>
             </div>
           </div>
         </div>

@@ -77,6 +77,7 @@
   },
   "common": {
     "loading": "Loading...",
+    "saving": "Saving...",
     "save": "Save",
     "cancel": "Cancel",
     "edit": "Edit",
@@ -239,6 +240,8 @@
     "description": "Financial reports and analytics",
     "monthly": "Monthly Report",
     "monthlyTitle": "Monthly Report",
+    "summary": "Summary Report",
+    "summaryTitle": "Summary Report",
     "year": "Year",
     "month": "Month",
     "currency": "Currency",
@@ -252,7 +255,17 @@
     "type": "Type",
     "total": "Total",
     "expense": "Expense",
-    "income": "Income"
+    "income": "Income",
+    "from": "From",
+    "to": "To",
+    "currentYear": "Current Year",
+    "lastYear": "Last Year",
+    "allTime": "All Time",
+    "toggleCategories": "Toggle categories",
+    "categoryTotals": "Category Totals",
+    "monthlyTrends": "Monthly Trends",
+    "expensesByMonth": "Expenses by Month",
+    "incomeByMonth": "Income by Month"
   },
   "fx": {
     "title": "FX Rates",

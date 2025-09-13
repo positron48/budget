@@ -478,8 +478,8 @@ function SummaryReportInner() {
               {/* Combined Chart */}
               {(expensesData.length > 0 || incomesData.length > 0) && (
                 <CombinedChart
-                  title="Сравнение доходов и расходов"
-                  description="Общий обзор финансовых потоков по месяцам"
+                  title={t("summaryTitle")}
+                  description={t("monthlyTrends")}
                   expenses={expensesData}
                   incomes={incomesData}
                   months={months}
