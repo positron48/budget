@@ -26,7 +26,7 @@ export default function HomePage() {
     {
       title: t("reports.title"),
       description: t("reports.description"),
-      href: "/reports/monthly",
+      href: "/reports",
       icon: "reports" as IconName,
       color: "bg-purple-500",
     },

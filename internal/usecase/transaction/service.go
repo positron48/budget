@@ -21,6 +21,7 @@ type TxRepo interface {
 	Get(ctx context.Context, id string) (domain.Transaction, error)
 	List(ctx context.Context, tenantID string, filter ListFilter) ([]domain.Transaction, int64, error)
 	Totals(ctx context.Context, tenantID string, filter ListFilter) (totalIncomeMinor int64, totalExpenseMinor int64, baseCurrency string, err error)
+	GetDateRange(ctx context.Context, tenantID string) (earliest, latest time.Time, err error)
 }
 
 type FxRepo interface {
@@ -158,4 +159,9 @@ func (s *Service) CreateForUser(ctx context.Context, tenantID, userID string, tx
 		Comment:    comment,
 	}
 	return s.txs.Create(ctx, tx)
+}
+
+// GetDateRange returns the earliest and latest transaction dates for a tenant
+func (s *Service) GetDateRange(ctx context.Context, tenantID string) (earliest, latest time.Time, err error) {
+	return s.txs.GetDateRange(ctx, tenantID)
 }

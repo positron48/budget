@@ -20,6 +20,9 @@ export { default as Select } from "./Select";
 export { SortableHeader } from "./SortableHeader";
 export { default as ExportButton } from "./ExportButton";
 export { default as QuickFilters } from "./QuickFilters";
+export { default as Tabs } from "./Tabs";
+export { default as SummaryReportFilters } from "./SummaryReportFilters";
+export { default as CategoryToggleChart } from "./CategoryToggleChart";
 
 export * from "./Card";
 export type { IconName } from "./Icon";

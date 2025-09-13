@@ -241,6 +241,8 @@
     "description": "Финансовые отчеты и аналитика",
     "monthly": "Месячный отчет",
     "monthlyTitle": "Месячный отчет",
+    "summary": "Сводный отчет",
+    "summaryTitle": "Сводный отчет",
     "year": "Год",
     "month": "Месяц",
     "currency": "Валюта",
@@ -254,7 +256,17 @@
     "type": "Тип",
     "total": "Сумма",
     "expense": "Расход",
-    "income": "Доход"
+    "income": "Доход",
+    "from": "С",
+    "to": "По",
+    "currentYear": "Текущий год",
+    "lastYear": "Прошлый год",
+    "allTime": "Все время",
+    "toggleCategories": "Включить/выключить категории",
+    "categoryTotals": "Итоги по категориям",
+    "monthlyTrends": "Месячные тренды",
+    "expensesByMonth": "Расходы по месяцам",
+    "incomeByMonth": "Доходы по месяцам"
   },
   "fx": {
     "title": "Курсы валют",

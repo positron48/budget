@@ -1,3 +1,10 @@
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
 export function formatCurrency(amount: number, currencyCode: string = "RUB"): string {
   const formattedAmount = new Intl.NumberFormat('ru-RU', {
     style: 'currency',

@@ -36,6 +36,7 @@ func NewService(txsvc TxLister, fx FxRepo, tenants TenantRepo, cats CategoryRepo
 // TxLister abstracts listing transactions for reports
 type TxLister interface {
 	List(ctx context.Context, tenantID string, filter txusecase.ListFilter) ([]domain.Transaction, int64, error)
+	GetDateRange(ctx context.Context, tenantID string) (earliest, latest time.Time, err error)
 }
 
 type MonthlyItem struct {
@@ -49,6 +50,26 @@ type MonthlySummary struct {
 	Items        []MonthlyItem
 	TotalIncome  domain.Money
 	TotalExpense domain.Money
+}
+
+type MonthlyCategoryData struct {
+	CategoryID    string
+	CategoryName  string
+	Type          domain.TransactionType
+	MonthlyTotals []domain.Money // 12 months of data
+	Total         domain.Money   // sum of all months
+}
+
+type SummaryReport struct {
+	Categories   []MonthlyCategoryData
+	Months       []string // month labels like "2024-01", "2024-02", etc.
+	TotalIncome  domain.Money
+	TotalExpense domain.Money
+}
+
+type DateRange struct {
+	EarliestDate string // YYYY-MM-DD format
+	LatestDate   string // YYYY-MM-DD format
 }
 
 func (s *Service) GetMonthlySummary(ctx context.Context, tenantID string, year int, month int, locale string, targetCurrencyCode string, tzOffsetMinutes int) (MonthlySummary, error) {
@@ -152,6 +173,225 @@ func (s *Service) GetMonthlySummary(ctx context.Context, tenantID string, year i
 		Items:        items,
 		TotalIncome:  domain.Money{CurrencyCode: target, MinorUnits: totalIncomeMinor},
 		TotalExpense: domain.Money{CurrencyCode: target, MinorUnits: totalExpenseMinor},
+	}, nil
+}
+
+func (s *Service) GetSummaryReport(ctx context.Context, tenantID string, fromDate, toDate, locale, targetCurrencyCode string, tzOffsetMinutes int) (SummaryReport, error) {
+	// Parse date range
+	fromLocal, err := time.Parse("2006-01-02", fromDate)
+	if err != nil {
+		return SummaryReport{}, err
+	}
+	toLocal, err := time.Parse("2006-01-02", toDate)
+	if err != nil {
+		return SummaryReport{}, err
+	}
+	
+	// Apply timezone offset
+	fromLocal = fromLocal.In(time.FixedZone("client", -tzOffsetMinutes*60))
+	toLocal = toLocal.In(time.FixedZone("client", -tzOffsetMinutes*60))
+	
+	// Convert to UTC for DB comparison
+	from := fromLocal.UTC()
+	to := toLocal.UTC()
+	
+	// Add one day to include the end date
+	to = to.Add(24 * time.Hour)
+
+	tenant, err := s.tenants.GetByID(ctx, tenantID)
+	if err != nil {
+		return SummaryReport{}, err
+	}
+	baseCurrency := tenant.DefaultCurrencyCode
+	target := targetCurrencyCode
+	if target == "" {
+		target = baseCurrency
+	}
+
+	// Generate month labels for the date range
+	months := generateMonthLabels(fromLocal, toLocal)
+	
+	// collect all transactions for the period (page through)
+	var all []domain.Transaction
+	page := 1
+	pageSize := 500
+	for {
+		f := txusecase.ListFilter{From: &from, To: &to, Page: page, PageSize: pageSize}
+		items, total, err := s.txsvc.List(ctx, tenantID, f)
+		if err != nil {
+			return SummaryReport{}, err
+		}
+		all = append(all, items...)
+		if int64(page*pageSize) >= total || len(items) == 0 {
+			break
+		}
+		page++
+	}
+
+	// aggregate by category+type+month
+	type key struct {
+		CatID string
+		Type  domain.TransactionType
+		Month int // 0-11 for months in the range
+	}
+	sums := make(map[key]int64)
+	var totalIncomeMinor int64
+	var totalExpenseMinor int64
+
+	// use base_amount if target==base else convert base->target by rate per tx date
+	for _, t := range all {
+		baseMinor := t.BaseAmount.MinorUnits
+		var minor int64
+		if target == baseCurrency {
+			minor = baseMinor
+		} else {
+			rateDec, _, err := s.fx.GetRateAsOf(ctx, baseCurrency, target, t.OccurredAt)
+			if err != nil {
+				return SummaryReport{}, err
+			}
+			minor, err = convertMinorByRate(baseMinor, rateDec)
+			if err != nil {
+				return SummaryReport{}, err
+			}
+		}
+		
+		// Determine which month this transaction belongs to
+		txMonth := getMonthIndex(t.OccurredAt, fromLocal, len(months))
+		if txMonth >= 0 && txMonth < len(months) {
+			k := key{CatID: t.CategoryID, Type: t.Type, Month: txMonth}
+			sums[k] += minor
+		}
+		
+		switch t.Type {
+		case domain.TransactionTypeIncome:
+			totalIncomeMinor += minor
+		case domain.TransactionTypeExpense:
+			totalExpenseMinor += minor
+		}
+	}
+
+	// batch fetch categories for names
+	catIDs := make([]string, 0, len(sums))
+	catSet := make(map[string]bool)
+	for k := range sums {
+		if !catSet[k.CatID] {
+			catIDs = append(catIDs, k.CatID)
+			catSet[k.CatID] = true
+		}
+	}
+	catMap, _ := s.cats.GetMany(ctx, catIDs)
+	
+	// Group by category+type
+	type catKey struct {
+		CatID string
+		Type  domain.TransactionType
+	}
+	catGroups := make(map[catKey][]int64) // monthly totals
+	catTotals := make(map[catKey]int64)   // total for category
+	
+	for k, amount := range sums {
+		ck := catKey{CatID: k.CatID, Type: k.Type}
+		if catGroups[ck] == nil {
+			catGroups[ck] = make([]int64, len(months))
+		}
+		catGroups[ck][k.Month] += amount
+		catTotals[ck] += amount
+	}
+	
+	categories := make([]MonthlyCategoryData, 0, len(catGroups))
+	for ck, monthlyAmounts := range catGroups {
+		name := ""
+		if cat, ok := catMap[ck.CatID]; ok {
+			for _, tr := range cat.Translations {
+				if tr.Locale == locale && tr.Name != "" {
+					name = tr.Name
+					break
+				}
+			}
+			if name == "" && len(cat.Translations) > 0 {
+				name = cat.Translations[0].Name
+			}
+			if name == "" {
+				name = cat.Code
+			}
+		}
+		
+		monthlyTotals := make([]domain.Money, len(months))
+		for i, amount := range monthlyAmounts {
+			monthlyTotals[i] = domain.Money{CurrencyCode: target, MinorUnits: amount}
+		}
+		
+		categories = append(categories, MonthlyCategoryData{
+			CategoryID:    ck.CatID,
+			CategoryName:  name,
+			Type:          ck.Type,
+			MonthlyTotals: monthlyTotals,
+			Total:         domain.Money{CurrencyCode: target, MinorUnits: catTotals[ck]},
+		})
+	}
+
+	return SummaryReport{
+		Categories:   categories,
+		Months:       months,
+		TotalIncome:  domain.Money{CurrencyCode: target, MinorUnits: totalIncomeMinor},
+		TotalExpense: domain.Money{CurrencyCode: target, MinorUnits: totalExpenseMinor},
+	}, nil
+}
+
+// generateMonthLabels creates month labels for the date range
+func generateMonthLabels(from, to time.Time) []string {
+	var months []string
+	current := time.Date(from.Year(), from.Month(), 1, 0, 0, 0, 0, from.Location())
+	end := time.Date(to.Year(), to.Month(), 1, 0, 0, 0, 0, to.Location())
+	
+	for current.Before(end) || current.Equal(end) {
+		months = append(months, current.Format("2006-01"))
+		current = current.AddDate(0, 1, 0)
+	}
+	
+	return months
+}
+
+// getMonthIndex returns the index of the month for a transaction within the date range
+func getMonthIndex(txTime time.Time, from time.Time, numMonths int) int {
+	txLocal := txTime.In(from.Location())
+	fromStart := time.Date(from.Year(), from.Month(), 1, 0, 0, 0, 0, from.Location())
+	
+	// Calculate months difference
+	monthsDiff := int(txLocal.Year()-fromStart.Year())*12 + int(txLocal.Month()-fromStart.Month())
+	
+	if monthsDiff >= 0 && monthsDiff < numMonths {
+		return monthsDiff
+	}
+	return -1
+}
+
+func (s *Service) GetDateRange(ctx context.Context, tenantID string, locale string, tzOffsetMinutes int) (DateRange, error) {
+	// Get min and max dates directly from database with one efficient query
+	earliest, latest, err := s.txsvc.GetDateRange(ctx, tenantID)
+	if err != nil {
+		return DateRange{}, err
+	}
+	
+	var earliestDate, latestDate string
+	
+	// If no transactions found, use current date
+	if earliest.IsZero() && latest.IsZero() {
+		now := time.Now().In(time.FixedZone("client", -tzOffsetMinutes*60))
+		earliestDate = now.Format("2006-01-02")
+		latestDate = now.Format("2006-01-02")
+	} else {
+		// Convert to local timezone
+		earliestLocal := earliest.In(time.FixedZone("client", -tzOffsetMinutes*60))
+		latestLocal := latest.In(time.FixedZone("client", -tzOffsetMinutes*60))
+		
+		earliestDate = earliestLocal.Format("2006-01-02")
+		latestDate = latestLocal.Format("2006-01-02")
+	}
+	
+	return DateRange{
+		EarliestDate: earliestDate,
+		LatestDate:   latestDate,
 	}, nil
 }
 

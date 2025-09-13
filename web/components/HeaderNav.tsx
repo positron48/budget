@@ -90,7 +90,7 @@ export default function HeaderNav() {
     { href: "/", label: t("home"), icon: "home" },
     { href: "/transactions", label: t("transactions"), icon: "transactions" },
     { href: "/categories", label: t("categories"), icon: "categories" },
-    { href: "/reports/monthly", label: t("reports"), icon: "reports" },
+    { href: "/reports", label: t("reports"), icon: "reports" },
     { href: "/account", label: t("tenants"), icon: "tenants" },
     { href: "/settings/profile", label: t("profile"), icon: "profile" },
   ];
