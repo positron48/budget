@@ -11,8 +11,8 @@ import { Icon, CategorySingleInput } from "@/components";
 import { useTranslations } from "next-intl";
 
 const schema = z.object({
-  type: z.coerce.number().int().min(1).max(2),
-  amount: z.coerce.number().min(0.01),
+  type: z.number().int().min(1).max(2),
+  amount: z.number().min(0.01),
   currencyCode: z.string().min(3),
   occurredAt: z.string(),
   categoryId: z.string().optional(),
@@ -42,7 +42,7 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
   const { register, handleSubmit, reset, watch, setValue, getValues, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      type: TransactionType.EXPENSE as unknown as number,
+      type: TransactionType.EXPENSE,
       currencyCode: "RUB",
       occurredAt: toLocalInput(new Date()),
     },
@@ -138,7 +138,7 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
         <label className="text-xs font-medium text-slate-700 dark:text-slate-300">{t("type")}</label>
         <div className="grid grid-cols-2 gap-2">
           <label className={`cursor-pointer rounded-md border p-2 text-sm ${typeValue === TransactionType.EXPENSE ? 'border-red-400 bg-red-50 dark:bg-red-900/20' : 'border-slate-200 dark:border-slate-600'}`}>
-            <input type="radio" className="sr-only" checked={typeValue === TransactionType.EXPENSE} onChange={() => setValue('type', TransactionType.EXPENSE as unknown as number)} />
+            <input type="radio" className="sr-only" checked={typeValue === TransactionType.EXPENSE} onChange={() => setValue('type', TransactionType.EXPENSE)} />
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/30">
                 <Icon name="trending-down" size={14} className="text-red-600" />
@@ -147,7 +147,7 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
             </div>
           </label>
           <label className={`cursor-pointer rounded-md border p-2 text-sm ${typeValue === TransactionType.INCOME ? 'border-green-400 bg-green-50 dark:bg-green-900/20' : 'border-slate-200 dark:border-slate-600'}`}>
-            <input type="radio" className="sr-only" checked={typeValue === TransactionType.INCOME} onChange={() => setValue('type', TransactionType.INCOME as unknown as number)} />
+            <input type="radio" className="sr-only" checked={typeValue === TransactionType.INCOME} onChange={() => setValue('type', TransactionType.INCOME)} />
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/30">
                 <Icon name="trending-up" size={14} className="text-green-600" />
