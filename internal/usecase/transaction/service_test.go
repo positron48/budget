@@ -53,6 +53,10 @@ func (noopTxRepo) Totals(ctx context.Context, tenantID string, filter ListFilter
 	return 0, 0, "RUB", nil
 }
 
+func (noopTxRepo) GetDateRange(ctx context.Context, tenantID string) (earliest, latest time.Time, err error) {
+	return time.Time{}, time.Time{}, nil
+}
+
 func TestService_CreateForUser_ValidationsAndCompute(t *testing.T) {
 	svc := NewService(noopTxRepo{}, stubFxRepo{rate: "1.0000", provider: "test"}, stubTenantRepo{defCcy: "RUB"}, stubCategoryRepo{})
 	tx, err := svc.CreateForUser(context.Background(), "t1", "u1", domain.TransactionTypeExpense, "cat1", domain.Money{CurrencyCode: "USD", MinorUnits: 123}, time.Now(), "")
@@ -87,6 +91,10 @@ func (c *captureTxRepo) List(ctx context.Context, tenantID string, filter ListFi
 
 func (c *captureTxRepo) Totals(ctx context.Context, tenantID string, filter ListFilter) (int64, int64, string, error) {
 	return 0, 0, "USD", nil
+}
+
+func (c *captureTxRepo) GetDateRange(ctx context.Context, tenantID string) (earliest, latest time.Time, err error) {
+	return time.Time{}, time.Time{}, nil
 }
 
 func TestService_Update_RecomputesBaseAndFx(t *testing.T) {

@@ -186,15 +186,15 @@ func (s *Service) GetSummaryReport(ctx context.Context, tenantID string, fromDat
 	if err != nil {
 		return SummaryReport{}, err
 	}
-	
+
 	// Apply timezone offset
 	fromLocal = fromLocal.In(time.FixedZone("client", -tzOffsetMinutes*60))
 	toLocal = toLocal.In(time.FixedZone("client", -tzOffsetMinutes*60))
-	
+
 	// Convert to UTC for DB comparison
 	from := fromLocal.UTC()
 	to := toLocal.UTC()
-	
+
 	// Add one day to include the end date
 	to = to.Add(24 * time.Hour)
 
@@ -210,7 +210,7 @@ func (s *Service) GetSummaryReport(ctx context.Context, tenantID string, fromDat
 
 	// Generate month labels for the date range
 	months := generateMonthLabels(fromLocal, toLocal)
-	
+
 	// collect all transactions for the period (page through)
 	var all []domain.Transaction
 	page := 1
@@ -254,14 +254,14 @@ func (s *Service) GetSummaryReport(ctx context.Context, tenantID string, fromDat
 				return SummaryReport{}, err
 			}
 		}
-		
+
 		// Determine which month this transaction belongs to
 		txMonth := getMonthIndex(t.OccurredAt, fromLocal, len(months))
 		if txMonth >= 0 && txMonth < len(months) {
 			k := key{CatID: t.CategoryID, Type: t.Type, Month: txMonth}
 			sums[k] += minor
 		}
-		
+
 		switch t.Type {
 		case domain.TransactionTypeIncome:
 			totalIncomeMinor += minor
@@ -280,7 +280,7 @@ func (s *Service) GetSummaryReport(ctx context.Context, tenantID string, fromDat
 		}
 	}
 	catMap, _ := s.cats.GetMany(ctx, catIDs)
-	
+
 	// Group by category+type
 	type catKey struct {
 		CatID string
@@ -288,7 +288,7 @@ func (s *Service) GetSummaryReport(ctx context.Context, tenantID string, fromDat
 	}
 	catGroups := make(map[catKey][]int64) // monthly totals
 	catTotals := make(map[catKey]int64)   // total for category
-	
+
 	for k, amount := range sums {
 		ck := catKey{CatID: k.CatID, Type: k.Type}
 		if catGroups[ck] == nil {
@@ -297,7 +297,7 @@ func (s *Service) GetSummaryReport(ctx context.Context, tenantID string, fromDat
 		catGroups[ck][k.Month] += amount
 		catTotals[ck] += amount
 	}
-	
+
 	categories := make([]MonthlyCategoryData, 0, len(catGroups))
 	for ck, monthlyAmounts := range catGroups {
 		name := ""
@@ -315,12 +315,12 @@ func (s *Service) GetSummaryReport(ctx context.Context, tenantID string, fromDat
 				name = cat.Code
 			}
 		}
-		
+
 		monthlyTotals := make([]domain.Money, len(months))
 		for i, amount := range monthlyAmounts {
 			monthlyTotals[i] = domain.Money{CurrencyCode: target, MinorUnits: amount}
 		}
-		
+
 		categories = append(categories, MonthlyCategoryData{
 			CategoryID:    ck.CatID,
 			CategoryName:  name,
@@ -343,12 +343,12 @@ func generateMonthLabels(from, to time.Time) []string {
 	var months []string
 	current := time.Date(from.Year(), from.Month(), 1, 0, 0, 0, 0, from.Location())
 	end := time.Date(to.Year(), to.Month(), 1, 0, 0, 0, 0, to.Location())
-	
+
 	for current.Before(end) || current.Equal(end) {
 		months = append(months, current.Format("2006-01"))
 		current = current.AddDate(0, 1, 0)
 	}
-	
+
 	return months
 }
 
@@ -356,10 +356,10 @@ func generateMonthLabels(from, to time.Time) []string {
 func getMonthIndex(txTime time.Time, from time.Time, numMonths int) int {
 	txLocal := txTime.In(from.Location())
 	fromStart := time.Date(from.Year(), from.Month(), 1, 0, 0, 0, 0, from.Location())
-	
+
 	// Calculate months difference
 	monthsDiff := int(txLocal.Year()-fromStart.Year())*12 + int(txLocal.Month()-fromStart.Month())
-	
+
 	if monthsDiff >= 0 && monthsDiff < numMonths {
 		return monthsDiff
 	}
@@ -372,9 +372,9 @@ func (s *Service) GetDateRange(ctx context.Context, tenantID string, locale stri
 	if err != nil {
 		return DateRange{}, err
 	}
-	
+
 	var earliestDate, latestDate string
-	
+
 	// If no transactions found, use current date
 	if earliest.IsZero() && latest.IsZero() {
 		now := time.Now().In(time.FixedZone("client", -tzOffsetMinutes*60))
@@ -384,11 +384,11 @@ func (s *Service) GetDateRange(ctx context.Context, tenantID string, locale stri
 		// Convert to local timezone
 		earliestLocal := earliest.In(time.FixedZone("client", -tzOffsetMinutes*60))
 		latestLocal := latest.In(time.FixedZone("client", -tzOffsetMinutes*60))
-		
+
 		earliestDate = earliestLocal.Format("2006-01-02")
 		latestDate = latestLocal.Format("2006-01-02")
 	}
-	
+
 	return DateRange{
 		EarliestDate: earliestDate,
 		LatestDate:   latestDate,

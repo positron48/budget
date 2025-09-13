@@ -15,6 +15,10 @@ func (s stubTxService) List(ctx context.Context, tenantID string, filter txuse.L
 	return s.items, int64(len(s.items)), nil
 }
 
+func (s stubTxService) GetDateRange(ctx context.Context, tenantID string) (earliest, latest time.Time, err error) {
+	return time.Time{}, time.Time{}, nil
+}
+
 type fxRepoStub struct{}
 
 func (fxRepoStub) GetRateAsOf(ctx context.Context, from, to string, asOf time.Time) (string, string, error) {

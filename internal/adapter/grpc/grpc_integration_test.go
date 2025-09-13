@@ -493,6 +493,10 @@ func (memTxSvc) CreateForUser(ctx context.Context, tenantID, userID string, txTy
 	return domain.Transaction{ID: "tx1", TenantID: tenantID, UserID: userID, CategoryID: categoryID, Type: txType, Amount: amount, BaseAmount: amount, OccurredAt: occurredAt, CreatedAt: time.Now()}, nil
 }
 
+func (memTxSvc) GetDateRange(ctx context.Context, tenantID string) (earliest, latest time.Time, err error) {
+	return time.Time{}, time.Time{}, nil
+}
+
 type memReportSvc struct{}
 
 func (memReportSvc) GetMonthlySummary(ctx context.Context, tenantID string, year int, month int, locale string, targetCurrencyCode string, tzOffsetMinutes int) (repuse.MonthlySummary, error) {
@@ -501,6 +505,14 @@ func (memReportSvc) GetMonthlySummary(ctx context.Context, tenantID string, year
 		TotalIncome:  domain.Money{CurrencyCode: "USD", MinorUnits: 0},
 		TotalExpense: domain.Money{CurrencyCode: "USD", MinorUnits: 500},
 	}, nil
+}
+
+func (memReportSvc) GetDateRange(ctx context.Context, tenantID string, locale string, tzOffsetMinutes int) (repuse.DateRange, error) {
+	return repuse.DateRange{}, nil
+}
+
+func (memReportSvc) GetSummaryReport(ctx context.Context, tenantID string, fromDate string, toDate string, locale string, targetCurrencyCode string, tzOffsetMinutes int) (repuse.SummaryReport, error) {
+	return repuse.SummaryReport{}, nil
 }
 
 func TestTransaction_Create_And_Report_WithAuth(t *testing.T) {

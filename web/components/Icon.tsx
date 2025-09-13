@@ -134,8 +134,7 @@ export type IconName =
   | "folder-open"
   | "user"
   | "bar-chart"
-  | "layers"
-  | "trending-up";
+  | "layers";
 
 const iconMap: Record<IconName, LucideIcon> = {
   home: Home,
@@ -204,7 +203,6 @@ const iconMap: Record<IconName, LucideIcon> = {
   user: User,
   "bar-chart": BarChart,
   layers: Layers,
-  "trending-up": TrendingUp,
 };
 
 interface IconProps {

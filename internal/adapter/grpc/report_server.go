@@ -57,7 +57,7 @@ func (s *ReportServer) GetSummaryReport(ctx context.Context, req *budgetv1.GetSu
 	if err != nil {
 		return nil, mapError(err)
 	}
-	
+
 	categories := make([]*budgetv1.MonthlyCategoryData, 0, len(report.Categories))
 	for _, cat := range report.Categories {
 		monthlyTotals := make([]*budgetv1.Money, 0, len(cat.MonthlyTotals))
@@ -67,7 +67,7 @@ func (s *ReportServer) GetSummaryReport(ctx context.Context, req *budgetv1.GetSu
 				MinorUnits:   total.MinorUnits,
 			})
 		}
-		
+
 		categories = append(categories, &budgetv1.MonthlyCategoryData{
 			CategoryId:    cat.CategoryID,
 			CategoryName:  cat.CategoryName,
@@ -76,7 +76,7 @@ func (s *ReportServer) GetSummaryReport(ctx context.Context, req *budgetv1.GetSu
 			Total:         &budgetv1.Money{CurrencyCode: cat.Total.CurrencyCode, MinorUnits: cat.Total.MinorUnits},
 		})
 	}
-	
+
 	return &budgetv1.GetSummaryReportResponse{
 		Categories:   categories,
 		Months:       report.Months,
@@ -91,7 +91,7 @@ func (s *ReportServer) GetDateRange(ctx context.Context, req *budgetv1.GetDateRa
 	if err != nil {
 		return nil, mapError(err)
 	}
-	
+
 	return &budgetv1.GetDateRangeResponse{
 		EarliestDate: dateRange.EarliestDate,
 		LatestDate:   dateRange.LatestDate,

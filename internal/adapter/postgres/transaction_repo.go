@@ -329,21 +329,20 @@ func fromDecimal(dec string) int64 { // parse "123.45" → 12345
 
 func (r *TransactionRepo) GetDateRange(ctx context.Context, tenantID string) (earliest, latest time.Time, err error) {
 	var earliestTime, latestTime time.Time
-	
+
 	err = r.pool.DB.QueryRow(ctx,
 		`SELECT MIN(occurred_at), MAX(occurred_at) FROM transactions WHERE tenant_id = $1`,
 		tenantID,
 	).Scan(&earliestTime, &latestTime)
-	
 	if err != nil {
 		return time.Time{}, time.Time{}, err
 	}
-	
+
 	// If no transactions found, return zero times
 	if earliestTime.IsZero() && latestTime.IsZero() {
 		return time.Time{}, time.Time{}, nil
 	}
-	
+
 	return earliestTime, latestTime, nil
 }
 
