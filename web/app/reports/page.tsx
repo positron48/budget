@@ -407,7 +407,7 @@ function SummaryReportInner() {
     <div>
       {/* Filters */}
       <Card className="mb-6 bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800">
-        <CardContent>
+        <CardContent className="p-6">
           <SummaryReportFilters
             from={from}
             to={to}

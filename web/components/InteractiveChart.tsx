@@ -35,7 +35,7 @@ const InteractiveChart = memo(function InteractiveChart({
   const [visibleCategories, setVisibleCategories] = useState<Set<string>>(
     new Set(categories.map(cat => cat.id))
   );
-  const [chartType, setChartType] = useState<ChartType>("area");
+  const [chartType, setChartType] = useState<ChartType>("bar");
 
   const toggleCategory = (categoryId: string) => {
     const newVisible = new Set(visibleCategories);

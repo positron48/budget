@@ -127,7 +127,7 @@ const SummaryReportFilters = memo(function SummaryReportFilters({
 
   return (
     <div className="mb-6">
-      <div className="flex flex-wrap items-center gap-2 mb-4">
+      <div className="flex flex-wrap items-center gap-2 mb-6">
         <Button
           size="sm"
           variant={isCurrentYearActive() ? "primary" : "outline"}
@@ -157,7 +157,7 @@ const SummaryReportFilters = memo(function SummaryReportFilters({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-1">
+        <div className="space-y-2">
           <label className="text-sm font-medium text-foreground">{t("from")}</label>
           <input 
             className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm" 
@@ -168,7 +168,7 @@ const SummaryReportFilters = memo(function SummaryReportFilters({
           />
         </div>
 
-        <div className="space-y-1">
+        <div className="space-y-2">
           <label className="text-sm font-medium text-foreground">{t("to")}</label>
           <input 
             className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm" 
