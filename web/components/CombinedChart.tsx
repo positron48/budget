@@ -130,7 +130,7 @@ const CombinedChart = memo(function CombinedChart({
                   .map((month, index) => `${xScale(index)},${yScale(month.expenses)}`)
                   .join(' ')}
                 fill="none"
-                stroke={getCategoryColor("Expenses", "expense")}
+                stroke="#ef4444"
                 strokeWidth="3"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -141,7 +141,7 @@ const CombinedChart = memo(function CombinedChart({
                   cx={xScale(index)}
                   cy={yScale(month.expenses)}
                   r="4"
-                  fill={getCategoryColor("Expenses", "expense")}
+                  fill="#ef4444"
                   stroke="white"
                   strokeWidth="2"
                 />
@@ -157,7 +157,7 @@ const CombinedChart = memo(function CombinedChart({
                   .map((month, index) => `${xScale(index)},${yScale(month.incomes)}`)
                   .join(' ')}
                 fill="none"
-                stroke={getCategoryColor("Income", "income")}
+                stroke="#22c55e"
                 strokeWidth="3"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -168,7 +168,7 @@ const CombinedChart = memo(function CombinedChart({
                   cx={xScale(index)}
                   cy={yScale(month.incomes)}
                   r="4"
-                  fill={getCategoryColor("Income", "income")}
+                  fill="#22c55e"
                   stroke="white"
                   strokeWidth="2"
                 />
@@ -183,7 +183,7 @@ const CombinedChart = memo(function CombinedChart({
                 .map((month, index) => `${xScale(index)},${yScale(Math.abs(month.net))}`)
                 .join(' ')}
               fill="none"
-              stroke="#6366f1"
+              stroke="#3b82f6"
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -276,7 +276,7 @@ const CombinedChart = memo(function CombinedChart({
                     y={yScale(monthData.expenses)}
                     width={barWidth / 2}
                     height={padding.top + chartHeight - yScale(monthData.expenses)}
-                    fill={getCategoryColor("Expenses", "expense")}
+                    fill="#ef4444"
                     opacity="0.8"
                   />
                 )}
@@ -288,7 +288,7 @@ const CombinedChart = memo(function CombinedChart({
                     y={yScale(monthData.incomes)}
                     width={barWidth / 2}
                     height={padding.top + chartHeight - yScale(monthData.incomes)}
-                    fill={getCategoryColor("Income", "income")}
+                    fill="#22c55e"
                     opacity="0.8"
                   />
                 )}
@@ -356,7 +356,7 @@ const CombinedChart = memo(function CombinedChart({
             >
               <div 
                 className="w-3 h-3 rounded-full" 
-                style={{ backgroundColor: getCategoryColor("Expenses", "expense") }}
+                style={{ backgroundColor: "#ef4444" }}
               />
               {t("expense")}
             </Button>
@@ -368,7 +368,7 @@ const CombinedChart = memo(function CombinedChart({
             >
               <div 
                 className="w-3 h-3 rounded-full" 
-                style={{ backgroundColor: getCategoryColor("Income", "income") }}
+                style={{ backgroundColor: "#22c55e" }}
               />
               {t("income")}
             </Button>
