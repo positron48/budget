@@ -26,6 +26,9 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Install jq
+      run: sudo apt-get update && sudo apt-get install -y jq
+      
     - name: Get tag name
       id: get_tag
       run: |
@@ -41,8 +44,8 @@ jobs:
         response=$(gh api -X POST /repos/${{ github.repository }}/releases \
           -f tag_name=${{ steps.get_tag.outputs.tag }} \
           -f name="Release ${{ steps.get_tag.outputs.tag }}" \
-          -f draft=false \
-          -f prerelease=false)
+          -f draft="false" \
+          -f prerelease="false")
         echo "upload_url=$(echo $response | jq -r '.upload_url')" >> $GITHUB_OUTPUT
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
