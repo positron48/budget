@@ -16,43 +16,8 @@ env:
   NODE_VERSION: '20'
 
 jobs:
-  create-release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-      
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Install jq
-      run: sudo apt-get update && sudo apt-get install -y jq
-      
-    - name: Get tag name
-      id: get_tag
-      run: |
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
-        else
-          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-        fi
-        
-    - name: Create Release
-      id: create_release
-      run: |
-        response=$(gh api -X POST /repos/${{ github.repository }}/releases \
-          -f tag_name=${{ steps.get_tag.outputs.tag }} \
-          -f name="Release ${{ steps.get_tag.outputs.tag }}" \
-          -f draft="false" \
-          -f prerelease="false")
-        echo "upload_url=$(echo $response | jq -r '.upload_url')" >> $GITHUB_OUTPUT
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   build-and-upload:
     name: Build and Upload Artifacts
-    needs: create-release
     runs-on: ubuntu-latest
     
     steps:
@@ -95,7 +60,6 @@ jobs:
 
   build-frontend-release:
     name: Build Frontend for Release
-    needs: create-release
     runs-on: ubuntu-latest
     
     steps:
