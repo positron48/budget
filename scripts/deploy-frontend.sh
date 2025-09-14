@@ -114,13 +114,79 @@ install_frontend() {
     tar -xzf "/tmp/$FRONTEND_ARCHIVE" -C "$WEB_ROOT"
     
     # Установка прав
-    chown -R www-data:www-data "$WEB_ROOT"
+    chown -R budget:budget "$WEB_ROOT"
     chmod -R 755 "$WEB_ROOT"
     
     # Очистка временного файла
     rm -f "/tmp/$FRONTEND_ARCHIVE"
     
     success "Фронтенд установлен: $WEB_ROOT"
+}
+
+# Создание systemd сервиса для фронтенда
+create_frontend_service() {
+    local service_file="/etc/systemd/system/budget-frontend.service"
+    
+    if [ ! -f "$service_file" ]; then
+        log "Создание systemd сервиса для фронтенда..."
+        
+        cat > "$service_file" << EOF
+[Unit]
+Description=Budget Frontend Service
+After=network.target
+
+[Service]
+Type=simple
+User=budget
+Group=budget
+WorkingDirectory=$WEB_ROOT
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=5
+Environment=PORT=3000
+Environment=NODE_ENV=production
+
+# Логирование
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=budget-frontend
+
+# Безопасность
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=$WEB_ROOT
+
+[Install]
+WantedBy=multi-user.target
+EOF
+        
+        systemctl daemon-reload
+        success "Systemd сервис для фронтенда создан"
+    fi
+}
+
+# Запуск сервиса фронтенда
+start_frontend_service() {
+    log "Запуск сервиса budget-frontend..."
+    
+    systemctl daemon-reload
+    systemctl enable budget-frontend
+    systemctl start budget-frontend
+    
+    # Проверка статуса
+    sleep 3
+    if systemctl is-active --quiet budget-frontend; then
+        success "Сервис budget-frontend успешно запущен"
+        log "Статус сервиса:"
+        systemctl status budget-frontend --no-pager -l
+    else
+        error "Не удалось запустить сервис budget-frontend"
+        log "Логи сервиса:"
+        journalctl -u budget-frontend --no-pager -l -n 20
+        exit 1
+    fi
 }
 
 
@@ -145,10 +211,13 @@ main() {
     
     download_frontend "$release_info"
     install_frontend
+    create_frontend_service
+    start_frontend_service
     
     success "Деплой фронтенда завершен успешно!"
     log "Версия: $release_tag"
     log "Путь: $WEB_ROOT"
+    log "Сервис: budget-frontend"
 }
 
 # Запуск

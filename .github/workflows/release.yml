@@ -85,14 +85,14 @@ jobs:
       run: npm run build
       env:
         NODE_ENV: production
-        NEXT_OUTPUT: static
         NEXT_PUBLIC_GRPC_BASE_URL: ${{ vars.NEXT_PUBLIC_GRPC_BASE_URL || 'http://localhost:8081/grpc' }}
         NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL || 'http://localhost:3030' }}
         ENVOY_URL: ${{ vars.ENVOY_URL || 'http://localhost:8081' }}
         
     - name: Create frontend archive
       run: |
-        tar -czf frontend-build.tar.gz -C web out/
+        # Архивируем всю директорию web с собранным приложением
+        tar -czf frontend-build.tar.gz -C web .
         
     - name: Get tag name
       id: get_tag
