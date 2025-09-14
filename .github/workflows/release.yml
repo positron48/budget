@@ -16,92 +16,140 @@ env:
   NODE_VERSION: '20'
 
 jobs:
-  build-and-upload:
-    name: Build and Upload Artifacts
+  test:
+    name: Test
     runs-on: ubuntu-latest
-    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version: ${{ env.GO_VERSION }}
-        cache: true
-        
-    - name: Get tag name
-      id: get_tag
-      run: |
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
-        else
-          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-        fi
-        
-    - name: Build backend binaries
-      run: |
-        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o budgetd-linux-amd64 ./cmd/budgetd
-        GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o budgetd-linux-arm64 ./cmd/budgetd
-        GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o budgetd-windows-amd64.exe ./cmd/budgetd
-        GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o budgetd-darwin-amd64 ./cmd/budgetd
-        GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o budgetd-darwin-arm64 ./cmd/budgetd
-        
-    - name: Upload backend binaries
-      run: |
-        gh release upload ${{ steps.get_tag.outputs.tag }} \
-          budgetd-linux-amd64 \
-          budgetd-linux-arm64 \
-          budgetd-windows-amd64.exe \
-          budgetd-darwin-amd64 \
-          budgetd-darwin-arm64
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  build-frontend-release:
-    name: Build Frontend for Release
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Verify dependencies
+      run: go mod verify
+
+    - name: Run tests
+      run: go test -v ./...
+
+  release:
+    name: Build and Release
     runs-on: ubuntu-latest
-    
+    needs: test
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    permissions:
+      contents: write
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
-    - name: Set up Node.js
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Build all binaries
+      run: |
+        mkdir -p dist
+        # Linux amd64
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.commit=${{ github.sha }}" -o dist/budgetd-linux-amd64 ./cmd/budgetd
+        # Linux arm64
+        GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.commit=${{ github.sha }}" -o dist/budgetd-linux-arm64 ./cmd/budgetd
+        # Windows amd64
+        GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.commit=${{ github.sha }}" -o dist/budgetd-windows-amd64.exe ./cmd/budgetd
+        # macOS amd64
+        GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.commit=${{ github.sha }}" -o dist/budgetd-darwin-amd64 ./cmd/budgetd
+        # macOS arm64
+        GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.commit=${{ github.sha }}" -o dist/budgetd-darwin-arm64 ./cmd/budgetd
+        chmod +x dist/budgetd-*
+        ls -la dist/
+
+    - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
         cache-dependency-path: web/package-lock.json
-        
-    - name: Install dependencies
-      working-directory: ./web
+
+    - name: Install frontend dependencies
+      working-directory: web
       run: npm ci
-      
+
     - name: Build frontend
-      working-directory: ./web
+      working-directory: web
       run: npm run build
       env:
         NODE_ENV: production
         NEXT_PUBLIC_GRPC_BASE_URL: ${{ vars.NEXT_PUBLIC_GRPC_BASE_URL || 'http://localhost:8081/grpc' }}
         NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL || 'http://localhost:3030' }}
         ENVOY_URL: ${{ vars.ENVOY_URL || 'http://localhost:8081' }}
-        
+
     - name: Create frontend archive
       run: |
-        # Архивируем всю директорию web с собранным приложением
-        tar -czf frontend-build.tar.gz -C web .
-        
-    - name: Get tag name
-      id: get_tag
+        tar -czf dist/frontend-build.tar.gz -C web .
+
+    - name: Create checksums
       run: |
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
-        else
-          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-        fi
-        
-    - name: Upload frontend archive
-      run: |
-        gh release upload ${{ steps.get_tag.outputs.tag }} frontend-build.tar.gz
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        cd dist
+        sha256sum * > checksums.txt
+        cat checksums.txt
+
+    - name: Upload to release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          dist/*
+        body: |
+          ## Budget App ${{ github.ref_name }}
+          
+          ### Backend Binaries
+          - `budgetd-linux-amd64` - Linux x86_64
+          - `budgetd-linux-arm64` - Linux ARM64
+          - `budgetd-windows-amd64.exe` - Windows x86_64
+          - `budgetd-darwin-amd64` - macOS x86_64
+          - `budgetd-darwin-arm64` - macOS ARM64
+          
+          ### Frontend
+          - `frontend-build.tar.gz` - Next.js frontend build
+          
+          ### Installation
+          1. Download the appropriate binary for your system
+          2. Make it executable: `chmod +x budgetd-linux-amd64`
+          3. Create configuration file
+          4. Run: `./budgetd-linux-amd64`
+          
+          ### Checksums
+          ```
+          $(cat dist/checksums.txt)
+          ```
+        draft: false
+        prerelease: false
