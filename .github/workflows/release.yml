@@ -16,59 +16,9 @@ env:
   NODE_VERSION: '20'
 
 jobs:
-  create-release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-      
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Get tag name
-      id: get_tag
-      run: |
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
-        else
-          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-        fi
-        
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.get_tag.outputs.tag }}
-        release_name: Release ${{ steps.get_tag.outputs.tag }}
-        draft: false
-        prerelease: false
-
   build-and-upload:
     name: Build and Upload Artifacts
-    needs: create-release
     runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        include:
-          - os: linux
-            arch: amd64
-            binary_name: budgetd-linux-amd64
-          - os: linux
-            arch: arm64
-            binary_name: budgetd-linux-arm64
-          - os: windows
-            arch: amd64
-            binary_name: budgetd-windows-amd64.exe
-          - os: darwin
-            arch: amd64
-            binary_name: budgetd-darwin-amd64
-          - os: darwin
-            arch: arm64
-            binary_name: budgetd-darwin-arm64
     
     steps:
     - name: Checkout code
@@ -80,23 +30,39 @@ jobs:
         go-version: ${{ env.GO_VERSION }}
         cache: true
         
-    - name: Build backend binary
+    - name: Build backend binaries
       run: |
-        GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -ldflags="-s -w" -o ${{ matrix.binary_name }} ./cmd/budgetd
+        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o budgetd-linux-amd64 ./cmd/budgetd
+        GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o budgetd-linux-arm64 ./cmd/budgetd
+        GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o budgetd-windows-amd64.exe ./cmd/budgetd
+        GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o budgetd-darwin-amd64 ./cmd/budgetd
+        GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o budgetd-darwin-arm64 ./cmd/budgetd
         
-    - name: Upload backend binary
-      uses: actions/upload-release-asset@v1
+    - name: Get tag name
+      id: get_tag
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+        else
+          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Upload backend binaries
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.get_tag.outputs.tag }}
+        name: Release ${{ steps.get_tag.outputs.tag }}
+        files: |
+          budgetd-linux-amd64
+          budgetd-linux-arm64
+          budgetd-windows-amd64.exe
+          budgetd-darwin-amd64
+          budgetd-darwin-arm64
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./${{ matrix.binary_name }}
-        asset_name: ${{ matrix.binary_name }}
-        asset_content_type: application/octet-stream
 
   build-frontend-release:
     name: Build Frontend for Release
-    needs: create-release
     runs-on: ubuntu-latest
     
     steps:
@@ -118,20 +84,30 @@ jobs:
       working-directory: ./web
       run: npm run build
       env:
+        NODE_ENV: production
+        NEXT_OUTPUT: static
         NEXT_PUBLIC_GRPC_BASE_URL: ${{ vars.NEXT_PUBLIC_GRPC_BASE_URL || 'http://localhost:8081/grpc' }}
         NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL || 'http://localhost:3030' }}
         ENVOY_URL: ${{ vars.ENVOY_URL || 'http://localhost:8081' }}
         
     - name: Create frontend archive
       run: |
-        tar -czf frontend-build.tar.gz -C web .next
+        tar -czf frontend-build.tar.gz -C web out/
+        
+    - name: Get tag name
+      id: get_tag
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+        else
+          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
         
     - name: Upload frontend archive
-      uses: actions/upload-release-asset@v1
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.get_tag.outputs.tag }}
+        name: Release ${{ steps.get_tag.outputs.tag }}
+        files: frontend-build.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./frontend-build.tar.gz
-        asset_name: frontend-build.tar.gz
-        asset_content_type: application/gzip

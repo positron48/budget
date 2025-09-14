@@ -5,7 +5,7 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
   // Add output configuration for better stability
-  output: 'standalone',
+  output: process.env.NODE_ENV === 'production' && process.env.NEXT_OUTPUT === 'static' ? 'export' : 'standalone',
   // Add some performance optimizations
   poweredByHeader: false,
   compress: true,
