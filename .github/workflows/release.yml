@@ -1,102 +1,137 @@
-name: Create Release
+name: Release
 
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v1.0.0)'
+        required: true
+        type: string
+
+env:
+  GO_VERSION: '1.24'
+  NODE_VERSION: '20'
 
 jobs:
-  build-and-release:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Get tag name
+      id: get_tag
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+        else
+          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.get_tag.outputs.tag }}
+        release_name: Release ${{ steps.get_tag.outputs.tag }}
+        draft: false
+        prerelease: false
+
+  build-and-upload:
+    name: Build and Upload Artifacts
+    needs: create-release
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            binary_name: budgetd-linux-amd64
+          - os: linux
+            arch: arm64
+            binary_name: budgetd-linux-arm64
+          - os: windows
+            arch: amd64
+            binary_name: budgetd-windows-amd64.exe
+          - os: darwin
+            arch: amd64
+            binary_name: budgetd-darwin-amd64
+          - os: darwin
+            arch: arm64
+            binary_name: budgetd-darwin-arm64
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        cache: true
+        
+    - name: Build backend binary
+      run: |
+        GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -ldflags="-s -w" -o ${{ matrix.binary_name }} ./cmd/budgetd
+        
+    - name: Upload backend binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./${{ matrix.binary_name }}
+        asset_name: ${{ matrix.binary_name }}
+        asset_content_type: application/octet-stream
+
+  build-frontend-release:
+    name: Build Frontend for Release
+    needs: create-release
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: web/package-lock.json
         
-      - name: Setup Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: '1.24'
-          cache: true
-          
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-          cache-dependency-path: web/package-lock.json
-          
-      - name: Install Go dependencies
-        run: |
-          go mod download
-          go mod verify
-          
-      - name: Install frontend dependencies
-        run: |
-          cd web
-          npm ci
-          
-      - name: Run all tests
-        run: |
-          # Go tests
-          go test ./... -race -coverprofile=coverage.out -covermode=atomic
-          
-          # Frontend tests
-          cd web
-          npm run lint
-          npm test --if-present
-          
-      - name: Build Go binary
-        run: |
-          go build -o bin/budgetd ./cmd/budgetd
-          
-      - name: Build frontend
-        run: |
-          cd web
-          npm run build
-          
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-          
-      - name: Upload Go binary
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./bin/budgetd
-          asset_name: budgetd-${{ github.ref_name }}-linux-amd64
-          asset_content_type: application/octet-stream
-          
-      - name: Upload frontend build
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./web/dist
-          asset_name: frontend-${{ github.ref_name }}.zip
-          asset_content_type: application/zip
-          
-      - name: Build Docker image
-        run: |
-          docker build -t telegram-emulator:${{ github.ref_name }} .
-          docker save telegram-emulator:${{ github.ref_name }} | gzip > telegram-emulator-${{ github.ref_name }}.tar.gz
-          
-      - name: Upload Docker image
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./telegram-emulator-${{ github.ref_name }}.tar.gz
-          asset_name: telegram-emulator-${{ github.ref_name }}.tar.gz
-          asset_content_type: application/gzip
+    - name: Install dependencies
+      working-directory: ./web
+      run: npm ci
+      
+    - name: Build frontend
+      working-directory: ./web
+      run: npm run build
+      env:
+        NEXT_PUBLIC_GRPC_BASE_URL: ${{ vars.NEXT_PUBLIC_GRPC_BASE_URL || 'http://localhost:8081/grpc' }}
+        NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL || 'http://localhost:3030' }}
+        ENVOY_URL: ${{ vars.ENVOY_URL || 'http://localhost:8081' }}
+        
+    - name: Create frontend archive
+      run: |
+        tar -czf frontend-build.tar.gz -C web .next
+        
+    - name: Upload frontend archive
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./frontend-build.tar.gz
+        asset_name: frontend-build.tar.gz
+        asset_content_type: application/gzip

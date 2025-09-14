@@ -2,7 +2,7 @@ PROTO_DIR=proto
 DB_URL=postgres://budget:budget@localhost:5432/budget?sslmode=disable
 
 # Список всех целей в одном месте
-.PHONY: help proto dproto tsproto lproto-go build run run-dev run-backend stop restart up down logs logs-dev ps tidy fmt test pgtest lint vet ci check web-install web-build web-lint web-test web-check check-all deploy-frontend deploy-backend deploy-all deploy-frontend-force migrate-up migrate-down dmigrate-up dmigrate-down docker-df docker-prune docker-prune-all oauth-test oauth-cleanup
+.PHONY: help proto dproto tsproto lproto-go build run run-dev run-backend stop restart up down logs logs-dev ps tidy fmt test pgtest lint vet ci check web-install web-build web-lint web-test web-check check-all deploy-frontend deploy-backend deploy-all deploy-frontend-force migrate-up migrate-down dmigrate-up dmigrate-down docker-df docker-prune docker-prune-all oauth-test oauth-cleanup deploy-backend-artifact deploy-frontend-artifact deploy-all-artifact check-updates
 
 # Вывести список целей и их описание (с группировкой по разделам)
 help: ## [Meta] Показать список команд по разделам
@@ -172,4 +172,41 @@ dmigrate-up: ## [Migrate] Миграции вверх в docker (без лока
 
 dmigrate-down: ## [Migrate] Откат одной миграции в docker
 	docker run --rm -v $(PWD)/migrations:/migrations --network host migrate/migrate -database "postgres://budget:budget@localhost:5432/budget?sslmode=disable" -path /migrations down 1
+
+# =============================================================================
+# ARTIFACT DEPLOYMENT (GitHub Releases)
+# =============================================================================
+
+deploy-backend-artifact: ## [Deploy] Деплой бэкенда из GitHub артефактов (sudo ./scripts/deploy-backend.sh [tag] [arch])
+	@printf "\n\033[34mДеплой бэкенда из GitHub артефактов...\033[0m\n"; \
+	if [ -z "$(TAG)" ]; then \
+		printf "  \033[32mИспользование:\033[0m \033[90msudo make deploy-backend-artifact TAG=v1.0.0 ARCH=linux-amd64\033[0m\n"; \
+		printf "  \033[32mИли для последней версии:\033[0m \033[90msudo make deploy-backend-artifact TAG=latest\033[0m\n"; \
+		printf "  \033[32mАрхитектуры:\033[0m \033[90mlinux-amd64, linux-arm64, windows-amd64, darwin-amd64, darwin-arm64\033[0m\n\n"; \
+	else \
+		sudo ./scripts/deploy-backend.sh $(TAG) $(ARCH); \
+	fi
+
+deploy-frontend-artifact: ## [Deploy] Деплой фронтенда из GitHub артефактов (sudo ./scripts/deploy-frontend.sh [tag])
+	@printf "\n\033[34mДеплой фронтенда из GitHub артефактов...\033[0m\n"; \
+	if [ -z "$(TAG)" ]; then \
+		printf "  \033[32mИспользование:\033[0m \033[90msudo make deploy-frontend-artifact TAG=v1.0.0\033[0m\n"; \
+		printf "  \033[32mИли для последней версии:\033[0m \033[90msudo make deploy-frontend-artifact TAG=latest\033[0m\n\n"; \
+	else \
+		sudo ./scripts/deploy-frontend.sh $(TAG); \
+	fi
+
+deploy-all-artifact: ## [Deploy] Полный деплой из GitHub артефактов (sudo ./scripts/deploy-all.sh [tag] [arch])
+	@printf "\n\033[34mПолный деплой из GitHub артефактов...\033[0m\n"; \
+	if [ -z "$(TAG)" ]; then \
+		printf "  \033[32mИспользование:\033[0m \033[90msudo make deploy-all-artifact TAG=v1.0.0 ARCH=linux-amd64\033[0m\n"; \
+		printf "  \033[32mИли для последней версии:\033[0m \033[90msudo make deploy-all-artifact TAG=latest\033[0m\n"; \
+		printf "  \033[32mАрхитектуры:\033[0m \033[90mlinux-amd64, linux-arm64, windows-amd64, darwin-amd64, darwin-arm64\033[0m\n\n"; \
+	else \
+		sudo ./scripts/deploy-all.sh $(TAG) $(ARCH); \
+	fi
+
+check-updates: ## [Deploy] Проверка доступных обновлений из GitHub
+	@printf "\n\033[34mПроверка доступных обновлений...\033[0m\n"; \
+	./scripts/check-updates.sh
 

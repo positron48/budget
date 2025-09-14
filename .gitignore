@@ -36,3 +36,8 @@ OAUTH_CLI_COMMANDS.md
 
 docker-compose.override.yml
 budgetd
+
+scripts/
+nginx-budget.conf
+QUICK_DEPLOY.md
+doc/ARTIFACT_DEPLOYMENT.md
