@@ -20,7 +20,7 @@
     "@tanstack/react-query": "^5.85.5",
     "@testing-library/dom": "^10.4.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^0.542.0",
+    "lucide-react": "^0.546.0",
     "next": "^15.5.2",
     "next-intl": "^4.3.6",
     "react": "^19.1.1",
