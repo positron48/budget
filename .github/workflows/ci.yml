@@ -33,7 +33,7 @@ jobs:
       - name: Test
         run: go test ./... -race -coverprofile=coverage.out -covermode=atomic
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage.out
           path: coverage.out
@@ -60,7 +60,7 @@ jobs:
         working-directory: web
         run: npm run test
       - name: Upload web build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: web-build
           path: web/.next
