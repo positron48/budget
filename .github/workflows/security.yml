@@ -34,26 +34,21 @@ jobs:
         go mod download
         go mod verify
         
-    - name: Install Nancy
+    - name: Install govulncheck
       run: |
-        go install github.com/sonatype-nexus-community/nancy@latest
+        go install golang.org/x/vuln/cmd/govulncheck@latest
         
     - name: Run Go security audit
       run: |
-        go list -json -deps ./... | nancy sleuth
+        govulncheck ./...
         
     - name: Check for Go vulnerabilities
       run: |
-        # Run nancy and check for vulnerabilities
-        OUTPUT=$(go list -json -deps ./... | nancy sleuth -q 2>&1)
-        echo "$OUTPUT"
-        
-        # Check if the output contains any vulnerability details
-        if echo "$OUTPUT" | grep -q "CVE-"; then
+        # Run govulncheck and check for vulnerabilities
+        if ! govulncheck ./...; then
           echo "❌ Vulnerabilities found"
           exit 1
         fi
-        
         echo "✅ No vulnerabilities found"
         
   # Node.js Security Audit

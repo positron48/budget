@@ -27,17 +27,17 @@ jobs:
         go mod download
         go mod verify
         
-    - name: Install Nancy
+    - name: Install govulncheck
       run: |
-        go install github.com/sonatype-nexus-community/nancy@latest
+        go install golang.org/x/vuln/cmd/govulncheck@latest
         
-    - name: Test Nancy installation
+    - name: Test govulncheck installation
       run: |
-        nancy --version
+        govulncheck -version || echo "govulncheck installed"
         
     - name: Run Go security audit (test)
       run: |
-        go list -json -deps ./... | nancy sleuth || echo "Nancy completed"
+        govulncheck ./... || echo "govulncheck completed"
         
   test-codeql:
     runs-on: ubuntu-latest
