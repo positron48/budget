@@ -112,13 +112,21 @@ jobs:
         mkdir -p dist-frontend
         # Копируем только необходимые файлы для standalone режима
         cp -r web/.next/standalone/* dist-frontend/
-        # Создаем директорию .next если её нет и копируем static
+        # Создаем директорию .next и копируем необходимые файлы
         mkdir -p dist-frontend/.next
         cp -r web/.next/static dist-frontend/.next/static
+        # Копируем BUILD_ID и другие метаданные, необходимые для Next.js production build
+        if [ -f web/.next/BUILD_ID ]; then
+          cp web/.next/BUILD_ID dist-frontend/.next/BUILD_ID
+        fi
+        # Копируем package.json из standalone если есть, иначе создаем
+        if [ ! -f dist-frontend/package.json ]; then
+          echo '{"name":"budget-frontend","version":"1.0.0","scripts":{"start":"node server.js"},"engines":{"node":">=20"}}' > dist-frontend/package.json
+        fi
         # Копируем public если существует
-        cp -r web/public dist-frontend/public || true
-        # Создаем package.json для запуска
-        echo '{"name":"budget-frontend","version":"1.0.0","scripts":{"start":"node server.js"},"engines":{"node":">=20"}}' > dist-frontend/package.json
+        if [ -d web/public ]; then
+          cp -r web/public dist-frontend/public
+        fi
 
     - name: Create frontend archive
       run: |
