@@ -22,15 +22,6 @@ jobs:
           - goos: linux
             goarch: arm64
             binary_name: budgetd-linux-arm64
-          - goos: windows
-            goarch: amd64
-            binary_name: budgetd-windows-amd64.exe
-          - goos: darwin
-            goarch: amd64
-            binary_name: budgetd-darwin-amd64
-          - goos: darwin
-            goarch: arm64
-            binary_name: budgetd-darwin-arm64
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -99,7 +90,10 @@ jobs:
           mkdir -p dist-frontend
           # Копируем только необходимые файлы для standalone режима
           cp -r web/.next/standalone/* dist-frontend/
+          # Создаем директорию .next если её нет и копируем static
+          mkdir -p dist-frontend/.next
           cp -r web/.next/static dist-frontend/.next/static
+          # Копируем public если существует
           cp -r web/public dist-frontend/public || true
           # Создаем package.json для запуска
           echo '{"name":"budget-frontend","version":"1.0.0","scripts":{"start":"node server.js"},"engines":{"node":">=20"}}' > dist-frontend/package.json
@@ -178,9 +172,6 @@ jobs:
             ### Backend Binaries
             - `budgetd-linux-amd64` - Linux x86_64
             - `budgetd-linux-arm64` - Linux ARM64
-            - `budgetd-windows-amd64.exe` - Windows x86_64
-            - `budgetd-darwin-amd64` - macOS x86_64
-            - `budgetd-darwin-arm64` - macOS ARM64
             
             ### Frontend
             - `frontend-build.tar.gz` - Next.js frontend build (standalone)
