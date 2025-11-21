@@ -35,6 +35,38 @@ warning() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
+# Проверка и запуск Docker сервисов (БД и Redis)
+ensure_docker_services() {
+    log "Проверка Docker сервисов (БД и Redis)..."
+    
+    if ! command -v docker &> /dev/null; then
+        error "Docker не установлен"
+        exit 1
+    fi
+    
+    if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+        error "Docker Compose не установлен"
+        exit 1
+    fi
+    
+    # Переход в директорию проекта
+    cd "$PROJECT_DIR" || exit 1
+    
+    # Запуск БД и Redis через docker-compose.prod.yml
+    if [ -f "docker-compose.prod.yml" ]; then
+        log "Запуск БД и Redis через docker-compose.prod.yml..."
+        docker compose -f docker-compose.prod.yml up -d
+        success "Docker сервисы запущены"
+    else
+        warning "docker-compose.prod.yml не найден, используем docker-compose.yml"
+        docker compose up -d db redis
+        success "Docker сервисы запущены"
+    fi
+    
+    # Небольшая пауза для инициализации
+    sleep 3
+}
+
 # Основная функция
 main() {
     local tag="${1:-latest}"
@@ -49,6 +81,9 @@ main() {
         error "Скрипт должен быть запущен с правами root"
         exit 1
     fi
+    
+    # Запуск Docker сервисов (БД и Redis)
+    ensure_docker_services
     
     # Деплой бэкенда
     log "=== ДЕПЛОЙ БЭКЕНДА ==="
@@ -68,10 +103,11 @@ main() {
     fi
     
     success "Полный деплой завершен успешно!"
-    log "Бэкенд: systemctl status budget-backend"
-    log "Фронтенд: http://localhost"
-    log "Логи бэкенда: journalctl -u budget-backend -f"
-    log "Логи nginx: journalctl -u nginx -f"
+    log "Бэкенд: systemctl status budgetd"
+    log "Фронтенд: systemctl status budget-frontend"
+    log "Логи бэкенда: journalctl -u budgetd -f"
+    log "Логи фронтенда: journalctl -u budget-frontend -f"
+    log "Docker сервисы: docker compose -f docker-compose.prod.yml ps"
 }
 
 # Запуск

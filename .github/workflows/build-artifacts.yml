@@ -1,0 +1,202 @@
+name: Build Artifacts
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+env:
+  GO_VERSION: '1.24'
+  NODE_VERSION: '20'
+
+jobs:
+  build-backend:
+    name: Build Backend Binaries
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            binary_name: budgetd-linux-amd64
+          - goos: linux
+            goarch: arm64
+            binary_name: budgetd-linux-arm64
+          - goos: windows
+            goarch: amd64
+            binary_name: budgetd-windows-amd64.exe
+          - goos: darwin
+            goarch: amd64
+            binary_name: budgetd-darwin-amd64
+          - goos: darwin
+            goarch: arm64
+            binary_name: budgetd-darwin-arm64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Build binary
+        run: |
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 go build \
+            -ldflags="-s -w -X main.version=${{ github.sha }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.commit=${{ github.sha }}" \
+            -o ${{ matrix.binary_name }} ./cmd/budgetd
+          chmod +x ${{ matrix.binary_name }} || true
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.binary_name }}
+          path: ${{ matrix.binary_name }}
+          retention-days: 30
+
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: web
+        run: npm run build
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_GRPC_BASE_URL: ${{ vars.NEXT_PUBLIC_GRPC_BASE_URL || 'http://localhost:8081/grpc' }}
+          NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL || 'http://localhost:3030' }}
+          ENVOY_URL: ${{ vars.ENVOY_URL || 'http://localhost:8081' }}
+
+      - name: Prepare frontend archive
+        run: |
+          mkdir -p dist-frontend
+          # Копируем только необходимые файлы для standalone режима
+          cp -r web/.next/standalone/* dist-frontend/
+          cp -r web/.next/static dist-frontend/.next/static
+          cp -r web/public dist-frontend/public || true
+          # Создаем package.json для запуска
+          echo '{"name":"budget-frontend","version":"1.0.0","scripts":{"start":"node server.js"},"engines":{"node":">=20"}}' > dist-frontend/package.json
+
+      - name: Create frontend archive
+        run: |
+          cd dist-frontend
+          tar -czf ../frontend-build.tar.gz .
+          cd ..
+
+      - name: Upload frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend-build.tar.gz
+          retention-days: 30
+
+  publish-artifacts:
+    name: Publish Artifacts
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create release archive
+        run: |
+          mkdir -p dist
+          # Копируем все бинарники
+          find artifacts -name "budgetd-*" -type f -exec cp {} dist/ \;
+          # Копируем фронтенд
+          cp artifacts/frontend-build/frontend-build.tar.gz dist/ || cp artifacts/*/frontend-build.tar.gz dist/ || true
+          # Создаем checksums
+          cd dist
+          sha256sum * > checksums.txt
+          cat checksums.txt
+
+      - name: Get short SHA
+        id: sha
+        run: echo "sha=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      - name: Delete existing latest-build tag if exists
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -d latest-build || true
+          git push origin :refs/tags/latest-build || true
+
+      - name: Create latest-build tag
+        run: |
+          git tag -a latest-build -m "Latest build from master (${{ github.sha }})"
+          git push origin latest-build
+
+      - name: Create or update draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "latest-build"
+          name: "Latest Build (${{ steps.sha.outputs.sha }})"
+          body: |
+            ## Latest Build from master branch
+            
+            Commit: ${{ github.sha }}
+            Branch: ${{ github.ref_name }}
+            Build Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+            
+            ### Backend Binaries
+            - `budgetd-linux-amd64` - Linux x86_64
+            - `budgetd-linux-arm64` - Linux ARM64
+            - `budgetd-windows-amd64.exe` - Windows x86_64
+            - `budgetd-darwin-amd64` - macOS x86_64
+            - `budgetd-darwin-arm64` - macOS ARM64
+            
+            ### Frontend
+            - `frontend-build.tar.gz` - Next.js frontend build (standalone)
+            
+            ### Installation
+            Use deployment scripts:
+            ```bash
+            sudo make deploy-all-artifact TAG=latest-build
+            ```
+            
+            ### Checksums
+            ```
+            $(cat dist/checksums.txt)
+            ```
+          files: dist/*
+          draft: true
+          prerelease: false
+          make_latest: false
+

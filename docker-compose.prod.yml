@@ -1,0 +1,51 @@
+# Production docker-compose - только база данных и Redis
+# Бэкенд и фронтенд деплоятся как артефакты (systemd сервисы)
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: budget
+      POSTGRES_USER: budget
+      POSTGRES_PASSWORD: budget
+    volumes:
+      - ./.data/postgres:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      budget-network:
+        ipv4_address: 172.24.0.5
+    # Пробрасываем порт на хост для подключения бэкенда
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U budget"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - ./.data/redis:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    networks:
+      budget-network:
+        ipv4_address: 172.24.0.6
+    # Пробрасываем порт на хост для подключения бэкенда
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# Сетевая конфигурация для production
+networks:
+  budget-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.24.0.0/16
+

@@ -65,9 +65,15 @@ check_dependencies() {
 get_release_info() {
     local tag="$1"
     
-    if [ "$tag" = "latest" ]; then
-        log "Получение информации о последнем релизе..."
-        local release_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
+    if [ "$tag" = "latest" ] || [ "$tag" = "latest-build" ]; then
+        # Для latest-build ищем draft release, для latest - последний опубликованный
+        if [ "$tag" = "latest-build" ]; then
+            log "Получение информации о последнем draft релизе (latest-build)..."
+            local release_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/tags/latest-build"
+        else
+            log "Получение информации о последнем релизе..."
+            local release_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
+        fi
     else
         log "Получение информации о релизе $tag..."
         local release_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/tags/${tag}"
@@ -191,8 +197,8 @@ ExecStart=$INSTALL_DIR/$BINARY_NAME
 Restart=always
 RestartSec=5
 Environment=PORT=8080
-Environment=DB_URL=postgres://budget:budget@localhost:5432/budget?sslmode=disable
-Environment=REDIS_URL=redis://localhost:6379
+Environment=GRPC_ADDR=0.0.0.0:8080
+EnvironmentFile=-/var/www/budget/.env
 
 # Логирование
 StandardOutput=journal

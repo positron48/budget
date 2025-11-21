@@ -113,9 +113,21 @@ jobs:
         NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL || 'http://localhost:3030' }}
         ENVOY_URL: ${{ vars.ENVOY_URL || 'http://localhost:8081' }}
 
+    - name: Prepare frontend archive
+      run: |
+        mkdir -p dist-frontend
+        # Копируем только необходимые файлы для standalone режима
+        cp -r web/.next/standalone/* dist-frontend/
+        cp -r web/.next/static dist-frontend/.next/static
+        cp -r web/public dist-frontend/public || true
+        # Создаем package.json для запуска
+        echo '{"name":"budget-frontend","version":"1.0.0","scripts":{"start":"node server.js"},"engines":{"node":">=20"}}' > dist-frontend/package.json
+
     - name: Create frontend archive
       run: |
-        tar -czf dist/frontend-build.tar.gz -C web .
+        cd dist-frontend
+        tar -czf ../dist/frontend-build.tar.gz .
+        cd ..
 
     - name: Create checksums
       run: |

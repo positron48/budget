@@ -50,16 +50,36 @@ check_dependencies() {
         exit 1
     fi
     
+    # Проверка Node.js
+    if ! command -v node &> /dev/null; then
+        error "Node.js не установлен. Установите Node.js 20+"
+        log "Для Ubuntu/Debian: curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt-get install -y nodejs"
+        exit 1
+    fi
+    
+    local node_version=$(node --version | cut -d'v' -f2 | cut -d'.' -f1)
+    if [ "$node_version" -lt 20 ]; then
+        error "Требуется Node.js 20+, установлена версия: $(node --version)"
+        exit 1
+    fi
+    
     success "Все зависимости установлены"
+    log "Node.js версия: $(node --version)"
 }
 
 # Получение информации о релизе
 get_release_info() {
     local tag="$1"
     
-    if [ "$tag" = "latest" ]; then
-        log "Получение информации о последнем релизе..."
-        local release_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
+    if [ "$tag" = "latest" ] || [ "$tag" = "latest-build" ]; then
+        # Для latest-build ищем draft release, для latest - последний опубликованный
+        if [ "$tag" = "latest-build" ]; then
+            log "Получение информации о последнем draft релизе (latest-build)..."
+            local release_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/tags/latest-build"
+        else
+            log "Получение информации о последнем релизе..."
+            local release_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
+        fi
     else
         log "Получение информации о релизе $tag..."
         local release_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/tags/${tag}"
@@ -127,12 +147,18 @@ install_frontend() {
 create_frontend_service() {
     local service_file="/etc/systemd/system/budget-frontend.service"
     
-    if [ ! -f "$service_file" ]; then
-        log "Создание systemd сервиса для фронтенда..."
-        
-        cat > "$service_file" << EOF
+    # Определяем путь к node
+    local node_path=$(which node)
+    if [ -z "$node_path" ]; then
+        error "Node.js не найден. Установите Node.js 20+"
+        exit 1
+    fi
+    
+    log "Создание systemd сервиса для фронтенда..."
+    
+    cat > "$service_file" << EOF
 [Unit]
-Description=Budget Frontend Service
+Description=Budget Frontend Service (Next.js Standalone)
 After=network.target
 
 [Service]
@@ -140,11 +166,12 @@ Type=simple
 User=budget
 Group=budget
 WorkingDirectory=$WEB_ROOT
-ExecStart=/usr/bin/npm start
+ExecStart=$node_path server.js
 Restart=always
 RestartSec=5
 Environment=PORT=3000
 Environment=NODE_ENV=production
+Environment=HOSTNAME=0.0.0.0
 
 # Логирование
 StandardOutput=journal
@@ -161,10 +188,9 @@ ReadWritePaths=$WEB_ROOT
 [Install]
 WantedBy=multi-user.target
 EOF
-        
-        systemctl daemon-reload
-        success "Systemd сервис для фронтенда создан"
-    fi
+    
+    systemctl daemon-reload
+    success "Systemd сервис для фронтенда создан"
 }
 
 # Запуск сервиса фронтенда

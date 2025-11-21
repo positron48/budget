@@ -29,6 +29,7 @@ web/.cache/
 vendor/
 
 .data/
+doc/
 
 deploy/
 DEPLOYMENT_GUIDE.md
