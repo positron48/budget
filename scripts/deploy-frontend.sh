@@ -71,34 +71,9 @@ check_dependencies() {
 get_release_info() {
     local tag="$1"
     
-    if [ "$tag" = "latest" ] || [ "$tag" = "latest-build" ]; then
-        # Для latest-build ищем draft release через список всех релизов
-        if [ "$tag" = "latest-build" ]; then
-            log "Получение информации о последнем draft релизе (latest-build)..."
-            # GitHub API не возвращает draft releases через /releases/tags/, нужно искать в списке
-            local releases=$(curl -s "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases")
-            # Сначала ищем по точному тегу
-            local release_info=$(echo "$releases" | jq -c ".[] | select(.tag_name == \"latest-build\" and .draft == true)" | head -1)
-            
-            # Если не найден, ищем последний draft release
-            if [ -z "$release_info" ] || [ "$release_info" = "null" ] || [ "$release_info" = "" ]; then
-                log "Релиз с тегом latest-build не найден, ищем последний draft релиз..."
-                release_info=$(echo "$releases" | jq -c ".[] | select(.draft == true)" | head -1)
-            fi
-            
-            if [ -z "$release_info" ] || [ "$release_info" = "null" ] || [ "$release_info" = "" ]; then
-                error "Draft релиз не найден"
-                log "Доступные релизы:"
-                echo "$releases" | jq -r '.[] | "  - \(.tag_name) (draft: \(.draft), published: \(.published_at // "не опубликован"))"' | head -5
-                exit 1
-            fi
-            
-            echo "$release_info"
-            return
-        else
-            log "Получение информации о последнем релизе..."
-            local release_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
-        fi
+    if [ "$tag" = "latest" ]; then
+        log "Получение информации о последнем релизе..."
+        local release_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
     else
         log "Получение информации о релизе $tag..."
         local release_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/tags/${tag}"
