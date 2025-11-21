@@ -81,6 +81,14 @@ get_release_info() {
     
     local release_info=$(curl -s "$release_url")
     
+    # Проверка валидности JSON
+    if ! echo "$release_info" | jq empty 2>/dev/null; then
+        error "Не удалось получить информацию о релизе из GitHub API"
+        log "Ответ API: $(echo "$release_info" | head -5)"
+        exit 1
+    fi
+    
+    # Проверка на ошибку "Not Found"
     if echo "$release_info" | jq -e '.message' 2>/dev/null | grep -q "Not Found"; then
         error "Релиз $tag не найден"
         exit 1
@@ -93,12 +101,20 @@ get_release_info() {
 download_frontend() {
     local release_info="$1"
     
+    # Проверка валидности JSON перед обработкой
+    if ! echo "$release_info" | jq empty 2>/dev/null; then
+        error "Некорректный JSON в release_info"
+        exit 1
+    fi
+    
     log "Поиск артефакта $FRONTEND_ARCHIVE..."
     
-    local download_url=$(echo "$release_info" | jq -r ".assets[] | select(.name == \"$FRONTEND_ARCHIVE\") | .browser_download_url")
+    local download_url=$(echo "$release_info" | jq -r ".assets[] | select(.name == \"$FRONTEND_ARCHIVE\") | .browser_download_url" 2>/dev/null | head -1)
     
-    if [ -z "$download_url" ] || [ "$download_url" = "null" ]; then
+    if [ -z "$download_url" ] || [ "$download_url" = "null" ] || [ "$download_url" = "" ]; then
         error "Артефакт $FRONTEND_ARCHIVE не найден в релизе"
+        log "Доступные артефакты:"
+        echo "$release_info" | jq -r '.assets[] | "  - \(.name)"' 2>/dev/null || echo "  (не удалось получить список)"
         exit 1
     fi
     
@@ -226,8 +242,27 @@ main() {
     check_dependencies
     
     local release_info=$(get_release_info "$tag")
-    local release_tag=$(echo "$release_info" | jq -r '.tag_name')
+    
+    # Проверка, что release_info не пустой и валидный
+    if [ -z "$release_info" ] || [ "$release_info" = "null" ]; then
+        error "Не удалось получить информацию о релизе"
+        exit 1
+    fi
+    
+    # Проверка валидности JSON
+    if ! echo "$release_info" | jq empty 2>/dev/null; then
+        error "Получен некорректный JSON от GitHub API"
+        log "Ответ: $(echo "$release_info" | head -10)"
+        exit 1
+    fi
+    
+    local release_tag=$(echo "$release_info" | jq -r '.tag_name // "unknown"')
+    local published_at=$(echo "$release_info" | jq -r '.published_at // "unknown"')
+    local assets_count=$(echo "$release_info" | jq -r '.assets | length // 0')
+    
     log "Релиз: $release_tag"
+    log "Опубликован: $published_at"
+    log "Артефактов: $assets_count"
     
     download_frontend "$release_info"
     install_frontend
