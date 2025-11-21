@@ -116,8 +116,11 @@ jobs:
         mkdir -p dist-frontend/.next
         # Копируем static файлы
         cp -r web/.next/static dist-frontend/.next/static
-        # Копируем все файлы из .next, кроме директорий server и standalone
-        # (они уже включены в standalone)
+        # Копируем server директорию (нужна для работы Next.js production server)
+        if [ -d web/.next/server ]; then
+          cp -r web/.next/server dist-frontend/.next/server
+        fi
+        # Копируем все файлы из .next (манифесты и метаданные)
         cd web/.next
         find . -maxdepth 1 -type f -exec cp {} ../../dist-frontend/.next/ \;
         cd ../..
