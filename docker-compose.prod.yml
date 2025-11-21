@@ -47,15 +47,9 @@ services:
     volumes:
       - ./deploy/envoy.yaml:/etc/envoy/envoy.yaml:ro
     restart: unless-stopped
-    networks:
-      budget-network:
-        ipv4_address: 172.24.0.4
-    # Пробрасываем порт на хост для подключения фронтенда
-    ports:
-      - "127.0.0.1:8081:8081"
-    # Используем extra_hosts для доступа к бэкенду на хосте
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    # Используем network_mode: host для прямого доступа к хосту
+    # Это позволяет Envoy обращаться к бэкенду на 127.0.0.1:8080
+    network_mode: host
 
 # Сетевая конфигурация для production
 networks:
