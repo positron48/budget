@@ -1,3 +1,13 @@
+# =============================================================================
+# DOCKER COMPOSE FOR LOCAL DEVELOPMENT
+# =============================================================================
+# Для разработки на ноуте - все сервисы в Docker с открытыми портами
+# 
+# Использование: docker compose up -d
+# 
+# Для продакшена на сервере используйте: docker-compose.prod.yml
+# =============================================================================
+
 services:
   db:
     image: postgres:15
@@ -11,9 +21,9 @@ services:
     networks:
       budget-network:
         ipv4_address: 172.24.0.5
-    # Порт доступен только внутри Docker сети
-    expose:
-      - "5432"
+    # Порт для локальной разработки
+    ports:
+      - "5432:5432"
 
   redis:
     image: redis:7-alpine
@@ -24,9 +34,9 @@ services:
     networks:
       budget-network:
         ipv4_address: 172.24.0.6
-    # Порт доступен только внутри Docker сети
-    expose:
-      - "6379"
+    # Порт для локальной разработки
+    ports:
+      - "6379:6379"
 
   app:
     build:
@@ -41,11 +51,9 @@ services:
     networks:
       budget-network:
         ipv4_address: 172.24.0.2
-    # Порт доступен только внутри Docker сети
-    expose:
-      - "8080"
-    # Порт доступен только внутри Docker сети
-    # Для локальной разработки используйте docker-compose.override.yml
+    # Порт для локальной разработки
+    ports:
+      - "8080:8080"
 
   web:
     build:
@@ -61,11 +69,9 @@ services:
     networks:
       budget-network:
         ipv4_address: 172.24.0.3
-    # Порт доступен только внутри Docker сети
-    expose:
-      - "3000"
-    # Порт доступен только внутри Docker сети
-    # Для локальной разработки используйте docker-compose.override.yml
+    # Порт для локальной разработки
+    ports:
+      - "3030:3000"
     depends_on:
       - envoy
 
@@ -79,11 +85,9 @@ services:
     networks:
       budget-network:
         ipv4_address: 172.24.0.4
-    # Порт доступен только внутри Docker сети
-    expose:
-      - "8081"
-    # Порт доступен только внутри Docker сети
-    # Для локальной разработки используйте docker-compose.override.yml
+    # Порт для локальной разработки
+    ports:
+      - "8081:8081"
 
   prometheus:
     image: prom/prometheus:v2.51.2
@@ -93,11 +97,9 @@ services:
     restart: unless-stopped
     networks:
       - budget-network
-    # Порт доступен только внутри Docker сети
-    expose:
-      - "9090"
-    # Порт доступен только внутри Docker сети
-    # Для локальной разработки используйте docker-compose.override.yml
+    # Порт для локальной разработки (только с профилем obs)
+    ports:
+      - "9090:9090"
     depends_on:
       - app
 
@@ -113,11 +115,9 @@ services:
     restart: unless-stopped
     networks:
       - budget-network
-    # Порт доступен только внутри Docker сети
-    expose:
-      - "3000"
-    # Порт доступен только внутри Docker сети
-    # Для локальной разработки используйте docker-compose.override.yml
+    # Порт для локальной разработки (только с профилем obs)
+    ports:
+      - "3002:3000"
     depends_on:
       - prometheus
 
@@ -129,11 +129,9 @@ services:
     restart: unless-stopped
     networks:
       - budget-network
-    # Порт доступен только внутри Docker сети
-    expose:
-      - "4318"
-    # Порт доступен только внутри Docker сети
-    # Для локальной разработки используйте docker-compose.override.yml
+    # Порт для локальной разработки (только с профилем obs)
+    ports:
+      - "4318:4318"
 
 
 

@@ -1,5 +1,6 @@
-# Production docker-compose - только база данных и Redis
+# Production docker-compose - база данных, Redis и Envoy
 # Бэкенд и фронтенд деплоятся как артефакты (systemd сервисы)
+# Envoy нужен для конвертации gRPC-Web (из браузера) в gRPC (для бэкенда)
 
 services:
   db:
@@ -40,6 +41,15 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  envoy:
+    image: envoyproxy/envoy:v1.31.0
+    volumes:
+      - ./deploy/envoy.prod.yaml:/etc/envoy/envoy.yaml:ro
+    restart: unless-stopped
+    network_mode: host
+    # Используем host network для доступа к бэкенду на хосте
+    # Порт 8081 будет доступен на localhost:8081
 
 # Сетевая конфигурация для production
 networks:

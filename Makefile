@@ -60,8 +60,9 @@ restart: ## [Dev] Перезапуск окружения (stop -> run)
 up: ## [Docker] Запуск полного окружения
 	docker compose up -d
 
-up-dev: ## [Docker] Запуск окружения с hot reload для фронтенда
-	docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+up-dev: ## [Docker] Запуск окружения с hot reload для фронтенда (использует Dockerfile.dev)
+	@echo "Для hot reload используйте: docker compose up web с Dockerfile.dev"
+	docker compose up -d
 
 docker-df: ## [Docker] Показать использование диска Docker (образы/кеши/тома)
 	@echo "Docker disk usage:"; docker system df || true; \
@@ -86,7 +87,7 @@ logs: ## [Docker] Логи docker compose (-f --tail=200)
 	docker compose logs -f --tail=200
 
 logs-dev: ## [Docker] Логи docker compose в режиме разработки (-f --tail=200)
-	docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f --tail=200
+	docker compose logs -f --tail=200
 
 tidy: ## [Go] Обновить зависимости (go mod tidy)
 	docker run --rm -v $(PWD):/app -w /app golang:1.24 go mod tidy

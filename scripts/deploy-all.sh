@@ -52,14 +52,14 @@ ensure_docker_services() {
     # Переход в директорию проекта
     cd "$PROJECT_DIR" || exit 1
     
-    # Запуск БД и Redis через docker-compose.prod.yml
+    # Запуск БД, Redis и Envoy через docker-compose.prod.yml
     if [ -f "docker-compose.prod.yml" ]; then
-        log "Запуск БД и Redis через docker-compose.prod.yml..."
+        log "Запуск БД, Redis и Envoy через docker-compose.prod.yml..."
         docker compose -f docker-compose.prod.yml up -d
         success "Docker сервисы запущены"
     else
         warning "docker-compose.prod.yml не найден, используем docker-compose.yml"
-        docker compose up -d db redis
+        docker compose up -d db redis envoy
         success "Docker сервисы запущены"
     fi
     
