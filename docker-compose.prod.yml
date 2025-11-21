@@ -45,7 +45,8 @@ services:
   envoy:
     image: envoyproxy/envoy:v1.31.0
     volumes:
-      - ./deploy/envoy.prod.yaml:/etc/envoy/envoy.yaml:ro
+      - ./deploy/envoy.prod.yaml:/etc/envoy/envoy.prod.yaml:ro
+    command: ["/usr/local/bin/envoy", "-c", "/etc/envoy/envoy.prod.yaml", "--service-cluster", "budget", "--service-node", "budget"]
     restart: unless-stopped
     networks:
       budget-network:
