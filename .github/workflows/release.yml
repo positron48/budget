@@ -100,12 +100,17 @@ jobs:
 
     - name: Build frontend
       working-directory: web
-      run: npm run build
       env:
         NODE_ENV: production
         NEXT_PUBLIC_GRPC_BASE_URL: ${{ vars.NEXT_PUBLIC_GRPC_BASE_URL || 'http://localhost:8081/grpc' }}
         NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL || 'http://localhost:3030' }}
         ENVOY_URL: ${{ vars.ENVOY_URL || 'http://localhost:8081' }}
+      run: |
+        echo "Building frontend with:"
+        echo "NEXT_PUBLIC_GRPC_BASE_URL=$NEXT_PUBLIC_GRPC_BASE_URL"
+        echo "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL"
+        echo "ENVOY_URL=$ENVOY_URL"
+        npm run build
 
     - name: Prepare frontend archive
       run: |
@@ -132,6 +137,10 @@ jobs:
         if [ -d web/public ]; then
           cp -r web/public dist-frontend/public
         fi
+        # Проверяем, что переменные встроены правильно
+        echo "Checking for embedded URLs in static files:"
+        grep -r "localhost:8081" dist-frontend/.next/static 2>/dev/null | head -3 || echo "No localhost:8081 found in static files"
+        grep -r "budget.positroid.tech/grpc" dist-frontend/.next/static 2>/dev/null | head -3 || echo "No budget.positroid.tech/grpc found in static files"
 
     - name: Create frontend archive
       run: |

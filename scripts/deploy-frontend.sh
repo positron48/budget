@@ -134,6 +134,12 @@ download_frontend() {
 install_frontend() {
     log "Установка фронтенда..."
     
+    # Остановка сервиса перед установкой
+    if systemctl is-active --quiet budget-frontend; then
+        log "Остановка сервиса budget-frontend..."
+        systemctl stop budget-frontend
+    fi
+    
     # Создание директории если не существует
     mkdir -p "$WEB_ROOT"
     
@@ -210,7 +216,7 @@ start_frontend_service() {
     
     systemctl daemon-reload
     systemctl enable budget-frontend
-    systemctl start budget-frontend
+    systemctl restart budget-frontend
     
     # Проверка статуса
     sleep 3
