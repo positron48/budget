@@ -182,6 +182,7 @@ RestartSec=5
 Environment=PORT=3000
 Environment=NODE_ENV=production
 Environment=HOSTNAME=0.0.0.0
+EnvironmentFile=-/var/www/budget/.env
 
 # Логирование
 StandardOutput=journal
