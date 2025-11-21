@@ -30,10 +30,28 @@ export async function GET(request: NextRequest) {
     
     console.log('gRPC service response:', response);
     
+    // Конвертируем timestamps в ISO строки (protobuf timestamps содержат BigInt)
+    // Connect RPC может возвращать timestamps как Date или как объект с seconds/nanos
+    const convertTimestamp = (ts: any): string | null => {
+      if (!ts) return null;
+      if (ts instanceof Date) return ts.toISOString();
+      if (typeof ts === 'string') return ts;
+      if (ts.seconds !== undefined) {
+        // Protobuf timestamp: { seconds: BigInt, nanos: number }
+        const seconds = typeof ts.seconds === 'bigint' ? Number(ts.seconds) : ts.seconds;
+        const nanos = ts.nanos || 0;
+        return new Date(seconds * 1000 + nanos / 1000000).toISOString();
+      }
+      return null;
+    };
+    
+    const createdAt = convertTimestamp(response.createdAt);
+    const expiresAt = convertTimestamp(response.expiresAt);
+    
     return NextResponse.json({
       status: response.status,
-      createdAt: response.createdAt,
-      expiresAt: response.expiresAt,
+      createdAt,
+      expiresAt,
       email: response.email,
     });
   } catch (error: any) {
