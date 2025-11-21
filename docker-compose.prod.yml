@@ -47,9 +47,15 @@ services:
     volumes:
       - ./deploy/envoy.prod.yaml:/etc/envoy/envoy.yaml:ro
     restart: unless-stopped
-    network_mode: host
-    # Используем host network для доступа к бэкенду на хосте
-    # Порт 8081 будет доступен на localhost:8081
+    networks:
+      budget-network:
+        ipv4_address: 172.24.0.4
+    # Пробрасываем порт на хост для подключения фронтенда
+    ports:
+      - "127.0.0.1:8081:8081"
+    # Используем extra_hosts для доступа к хосту из контейнера
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 # Сетевая конфигурация для production
 networks:
