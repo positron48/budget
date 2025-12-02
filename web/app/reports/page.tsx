@@ -214,8 +214,6 @@ function MonthlyReportInner() {
                           value: Math.abs(Number(it?.total?.minorUnits ?? 0) / 100),
                           color: warmPalette[idx % warmPalette.length],
                       }))}
-                      centerLabel={currencyCode}
-                      centerSubLabel={totalExpenses ? formatAmountWithSpaces(totalExpenses) : ""}
                         className="flex flex-col items-center"
                       valueFormatter={(v) => formatAmountWithSpaces(v)}
                       />
@@ -236,8 +234,6 @@ function MonthlyReportInner() {
                           value: Math.abs(Number(it?.total?.minorUnits ?? 0) / 100),
                           color: coolPalette[idx % coolPalette.length],
                       }))}
-                      centerLabel={currencyCode}
-                      centerSubLabel={totalIncomes ? formatAmountWithSpaces(totalIncomes) : ""}
                         className="flex flex-col items-center"
                       valueFormatter={(v) => formatAmountWithSpaces(v)}
                       />
@@ -410,12 +406,26 @@ function SummaryReportInner() {
 
   const expensesDonutData = useMemo(
     () =>
-      expensesData.map((cat) => ({
-        label: cat.name,
-        value: cat.total,
-        color: cat.color,
-      })),
+      [...expensesData]
+        .sort((a, b) => b.total - a.total)
+        .map((cat) => ({
+          label: cat.name,
+          value: cat.total,
+          color: cat.color,
+        })),
     [expensesData]
+  );
+
+  const incomesDonutData = useMemo(
+    () =>
+      [...incomesData]
+        .sort((a, b) => b.total - a.total)
+        .map((cat) => ({
+          label: cat.name,
+          value: cat.total,
+          color: cat.color,
+        })),
+    [incomesData]
   );
 
   return (
@@ -490,22 +500,39 @@ function SummaryReportInner() {
             </Card>
           ) : (
             <div className="space-y-6">
-              {expensesDonutData.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">{t("overallExpensesChart")}</CardTitle>
-                    <CardDescription className="text-sm">{t("overallExpensesDescription")}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <DonutChart
-                      data={expensesDonutData}
-                      centerLabel={currencyCode}
-                      centerSubLabel={totalExpensesValue ? formatAmountWithSpaces(totalExpensesValue) : ""}
-                      className="flex flex-col items-center"
-                      valueFormatter={(value) => formatAmountWithSpaces(value)}
-                    />
-                  </CardContent>
-                </Card>
+              {(expensesDonutData.length > 0 || incomesDonutData.length > 0) && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {expensesDonutData.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">{t("overallExpensesChart")}</CardTitle>
+                        <CardDescription className="text-sm">{t("overallExpensesDescription")}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <DonutChart
+                          data={expensesDonutData}
+                          className="flex flex-col items-center"
+                          valueFormatter={(value) => formatAmountWithSpaces(value)}
+                        />
+                      </CardContent>
+                    </Card>
+                  )}
+                  {incomesDonutData.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">{t("overallIncomeChart")}</CardTitle>
+                        <CardDescription className="text-sm">{t("overallIncomeDescription")}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <DonutChart
+                          data={incomesDonutData}
+                          className="flex flex-col items-center"
+                          valueFormatter={(value) => formatAmountWithSpaces(value)}
+                        />
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               )}
 
               {/* Combined Chart */}

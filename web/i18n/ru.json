@@ -268,7 +268,9 @@
     "expensesByMonth": "Расходы по месяцам",
     "incomeByMonth": "Доходы по месяцам",
     "overallExpensesChart": "Общие расходы по категориям",
-    "overallExpensesDescription": "Доля каждой категории в общих расходах за выбранный период"
+    "overallExpensesDescription": "Доля каждой категории в общих расходах за выбранный период",
+    "overallIncomeChart": "Общие доходы по категориям",
+    "overallIncomeDescription": "Доля каждой категории в общих доходах за выбранный период"
   },
   "fx": {
     "title": "Курсы валют",

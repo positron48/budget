@@ -267,7 +267,9 @@
     "expensesByMonth": "Expenses by Month",
     "incomeByMonth": "Income by Month",
     "overallExpensesChart": "Overall Expenses by Category",
-    "overallExpensesDescription": "Share of each category in total expenses for the selected period"
+    "overallExpensesDescription": "Share of each category in total expenses for the selected period",
+    "overallIncomeChart": "Overall Income by Category",
+    "overallIncomeDescription": "Share of each category in total income for the selected period"
   },
   "fx": {
     "title": "FX Rates",

@@ -30,6 +30,8 @@ export default function DonutChart({
   const maxStroke = strokeWidth + hoverGrow;
   const radius = (size - maxStroke - margin * 2) / 2;
   const circumference = 2 * Math.PI * radius;
+  const calloutPadding = Math.max(32, size * 0.25);
+  const canvasSize = size + calloutPadding * 2;
   const containerRef = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState<number | null>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null);
@@ -67,6 +69,7 @@ export default function DonutChart({
         color: d.color || palette[i % palette.length],
         startAngle,
         endAngle,
+        midAngle: startAngle + angle / 2,
       };
       offset += length;
       startAngle = endAngle;
@@ -76,8 +79,10 @@ export default function DonutChart({
   }, [data, circumference, palette]);
 
   const outerR = radius + strokeWidth / 2; // outer bound for wedge
+  const START_ANGLE = (3 * Math.PI) / 4;
   const toXY = (r: number, angle: number) => {
-    return { x: Math.cos(angle - Math.PI / 2) * r, y: Math.sin(angle - Math.PI / 2) * r };
+    const shifted = angle - START_ANGLE;
+    return { x: Math.cos(shifted) * r, y: Math.sin(shifted) * r };
   };
   const arcPath = (a0: number, a1: number, r: number) => {
     const p0 = toXY(r, a0);
@@ -86,10 +91,94 @@ export default function DonutChart({
     return `M 0 0 L ${p0.x.toFixed(3)} ${p0.y.toFixed(3)} A ${r} ${r} 0 ${large} 1 ${p1.x.toFixed(3)} ${p1.y.toFixed(3)} Z`;
   };
 
+  const labelColumnOffset = radius + strokeWidth / 2 + size * 0.4;
+  const connectorLead = Math.max(14, size * 0.06);
+  const labelOffset = 10;
+  const minLabelGap = 18;
+
+  type CalloutLayout = {
+    idx: number;
+    direction: 1 | -1;
+    connectorStart: { x: number; y: number };
+    radialPoint: { x: number; y: number };
+    labelX: number;
+    baseY: number;
+    adjustedY: number;
+  };
+
+  const getTooltipText = (segmentIndex: number) => {
+    const seg = processed.segments[segmentIndex];
+    const formattedValue = valueFormatter ? valueFormatter(seg.value) : String(seg.value);
+    const percent = Math.round((seg.frac || 0) * 100);
+    return `${seg.label}: ${formattedValue} (${percent}%)`;
+  };
+
+  const showTooltip = (segmentIndex: number, event: React.MouseEvent<Element, MouseEvent>) => {
+    setHovered(segmentIndex);
+    const rect = containerRef.current?.getBoundingClientRect();
+    const x = event.clientX - (rect?.left || 0);
+    const y = event.clientY - (rect?.top || 0);
+    setTooltip({ x, y, text: getTooltipText(segmentIndex) });
+  };
+
+  const moveTooltip = (event: React.MouseEvent<Element, MouseEvent>) => {
+    if (!tooltip) return;
+    const rect = containerRef.current?.getBoundingClientRect();
+    const x = event.clientX - (rect?.left || 0);
+    const y = event.clientY - (rect?.top || 0);
+    setTooltip((prev) => (prev ? { ...prev, x, y } : prev));
+  };
+
+  const clearTooltip = () => {
+    setHovered(null);
+    setTooltip(null);
+  };
+
+  const calloutLayout = useMemo(() => {
+    const base = processed.segments.map((s, idx) => {
+      const connectorStart = toXY(radius + strokeWidth / 2, s.midAngle);
+      const radialPoint = toXY(radius + strokeWidth / 2 + connectorLead, s.midAngle);
+      const direction = radialPoint.x >= 0 ? 1 : -1;
+      const columnX = direction === 1 ? labelColumnOffset : -labelColumnOffset;
+      return {
+        idx,
+        direction: direction as 1 | -1,
+        connectorStart,
+        radialPoint,
+        labelX: columnX,
+        baseY: radialPoint.y,
+        adjustedY: radialPoint.y,
+      };
+    });
+
+    const adjustSide = (items: typeof base) => {
+      const sorted = [...items].sort((a, b) => a.baseY - b.baseY);
+      let prevY = -Infinity;
+      return sorted.map((item) => {
+        const adjustedY = Math.max(item.baseY, prevY + minLabelGap);
+        prevY = adjustedY;
+        return { ...item, adjustedY };
+      });
+    };
+
+    const left = adjustSide(base.filter((it) => it.direction === -1));
+    const right = adjustSide(base.filter((it) => it.direction === 1));
+    const map = new Map<number, CalloutLayout>();
+    [...left, ...right].forEach((item) => map.set(item.idx, item as CalloutLayout));
+    return map;
+  }, [processed, radius, strokeWidth, labelColumnOffset]);
+
   return (
     <div className={`relative ${className}`} ref={containerRef}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label="donut chart">
-        <g transform={`translate(${size / 2}, ${size / 2})`}>
+      <svg
+        width={canvasSize}
+        height={canvasSize}
+        viewBox={`0 0 ${canvasSize} ${canvasSize}`}
+        role="img"
+        aria-label="donut chart"
+        style={{ overflow: "visible" }}
+      >
+        <g transform={`translate(${canvasSize / 2}, ${canvasSize / 2})`}>
           {/* background ring */}
           <circle
             r={radius}
@@ -115,7 +204,7 @@ export default function DonutChart({
                     : 0.3,
                 transition: "opacity 120ms ease, stroke-width 120ms ease",
               }}
-              transform="rotate(-90)" // start at top
+              transform={`rotate(${(-START_ANGLE * 180) / Math.PI})`} // start offset
             >
               <title>
                 {s.label}: {s.value}
@@ -132,27 +221,53 @@ export default function DonutChart({
               strokeWidth={1}
               style={{ cursor: "pointer" }}
               onClick={() => setSelectedIndex((cur) => (cur === idx ? null : idx))}
-              onMouseEnter={(e) => {
-                setHovered(idx);
-                const rect = containerRef.current?.getBoundingClientRect();
-                const x = e.clientX - (rect?.left || 0);
-                const y = e.clientY - (rect?.top || 0);
-                const v = valueFormatter ? valueFormatter(s.value) : String(s.value);
-                setTooltip({ x, y, text: `${s.label}: ${v} (${Math.round(s.frac * 100)}%)` });
-              }}
-              onMouseMove={(e) => {
-                if (!tooltip || hovered !== idx) return;
-                const rect = containerRef.current?.getBoundingClientRect();
-                const x = e.clientX - (rect?.left || 0);
-                const y = e.clientY - (rect?.top || 0);
-                setTooltip({ ...tooltip, x, y });
-              }}
-              onMouseLeave={() => {
-                setHovered(null);
-                setTooltip(null);
-              }}
+              onMouseEnter={(e) => showTooltip(idx, e)}
+              onMouseMove={moveTooltip}
+              onMouseLeave={clearTooltip}
             />
           ))}
+          {/* callout labels */}
+          {processed.segments.map((s, idx) => {
+            const layout = calloutLayout.get(idx);
+            if (!layout) {
+              return null;
+            }
+            const { direction, connectorStart, radialPoint, labelX, adjustedY } = layout;
+            const textX = labelX + direction * labelOffset;
+            const labelY = adjustedY;
+            const percent = Math.round((s.frac || 0) * 100);
+            const active =
+              (selectedIndex === null || selectedIndex === idx) && (hovered === null || hovered === idx);
+            const connectorEnd = { x: labelX, y: adjustedY };
+            const polylinePoints = `${connectorStart.x},${connectorStart.y} ${radialPoint.x},${radialPoint.y} ${connectorEnd.x},${connectorEnd.y}`;
+            return (
+              <g
+                key={`callout-${idx}`}
+                style={{ opacity: active ? 1 : 0.35, cursor: "pointer" }}
+                onMouseEnter={(e) => showTooltip(idx, e)}
+                onMouseMove={moveTooltip}
+                onMouseLeave={clearTooltip}
+                onClick={() => setSelectedIndex((cur) => (cur === idx ? null : idx))}
+              >
+                <polyline
+                  points={polylinePoints}
+                  fill="none"
+                  stroke="#9ca3af"
+                  strokeWidth={1}
+                />
+                <circle cx={connectorEnd.x} cy={adjustedY} r={2} fill={s.color} />
+                <text
+                  x={textX}
+                  y={labelY}
+                  textAnchor={direction === 1 ? "start" : "end"}
+                  style={{ fontSize: 12, fontWeight: 500, dominantBaseline: "middle" }}
+                  fill="#111827"
+                >
+                  {s.label} <tspan style={{ fontSize: 11, fill: "#6b7280", fontWeight: 400 }}>· {percent}%</tspan>
+                </text>
+              </g>
+            );
+          })}
           {/* center labels */}
           <g>
             {centerLabel && (
@@ -190,38 +305,6 @@ export default function DonutChart({
           {tooltip.text}
         </div>
       )}
-      {/* legend */}
-      <div className="mt-3 grid grid-cols-1 gap-1 text-sm">
-        {processed.segments.map((s, idx) => (
-          <button
-            key={idx}
-            type="button"
-            className="flex items-center gap-2 text-left"
-            onMouseEnter={() => setHovered(idx)}
-            onMouseLeave={() => setHovered(null)}
-            onClick={() => setSelectedIndex((cur) => (cur === idx ? null : idx))}
-          >
-            <span
-              className="inline-block w-3 h-3 rounded"
-              style={{ backgroundColor: s.color, opacity: selectedIndex === null || selectedIndex === idx ? 1 : 0.35 }}
-            />
-            <span
-              className="truncate"
-              title={s.label}
-              style={{ opacity: selectedIndex === null || selectedIndex === idx ? 1 : 0.5 }}
-            >
-              {s.label}
-            </span>
-            <span
-              className="ml-auto tabular-nums"
-              title={String(s.value)}
-              style={{ opacity: selectedIndex === null || selectedIndex === idx ? 1 : 0.5 }}
-            >
-              {Math.round(s.frac * 100)}%
-            </span>
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
