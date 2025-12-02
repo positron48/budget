@@ -170,9 +170,9 @@ create_frontend_service() {
         exit 1
     fi
     
-    log "Создание systemd сервиса для фронтенда..."
-    
-    cat > "$service_file" << EOF
+        log "Создание systemd сервиса для фронтенда..."
+        
+        cat > "$service_file" << EOF
 [Unit]
 Description=Budget Frontend Service (Next.js Standalone)
 After=network.target
@@ -205,9 +205,9 @@ ReadWritePaths=$WEB_ROOT
 [Install]
 WantedBy=multi-user.target
 EOF
-    
-    systemctl daemon-reload
-    success "Systemd сервис для фронтенда создан"
+        
+        systemctl daemon-reload
+        success "Systemd сервис для фронтенда создан"
 }
 
 # Запуск сервиса фронтенда

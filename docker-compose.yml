@@ -78,7 +78,7 @@ services:
   envoy:
     image: envoyproxy/envoy:v1.31.0
     volumes:
-      - ./deploy/envoy.yaml:/etc/envoy/envoy.yaml:ro
+      - ./deploy/envoy.dev.yaml:/etc/envoy/envoy.yaml:ro
     depends_on:
       - app
     restart: unless-stopped
