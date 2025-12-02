@@ -403,6 +403,21 @@ function SummaryReportInner() {
     }));
   }, [incomes]);
 
+  const totalExpensesValue = useMemo(
+    () => Math.abs(Number(data?.totalExpense?.minorUnits ?? 0) / 100),
+    [data]
+  );
+
+  const expensesDonutData = useMemo(
+    () =>
+      expensesData.map((cat) => ({
+        label: cat.name,
+        value: cat.total,
+        color: cat.color,
+      })),
+    [expensesData]
+  );
+
   return (
     <div>
       {/* Filters */}
@@ -475,6 +490,24 @@ function SummaryReportInner() {
             </Card>
           ) : (
             <div className="space-y-6">
+              {expensesDonutData.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">{t("overallExpensesChart")}</CardTitle>
+                    <CardDescription className="text-sm">{t("overallExpensesDescription")}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <DonutChart
+                      data={expensesDonutData}
+                      centerLabel={currencyCode}
+                      centerSubLabel={totalExpensesValue ? formatAmountWithSpaces(totalExpensesValue) : ""}
+                      className="flex flex-col items-center"
+                      valueFormatter={(value) => formatAmountWithSpaces(value)}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Combined Chart */}
               {(expensesData.length > 0 || incomesData.length > 0) && (
                 <CombinedChart

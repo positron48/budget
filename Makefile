@@ -61,8 +61,8 @@ up: ## [Docker] Запуск полного окружения
 	docker compose up -d
 
 up-dev: ## [Docker] Запуск окружения с hot reload для фронтенда (использует Dockerfile.dev)
-	@echo "Для hot reload используйте: docker compose up web с Dockerfile.dev"
-	docker compose up -d
+	@echo "Запуск окружения с hot reload (docker-compose.dev.yml)"
+	docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 
 docker-df: ## [Docker] Показать использование диска Docker (образы/кеши/тома)
 	@echo "Docker disk usage:"; docker system df || true; \
