@@ -32,15 +32,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           </label>
         )}
         <div className="relative">
-          {leftIcon && (
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none">
-              <Icon name={leftIcon} size={16} />
-            </div>
-          )}
           <input
             ref={ref}
             id={inputId}
-            className={`input ${leftIcon ? 'has-left-icon pl-12' : ''} ${rightIcon ? 'has-right-icon pr-12' : ''} ${error ? 'border-destructive' : ''} ${className}`}
+            className={`input ${rightIcon ? 'has-right-icon pr-12' : ''} ${error ? 'border-destructive' : ''} ${className}`}
             {...props}
           />
           {rightIcon && (

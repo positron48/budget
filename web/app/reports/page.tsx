@@ -25,6 +25,7 @@ import {
 import { formatAmountWithSpaces, formatDateLocal } from "@/lib/utils";
 import { getCategoryColor } from "@/lib/categoryColors";
 import { useLocale } from "next-intl";
+import { chartPalettes } from "@/lib/theme/colors";
 
 // Monthly Report Component
 function MonthlyReportInner() {
@@ -90,13 +91,13 @@ function MonthlyReportInner() {
     [incomes]
   );
 
-  const coolPalette = ["#3b82f6", "#22c55e", "#06b6d4", "#6366f1", "#14b8a6", "#0ea5e9", "#10b981", "#60a5fa"];
-  const warmPalette = ["#ef4444", "#f59e0b", "#f97316", "#e11d48", "#fb7185", "#f43f5e", "#ea580c", "#fbbf24"];
+  const coolPalette = chartPalettes.cool;
+  const warmPalette = chartPalettes.warm;
   
   return (
     <div>
       {/* Filters */}
-      <Card className="mb-6 bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800">
+      <Card className="mb-6 border border-border bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60">
         <CardContent>
           <div className="grid grid-cols-1 gap-4">
             <div className="flex flex-wrap items-end gap-6">
@@ -161,7 +162,7 @@ function MonthlyReportInner() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardContent className="text-center pt-6">
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-2xl font-bold text-[hsl(var(--positive))]">
                   {formatAmountWithSpaces(Number(data?.totalIncome?.minorUnits ?? 0) / 100)} {data?.totalIncome?.currencyCode ?? ""}
                 </div>
                 <div className="text-sm text-muted-foreground">{t("totalIncome")}</div>
@@ -169,7 +170,7 @@ function MonthlyReportInner() {
             </Card>
             <Card>
               <CardContent className="text-center pt-6">
-                <div className="text-2xl font-bold text-red-600">
+                <div className="text-2xl font-bold text-[hsl(var(--negative))]">
                   {formatAmountWithSpaces(Number(data?.totalExpense?.minorUnits ?? 0) / 100)} {data?.totalExpense?.currencyCode ?? ""}
                 </div>
                 <div className="text-sm text-muted-foreground">{t("totalExpense")}</div>
@@ -180,8 +181,8 @@ function MonthlyReportInner() {
                 <div
                   className={`text-2xl font-bold ${
                     (Number(data?.totalIncome?.minorUnits ?? 0) - Number(data?.totalExpense?.minorUnits ?? 0)) >= 0
-                      ? "text-green-600"
-                      : "text-red-600"
+                      ? "text-[hsl(var(--positive))]"
+                      : "text-[hsl(var(--negative))]"
                   }`}
                 >
                   {formatAmountWithSpaces((Number(data?.totalIncome?.minorUnits ?? 0) - Number(data?.totalExpense?.minorUnits ?? 0)) / 100)} {data?.totalIncome?.currencyCode ?? ""}
@@ -266,12 +267,14 @@ function MonthlyReportInner() {
                               <tr key={`exp-${i}`} className="border-b">
                                 <td className="py-2">
                                   <div className="flex items-center gap-2">
-                                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100"><Icon name="trending-down" size={12} className="text-red-600" /></span>
+                                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[hsl(var(--negative)/0.15)]">
+                                      <Icon name="trending-down" size={12} className="text-[hsl(var(--negative))]" />
+                                    </span>
                                     <span>{it?.categoryName ?? it?.categoryId}</span>
                                   </div>
                                 </td>
                                 <td className="py-2 text-right text-muted-foreground text-sm">{pct}%</td>
-                                <td className="py-2 text-right text-red-600 font-medium">
+                                <td className="py-2 text-right text-[hsl(var(--negative))] font-medium">
                                   {formatAmountWithSpaces(val)} {it?.total?.currencyCode ?? ""}
                                 </td>
                               </tr>
@@ -305,12 +308,14 @@ function MonthlyReportInner() {
                               <tr key={`inc-${i}`} className="border-b">
                                 <td className="py-2">
                                   <div className="flex items-center gap-2">
-                                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100"><Icon name="trending-up" size={12} className="text-green-600" /></span>
+                                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[hsl(var(--positive)/0.15)]">
+                                      <Icon name="trending-up" size={12} className="text-[hsl(var(--positive))]" />
+                                    </span>
                                     <span>{it?.categoryName ?? it?.categoryId}</span>
                                   </div>
                                 </td>
                                 <td className="py-2 text-right text-muted-foreground text-sm">{pct}%</td>
-                                <td className="py-2 text-right text-green-600 font-medium">
+                                <td className="py-2 text-right text-[hsl(var(--positive))] font-medium">
                                   {formatAmountWithSpaces(val)} {it?.total?.currencyCode ?? ""}
                                 </td>
                               </tr>
@@ -431,7 +436,7 @@ function SummaryReportInner() {
   return (
     <div>
       {/* Filters */}
-      <Card className="mb-6 bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800">
+      <Card className="mb-6 border border-border bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60">
         <CardContent className="p-6">
           <SummaryReportFilters
             from={from}
@@ -461,7 +466,7 @@ function SummaryReportInner() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardContent className="text-center pt-6">
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-2xl font-bold text-[hsl(var(--positive))]">
                   {formatAmountWithSpaces(Number(data?.totalIncome?.minorUnits ?? 0) / 100)} {data?.totalIncome?.currencyCode ?? ""}
                 </div>
                 <div className="text-sm text-muted-foreground">{t("totalIncome")}</div>
@@ -469,7 +474,7 @@ function SummaryReportInner() {
             </Card>
             <Card>
               <CardContent className="text-center pt-6">
-                <div className="text-2xl font-bold text-red-600">
+                <div className="text-2xl font-bold text-[hsl(var(--negative))]">
                   {formatAmountWithSpaces(Number(data?.totalExpense?.minorUnits ?? 0) / 100)} {data?.totalExpense?.currencyCode ?? ""}
                 </div>
                 <div className="text-sm text-muted-foreground">{t("totalExpense")}</div>
@@ -480,8 +485,8 @@ function SummaryReportInner() {
                 <div
                   className={`text-2xl font-bold ${
                     (Number(data?.totalIncome?.minorUnits ?? 0) - Number(data?.totalExpense?.minorUnits ?? 0)) >= 0
-                      ? "text-green-600"
-                      : "text-red-600"
+                      ? "text-[hsl(var(--positive))]"
+                      : "text-[hsl(var(--negative))]"
                   }`}
                 >
                   {formatAmountWithSpaces((Number(data?.totalIncome?.minorUnits ?? 0) - Number(data?.totalExpense?.minorUnits ?? 0)) / 100)} {data?.totalIncome?.currencyCode ?? ""}

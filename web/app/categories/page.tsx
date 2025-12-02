@@ -15,6 +15,7 @@ function CategoriesInner() {
   const tc = useTranslations("common");
   const expenseInputRef = React.useRef<HTMLInputElement | null>(null);
   const incomeInputRef = React.useRef<HTMLInputElement | null>(null);
+  const surfaceCard = "border border-border bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60";
   
   // Get all categories (both expense and income)
   const { data, error, isLoading } = useQuery({
@@ -170,17 +171,22 @@ function CategoriesInner() {
   };
 
   const CategoryCard = ({ c }: { c: any }) => (
-    <div key={c?.id} className={`group bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 ${
-      !c?.isActive ? 'opacity-60' : ''
-    }`}>
+    <div
+      key={c?.id}
+      className={`group rounded-md border border-border bg-card/70 hover:border-primary/40 transition-all duration-200 ${
+        !c?.isActive ? "opacity-60" : ""
+      }`}
+    >
       <div className="px-3 py-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 flex-1">
-            <div className={`w-6 h-6 rounded-md flex items-center justify-center ${
-              c?.kind === 2 
-                ? 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400' 
-                : 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400'
-            } ${!c?.isActive ? 'opacity-50' : ''}`}>
+            <div
+              className={`w-6 h-6 rounded-md flex items-center justify-center ${
+                c?.kind === 2
+                  ? "bg-[hsl(var(--negative)/0.15)] text-[hsl(var(--negative))]"
+                  : "bg-[hsl(var(--positive)/0.15)] text-[hsl(var(--positive))]"
+              } ${!c?.isActive ? "opacity-50" : ""}`}
+            >
               <Icon 
                 name={c?.kind === 2 ? "trending-down" : "trending-up"} 
                 size={12} 
@@ -190,8 +196,10 @@ function CategoriesInner() {
               {editingId === c?.id ? (
                 <div className="space-y-1">
                   <input
-                    className={`w-full px-2 py-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-600 rounded text-gray-900 dark:text-gray-100 font-medium text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                      editError ? 'border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20' : ''
+                    className={`w-full px-2 py-1 rounded text-sm font-medium text-foreground focus:ring-2 focus:ring-[hsl(var(--info))] focus:border-transparent transition-colors ${
+                      editError
+                        ? "border border-[hsl(var(--negative))] bg-[hsl(var(--negative)/0.08)]"
+                        : "border border-[hsl(var(--info))] bg-[hsl(var(--info)/0.08)]"
                     }`}
                     value={editCode}
                     onChange={(e) => setEditCode(e.target.value)}
@@ -220,15 +228,15 @@ function CategoriesInner() {
                     autoFocus
                   />
                   {editError && (
-                    <div className="text-xs text-red-600 dark:text-red-400">{editError}</div>
+                    <div className="text-xs text-[hsl(var(--negative))]">{editError}</div>
                   )}
                 </div>
               ) : (
                 <div 
-                  className={`font-medium text-sm cursor-pointer transition-colors px-1 py-0.5 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 truncate ${
-                    c?.isActive 
-                      ? 'text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400' 
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                  className={`font-medium text-sm cursor-pointer transition-colors px-1 py-0.5 rounded truncate ${
+                    c?.isActive
+                      ? "text-foreground hover:text-[hsl(var(--info))] hover:bg-[hsl(var(--info)/0.08)]"
+                      : "text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--info)/0.08)]"
                   }`}
                   onClick={() => startEdit(c)}
                   title={`${c?.code || "Без названия"} (${c?.isActive ? 'активна' : 'неактивна'})`}
@@ -241,14 +249,14 @@ function CategoriesInner() {
           
           <div className="flex items-center space-x-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             <button
-              className="h-5 w-5 p-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex items-center justify-center"
+              className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground flex items-center justify-center"
               onClick={() => startEdit(c)}
               title={tc("edit")}
             >
               <Icon name="edit" size={10} />
             </button>
             <button
-              className="h-5 w-5 p-0 text-gray-400 hover:text-red-600 dark:hover:text-red-400 flex items-center justify-center"
+              className="h-5 w-5 p-0 text-muted-foreground hover:text-[hsl(var(--negative))] flex items-center justify-center"
               onClick={() => {
                 if (confirm("Вы уверены, что хотите удалить эту категорию?")) {
                   deleteMut.mutate(c?.id);
@@ -258,19 +266,19 @@ function CategoriesInner() {
               disabled={deleteMut.isPending}
             >
               {deleteMut.isPending ? (
-                <div className="w-2.5 h-2.5 border border-gray-400 border-t-transparent rounded-full animate-spin" />
+                <div className="w-2.5 h-2.5 border border-muted-foreground/60 border-t-transparent rounded-full animate-spin" />
               ) : (
                 <Icon name="trash" size={10} />
               )}
             </button>
             <button
-              className="h-5 w-5 p-0 text-gray-400 hover:text-green-600 dark:hover:text-green-400 flex items-center justify-center"
+              className="h-5 w-5 p-0 text-muted-foreground hover:text-[hsl(var(--positive))] flex items-center justify-center"
               onClick={() => toggleActiveMut.mutate({ id: c.id, isActive: !c.isActive })}
               disabled={toggleActiveMut.isPending}
               title={c?.isActive ? "Деактивировать" : "Активировать"}
             >
               {toggleActiveMut.isPending ? (
-                <div className="w-2.5 h-2.5 border border-gray-400 border-t-transparent rounded-full animate-spin" />
+                <div className="w-2.5 h-2.5 border border-muted-foreground/60 border-t-transparent rounded-full animate-spin" />
               ) : (
                 <Icon name={c?.isActive ? "eye-off" : "eye"} size={10} />
               )}
@@ -313,7 +321,7 @@ function CategoriesInner() {
     };
 
     return (
-      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-md border border-dashed border-gray-300 dark:border-gray-600">
+      <div className="bg-secondary/40 rounded-md border border-dashed border-border/60">
         <div className="p-2">
           <form
             className="flex gap-2"
@@ -321,7 +329,7 @@ function CategoriesInner() {
           >
             <input
               ref={inputRef}
-              className="flex-1 px-2 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              className="input flex-1 bg-background/40"
               value={localCode}
               onChange={(e) => setLocalCode(e.target.value)}
               placeholder={kind === 2 ? t("addExpenseCategory") : t("addIncomeCategory")}
@@ -331,10 +339,10 @@ function CategoriesInner() {
               type="submit"
               loading={mutation.isPending}
               className={`px-2 py-1.5 text-xs font-medium ${
-                kind === 2 
-                  ? 'bg-red-500 hover:bg-red-600' 
-                  : 'bg-green-500 hover:bg-green-600'
-              } text-white`}
+                kind === 2
+                  ? "bg-[hsl(var(--negative))] hover:bg-[hsl(var(--negative)/0.85)] text-[hsl(var(--negative-foreground))]"
+                  : "bg-[hsl(var(--positive))] hover:bg-[hsl(var(--positive)/0.85)] text-[hsl(var(--positive-foreground))]"
+              }`}
               disabled={!localCode.trim()}
               onMouseDown={(e: any) => e.preventDefault()}
             >
@@ -342,7 +350,7 @@ function CategoriesInner() {
             </Button>
           </form>
           {mutation.error && (
-            <div className="mt-1 text-xs text-red-600 dark:text-red-400">
+            <div className="mt-1 text-xs text-[hsl(var(--negative))]">
               {(mutation.error as any).message}
             </div>
           )}
@@ -374,8 +382,8 @@ function CategoriesInner() {
           <Icon name={icon} size={14} className="text-white" />
         </div>
         <div>
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <h2 className="text-base font-semibold text-foreground">{title}</h2>
+          <p className="text-xs text-muted-foreground">
             {categories.length} {categories.length === 1 ? t("category") : t("categories")}
           </p>
         </div>
@@ -383,12 +391,12 @@ function CategoriesInner() {
       
       <div className="space-y-1">
         {categories.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 p-4 text-center">
-            <div className="w-8 h-8 mx-auto mb-2 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-              <Icon name="categories" size={16} className="text-gray-400" />
+          <div className={`${surfaceCard} text-center p-4`}>
+            <div className="w-8 h-8 mx-auto mb-2 rounded-full bg-[hsl(var(--muted)/0.6)] flex items-center justify-center">
+              <Icon name="categories" size={16} className="text-muted-foreground" />
             </div>
-            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">{emptyTitle}</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{emptyDescription}</p>
+            <h3 className="text-sm font-medium text-foreground mb-1">{emptyTitle}</h3>
+            <p className="text-xs text-muted-foreground">{emptyDescription}</p>
           </div>
         ) : (
           categories.map((c: any) => (
@@ -402,14 +410,14 @@ function CategoriesInner() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+          <h1 className="text-xl font-bold text-foreground mb-1">
             {t("title")}
           </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-muted-foreground">
             {t("description")}
           </p>
         </div>
@@ -422,10 +430,10 @@ function CategoriesInner() {
         )}
 
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-3 mb-4">
-            <div className="flex items-center space-x-2">
-              <Icon name="alert-circle" size={14} className="text-red-600 dark:text-red-400" />
-              <span className="text-red-700 dark:text-red-300 text-sm">{(error as any).message}</span>
+          <div className="bg-[hsl(var(--negative)/0.1)] border border-[hsl(var(--negative)/0.4)] rounded-md p-3 mb-4">
+            <div className="flex items-center space-x-2 text-[hsl(var(--negative))]">
+              <Icon name="alert-circle" size={14} className="text-[hsl(var(--negative))]" />
+              <span className="text-sm">{(error as any).message}</span>
             </div>
           </div>
         )}
@@ -436,7 +444,7 @@ function CategoriesInner() {
             <CategorySection
               title={t("expenseCategories")}
               icon="trending-down"
-              iconColor="bg-red-500"
+              iconColor="bg-[hsl(var(--negative))]"
               categories={expenseCategories}
               emptyTitle={t("noExpenseCategories")}
               emptyDescription={t("noExpenseCategoriesDescription")}
@@ -455,7 +463,7 @@ function CategoriesInner() {
             <CategorySection
               title={t("incomeCategories")}
               icon="trending-up"
-              iconColor="bg-green-500"
+              iconColor="bg-[hsl(var(--positive))]"
               categories={incomeCategories}
               emptyTitle={t("noIncomeCategories")}
               emptyDescription={t("noIncomeCategoriesDescription")}
@@ -474,15 +482,15 @@ function CategoriesInner() {
 
         {/* Global error display for delete mutations */}
         {deleteMut.error && (
-          <div className="fixed bottom-4 right-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 max-w-md shadow-lg">
-            <div className="flex items-start space-x-3">
-              <Icon name="alert-circle" size={16} className="text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+          <div className="fixed bottom-4 right-4 bg-[hsl(var(--negative)/0.12)] border border-[hsl(var(--negative)/0.4)] rounded-lg p-4 max-w-md shadow-lg">
+            <div className="flex items-start space-x-3 text-[hsl(var(--negative))]">
+              <Icon name="alert-circle" size={16} className="mt-0.5 flex-shrink-0" />
               <div>
-                <h3 className="text-sm font-medium text-red-900 dark:text-red-100 mb-1">Не удалось удалить категорию</h3>
-                <p className="text-xs text-red-700 dark:text-red-300">{(deleteMut.error as any).message}</p>
+                <h3 className="text-sm font-medium mb-1">Не удалось удалить категорию</h3>
+                <p className="text-xs opacity-90">{(deleteMut.error as any).message}</p>
                 <button
                   onClick={() => deleteMut.reset()}
-                  className="mt-2 text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
+                  className="mt-2 text-xs underline-offset-2 hover:underline"
                 >
                   Закрыть
                 </button>

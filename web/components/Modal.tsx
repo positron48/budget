@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import Icon from "./Icon";
 
 interface ModalProps {
@@ -28,20 +29,21 @@ export default function Modal({ open, title, onClose, children, footer, maxWidth
   }, [open, onClose]);
 
   if (!open) return null;
-  return (
+
+  return createPortal(
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-3">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in" onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"
-        className={`relative w-full ${maxWidthClass} bg-white dark:bg-slate-800 rounded-xl shadow-2xl ring-1 ring-black/10 dark:ring-white/10 overflow-hidden animate-in`}
+        className={`relative w-full ${maxWidthClass} rounded-none bg-card text-foreground border border-border shadow-2xl overflow-hidden animate-in`}
       >
-        <div className="px-4 sm:px-5 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-gradient-to-b from-white/90 to-white dark:from-slate-800/90 dark:to-slate-800">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{title}</h3>
+        <div className="px-4 sm:px-5 py-3 border-b border-border flex items-center justify-between bg-card">
+          <h3 className="text-lg font-semibold">{title}</h3>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
+            className="inline-flex items-center justify-center w-8 h-8 rounded-none text-muted-foreground hover:text-foreground hover:bg-secondary/40"
           >
             <Icon name="close" size={16} />
           </button>
@@ -50,12 +52,13 @@ export default function Modal({ open, title, onClose, children, footer, maxWidth
           {children}
         </div>
         {footer && (
-          <div className="px-4 sm:px-5 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-700/30">
+          <div className="px-4 sm:px-5 py-3 border-t border-border bg-card">
             <div className="flex items-center justify-end gap-2">{footer}</div>
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

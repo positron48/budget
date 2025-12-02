@@ -12,6 +12,9 @@ import NewTransactionForm, { NewTxFormRef } from "./NewTransactionForm";
 import FiltersForm from "@/components/FiltersForm";
 import { formatCurrency } from "@/lib/utils";
 
+const SURFACE_CARD = "rounded-none border border-border bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60";
+const PANEL_CARD = "rounded-none border border-border bg-secondary/40";
+
 function TransactionsInner() {
   const { transaction, category } = useClients();
   const t = useTranslations("transactions");
@@ -215,16 +218,16 @@ function TransactionsInner() {
   }), [type, from, to, search, selectedCategoryIds, categoriesLoading, categoriesData, setTypeCallback, setFromCallback, setToCallback, setSearchCallback, setSelectedCategoryIdsCallback]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {/* Header */}
-        <div className="mb-6">
+        <div>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-1">
+              <h1 className="text-3xl font-bold text-foreground mb-1">
                 {t("title")}
               </h1>
-              <p className="text-slate-600 dark:text-slate-300">
+              <p className="text-muted-foreground">
                 {t("description")}
               </p>
             </div>
@@ -237,20 +240,21 @@ function TransactionsInner() {
                 selectedCategoryIds={selectedCategoryIds}
                 disabled={isLoading || !!error}
               />
-              <button 
+              <Button
+                variant="secondary"
+                icon="upload"
                 onClick={() => setShowImport(true)}
-                className="inline-flex items-center px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-md shadow-md hover:shadow-lg transition-all duration-200"
+                className="shadow-sm"
               >
-                <Icon name="upload" size={16} className="mr-2" />
                 {t("import")}
-              </button>
-              <button 
+              </Button>
+              <Button
+                icon="plus"
                 onClick={() => setShowCreate(true)}
-                className="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md shadow-md hover:shadow-lg transition-all duration-200"
+                className="shadow-sm"
               >
-                <Icon name="plus" size={16} className="mr-2" />
                 {t("create")}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -281,16 +285,16 @@ function TransactionsInner() {
         {isLoading && (
           <div className="flex items-center justify-center py-12">
             <div className="flex flex-col items-center space-y-3">
-              <div className="w-8 h-8 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-              <span className="text-slate-600 dark:text-slate-300 font-medium">{tc("loading")}</span>
+              <div className="w-8 h-8 border-4 border-border/60 border-t-primary rounded-full animate-spin"></div>
+              <span className="text-muted-foreground font-medium">{tc("loading")}</span>
             </div>
           </div>
         )}
 
         {error && (
-          <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
+          <Card className="border border-[hsl(var(--negative)/0.4)] bg-[hsl(var(--negative)/0.08)]">
             <CardContent className="pt-4">
-              <div className="flex items-center space-x-2 text-red-700 dark:text-red-300">
+              <div className="flex items-center space-x-2 text-[hsl(var(--negative))]">
                 <Icon name="alert-circle" size={16} />
                 <span className="font-medium">{(error as any).message}</span>
               </div>
@@ -370,8 +374,8 @@ function TransactionsInner() {
 
             {/* Pagination */}
             {data?.page && (
-              <div className="flex items-center justify-between mt-4 p-4 bg-white dark:bg-slate-800 rounded-lg shadow-lg">
-                <div className="text-sm text-slate-600 dark:text-slate-300">
+              <div className={`${SURFACE_CARD} mt-4 flex items-center justify-between p-4 rounded-lg`}>
+                <div className="text-sm text-muted-foreground">
                   {t("showing")} {((page - 1) * pageSize) + 1} - {Math.min(page * pageSize, Number(data.page.totalItems))} {t("of")} {Number(data.page.totalItems)} {t("transactions")}
                 </div>
                 <div className="flex items-center space-x-2">
@@ -385,7 +389,7 @@ function TransactionsInner() {
                   >
                     {t("prev")}
                   </Button>
-                  <div className="px-3 py-1 text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded">
+                  <div className="px-3 py-1 text-sm font-medium bg-[hsl(var(--primary)/0.15)] text-[hsl(var(--primary))] rounded">
                     {page} / {Number(data.page.totalPages)}
                   </div>
                   <Button
@@ -447,11 +451,16 @@ function TransactionTable({
   onSort: (field: string, direction: "asc" | "desc" | null) => void;
 }) {
   const { transaction } = useClients();
+  const t = useTranslations("transactions");
+  const tableCardClass = `${SURFACE_CARD} shadow-lg overflow-hidden !rounded-none`;
+  const inlineInputClass =
+    "w-full px-2 py-1 rounded-md border border-border bg-background/80 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-transparent";
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editComment, setEditComment] = useState<string>("");
   const [editAmount, setEditAmount] = useState<string>("");
   const [editCategoryId, setEditCategoryId] = useState<string>("");
   const [editDate, setEditDate] = useState<string>("");
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const updateMut = useMutation({
     mutationFn: async (payload: { 
@@ -534,23 +543,23 @@ function TransactionTable({
 
   if (items.length === 0) {
     return (
-      <Card className="text-center py-12 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm">
+      <Card className={`${SURFACE_CARD} text-center py-12`}>
         <CardContent>
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-full mb-4">
-            <Icon name="receipt" size={32} className="text-slate-400 dark:text-slate-500" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-secondary/60 rounded-full mb-4">
+            <Icon name="receipt" size={32} className="text-muted-foreground" />
           </div>
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Нет транзакций</h3>
-          <p className="text-slate-600 dark:text-slate-300">Создайте первую транзакцию для начала работы</p>
+          <h3 className="text-xl font-bold text-foreground mb-2">{t("noTransactions")}</h3>
+          <p className="text-muted-foreground">{t("noTransactionsDescription")}</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="shadow-lg border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden !rounded-none">
+    <Card className={tableCardClass}>
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-slate-50 dark:bg-slate-700/50">
+          <thead className="bg-secondary/40">
             <tr>
               <SortableHeader
                 field="type"
@@ -593,155 +602,159 @@ function TransactionTable({
               >
                 Сумма
               </SortableHeader>
-              <th className="px-4 py-3 text-right text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 <div className="flex items-center justify-end space-x-2">
                   {hasActiveFilters && (
                     <button
                       onClick={clearFilters}
-                      className="inline-flex items-center p-1 text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors duration-200"
-                      title="Очистить фильтры"
+                      className="inline-flex items-center p-1 text-xs text-[hsl(var(--negative))] hover:text-[hsl(var(--negative)/0.7)] transition-colors duration-200"
+                      title={t("clearFilters")}
                     >
                       <Icon name="trash" size={14} />
                     </button>
                   )}
                   <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className="inline-flex items-center p-1 text-xs text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200"
-                    title="Фильтры"
+                    className="inline-flex items-center p-1 text-xs text-muted-foreground hover:text-[hsl(var(--primary))] transition-colors duration-200"
+                    title={t("toggleFilters")}
                   >
                     <Icon name="filter" size={14} />
                     {hasActiveFilters && (
-                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></span>
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-[hsl(var(--primary))] rounded-full"></span>
                     )}
                   </button>
                 </div>
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+          <tbody className="divide-y divide-border/60">
             {items.map((tx: any) => (
-              <tr key={tx?.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+              <tr key={tx?.id} className="hover:bg-secondary/30 transition-colors">
                 <td className="px-4 py-3">
-                  <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    tx?.type === TransactionType.EXPENSE 
-                      ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' 
-                      : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                  }`}>
-                    <Icon 
-                      name={tx?.type === TransactionType.EXPENSE ? "trending-down" : "trending-up"} 
-                      size={12} 
-                      className="mr-1" 
+                  <div
+                    className={`inline-flex items-center px-2 py-1 text-xs font-medium ${
+                      tx?.type === TransactionType.EXPENSE
+                        ? "text-[hsl(var(--negative))]"
+                        : "text-[hsl(var(--positive))]"
+                    }`}
+                  >
+                    <Icon
+                      name={tx?.type === TransactionType.EXPENSE ? "trending-down" : "trending-up"}
+                      size={12}
+                      className="mr-1"
                     />
-                    {tx?.type === TransactionType.EXPENSE ? 'Расход' : 'Доход'}
+                    {tx?.type === TransactionType.EXPENSE ? t("expense") : t("income")}
                   </div>
                 </td>
-                                 <td className="px-4 py-3">
-                   {editingId === tx?.id ? (
-                      <input
-                       type="datetime-local"
-                       className="w-full px-2 py-1 border border-slate-200 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                       value={editDate}
-                       onChange={(e) => setEditDate(e.target.value)}
-                       autoComplete="off"
-                     />
-                   ) : (
-                     <div className="text-sm text-slate-900 dark:text-white">
-                       {tx?.occurredAt?.seconds ? new Date(Number(tx.occurredAt.seconds) * 1000).toLocaleDateString() : ""}
-                     </div>
-                   )}
-                 </td>
                 <td className="px-4 py-3">
                   {editingId === tx?.id ? (
                     <input
-                      className="w-full px-2 py-1 border border-slate-200 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      type="datetime-local"
+                      className={inlineInputClass}
+                      value={editDate}
+                      onChange={(e) => setEditDate(e.target.value)}
+                      autoComplete="off"
+                    />
+                  ) : (
+                    <div className="text-sm text-foreground">
+                      {tx?.occurredAt?.seconds ? new Date(Number(tx.occurredAt.seconds) * 1000).toLocaleDateString() : ""}
+                    </div>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  {editingId === tx?.id ? (
+                    <input
+                      className={inlineInputClass}
                       placeholder="Описание"
                       value={editComment}
                       onChange={(e) => setEditComment(e.target.value)}
                       autoComplete="off"
                     />
                   ) : (
-                    <div className="text-sm text-slate-900 dark:text-white">
-                      {tx?.comment || "Без описания"}
+                    <div className="text-sm text-foreground">
+                      {tx?.comment || t("noComment")}
                     </div>
                   )}
                 </td>
-                                 <td className="px-4 py-3">
-                   {editingId === tx?.id ? (
-                     categoriesLoading ? (
-                       <div className="w-full px-2 py-1 border border-slate-200 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-sm">
-                         Загрузка категорий...
-                       </div>
-                     ) : (
-                       <select
-                         className="w-full px-2 py-1 border border-slate-200 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                         value={editCategoryId}
-                         onChange={(e) => setEditCategoryId(e.target.value)}
-                       >
-                         <option value="">Без категории</option>
-                         {categories
-                           .filter((cat: any) => {
-                             // Фильтруем категории по типу транзакции
-                             const isExpense = tx?.type === TransactionType.EXPENSE;
-                             const isIncome = tx?.type === TransactionType.INCOME;
-                             
-                             if (isExpense) {
-                               return cat.kind === CategoryKind.EXPENSE;
-                             } else if (isIncome) {
-                               return cat.kind === CategoryKind.INCOME;
-                             }
-                             return true; // Если тип не определен, показываем все
-                           })
-                           .map((cat: any) => {
-                             const getCategoryName = (cat: any) => {
-                               if (cat.translations) {
-                                 const ruTranslation = cat.translations.find((t: any) => t.locale === 'ru');
-                                 if (ruTranslation) return ruTranslation.name;
-                                 const enTranslation = cat.translations.find((t: any) => t.locale === 'en');
-                                 if (enTranslation) return enTranslation.name;
-                                 if (cat.translations.length > 0) return cat.translations[0].name;
-                               }
-                               return cat.code;
-                             };
-                             return (
-                               <option key={cat.id} value={cat.id}>
-                                 {getCategoryName(cat)}
-                               </option>
-                             );
-                           })}
-                       </select>
-                     )
-                   ) : (
-                     <CategoryBadge
-                       categoryId={tx?.categoryId}
-                       categoryCode={categories.find(c => c.id === tx?.categoryId)?.code}
-                       categoryTranslations={categories.find(c => c.id === tx?.categoryId)?.translations}
-                       type={tx?.type === TransactionType.EXPENSE ? 'expense' : 'income'}
-                     />
-                   )}
-                 </td>
+                <td className="px-4 py-3">
+                  {editingId === tx?.id ? (
+                    categoriesLoading ? (
+                      <div className={`${inlineInputClass} text-center text-muted-foreground`}>
+                        Загрузка категорий...
+                      </div>
+                    ) : (
+                      <select
+                        className={inlineInputClass}
+                        value={editCategoryId}
+                        onChange={(e) => setEditCategoryId(e.target.value)}
+                      >
+                        <option value="">Без категории</option>
+                        {categories
+                          .filter((cat: any) => {
+                            const isExpense = tx?.type === TransactionType.EXPENSE;
+                            const isIncome = tx?.type === TransactionType.INCOME;
+
+                            if (isExpense) {
+                              return cat.kind === CategoryKind.EXPENSE;
+                            } else if (isIncome) {
+                              return cat.kind === CategoryKind.INCOME;
+                            }
+                            return true;
+                          })
+                          .map((cat: any) => {
+                            const getCategoryName = (cat: any) => {
+                              if (cat.translations) {
+                                const ruTranslation = cat.translations.find((t: any) => t.locale === "ru");
+                                if (ruTranslation) return ruTranslation.name;
+                                const enTranslation = cat.translations.find((t: any) => t.locale === "en");
+                                if (enTranslation) return enTranslation.name;
+                                if (cat.translations.length > 0) return cat.translations[0].name;
+                              }
+                              return cat.code;
+                            };
+                            return (
+                              <option key={cat.id} value={cat.id}>
+                                {getCategoryName(cat)}
+                              </option>
+                            );
+                          })}
+                      </select>
+                    )
+                  ) : (
+                    <CategoryBadge
+                      categoryId={tx?.categoryId}
+                      categoryCode={categories.find((c) => c.id === tx?.categoryId)?.code}
+                      categoryTranslations={categories.find((c) => c.id === tx?.categoryId)?.translations}
+                      type={tx?.type === TransactionType.EXPENSE ? "expense" : "income"}
+                    />
+                  )}
+                </td>
                 <td className="px-4 py-3 text-right">
                   {editingId === tx?.id ? (
-                                        <input
-                      className="w-24 px-2 py-1 border border-slate-200 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-right"
+                    <input
+                      className={`${inlineInputClass} w-24 text-right`}
                       placeholder="0.00"
                       type="text"
                       value={editAmount}
                       onChange={(e) => {
                         const value = e.target.value;
-                        // Разрешаем только цифры, точку и запятую
-                        if (value === '' || /^[0-9]*[.,]?[0-9]{0,2}$/.test(value)) {
+                        if (value === "" || /^[0-9]*[.,]?[0-9]{0,2}$/.test(value)) {
                           setEditAmount(value);
                         }
                       }}
                       autoComplete="off"
                     />
                   ) : (
-                                         <div className={`text-sm font-semibold ${
-                       tx?.type === TransactionType.EXPENSE ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
-                     }`}>
-                       {tx?.type === TransactionType.EXPENSE ? '-' : '+'}
-                       {formatCurrency(Number(tx?.amount?.minorUnits ?? 0), tx?.amount?.currencyCode)}
-                     </div>
+                    <div
+                      className={`text-sm font-semibold ${
+                        tx?.type === TransactionType.EXPENSE
+                          ? "text-[hsl(var(--negative))]"
+                          : "text-[hsl(var(--positive))]"
+                      }`}
+                    >
+                      {tx?.type === TransactionType.EXPENSE ? "-" : "+"}
+                      {formatCurrency(Number(tx?.amount?.minorUnits ?? 0), tx?.amount?.currencyCode)}
+                    </div>
                   )}
                 </td>
                 <td className="px-4 py-3 text-center">
@@ -749,6 +762,7 @@ function TransactionTable({
                     <div className="flex items-center justify-center space-x-1">
                       <Button
                         size="sm"
+                        variant="primary"
                         loading={updateMut.isPending}
                         icon="check"
                         onClick={() => {
@@ -768,17 +782,15 @@ function TransactionTable({
                               occurredAt: editDate ? { seconds: Math.floor(new Date(editDate).getTime() / 1000) } : undefined,
                             });
                         }}
-                        className="bg-green-600 hover:bg-green-700 text-white px-2 py-1"
-                      >
-                        {updateMut.isPending ? "Сохранение" : "Сохранить"}
+                        >
+                        {updateMut.isPending ? t("saving") : t("save")}
                       </Button>
                       <Button 
                         size="sm"
                         variant="outline"
                         onClick={() => setEditingId(null)}
-                        className="text-slate-600 dark:text-slate-300 px-2 py-1"
                       >
-                        Отмена
+                        {t("cancel")}
                       </Button>
                     </div>
                   ) : (
@@ -795,19 +807,22 @@ function TransactionTable({
                           };
                           setEditDate(tx?.occurredAt?.seconds ? toLocalInput(new Date(Number(tx.occurredAt.seconds) * 1000)) : "");
                         }}
-                        className="p-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200"
-                        title="Изменить"
+                        className="p-1 text-[hsl(var(--primary))] hover:text-[hsl(var(--primary)/0.8)] transition-colors	duration-200"
+                        title={t("edit")}
                       >
                         <Icon name="edit" size={16} />
                       </button>
                       <button
-                        onClick={() => onDelete(tx?.id)}
+                        onClick={() => {
+                          if (isDeleting) return;
+                          setDeleteTarget(tx?.id || null);
+                        }}
                         disabled={isDeleting}
-                        className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors duration-200 disabled:opacity-50"
-                        title="Удалить"
+                        className="p-1 text-[hsl(var(--negative))] hover:text-[hsl(var(--negative)/0.7)] transition-colors	duration-200 disabled:opacity-50"
+                        title={t("delete")}
                       >
                         {isDeleting ? (
-                          <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                          <div className="w-4 h-4 border-2 border-[hsl(var(--negative)/0.5)] border-t-[hsl(var(--negative))] rounded-full animate-spin" />
                         ) : (
                           <Icon name="trash" size={16} />
                         )}
@@ -820,6 +835,32 @@ function TransactionTable({
           </tbody>
         </table>
       </div>
+      <Modal
+        open={Boolean(deleteTarget)}
+        title={t("delete")}
+        onClose={() => setDeleteTarget(null)}
+        maxWidthClass="max-w-md"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              {t("cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              icon="trash"
+              onClick={() => {
+                if (!deleteTarget) return;
+                onDelete(deleteTarget);
+                setDeleteTarget(null);
+              }}
+            >
+              {t("delete")}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">{t("confirmDelete")}</p>
+      </Modal>
     </Card>
   );
 }

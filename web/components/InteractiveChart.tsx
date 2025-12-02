@@ -441,21 +441,20 @@ const InteractiveChart = memo(function InteractiveChart({
         </div>
 
         {/* Interactive Legend */}
-        <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="pt-4 border-t border-border/70">
           <h4 className="text-sm font-medium text-foreground mb-3">{t("categoryTotals")}</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {categories
               .sort((a, b) => b.total - a.total) // Sort by total descending (largest first)
               .map((category) => {
                 const isVisible = visibleCategories.has(category.id);
+                const baseClass = isVisible
+                  ? "bg-card/70 border border-border/70"
+                  : "bg-secondary/40 border border-border/40 text-muted-foreground opacity-70";
                 return (
                   <div 
                     key={category.id} 
-                    className={`flex items-center justify-between text-sm cursor-pointer p-2 rounded-md transition-colors ${
-                      isVisible 
-                        ? 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700' 
-                        : 'opacity-50 hover:opacity-70'
-                    }`}
+                    className={`flex items-center justify-between text-sm cursor-pointer p-2 rounded-none transition-colors ${baseClass}`}
                     onClick={() => toggleCategory(category.id)}
                   >
                     <div className="flex items-center gap-2">
@@ -463,11 +462,11 @@ const InteractiveChart = memo(function InteractiveChart({
                         className="w-3 h-3 rounded-full" 
                         style={{ backgroundColor: isVisible ? category.color : '#9CA3AF' }}
                       />
-                      <span className={`${isVisible ? 'text-foreground' : 'text-gray-500'}`}>
+                      <span className={isVisible ? "text-foreground" : "text-muted-foreground"}>
                         {category.name}
                       </span>
                     </div>
-                    <span className={`font-medium ${isVisible ? 'text-muted-foreground' : 'text-gray-400'}`}>
+                    <span className="font-medium text-muted-foreground">
                       {formatAmountWithSpaces(category.total)} {currencyCode}
                     </span>
                   </div>

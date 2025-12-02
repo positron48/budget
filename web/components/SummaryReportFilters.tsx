@@ -19,6 +19,7 @@ const SummaryReportFilters = memo(function SummaryReportFilters({
   onToChange,
 }: SummaryReportFiltersProps) {
   const t = useTranslations("reports");
+  const inputClass = "input text-sm rounded-none";
   const { report } = useClients();
   
   // Get date range from backend
@@ -158,22 +159,22 @@ const SummaryReportFilters = memo(function SummaryReportFilters({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">{t("from")}</label>
-          <input 
-            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm" 
-            type="date" 
-            value={from} 
+          <label className="text-sm font-medium text-muted-foreground">{t("from")}</label>
+          <input
+            className={`${inputClass} w-full`}
+            type="date"
+            value={from}
             onChange={(e) => onFromChange(e.target.value)}
             autoComplete="off"
           />
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">{t("to")}</label>
-          <input 
-            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm" 
-            type="date" 
-            value={to} 
+          <label className="text-sm font-medium text-muted-foreground">{t("to")}</label>
+          <input
+            className={`${inputClass} w-full`}
+            type="date"
+            value={to}
             onChange={(e) => onToChange(e.target.value)}
             autoComplete="off"
           />

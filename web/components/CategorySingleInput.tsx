@@ -38,7 +38,7 @@ export default function CategorySingleInput({
   categories,
   value,
   onChange,
-  placeholder = "Введите код или название категории...",
+  placeholder = "Введите название категории...",
   disabled = false,
   className = "",
 }: CategorySingleInputProps) {
@@ -108,32 +108,44 @@ export default function CategorySingleInput({
 
   return (
     <div className={`relative ${className}`} ref={containerRef} style={{ zIndex: 9999999 }}>
-      <div className={`w-full min-h-[40px] px-3 py-2 border rounded-md text-sm transition-all duration-200 ${disabled ? "opacity-60 cursor-not-allowed" : ""} bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent`}> 
+      <div
+        className={`w-full min-h-[40px] px-3 py-2 border border-border rounded-none text-sm transition-all duration-200 bg-secondary/60 text-foreground ${
+          disabled ? "opacity-60 cursor-not-allowed" : "focus-within:ring-2 focus-within:ring-primary/40 focus-within:border-transparent"
+        }`}
+      >
         <div className="flex items-center gap-2">
-          <Icon name="search" size={14} className="text-slate-400" />
           <input
             ref={inputRef}
             type="text"
-            className="flex-1 bg-transparent outline-none placeholder:text-slate-500 dark:placeholder:text-slate-400"
+            className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
             placeholder={selected ? getCategoryDisplayName(selected) : placeholder}
             value={searchTerm}
             disabled={disabled}
             onFocus={openDropdown}
-            onChange={(e) => { setSearchTerm(e.target.value); setIsOpen(true); updateDropdownPosition(); }}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setIsOpen(true);
+              updateDropdownPosition();
+            }}
             onKeyDown={(e) => {
-              if (e.key === 'Tab' || e.key === 'Escape') {
+              if (e.key === "Tab" || e.key === "Escape") {
                 setIsOpen(false);
               }
             }}
             onBlur={() => {
-              // If blur was caused by clicking inside dropdown, do not close here
               if (pointerInDropdownRef.current) return;
               setTimeout(() => setIsOpen(false), 0);
             }}
             autoComplete="off"
           />
+          <Icon name="search" size={14} className="text-muted-foreground" />
           {selected && (
-            <button type="button" onClick={clearSelection} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300" aria-label="Очистить категорию">
+            <button
+              type="button"
+              onClick={clearSelection}
+              className="text-muted-foreground hover:text-foreground"
+              aria-label="Очистить категорию"
+            >
               <Icon name="close" size={14} />
             </button>
           )}
@@ -143,8 +155,15 @@ export default function CategorySingleInput({
       {isOpen && createPortal(
         <div
           data-dropdown="category-single-input"
-          className="fixed bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md shadow-xl max-h-60 overflow-hidden"
-          style={{ zIndex: 9999999, top: dropdownPosition.top, left: dropdownPosition.left, width: dropdownPosition.width || undefined, minWidth: "220px" }}
+          className="fixed rounded-none border border-border shadow-xl max-h-60 overflow-hidden backdrop-blur supports-[backdrop-filter]:bg-card/70"
+          style={{
+            zIndex: 9999999,
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+            width: dropdownPosition.width || undefined,
+            minWidth: "220px",
+            backgroundColor: "hsl(var(--card) / 0.95)",
+          }}
           onClick={(e) => e.stopPropagation()}
           onMouseDown={() => { pointerInDropdownRef.current = true; }}
           onMouseUp={() => { setTimeout(() => { pointerInDropdownRef.current = false; }, 0); }}
@@ -153,19 +172,19 @@ export default function CategorySingleInput({
             {filtered.length > 0 ? filtered.map(cat => (
               <div
                 key={cat.id}
-                className="px-3 py-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-600 flex items-center justify-between"
+                className="px-3 py-2 cursor-pointer hover:bg-secondary/40 flex items-center justify-between text-foreground"
                 onMouseDown={(e) => { e.preventDefault(); selectCategory(cat.id); }}
               >
                 <div>
-                  <div className="text-sm font-medium text-slate-900 dark:text-white">{getCategoryDisplayName(cat)}</div>
+                  <div className="text-sm font-medium text-foreground">{getCategoryDisplayName(cat)}</div>
                   {cat.code !== getCategoryDisplayName(cat) && (
-                    <div className="text-xs text-slate-500 dark:text-slate-400">{cat.code}</div>
+                    <div className="text-xs text-muted-foreground">{cat.code}</div>
                   )}
                 </div>
-                {value === cat.id && <Icon name="check" size={14} className="text-blue-600" />}
+                {value === cat.id && <Icon name="check" size={14} className="text-[hsl(var(--primary))]" />}
               </div>
             )) : (
-              <div className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">Категории не найдены</div>
+              <div className="px-3 py-2 text-sm text-muted-foreground">Категории не найдены</div>
             )}
           </div>
         </div>,

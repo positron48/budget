@@ -181,7 +181,10 @@ export default function HeaderNav() {
                   {activeTenantName || "Account"}
                 </Button>
                 {isAccountOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-background border rounded-md shadow-md z-50">
+                  <div
+                    className="absolute right-0 top-full mt-2 w-64 border border-border rounded-none shadow-lg z-[200] backdrop-blur supports-[backdrop-filter]:bg-card/70"
+                    style={{ backgroundColor: "hsl(var(--card) / 0.95)" }}
+                  >
                     <div className="py-1 max-h-80 overflow-auto">
                       {memberships.map((m) => (
                         <button
@@ -192,7 +195,7 @@ export default function HeaderNav() {
                             authStore.set({ tenantId: m.tenant.id });
                             window.location.reload();
                           }}
-                          className={`w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center justify-between ${
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-secondary/40 flex items-center justify-between ${
                             currentTenantId === m?.tenant?.id ? "font-medium" : ""
                           }`}
                         >
@@ -200,10 +203,10 @@ export default function HeaderNav() {
                           {currentTenantId === m?.tenant?.id && <Icon name="check" size={16} className="text-green-600" />}
                         </button>
                       ))}
-                      <div className="my-1 border-t" />
+                      <div className="my-1 border-t border-border/60" />
                       <button
                         onClick={() => { setIsAccountOpen(false); onLogout(); }}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2 text-red-600"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-secondary/40 flex items-center gap-2 text-[hsl(var(--negative))]"
                       >
                         <Icon name="logout" size={16} />
                         <span>{t("logout")}</span>
@@ -215,16 +218,18 @@ export default function HeaderNav() {
             )}
 
             {/* Mobile Menu Button */}
-            <Button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              variant="ghost"
-              size="sm"
-              icon={isMenuOpen ? "close" : "menu"}
-              className="md:hidden p-2"
-              aria-label="Toggle menu"
-            >
-              <span className="sr-only">Toggle menu</span>
-            </Button>
+            <div className="md:hidden">
+              <Button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                variant="ghost"
+                size="sm"
+                icon={isMenuOpen ? "close" : "menu"}
+                className="p-2"
+                aria-label="Toggle menu"
+              >
+                <span className="sr-only">Toggle menu</span>
+              </Button>
+            </div>
           </div>
         </div>
 

@@ -150,9 +150,11 @@ function AccountInner() {
   });
 
   const enumToNum = (r: "owner" | "admin" | "member") => (r === "owner" ? 1 : r === "admin" ? 2 : 3);
+  const surfaceCard = "border border-border bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60";
+  const inputClass = "input bg-background/40";
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {/* Header */}
         <div>
@@ -161,11 +163,11 @@ function AccountInner() {
         </div>
 
         {/* Info Block */}
-        <Card className="bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800">
+        <Card className={surfaceCard}>
           <CardHeader>
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-                <Icon name="info" size={16} className="text-blue-600 dark:text-blue-400" />
+              <div className="mt-0.5 w-8 h-8 rounded-lg bg-[hsl(var(--info)/0.2)] flex items-center justify-center">
+                <Icon name="info" size={16} className="text-[hsl(var(--info))]" />
               </div>
               <div>
                 <CardTitle className="text-base">{t("infoTitle")}</CardTitle>
@@ -187,7 +189,7 @@ function AccountInner() {
         </Card>
 
         {/* Create Account */}
-        <Card className="bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800">
+        <Card className={surfaceCard}>
           <CardHeader>
             <CardTitle className="text-base">{t("create")}</CardTitle>
             <CardDescription className="text-sm">{t("createDescription")}</CardDescription>
@@ -203,7 +205,7 @@ function AccountInner() {
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">{t("name")}</label>
                 <input
-                  className="border rounded px-2 py-1 bg-background"
+                  className={`${inputClass} w-64`}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -213,7 +215,7 @@ function AccountInner() {
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">{t("slugOptional")}</label>
                 <input
-                  className="border rounded px-2 py-1 bg-background"
+                  className={`${inputClass} w-48`}
                   value={slug}
                   onChange={(e) => setSlug(e.target.value)}
                   autoComplete="off"
@@ -222,7 +224,7 @@ function AccountInner() {
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">{t("defaultCurrency")}</label>
                 <input
-                  className="border rounded px-2 py-1 w-24 bg-background"
+                  className={`${inputClass} w-24 text-center`}
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
                   autoComplete="off"
@@ -233,13 +235,13 @@ function AccountInner() {
               </Button>
             </form>
             {createMut.error && (
-              <div className="mt-2 text-xs text-red-600">{(createMut.error as any).message}</div>
+              <div className="mt-2 text-xs text-[hsl(var(--negative))]">{(createMut.error as any).message}</div>
             )}
           </CardContent>
         </Card>
 
         {/* Accounts list */}
-        <Card className="bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800">
+        <Card className={surfaceCard}>
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -265,24 +267,24 @@ function AccountInner() {
           </CardHeader>
           <CardContent>
             {error && (
-              <div className="text-sm text-red-600 mb-3">{(error as any).message}</div>
+              <div className="text-sm text-[hsl(var(--negative))] mb-3">{(error as any).message}</div>
             )}
             <ul className="space-y-2">
               {memberships.map((m) => (
                 <li key={m?.tenant?.id} className="flex items-center gap-3 text-sm">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-6 h-6 rounded-md bg-indigo-100 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-md bg-[hsl(var(--info)/0.2)] text-[hsl(var(--info))] flex items-center justify-center">
                       <Icon name="wallet" size={12} />
                     </div>
                     <span className="font-medium truncate max-w-[200px]" title={m?.tenant?.name}>{m?.tenant?.name}</span>
                   </div>
                   <span className="text-muted-foreground truncate max-w-[160px]" title={m?.tenant?.slug}>{m?.tenant?.slug}</span>
                   <span className="text-muted-foreground">{m?.tenant?.defaultCurrencyCode}</span>
-                  <span className="text-[11px] px-2 py-0.5 rounded border text-muted-foreground" title={`role: ${m?.role}`}>
+                  <span className="text-[11px] px-2 py-0.5 rounded border border-border/70 text-muted-foreground" title={`role: ${m?.role}`}>
                     {roleLabel(Number(m?.role))}
                   </span>
                   {currentTenantId === m?.tenant?.id ? (
-                    <span className="ml-auto text-green-600 text-xs">{t("active")}</span>
+                    <span className="ml-auto text-[hsl(var(--positive))] text-xs">{t("active")}</span>
                   ) : (
                     <Button
                       variant="outline"
@@ -328,7 +330,7 @@ function AccountInner() {
             <div>
               <label className="block text-xs text-muted-foreground mb-1">{t("inviteEmail")}</label>
               <input
-                className="w-full border rounded px-2 py-1 bg-background"
+                className={`${inputClass} w-full`}
                 type="email"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
@@ -338,7 +340,7 @@ function AccountInner() {
             <div>
               <label className="block text-xs text-muted-foreground mb-1">{t("inviteRole")}</label>
               <select
-                className="w-full border rounded px-2 py-1 bg-background"
+                className={`${inputClass} w-full text-sm`}
                 value={inviteRole}
                 onChange={(e) => setInviteRole(e.target.value as any)}
               >
@@ -364,7 +366,7 @@ function AccountInner() {
               </Button>
             </div>
             {addMemberMut.error && (
-              <div className="text-xs text-red-600">{(addMemberMut.error as any).message}</div>
+              <div className="text-xs text-[hsl(var(--negative))]">{(addMemberMut.error as any).message}</div>
             )}
           </div>
         </Modal>
@@ -379,15 +381,15 @@ function AccountInner() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">{t("name")}</label>
-                <input className="w-full border rounded px-2 py-1 bg-background" value={editName} onChange={(e) => setEditName(e.target.value)} />
+                <input className={`${inputClass} w-full`} value={editName} onChange={(e) => setEditName(e.target.value)} />
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">{t("slug")}</label>
-                <input className="w-full border rounded px-2 py-1 bg-background" value={editSlug} onChange={(e) => setEditSlug(e.target.value)} />
+                <input className={`${inputClass} w-full`} value={editSlug} onChange={(e) => setEditSlug(e.target.value)} />
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">{t("defaultCurrency")}</label>
-                <input className="w-full border rounded px-2 py-1 bg-background" value={editCurrency} onChange={(e) => setEditCurrency(e.target.value)} />
+                <input className={`${inputClass} w-full text-center`} value={editCurrency} onChange={(e) => setEditCurrency(e.target.value)} />
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
@@ -404,27 +406,27 @@ function AccountInner() {
               </Button>
             </div>
             {updateTenantMut.error && (
-              <div className="text-xs text-red-600">{(updateTenantMut.error as any).message}</div>
+              <div className="text-xs text-[hsl(var(--negative))]">{(updateTenantMut.error as any).message}</div>
             )}
           </div>
         </Modal>
 
         {/* Members list for active tenant */}
         {activeTenantId && hasMembers && (
-          <Card className="bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800">
+          <Card className={surfaceCard}>
             <CardHeader>
               <CardTitle className="text-base">{t("membersTitle")}</CardTitle>
               <CardDescription className="text-sm">{t("membersDescription")}</CardDescription>
             </CardHeader>
             <CardContent>
               {membersLoading && <div className="text-sm text-muted-foreground">{tc("loading")}</div>}
-              {membersError && <div className="text-sm text-red-600">{(membersError as any).message}</div>}
+              {membersError && <div className="text-sm text-[hsl(var(--negative))]">{(membersError as any).message}</div>}
               {!membersLoading && !membersError && (
                 <ul className="space-y-2">
                   {members.map((m: any) => (
                     <li key={m?.user?.id} className="flex items-center gap-3 text-sm">
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-6 h-6 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex items-center justify-center">
+                        <div className="w-6 h-6 rounded-md bg-[hsl(var(--secondary)/0.5)] text-[hsl(var(--foreground))] flex items-center justify-center">
                           <Icon name="user" size={12} />
                         </div>
                         <div className="min-w-0">
@@ -440,7 +442,7 @@ function AccountInner() {
                           <span className="ml-auto text-xs text-muted-foreground">{roleLabel(Number(m?.role))}</span>
                         ) : (
                           <select
-                            className="ml-auto border rounded px-2 py-1 bg-background text-xs"
+                            className="ml-auto input w-32 bg-background/40 text-xs"
                             value={Number(m?.role) || 0}
                             onChange={(e) => {
                               const newRole = Number(e.target.value);

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Icon from "./Icon";
+import { useTranslations } from "next-intl";
 
 interface Category {
   id: string;
@@ -21,9 +22,10 @@ export default function CategoryTagInput({
   categories,
   selectedIds,
   onSelectionChange,
-  placeholder = "Введите код или название категории...",
+  placeholder,
   className = ""
 }: CategoryTagInputProps) {
+  const t = useTranslations("transactions");
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [inputValue, setInputValue] = useState("");
@@ -89,6 +91,7 @@ export default function CategoryTagInput({
   );
 
   const selectedCategories = categories.filter(cat => selectedIds.includes(cat.id));
+  const resolvedPlaceholder = placeholder ?? t("categoryIdsPlaceholder");
 
   const addCategory = (categoryId: string) => {
     if (!selectedIds.includes(categoryId)) {
@@ -134,17 +137,17 @@ export default function CategoryTagInput({
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef} style={{ zIndex: 9999999 }}>
-      <div className="w-full min-h-[40px] px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all duration-200 text-sm">
+      <div className="w-full min-h-[40px] px-3 py-2 border border-border rounded-none bg-secondary/60 text-foreground focus-within:ring-2 focus-within:ring-primary/40 focus-within:border-transparent transition-all duration-200 text-sm">
         <div className="flex items-center flex-wrap gap-1">
           {selectedCategories.map(cat => (
             <span
               key={cat.id}
-              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+              className="inline-flex items-center px-2 py-1 text-xs font-medium bg-[hsl(var(--primary)/0.15)] text-[hsl(var(--primary))]"
             >
               {getCategoryName(cat)}
               <button
                 onClick={() => removeCategory(cat.id)}
-                className="ml-1 hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full w-4 h-4 flex items-center justify-center"
+                className="ml-1 hover:text-foreground w-4 h-4 flex items-center justify-center"
               >
                 <Icon name="close" size={10} />
               </button>
@@ -160,23 +163,24 @@ export default function CategoryTagInput({
               setIsOpen(true);
               updateDropdownPosition();
             }}
-            placeholder={selectedCategories.length === 0 ? placeholder : ""}
-            className="flex-1 min-w-[120px] bg-transparent outline-none placeholder:text-slate-500 dark:placeholder:text-slate-400"
+            placeholder={selectedCategories.length === 0 ? resolvedPlaceholder : ""}
+            className="flex-1 min-w-[120px] bg-transparent outline-none placeholder:text-muted-foreground"
             autoComplete="off"
           />
         </div>
       </div>
 
       {isOpen && createPortal(
-        <div 
+        <div
           data-dropdown="category-tag-input"
-          className="fixed bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md shadow-xl max-h-60 overflow-hidden" 
-          style={{ 
+          className="fixed border border-border shadow-xl max-h-60 overflow-hidden rounded-none backdrop-blur supports-[backdrop-filter]:bg-card/70"
+          style={{
+            backgroundColor: "hsl(var(--card) / 0.95)",
             zIndex: 9999999,
             top: dropdownPosition.top,
             left: dropdownPosition.left,
-            width: dropdownPosition.width || 'auto',
-            minWidth: '200px'
+            width: dropdownPosition.width || "auto",
+            minWidth: "200px",
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -188,25 +192,25 @@ export default function CategoryTagInput({
               filteredCategories.map(cat => (
                 <div
                   key={cat.id}
-                  className="px-3 py-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-600 flex items-center space-x-2"
+                  className="px-3 py-2 cursor-pointer hover:bg-secondary/40 flex items-center space-x-2"
                   onClick={() => addCategory(cat.id)}
                 >
                   <div className="flex-1">
-                    <div className="text-sm font-medium text-slate-900 dark:text-white">
+                    <div className="text-sm font-medium text-foreground">
                       {getCategoryName(cat)}
                     </div>
                     {cat.code !== getCategoryName(cat) && (
-                      <div className="text-xs text-slate-500 dark:text-slate-400">
+                      <div className="text-xs text-muted-foreground">
                         {cat.code}
                       </div>
                     )}
                   </div>
-                  <Icon name="plus" size={14} className="text-slate-400" />
+                  <Icon name="plus" size={14} className="text-muted-foreground" />
                 </div>
               ))
             ) : (
-              <div className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">
-                {searchTerm ? 'Категории не найдены' : 'Все категории уже выбраны'}
+              <div className="px-3 py-2 text-sm text-muted-foreground">
+                {searchTerm ? t("categoriesNotFound") : t("categoriesAllSelected")}
               </div>
             )}
           </div>

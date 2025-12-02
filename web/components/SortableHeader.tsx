@@ -47,20 +47,20 @@ export function SortableHeader({
 
   return (
     <th 
-      className={`px-4 py-3 text-left text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wider cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600/50 transition-colors duration-200 ${className}`}
+      className={`px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-secondary/40 transition-colors duration-200 ${className}`}
       onClick={handleClick}
     >
       <div className="flex items-center space-x-1">
         <span>{children}</span>
         <div className="flex flex-col">
           {currentDirection === "asc" ? (
-            <Icon name="chevron-up" size={12} className="text-blue-600 dark:text-blue-400" />
+            <Icon name="chevron-up" size={12} className="text-[hsl(var(--primary))]" />
           ) : currentDirection === "desc" ? (
-            <Icon name="chevron-down" size={12} className="text-blue-600 dark:text-blue-400" />
+            <Icon name="chevron-down" size={12} className="text-[hsl(var(--primary))]" />
           ) : (
             <div className="flex flex-col -space-y-1">
-              <Icon name="chevron-up" size={10} className="text-slate-400 dark:text-slate-500" />
-              <Icon name="chevron-down" size={10} className="text-slate-400 dark:text-slate-500" />
+              <Icon name="chevron-up" size={10} className="text-muted-foreground" />
+              <Icon name="chevron-down" size={10} className="text-muted-foreground" />
             </div>
           )}
         </div>

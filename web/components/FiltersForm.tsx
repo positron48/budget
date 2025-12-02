@@ -1,7 +1,7 @@
-import { memo } from "react";
+import { memo, useMemo, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { TransactionType } from "@/proto/budget/v1/common_pb";
-import { Icon, CategoryTagInput } from "@/components";
+import { Icon, CategoryTagInput, Select, Input } from "@/components";
 
 interface FiltersFormProps {
   type: number;
@@ -33,66 +33,89 @@ const FiltersForm = memo(function FiltersForm({
   onCategoryIdsChange,
 }: FiltersFormProps) {
   const t = useTranslations("transactions");
+  const inputClass = "input text-sm rounded-none";
+
+  const typeOptions = useMemo(
+    () => [
+      { value: "0", label: t("allTypes") },
+      { value: String(TransactionType.EXPENSE), label: t("expense") },
+      { value: String(TransactionType.INCOME), label: t("income") },
+    ],
+    [t]
+  );
+
+  const DateInputField = ({
+    label,
+    value,
+    onChange,
+  }: {
+    label: string;
+    value: string;
+    onChange: (val: string) => void;
+  }) => {
+    const inputRef = useRef<HTMLInputElement>(null);
+    return (
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-muted-foreground">{label}</label>
+        <div className="relative">
+          <input
+            ref={inputRef}
+            className={`${inputClass} w-full pr-12 date-input`}
+            type="date"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            autoComplete="off"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              if (!inputRef.current) return;
+              if (typeof inputRef.current.showPicker === "function") {
+                inputRef.current.showPicker();
+              } else {
+                inputRef.current.focus();
+              }
+            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Icon name="calendar" size={16} />
+          </button>
+        </div>
+      </div>
+    );
+  };
   return (
-    <div className="bg-slate-50 dark:bg-slate-700/50 px-4 py-3">
+    <div className="rounded-none border border-border bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60 px-4 py-4 space-y-3">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-700 dark:text-slate-300">{t("type")}</label>
-          <select 
-            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm" 
-            value={String(type)} 
-            onChange={(e) => onTypeChange(Number(e.target.value))}
-          >
-            <option value={0}>{t("allTypes")}</option>
-            <option value={TransactionType.EXPENSE}>{t("expense")}</option>
-            <option value={TransactionType.INCOME}>{t("income")}</option>
-          </select>
+          <label className="text-xs font-medium text-muted-foreground">{t("type")}</label>
+          <Select
+            value={String(type)}
+            onChange={(value) => onTypeChange(Number(value))}
+            options={typeOptions}
+            className="w-full"
+          />
         </div>
 
+        <DateInputField label={t("from")} value={from} onChange={onFromChange} />
+
+        <DateInputField label={t("to")} value={to} onChange={onToChange} />
+
         <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-700 dark:text-slate-300">{t("from")}</label>
-          <input 
-            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm" 
-            type="date" 
-            value={from} 
-            onChange={(e) => onFromChange(e.target.value)}
-            autoComplete="off"
+          <label className="text-xs font-medium text-muted-foreground">{t("search")}</label>
+          <Input
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder={t("searchPlaceholder") as string}
+            rightIcon="search"
+            className="w-full"
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-700 dark:text-slate-300">{t("to")}</label>
-          <input 
-            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm" 
-            type="date" 
-            value={to} 
-            onChange={(e) => onToChange(e.target.value)}
-            autoComplete="off"
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-700 dark:text-slate-300">{t("search")}</label>
-          <div className="relative">
-            <Icon 
-              name="search" 
-              size={14} 
-              className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-slate-400" 
-            />
-            <input 
-              className="w-full pl-8 pr-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm" 
-              value={search} 
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder={t("searchPlaceholder") as string}
-              autoComplete="off"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-700 dark:text-slate-300">{t("category")}</label>
+          <label className="text-xs font-medium text-muted-foreground">{t("category")}</label>
           {categoriesLoading ? (
-            <div className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-sm">{t("loadingCategories")}</div>
+            <div className={`${inputClass} w-full text-muted-foreground`}>{t("loadingCategories")}</div>
           ) : (
             <CategoryTagInput
               categories={categoriesData?.categories || []}

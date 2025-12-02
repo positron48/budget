@@ -23,7 +23,8 @@ export const metadata: Metadata = {
   keywords: ["budget", "finance", "money", "expenses", "income", "tracking"],
   authors: [{ name: "Budget Manager Team" }],
   viewport: "width=device-width, initial-scale=1",
-  themeColor: "#3b82f6",
+  themeColor: "#020617",
+  colorScheme: "dark",
   manifest: "/manifest.json",
 };
 

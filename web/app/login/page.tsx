@@ -7,12 +7,12 @@ export default function LoginPage() {
   const t = useTranslations("auth");
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-6 py-12">
       <div className="w-full max-w-md">
         {/* Logo and Title */}
         <div className="text-center mb-8">
-          <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center mb-4">
-            <span className="text-3xl text-white">💼</span>
+          <div className="mx-auto w-16 h-16 bg-[hsl(var(--primary)/0.15)] flex items-center justify-center mb-4 border border-[hsl(var(--primary)/0.3)]">
+            <span className="text-3xl text-[hsl(var(--primary))]">💼</span>
           </div>
           <h1 className="text-3xl font-bold text-foreground mb-2">
             {t("welcomeBack")}
@@ -23,10 +23,8 @@ export default function LoginPage() {
         </div>
 
         {/* Login Form */}
-        <div className="card shadow-xl">
-          <div className="card-content pt-8">
-            <LoginForm />
-          </div>
+        <div className="border border-border bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60 shadow-xl rounded-none p-8">
+          <LoginForm />
         </div>
 
         {/* Footer */}

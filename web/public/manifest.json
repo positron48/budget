@@ -4,8 +4,8 @@
   "description": "Personal budget management application",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#3b82f6",
+  "background_color": "#020617",
+  "theme_color": "#020617",
   "orientation": "portrait-primary",
   "permissions": [],
   "icons": [

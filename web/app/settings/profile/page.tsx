@@ -84,19 +84,21 @@ function ProfileSettingsInner() {
     }
   }, [me?.createdAt?.seconds, locale]);
 
+  const surfaceCard = "border border-border bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60";
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         <div>
           <h1 className="text-xl font-bold text-foreground mb-1">{t("title")}</h1>
           <p className="text-sm text-muted-foreground">{t("description")}</p>
         </div>
 
-        <Card className="bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800">
+        <Card className={surfaceCard}>
           <CardHeader>
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/20 flex items-center justify-center">
-                <Icon name="user" size={16} className="text-indigo-600 dark:text-indigo-400" />
+              <div className="mt-0.5 w-8 h-8 rounded-lg bg-[hsl(var(--info)/0.2)] flex items-center justify-center">
+                <Icon name="user" size={16} className="text-[hsl(var(--info))]" />
               </div>
               <div>
                 <CardTitle className="text-base">{me?.email || ""}</CardTitle>
@@ -110,14 +112,14 @@ function ProfileSettingsInner() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Update profile */}
-          <Card className="bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800">
+          <Card className={surfaceCard}>
             <CardHeader>
               <CardTitle className="text-base">{t("updateTitle")}</CardTitle>
             </CardHeader>
             <CardContent>
               {isLoading && <div className="text-sm text-muted-foreground mb-2">{tc("loading")}</div>}
               {error && (
-                <div className="text-sm text-red-600 mb-2">{(error as any).message}</div>
+                <div className="text-sm text-[hsl(var(--negative))] mb-2">{(error as any).message}</div>
               )}
               <form
                 onSubmit={(e) => {
@@ -146,20 +148,20 @@ function ProfileSettingsInner() {
                   </select>
                 </div>
                 {profileOk && (
-                  <div className="text-xs text-green-700">{t("profileUpdated")}</div>
+                  <div className="text-xs text-[hsl(var(--positive))]">{t("profileUpdated")}</div>
                 )}
                 <Button type="submit" loading={updateMut.isPending} disabled={updateMut.isPending}>
                   {updateMut.isPending ? tc("saving") : tc("save")}
                 </Button>
                 {updateMut.error && (
-                  <div className="text-xs text-red-600">{(updateMut.error as any).message}</div>
+                  <div className="text-xs text-[hsl(var(--negative))]">{(updateMut.error as any).message}</div>
                 )}
               </form>
             </CardContent>
           </Card>
 
           {/* Change password */}
-          <Card className="bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800">
+          <Card className={surfaceCard}>
             <CardHeader>
               <CardTitle className="text-base">{t("passwordTitle")}</CardTitle>
             </CardHeader>
@@ -186,12 +188,12 @@ function ProfileSettingsInner() {
                   onChange={(e) => setNewPassword(e.target.value)}
                   autoComplete="new-password"
                 />
-                {pwOk && <div className="text-xs text-green-700">{t("passwordChanged")}</div>}
+                {pwOk && <div className="text-xs text-[hsl(var(--positive))]">{t("passwordChanged")}</div>}
                 <Button type="submit" loading={pwMut.isPending} disabled={pwMut.isPending}>
                   {pwMut.isPending ? tc("saving") : tc("save")}
                 </Button>
                 {pwMut.error && (
-                  <div className="text-xs text-red-600">{(pwMut.error as any).message}</div>
+                  <div className="text-xs text-[hsl(var(--negative))]">{(pwMut.error as any).message}</div>
                 )}
               </form>
             </CardContent>

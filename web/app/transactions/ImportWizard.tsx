@@ -480,34 +480,34 @@ export default function ImportWizard({ onClose, onCompleted }: Props) {
       onDrop={handleDrop}
     >
       {isDragging && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-md bg-slate-100/85 dark:bg-slate-800/70 border-2 border-dashed border-slate-400">
+        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-none bg-secondary/80 border-2 border-dashed border-border/70">
           <div className="text-center">
-            <div className="text-lg font-semibold text-slate-800 dark:text-slate-100">{t("dragOverlayTitle") as string}</div>
-            <div className="mt-1 text-sm text-slate-700 dark:text-slate-200">{t("dragOverlaySubtitle") as string}</div>
+            <div className="text-lg font-semibold text-foreground">{t("dragOverlayTitle") as string}</div>
+            <div className="mt-1 text-sm text-muted-foreground">{t("dragOverlaySubtitle") as string}</div>
           </div>
         </div>
       )}
       {/* Step header */}
       <div className="flex items-center gap-2 text-sm">
-        <span className={`px-2 py-0.5 rounded ${step >= 0 ? "bg-blue-600 text-white" : "bg-slate-200"}`}>1</span>
-        <span className={step === 0 ? "font-semibold" : "text-slate-600"}>{t("importStepFile")}</span>
-        <Icon name="chevron-right" size={14} className="text-slate-400" />
-        <span className={`px-2 py-0.5 rounded ${step >= 1 ? "bg-blue-600 text-white" : "bg-slate-200"}`}>2</span>
-        <span className={step === 1 ? "font-semibold" : "text-slate-600"}>{t("importStepMapping")}</span>
+        <span className={`px-2 py-0.5 rounded-none ${step >= 0 ? "bg-[hsl(var(--primary))] text-primary-foreground" : "bg-secondary/60 text-muted-foreground"}`}>1</span>
+        <span className={step === 0 ? "font-semibold text-foreground" : "text-muted-foreground"}>{t("importStepFile")}</span>
+        <Icon name="chevron-right" size={14} className="text-muted-foreground" />
+        <span className={`px-2 py-0.5 rounded-none ${step >= 1 ? "bg-[hsl(var(--primary))] text-primary-foreground" : "bg-secondary/60 text-muted-foreground"}`}>2</span>
+        <span className={step === 1 ? "font-semibold text-foreground" : "text-muted-foreground"}>{t("importStepMapping")}</span>
         {(!autoCreateMissingCategories && missingCategoryNames.length > 0) ? (
           <>
-            <Icon name="chevron-right" size={14} className="text-slate-400" />
-            <span className={`px-2 py-0.5 rounded ${step >= 2 ? "bg-blue-600 text-white" : "bg-slate-200"}`}>3</span>
-            <span className={step === 2 ? "font-semibold" : "text-slate-600"}>{t("importStepCategoryMap")}</span>
-            <Icon name="chevron-right" size={14} className="text-slate-400" />
-            <span className={`px-2 py-0.5 rounded ${step >= 3 ? "bg-blue-600 text-white" : "bg-slate-200"}`}>4</span>
-            <span className={step === 3 ? "font-semibold" : "text-slate-600"}>{t("importStepPreview")}</span>
+            <Icon name="chevron-right" size={14} className="text-muted-foreground" />
+            <span className={`px-2 py-0.5 rounded-none ${step >= 2 ? "bg-[hsl(var(--primary))] text-primary-foreground" : "bg-secondary/60 text-muted-foreground"}`}>3</span>
+            <span className={step === 2 ? "font-semibold text-foreground" : "text-muted-foreground"}>{t("importStepCategoryMap")}</span>
+            <Icon name="chevron-right" size={14} className="text-muted-foreground" />
+            <span className={`px-2 py-0.5 rounded-none ${step >= 3 ? "bg-[hsl(var(--primary))] text-primary-foreground" : "bg-secondary/60 text-muted-foreground"}`}>4</span>
+            <span className={step === 3 ? "font-semibold text-foreground" : "text-muted-foreground"}>{t("importStepPreview")}</span>
           </>
         ) : (
           <>
-            <Icon name="chevron-right" size={14} className="text-slate-400" />
-            <span className={`px-2 py-0.5 rounded ${step >= 2 ? "bg-blue-600 text-white" : "bg-slate-200"}`}>3</span>
-            <span className={step === 2 ? "font-semibold" : "text-slate-600"}>{t("importStepPreview")}</span>
+            <Icon name="chevron-right" size={14} className="text-muted-foreground" />
+            <span className={`px-2 py-0.5 rounded-none ${step >= 2 ? "bg-[hsl(var(--primary))] text-primary-foreground" : "bg-secondary/60 text-muted-foreground"}`}>3</span>
+            <span className={step === 2 ? "font-semibold text-foreground" : "text-muted-foreground"}>{t("importStepPreview")}</span>
           </>
         )}
       </div>
@@ -515,15 +515,15 @@ export default function ImportWizard({ onClose, onCompleted }: Props) {
       {/* Step 0: instructions + file */}
       {step === 0 && (
         <div className="space-y-4">
-          <div className="rounded-md border border-slate-200 dark:border-slate-700 p-3 bg-slate-50/50 dark:bg-slate-800/40">
-            <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{t("importInstructionsTitle")}</div>
-            <ul className="mt-2 list-disc pl-5 text-sm text-slate-700 dark:text-slate-300 space-y-1">
+          <div className="rounded-none border border-border p-3 bg-card/80">
+            <div className="text-sm font-medium text-foreground">{t("importInstructionsTitle")}</div>
+            <ul className="mt-2 list-disc pl-5 text-sm text-muted-foreground space-y-1">
               {(t.raw("importInstructionsList") as string[]).map((line, idx) => (
                 <li key={idx}>{line}</li>
               ))}
             </ul>
-            <div className="mt-2 text-xs text-slate-500">{t("importSampleHeader")}</div>
-            <pre className="mt-1 text-xs p-2 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700 overflow-x-auto">{locale === "ru" ? `date,amount,currency,type,category,comment\n2024-01-02,1200.50,RUB,expense,Еда,Обед\n2024-01-03,50000,RUB,income,Зарплата,Аванс\n` : `date,amount,currency,type,category,comment\n2024-01-02,1200.50,USD,expense,Food,Lunch\n2024-01-03,50000,USD,income,Salary,Advance\n`}</pre>
+            <div className="mt-2 text-xs text-muted-foreground">{t("importSampleHeader")}</div>
+            <pre className="mt-1 text-xs p-2 bg-background/60 rounded-none border border-border/60 overflow-x-auto">{locale === "ru" ? `date,amount,currency,type,category,comment\n2024-01-02,1200.50,RUB,expense,Еда,Обед\n2024-01-03,50000,RUB,income,Зарплата,Аванс\n` : `date,amount,currency,type,category,comment\n2024-01-02,1200.50,USD,expense,Food,Lunch\n2024-01-03,50000,USD,income,Salary,Advance\n`}</pre>
           </div>
           <div className="flex items-center justify-center gap-3">
             <input
@@ -543,14 +543,14 @@ export default function ImportWizard({ onClose, onCompleted }: Props) {
               {t("chooseFile") as string}
             </Button>
             {selectedFileName && (
-              <span className="text-sm text-slate-600 dark:text-slate-300 truncate max-w-[50%]" title={selectedFileName}>
+              <span className="text-sm text-muted-foreground truncate max-w-[50%]" title={selectedFileName}>
                 {selectedFileName}
               </span>
             )}
           </div>
 
           {/* Small hint (global drag handlers are on container) */}
-          <div className="mt-3 w-full text-center text-xs text-slate-500 select-none">
+          <div className="mt-3 w-full text-center text-xs text-muted-foreground select-none">
             {t("dragDropHint") as string}
           </div>
         </div>
@@ -561,8 +561,8 @@ export default function ImportWizard({ onClose, onCompleted }: Props) {
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-slate-500">{t("delimiter")}</label>
-              <select className="w-full border rounded px-2 py-1 bg-white dark:bg-slate-700" value={delimiter} onChange={(e) => {
+              <label className="text-xs text-muted-foreground">{t("delimiter")}</label>
+              <select className="input text-sm rounded-none w-full" value={delimiter} onChange={(e) => {
                 const d = e.target.value; setDelimiter(d); if (text) { const res = parseCsv(text, d, quote); setParsed(res); setMapping(guessMapping(res.headers)); }
               }}>
                 <option value=",">,</option>
@@ -572,8 +572,8 @@ export default function ImportWizard({ onClose, onCompleted }: Props) {
               </select>
             </div>
             <div>
-              <label className="text-xs text-slate-500">{t("quote")}</label>
-              <select className="w-full border rounded px-2 py-1 bg-white dark:bg-slate-700" value={quote} onChange={(e) => {
+              <label className="text-xs text-muted-foreground">{t("quote")}</label>
+              <select className="input text-sm rounded-none w-full" value={quote} onChange={(e) => {
                 const q = e.target.value; setQuote(q); if (text) { const res = parseCsv(text, delimiter, q); setParsed(res); setMapping(guessMapping(res.headers)); }
               }}>
                 <option value='"'>&quot;</option>
@@ -582,9 +582,9 @@ export default function ImportWizard({ onClose, onCompleted }: Props) {
             </div>
             {(["dateColumn","amountColumn","currencyCodeColumn","typeColumn","categoryColumn","commentColumn"] as (keyof CsvMapping)[]).map((key) => (
               <div key={key}>
-                <label className="text-xs text-slate-500">{t(key as any)}</label>
+                <label className="text-xs text-muted-foreground">{t(key as any)}</label>
                 <select
-                  className="w-full border rounded px-2 py-1 bg-white dark:bg-slate-700"
+                  className="input text-sm rounded-none w-full"
                   value={(mapping[key] as string) || ""}
                   onChange={(e) => setMapping((m) => ({ ...m, [key]: e.target.value || undefined }))}
                 >
@@ -598,7 +598,7 @@ export default function ImportWizard({ onClose, onCompleted }: Props) {
           </div>
 
           {mapping.categoryColumn && missingCategoryNames.length > 0 && (
-            <div className="rounded-md border border-slate-200 dark:border-slate-700 p-3">
+            <div className="rounded-none border border-border p-3 bg-card/70">
               <div className="flex items-center justify-between">
                 <div className="font-medium text-sm">{t("categoryHandlingTitle")}</div>
                 <label className="text-sm inline-flex items-center gap-2">
@@ -606,8 +606,8 @@ export default function ImportWizard({ onClose, onCompleted }: Props) {
                   {t("createMissingCategories")}
                 </label>
               </div>
-              <div className="mt-2 text-xs text-slate-500">{t("noAutoCreateNote")}</div>
-              <div className="mt-2 text-xs text-slate-600 dark:text-slate-300">
+              <div className="mt-2 text-xs text-muted-foreground">{t("noAutoCreateNote")}</div>
+              <div className="mt-2 text-xs text-muted-foreground">
                 {t("missingCategories")}: {missingCategoryNames.join(", ")}
               </div>
             </div>
@@ -628,9 +628,9 @@ export default function ImportWizard({ onClose, onCompleted }: Props) {
             <span className="mr-3">{t("validRows")}: <b className="text-green-600">{preview.valid}</b></span>
             <span>{t("invalidRows")}: <b className="text-red-600">{preview.invalid}</b></span>
           </div>
-          <div className="overflow-x-auto rounded border border-slate-200 dark:border-slate-700">
+          <div className="overflow-x-auto rounded-none border border-border">
             <table className="min-w-full text-xs">
-              <thead className="bg-slate-50 dark:bg-slate-700/40">
+              <thead className="bg-secondary/40">
                 <tr>
                   <th className="px-2 py-1 text-left">date</th>
                   <th className="px-2 py-1 text-left">amount</th>

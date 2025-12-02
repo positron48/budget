@@ -65,21 +65,35 @@ const CategoryToggleChart = memo(function CategoryToggleChart({
         <div className="mb-6">
           <h4 className="text-sm font-medium text-foreground mb-3">{t("toggleCategories")}</h4>
           <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
-              <Button
-                key={category.id}
-                size="sm"
-                variant={visibleCategories.has(category.id) ? "primary" : "outline"}
-                onClick={() => toggleCategory(category.id)}
-                className="text-xs flex items-center gap-2"
-              >
-                <div 
-                  className="w-3 h-3 rounded-full" 
-                  style={{ backgroundColor: category.color }}
-                />
-                {category.name}
-              </Button>
-            ))}
+            {categories.map((category) => {
+              const isActive = visibleCategories.has(category.id);
+              return (
+                <Button
+                  key={category.id}
+                  size="sm"
+                  variant="outline"
+                  onClick={() => toggleCategory(category.id)}
+                  className={`text-xs flex items-center gap-2 rounded-none border ${
+                    isActive ? "!text-foreground" : "!text-muted-foreground !border-border bg-secondary/60"
+                  }`}
+                  style={
+                    isActive
+                      ? {
+                          backgroundColor: `${category.color}22`,
+                          borderColor: `${category.color}66`,
+                          color: category.color,
+                        }
+                      : undefined
+                  }
+                >
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: category.color }}
+                  />
+                  {category.name}
+                </Button>
+              );
+            })}
           </div>
         </div>
 
@@ -98,7 +112,7 @@ const CategoryToggleChart = memo(function CategoryToggleChart({
                 </div>
                 
                 {/* Stacked Bar */}
-                <div className="relative h-6 bg-gray-100 dark:bg-gray-700 rounded-md overflow-hidden">
+                <div className="relative h-6 bg-secondary/40 border border-border rounded-none overflow-hidden">
                   {visibleCategoriesData.map((category, catIndex) => {
                     const categoryValue = category.values[monthIndex] || 0;
                     const categoryPercentage = monthTotal > 0 ? (categoryValue / monthTotal) * 100 : 0;
@@ -126,16 +140,18 @@ const CategoryToggleChart = memo(function CategoryToggleChart({
         </div>
 
         {/* Legend */}
-        <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="mt-6 pt-4 border-t border-border">
           <h4 className="text-sm font-medium text-foreground mb-3">{t("categoryTotals")}</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {visibleCategoriesData.map((category) => (
-              <div key={category.id} className="flex items-center justify-between text-sm">
+              <div
+                key={category.id}
+                className={`flex items-center justify-between text-sm px-3 py-2 border border-border/60 rounded-none ${
+                  visibleCategories.has(category.id) ? "bg-card/70" : "bg-secondary/50 text-muted-foreground"
+                }`}
+              >
                 <div className="flex items-center gap-2">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: category.color }}
-                  />
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: category.color }} />
                   <span className="text-foreground">{category.name}</span>
                 </div>
                 <span className="text-muted-foreground font-medium">

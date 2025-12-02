@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
+import { chartPalettes, themeColors } from "@/lib/theme/colors";
 
 export type DonutDatum = {
   label: string;
@@ -37,17 +38,7 @@ export default function DonutChart({
   const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
-  const palette = useMemo(() => [
-    "#6366f1", // indigo-500
-    "#22c55e", // green-500
-    "#ef4444", // red-500
-    "#06b6d4", // cyan-500
-    "#f59e0b", // amber-500
-    "#a855f7", // purple-500
-    "#14b8a6", // teal-500
-    "#3b82f6", // blue-500
-    "#f97316", // orange-500
-  ], []);
+  const palette = chartPalettes.mixed;
 
   const processed = useMemo(() => {
     const total = data.reduce((s, d) => s + Math.max(0, d.value), 0);
@@ -180,12 +171,7 @@ export default function DonutChart({
       >
         <g transform={`translate(${canvasSize / 2}, ${canvasSize / 2})`}>
           {/* background ring */}
-          <circle
-            r={radius}
-            fill="transparent"
-            stroke="#E5E7EB"
-            strokeWidth={strokeWidth}
-          />
+          <circle r={radius} fill="transparent" stroke={themeColors.borderMuted} strokeWidth={strokeWidth} />
           {/* segments */}
           {processed.segments.map((s, idx) => (
             <circle
@@ -249,21 +235,19 @@ export default function DonutChart({
                 onMouseLeave={clearTooltip}
                 onClick={() => setSelectedIndex((cur) => (cur === idx ? null : idx))}
               >
-                <polyline
-                  points={polylinePoints}
-                  fill="none"
-                  stroke="#9ca3af"
-                  strokeWidth={1}
-                />
+                <polyline points={polylinePoints} fill="none" stroke={themeColors.mutedForeground} strokeWidth={1} />
                 <circle cx={connectorEnd.x} cy={adjustedY} r={2} fill={s.color} />
                 <text
                   x={textX}
                   y={labelY}
                   textAnchor={direction === 1 ? "start" : "end"}
                   style={{ fontSize: 12, fontWeight: 500, dominantBaseline: "middle" }}
-                  fill="#111827"
+                  fill={themeColors.foreground}
                 >
-                  {s.label} <tspan style={{ fontSize: 11, fill: "#6b7280", fontWeight: 400 }}>· {percent}%</tspan>
+                  {s.label}{" "}
+                  <tspan style={{ fontSize: 11, fontWeight: 400 }} fill={themeColors.mutedForeground}>
+                    · {percent}%
+                  </tspan>
                 </text>
               </g>
             );
@@ -275,8 +259,7 @@ export default function DonutChart({
                 x={0}
                 y={-4}
                 textAnchor="middle"
-                className="fill-current"
-                style={{ fontSize: 16, fontWeight: 600 }}
+                style={{ fontSize: 16, fontWeight: 600, fill: themeColors.foreground }}
               >
                 {hovered !== null ? processed.segments[hovered]?.label : centerLabel}
               </text>
@@ -286,8 +269,7 @@ export default function DonutChart({
                 x={0}
                 y={14}
                 textAnchor="middle"
-                className="fill-current"
-                style={{ fontSize: 11, opacity: 0.7 }}
+                style={{ fontSize: 11, opacity: 0.7, fill: themeColors.mutedForeground }}
               >
                 {hovered !== null
                   ? `${valueFormatter ? valueFormatter(processed.segments[hovered]!.value) : processed.segments[hovered]!.value} · ${Math.round((processed.segments[hovered]?.frac || 0) * 100)}%`

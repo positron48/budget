@@ -1,4 +1,5 @@
 import Icon from "./Icon";
+import { useTranslations } from "next-intl";
 
 interface CategoryBadgeProps {
   categoryId?: string;
@@ -17,32 +18,28 @@ export default function CategoryBadge({
   type,
   className = "" 
 }: CategoryBadgeProps) {
+  const t = useTranslations("transactions");
   if (!categoryId && !categoryName && !categoryCode) {
     return (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 ${className}`}>
+      <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium text-muted-foreground rounded-none ${className}`}>
         <Icon name="tag" size={10} className="mr-1" />
-        Без категории
+        {t("noCategory")}
       </span>
     );
   }
 
-  const getCategoryColor = () => {
-    const colors = {
-      expense: {
-        bg: 'bg-red-100 dark:bg-red-900/30',
-        text: 'text-red-700 dark:text-red-300',
-        border: 'border-red-200 dark:border-red-800'
-      },
-      income: {
-        bg: 'bg-green-100 dark:bg-green-900/30',
-        text: 'text-green-700 dark:text-green-300',
-        border: 'border-green-200 dark:border-green-800'
-      }
-    };
-    return colors[type];
-  };
-
-  const colors = getCategoryColor();
+  const colors =
+    type === "expense"
+      ? {
+          bg: "bg-[hsl(var(--negative)/0.15)]",
+          text: "text-[hsl(var(--negative))]",
+          border: "border-[hsl(var(--negative)/0.3)]",
+        }
+      : {
+          bg: "bg-[hsl(var(--positive)/0.15)]",
+          text: "text-[hsl(var(--positive))]",
+          border: "border-[hsl(var(--positive)/0.3)]",
+        };
 
   // Получаем название категории из переводов или используем переданное название
   const getCategoryName = () => {
@@ -57,10 +54,10 @@ export default function CategoryBadge({
     return null;
   };
 
-  const displayName = categoryCode || getCategoryName() || "Без категории";
+  const displayName = categoryCode || getCategoryName() || t("noCategory");
 
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${colors.bg} ${colors.text} ${colors.border} ${className}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium border rounded-none ${colors.bg} ${colors.text} ${colors.border} ${className}`}>
       <Icon name="tag" size={10} className="mr-1" />
       {displayName}
     </span>
