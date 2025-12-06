@@ -90,16 +90,16 @@ logs-dev: ## [Docker] Логи docker compose в режиме разработк
 	docker compose logs -f --tail=200
 
 tidy: ## [Go] Обновить зависимости (go mod tidy)
-	docker run --rm -v $(PWD):/app -w /app golang:1.24 go mod tidy
+	docker run --rm -v $(PWD):/app -w /app golang:1.24.11 go mod tidy
 
 fmt: ## [Go] Форматирование кода (gofumpt/gofmt)
-	docker run --rm -v $(PWD):/app -w /app golang:1.24 bash -c "go install mvdan.cc/gofumpt@latest && gofumpt -w . && gofmt -s -w ."
+	docker run --rm -v $(PWD):/app -w /app golang:1.24.11 bash -c "go install mvdan.cc/gofumpt@latest && gofumpt -w . && gofmt -s -w ."
 
 test: ## [Go] Запуск тестов Go (-race, coverage)
-	docker run --rm -v $(PWD):/app -w /app golang:1.24 go test ./... -race -coverprofile=coverage.out -covermode=atomic
+	docker run --rm -v $(PWD):/app -w /app golang:1.24.11 go test ./... -race -coverprofile=coverage.out -covermode=atomic
 
 pgtest: ## [Go] Интеграционные тесты PostgreSQL (PG_INTEGRATION=1)
-	docker run --rm -v $(PWD):/app -w /app --network host golang:1.24 bash -c "PG_INTEGRATION=1 go test ./internal/adapter/postgres -run Test.*_PG -v"
+	docker run --rm -v $(PWD):/app -w /app --network host golang:1.24.11 bash -c "PG_INTEGRATION=1 go test ./internal/adapter/postgres -run Test.*_PG -v"
 
 LINT_IMAGE_TAG ?= v2.1.0
 
@@ -108,7 +108,7 @@ lint: ## [Go] Линтер Go (golangci-lint в docker)
 	docker run --rm -e GOTOOLCHAIN=local -v $(PWD):/app -w /app golangci/golangci-lint:$(LINT_IMAGE_TAG) golangci-lint run --timeout=5m
 
 vet: ## [Go] Анализ кода (go vet)
-	docker run --rm -v $(PWD):/app -w /app golang:1.24 go vet ./...
+	docker run --rm -v $(PWD):/app -w /app golang:1.24.11 go vet ./...
 
 ci: tidy vet lint test ## [Go] Мини CI: tidy vet lint test
 
