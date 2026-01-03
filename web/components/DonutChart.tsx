@@ -31,8 +31,22 @@ export default function DonutChart({
   const maxStroke = strokeWidth + hoverGrow;
   const radius = (size - maxStroke - margin * 2) / 2;
   const circumference = 2 * Math.PI * radius;
-  const calloutPadding = Math.max(32, size * 0.25);
-  const canvasSize = size + calloutPadding * 2;
+  // Рассчитываем горизонтальный padding для подписей (только слева и справа)
+  // labelColumnOffset = radius + strokeWidth/2 + size*0.4
+  // Максимальное расстояние от центра до конца текста = labelColumnOffset + labelOffset (10) + текст (~150px)
+  const labelColumnOffset = radius + strokeWidth / 2 + size * 0.4;
+  const labelOffset = 10;
+  const estimatedTextWidth = 150; // примерная максимальная ширина текста с процентом
+  // Горизонтальный padding нужен только для подписей слева и справа
+  // Центр находится в (size/2 + horizontalPadding, size/2)
+  // Нужно: size/2 + horizontalPadding >= labelColumnOffset + labelOffset + estimatedTextWidth
+  // horizontalPadding >= labelColumnOffset + labelOffset + estimatedTextWidth - size/2
+  const horizontalPadding = Math.max(40, labelColumnOffset + labelOffset + estimatedTextWidth - size / 2);
+  const verticalPadding = 20; // минимальный вертикальный padding
+  const canvasWidth = size + horizontalPadding * 2;
+  const canvasHeight = size + verticalPadding * 2;
+  const centerX = size / 2 + horizontalPadding;
+  const centerY = size / 2 + verticalPadding;
   const containerRef = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState<number | null>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null);
@@ -81,10 +95,7 @@ export default function DonutChart({
     const large = a1 - a0 > Math.PI ? 1 : 0;
     return `M 0 0 L ${p0.x.toFixed(3)} ${p0.y.toFixed(3)} A ${r} ${r} 0 ${large} 1 ${p1.x.toFixed(3)} ${p1.y.toFixed(3)} Z`;
   };
-
-  const labelColumnOffset = radius + strokeWidth / 2 + size * 0.4;
   const connectorLead = Math.max(14, size * 0.06);
-  const labelOffset = 10;
   const minLabelGap = 18;
 
   type CalloutLayout = {
@@ -162,14 +173,16 @@ export default function DonutChart({
   return (
     <div className={`relative ${className}`} ref={containerRef}>
       <svg
-        width={canvasSize}
-        height={canvasSize}
-        viewBox={`0 0 ${canvasSize} ${canvasSize}`}
+        width={canvasWidth}
+        height={canvasHeight}
+        viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}
         role="img"
         aria-label="donut chart"
-        style={{ overflow: "visible" }}
+        preserveAspectRatio="xMidYMid meet"
+        style={{ maxWidth: "100%", height: "auto", overflow: "visible" }}
+        className="w-full h-auto"
       >
-        <g transform={`translate(${canvasSize / 2}, ${canvasSize / 2})`}>
+        <g transform={`translate(${centerX}, ${centerY})`}>
           {/* background ring */}
           <circle r={radius} fill="transparent" stroke={themeColors.borderMuted} strokeWidth={strokeWidth} />
           {/* segments */}
@@ -243,6 +256,7 @@ export default function DonutChart({
                   textAnchor={direction === 1 ? "start" : "end"}
                   style={{ fontSize: 12, fontWeight: 500, dominantBaseline: "middle" }}
                   fill={themeColors.foreground}
+                  className="select-none"
                 >
                   {s.label}{" "}
                   <tspan style={{ fontSize: 11, fontWeight: 400 }} fill={themeColors.mutedForeground}>

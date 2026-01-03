@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef } from "react";
+import { memo, useMemo, useRef, useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { TransactionType } from "@/proto/budget/v1/common_pb";
 import { Icon, CategoryTagInput, Select, Input } from "@/components";
@@ -54,6 +54,13 @@ const FiltersForm = memo(function FiltersForm({
     onChange: (val: string) => void;
   }) => {
     const inputRef = useRef<HTMLInputElement>(null);
+    const [localValue, setLocalValue] = useState(value);
+    
+    // Синхронизируем локальное значение с пропсом при изменении извне
+    useEffect(() => {
+      setLocalValue(value);
+    }, [value]);
+    
     return (
       <div className="space-y-1">
         <label className="text-xs font-medium text-muted-foreground">{label}</label>
@@ -62,8 +69,20 @@ const FiltersForm = memo(function FiltersForm({
             ref={inputRef}
             className={`${inputClass} w-full pr-12 date-input`}
             type="date"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
+            value={localValue}
+            onChange={(e) => setLocalValue(e.target.value)}
+            onBlur={(e) => {
+              // Обновляем родительское состояние только при потере фокуса
+              if (e.target.value !== value) {
+                onChange(e.target.value);
+              }
+            }}
+            onKeyDown={(e) => {
+              // Также обновляем при нажатии Enter
+              if (e.key === "Enter") {
+                e.currentTarget.blur();
+              }
+            }}
             autoComplete="off"
           />
           <button

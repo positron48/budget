@@ -541,19 +541,7 @@ function TransactionTable({
   console.log('Sample category:', categories[0]);
   console.log('Sample transaction:', items[0]);
 
-  if (items.length === 0) {
-    return (
-      <Card className={`${SURFACE_CARD} text-center py-12`}>
-        <CardContent>
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-secondary/60 rounded-full mb-4">
-            <Icon name="receipt" size={32} className="text-muted-foreground" />
-          </div>
-          <h3 className="text-xl font-bold text-foreground mb-2">{t("noTransactions")}</h3>
-          <p className="text-muted-foreground">{t("noTransactionsDescription")}</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Не возвращаемся раньше времени, чтобы показать таблицу с фильтрами даже когда транзакций нет
 
   return (
     <Card className={tableCardClass}>
@@ -832,6 +820,17 @@ function TransactionTable({
                 </td>
               </tr>
             ))}
+            {items.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-12 text-center">
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-secondary/60 rounded-full mb-4">
+                    <Icon name="receipt" size={32} className="text-muted-foreground" />
+                  </div>
+                  <h3 className="text-xl font-bold text-foreground mb-2">{t("noTransactions")}</h3>
+                  <p className="text-muted-foreground">{t("noTransactionsDescription")}</p>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

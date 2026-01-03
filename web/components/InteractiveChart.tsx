@@ -111,34 +111,37 @@ const InteractiveChart = memo(function InteractiveChart({
     const width = 1200;
     const height = 400;
     const padding = { top: 40, right: 40, bottom: 40, left: 80 };
+    const labelOffset = 60; // место для подписей слева
     const chartWidth = width - padding.left - padding.right;
     const chartHeight = height - padding.top - padding.bottom;
+    const svgWidth = width + labelOffset; // увеличиваем ширину SVG для подписей
 
-    const xScale = (index: number) => padding.left + (index / (months.length - 1)) * chartWidth;
+    const xScale = (index: number) => padding.left + labelOffset + (index / (months.length - 1)) * chartWidth;
     const yScale = (value: number) => padding.top + chartHeight - (value / maxValue) * chartHeight;
 
     return (
       <div className="w-full">
-        <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="w-full">
+        <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
           {/* Grid lines */}
           {[0, 0.25, 0.5, 0.75, 1].map((ratio) => (
             <g key={ratio}>
               <line
-                x1={padding.left}
+                x1={padding.left + labelOffset}
                 y1={padding.top + (1 - ratio) * chartHeight}
-                x2={padding.left + chartWidth}
+                x2={padding.left + labelOffset + chartWidth}
                 y2={padding.top + (1 - ratio) * chartHeight}
                 stroke="currentColor"
                 strokeWidth="1"
                 opacity="0.1"
               />
               <text
-                x={padding.left - 10}
+                x={padding.left + labelOffset - 10}
                 y={padding.top + (1 - ratio) * chartHeight + 4}
                 textAnchor="end"
                 fontSize="12"
                 fill="currentColor"
                 opacity="0.6"
+                className="select-none"
               >
                 {formatAmountWithSpaces(maxValue * ratio)}
               </text>
@@ -200,37 +203,40 @@ const InteractiveChart = memo(function InteractiveChart({
     const width = 1200;
     const height = 400;
     const padding = { top: 40, right: 40, bottom: 40, left: 80 };
+    const labelOffset = 60; // место для подписей слева
     const chartWidth = width - padding.left - padding.right;
     const chartHeight = height - padding.top - padding.bottom;
+    const svgWidth = width + labelOffset; // увеличиваем ширину SVG для подписей
 
     const barWidth = chartWidth / months.length * 0.8;
     const barSpacing = chartWidth / months.length * 0.2;
 
-    const xScale = (index: number) => padding.left + index * (barWidth + barSpacing);
+    const xScale = (index: number) => padding.left + labelOffset + index * (barWidth + barSpacing);
     const yScale = (value: number) => padding.top + chartHeight - (value / maxValue) * chartHeight;
 
     return (
       <div className="w-full">
-        <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="w-full">
+        <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
           {/* Grid lines */}
           {[0, 0.25, 0.5, 0.75, 1].map((ratio) => (
             <g key={ratio}>
               <line
-                x1={padding.left}
+                x1={padding.left + labelOffset}
                 y1={padding.top + (1 - ratio) * chartHeight}
-                x2={padding.left + chartWidth}
+                x2={padding.left + labelOffset + chartWidth}
                 y2={padding.top + (1 - ratio) * chartHeight}
                 stroke="currentColor"
                 strokeWidth="1"
                 opacity="0.1"
               />
               <text
-                x={padding.left - 10}
+                x={padding.left + labelOffset - 10}
                 y={padding.top + (1 - ratio) * chartHeight + 4}
                 textAnchor="end"
                 fontSize="12"
                 fill="currentColor"
                 opacity="0.6"
+                className="select-none"
               >
                 {formatAmountWithSpaces(maxValue * ratio)}
               </text>
@@ -293,34 +299,37 @@ const InteractiveChart = memo(function InteractiveChart({
     const width = 1200;
     const height = 400;
     const padding = { top: 40, right: 40, bottom: 40, left: 80 };
+    const labelOffset = 60; // место для подписей слева
     const chartWidth = width - padding.left - padding.right;
     const chartHeight = height - padding.top - padding.bottom;
+    const svgWidth = width + labelOffset; // увеличиваем ширину SVG для подписей
 
-    const xScale = (index: number) => padding.left + (index / (months.length - 1)) * chartWidth;
+    const xScale = (index: number) => padding.left + labelOffset + (index / (months.length - 1)) * chartWidth;
     const yScale = (value: number) => padding.top + chartHeight - (value / maxValue) * chartHeight;
 
     return (
       <div className="w-full">
-        <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="w-full">
+        <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
           {/* Grid lines */}
           {[0, 0.25, 0.5, 0.75, 1].map((ratio) => (
             <g key={ratio}>
               <line
-                x1={padding.left}
+                x1={padding.left + labelOffset}
                 y1={padding.top + (1 - ratio) * chartHeight}
-                x2={padding.left + chartWidth}
+                x2={padding.left + labelOffset + chartWidth}
                 y2={padding.top + (1 - ratio) * chartHeight}
                 stroke="currentColor"
                 strokeWidth="1"
                 opacity="0.1"
               />
               <text
-                x={padding.left - 10}
+                x={padding.left + labelOffset - 10}
                 y={padding.top + (1 - ratio) * chartHeight + 4}
                 textAnchor="end"
                 fontSize="12"
                 fill="currentColor"
                 opacity="0.6"
+                className="select-none"
               >
                 {formatAmountWithSpaces(maxValue * ratio)}
               </text>
