@@ -2,7 +2,7 @@ PROTO_DIR=proto
 DB_URL=postgres://budget:budget@localhost:5432/budget?sslmode=disable
 
 # Список всех целей в одном месте
-.PHONY: help proto dproto tsproto lproto-go build run run-dev run-backend stop restart up down logs logs-dev ps tidy fmt test pgtest lint vet ci check web-install web-build web-lint web-test web-check check-all deploy-frontend deploy-backend deploy-all deploy-frontend-force migrate-up migrate-down dmigrate-up dmigrate-down docker-df docker-prune docker-prune-all oauth-test oauth-cleanup deploy-backend-artifact deploy-frontend-artifact deploy-all-artifact check-updates
+.PHONY: help proto dproto tsproto lproto-go build run run-dev run-backend stop restart up down logs logs-dev ps tidy fmt test pgtest lint vet govuln ci-go ci-web ci-go-security ci-node-security ci-container-security ci check web-install web-build web-lint web-test web-audit web-check check-all deploy-frontend deploy-backend deploy-all deploy-frontend-force migrate-up migrate-down dmigrate-up dmigrate-down docker-df docker-prune docker-prune-all oauth-test oauth-cleanup deploy-backend-artifact deploy-frontend-artifact deploy-all-artifact check-updates
 
 # Вывести список целей и их описание (с группировкой по разделам)
 help: ## [Meta] Показать список команд по разделам
@@ -89,46 +89,70 @@ logs: ## [Docker] Логи docker compose (-f --tail=200)
 logs-dev: ## [Docker] Логи docker compose в режиме разработки (-f --tail=200)
 	docker compose logs -f --tail=200
 
-tidy: ## [Go] Обновить зависимости (go mod tidy)
-	docker run --rm -v $(PWD):/app -w /app golang:1.24.11 go mod tidy
+tidy: ## [Go] Обновить зависимости (go mod tidy, локально)
+	go mod tidy
 
-fmt: ## [Go] Форматирование кода (gofumpt/gofmt)
-	docker run --rm -v $(PWD):/app -w /app golang:1.24.11 bash -c "go install mvdan.cc/gofumpt@latest && gofumpt -w . && gofmt -s -w ."
+fmt: ## [Go] Форматирование кода (gofumpt/gofmt, локально)
+	go install mvdan.cc/gofumpt@latest
+	gofumpt -w .
+	gofmt -s -w .
 
-test: ## [Go] Запуск тестов Go (-race, coverage)
-	docker run --rm -v $(PWD):/app -w /app golang:1.24.11 go test ./... -race -coverprofile=coverage.out -covermode=atomic
+test: ## [Go] Запуск тестов Go (-race, coverage, локально)
+	go test ./... -race -coverprofile=coverage.out -covermode=atomic
 
 pgtest: ## [Go] Интеграционные тесты PostgreSQL (PG_INTEGRATION=1)
-	docker run --rm -v $(PWD):/app -w /app --network host golang:1.24.11 bash -c "PG_INTEGRATION=1 go test ./internal/adapter/postgres -run Test.*_PG -v"
+	docker run --rm -v $(PWD):/app -w /app --network host golang:1.24.13 bash -c "PG_INTEGRATION=1 go test ./internal/adapter/postgres -run Test.*_PG -v"
 
 LINT_IMAGE_TAG ?= v2.1.0
 
-lint: ## [Go] Линтер Go (golangci-lint в docker)
-	@echo "Running golangci-lint in docker ($(LINT_IMAGE_TAG))"
-	docker run --rm -e GOTOOLCHAIN=local -v $(PWD):/app -w /app golangci/golangci-lint:$(LINT_IMAGE_TAG) golangci-lint run --timeout=5m
+lint: ## [Go] Линтер Go (golangci-lint, локально)
+	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.0 run --timeout=5m
 
-vet: ## [Go] Анализ кода (go vet)
-	docker run --rm -v $(PWD):/app -w /app golang:1.24.11 go vet ./...
+vet: ## [Go] Анализ кода (go vet, локально)
+	go vet ./...
 
-ci: tidy vet lint test ## [Go] Мини CI: tidy vet lint test
+govuln: ## [Go] Проверка уязвимостей Go (govulncheck, локально)
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+	govulncheck ./...
 
-check: tidy fmt vet lint test ## [Go] Полная проверка Go: tidy fmt vet lint test
+ci-go: tidy lint test ## [Go] CI-совместимые проверки backend (tidy+lint+test)
 
-web-install: ## [Web] Установка зависимостей фронта (Docker)
-	docker run --rm -v $(PWD)/web:/app -w /app node:20-alpine npm ci || docker run --rm -v $(PWD)/web:/app -w /app node:20-alpine npm install
+ci-web: web-install web-lint web-build web-test ## [Web] CI-совместимые проверки frontend
 
-web-build: ## [Web] Сборка фронта (Docker)
-	docker run --rm -v $(PWD)/web:/app -w /app node:20-alpine npm run build
+ci-go-security: govuln ## [Go] CI-совместимая security-проверка Go
 
-web-lint: ## [Web] Линт фронта (Docker)
-	docker run --rm -v $(PWD)/web:/app -w /app node:20-alpine npm run lint || echo "eslint not configured, skipping"
+ci-node-security: web-install web-audit ## [Web] CI-совместимая security-проверка npm audit
 
-web-test: ## [Web] Тесты фронта (Docker)
-	docker run --rm -v $(PWD)/web:/app -w /app node:20-alpine npm run test || echo "no web tests configured yet, skipping"
+ci-container-security: ## [Sec] CI-совместимая security-проверка контейнеров (Trivy)
+	@if command -v trivy >/dev/null 2>&1; then \
+		trivy config .; \
+	else \
+		echo "trivy не найден локально, запускаю в docker..."; \
+		docker run --rm -v "$(PWD):/work" -w /work aquasec/trivy:latest config .; \
+	fi
 
-web-check: web-install web-lint web-build web-test ## [Web] Полная проверка фронта
+ci: ci-go ci-web ci-go-security ci-node-security ci-container-security ## [Meta] Полная CI-последовательность локально
 
-check-all: check web-check ## [Meta] Полная проверка всего: Go + Web
+check: ci ## [Meta] Идентично CI: backend + frontend + security
+
+web-install: ## [Web] Установка зависимостей фронта (локально)
+	cd web && npm ci || npm install
+
+web-build: ## [Web] Сборка фронта (локально)
+	cd web && npm run build
+
+web-lint: ## [Web] Линт фронта (локально)
+	cd web && npm run lint || echo "eslint not configured, skipping"
+
+web-test: ## [Web] Тесты фронта (локально)
+	cd web && npm run test || echo "no web tests configured yet, skipping"
+
+web-audit: ## [Web] Аудит зависимостей фронта (локально)
+	cd web && npm audit --audit-level=moderate
+
+web-check: web-install web-lint web-build web-test web-audit ## [Web] Полная проверка фронта
+
+check-all: check ## [Meta] Алиас полной CI-совместимой проверки
 
 # =============================================================================
 # PRODUCTION DEPLOYMENT
@@ -210,4 +234,3 @@ deploy-all-artifact: ## [Deploy] Полный деплой из GitHub арте�
 check-updates: ## [Deploy] Проверка доступных обновлений из GitHub
 	@printf "\n\033[34mПроверка доступных обновлений...\033[0m\n"; \
 	./scripts/check-updates.sh
-
