@@ -118,7 +118,7 @@ jobs:
           build-args: |
             NEXT_PUBLIC_GRPC_BASE_URL=https://budget.qantrix.ru/grpc
             NEXT_PUBLIC_APP_URL=https://budget.qantrix.ru
-            ENVOY_URL=https://budget.qantrix.ru/grpc
+            ENVOY_URL=http://budget-envoy:8081
 
   release:
     name: Build and Release
@@ -156,7 +156,7 @@ jobs:
           NODE_ENV: production
           NEXT_PUBLIC_GRPC_BASE_URL: https://budget.qantrix.ru/grpc
           NEXT_PUBLIC_APP_URL: https://budget.qantrix.ru
-          ENVOY_URL: https://budget.qantrix.ru/grpc
+          ENVOY_URL: http://budget-envoy:8081
         run: npm run build
       - name: Create frontend archive
         run: |

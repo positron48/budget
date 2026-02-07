@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Protected from "@/components/Protected";
@@ -22,10 +22,14 @@ export const metadata: Metadata = {
   description: "Modern personal finance management application with multi-tenant support, transaction tracking, and detailed reporting.",
   keywords: ["budget", "finance", "money", "expenses", "income", "tracking"],
   authors: [{ name: "Budget Manager Team" }],
-  viewport: "width=device-width, initial-scale=1",
+  manifest: "/manifest.json",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
   themeColor: "#020617",
   colorScheme: "dark",
-  manifest: "/manifest.json",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
