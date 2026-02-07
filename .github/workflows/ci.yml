@@ -2,13 +2,15 @@ name: CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main, master ]
+    tags: [ '*' ]
   pull_request:
-    branches: [ master ]
+    branches: [ main, master ]
 
 permissions:
   actions: read
   contents: read
+  packages: write
 
 jobs:
   go:
@@ -69,3 +71,48 @@ jobs:
       #     total=$(go tool cover -func=coverage.out | awk '/total:/ {print int($3)}')
       #     echo "Total coverage: ${total}%"
       #     if [ "$total" -lt 80 ]; then echo "coverage below 80%" && exit 1; fi
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: [go, web]
+    if: github.event_name == 'push'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image_suffix: budget-app
+            dockerfile: deploy/Dockerfile
+            context: .
+          - image_suffix: budget-web
+            dockerfile: web/Dockerfile
+            context: ./web
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image_suffix }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=tag
+            type=sha
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_GRPC_BASE_URL=https://budget.qantrix.ru/grpc
+            NEXT_PUBLIC_APP_URL=https://budget.qantrix.ru
+            ENVOY_URL=https://budget.qantrix.ru/grpc
