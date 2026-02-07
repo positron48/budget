@@ -6,6 +6,8 @@ on:
     tags: [ '*' ]
   pull_request:
     branches: [ main, master ]
+  schedule:
+    - cron: '0 0 * * 0'
 
 permissions:
   actions: read
@@ -116,3 +118,125 @@ jobs:
             NEXT_PUBLIC_GRPC_BASE_URL=https://budget.qantrix.ru/grpc
             NEXT_PUBLIC_APP_URL=https://budget.qantrix.ru
             ENVOY_URL=https://budget.qantrix.ru/grpc
+
+  release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    needs: [go, web]
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.24.11'
+          cache: true
+      - name: Download dependencies
+        run: go mod download
+      - name: Build backend binaries
+        run: |
+          mkdir -p dist
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.commit=${{ github.sha }}" -o dist/budgetd-linux-amd64 ./cmd/budgetd
+          GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.commit=${{ github.sha }}" -o dist/budgetd-linux-arm64 ./cmd/budgetd
+          chmod +x dist/budgetd-*
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: web
+        run: npm ci
+      - name: Build frontend
+        working-directory: web
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_GRPC_BASE_URL: https://budget.qantrix.ru/grpc
+          NEXT_PUBLIC_APP_URL: https://budget.qantrix.ru
+          ENVOY_URL: https://budget.qantrix.ru/grpc
+        run: npm run build
+      - name: Create frontend archive
+        run: |
+          mkdir -p dist-frontend
+          cp -r web/.next/standalone/* dist-frontend/
+          mkdir -p dist-frontend/.next
+          cp -r web/.next/static dist-frontend/.next/static
+          if [ -d web/.next/server ]; then cp -r web/.next/server dist-frontend/.next/server; fi
+          cd web/.next
+          find . -maxdepth 1 -type f -exec cp {} ../../dist-frontend/.next/ \;
+          cd ../..
+          if [ ! -f dist-frontend/package.json ]; then
+            echo '{"name":"budget-frontend","version":"1.0.0","scripts":{"start":"node server.js"},"engines":{"node":">=20"}}' > dist-frontend/package.json
+          fi
+          if [ -d web/public ]; then cp -r web/public dist-frontend/public; fi
+          cd dist-frontend && tar -czf ../dist/frontend-build.tar.gz . && cd ..
+      - name: Create checksums
+        run: |
+          cd dist
+          sha256sum * > checksums.txt
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*
+          draft: false
+          prerelease: false
+
+  go-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.24.11'
+          cache: true
+      - name: Install Go dependencies
+        run: |
+          go mod download
+          go mod verify
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: Run Go security audit
+        run: govulncheck ./...
+
+  node-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: web
+        run: npm ci
+      - name: Run npm audit
+        working-directory: web
+        run: npm audit --audit-level=moderate
+      - name: Check outdated packages
+        working-directory: web
+        run: npm outdated || true
+
+  container-security:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - name: Run Trivy config scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-config-results.sarif'
+      - name: Upload Trivy config scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-config-results.sarif'
