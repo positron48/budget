@@ -147,7 +147,10 @@ func main() {
 		hasher := aauth.NewArgon2Hasher()
 		issuer := aauth.NewJWTIssuer(cfg.JWTSignKey)
 		authSvc := useauth.NewService(userRepo, rtRepo, hasher, issuer, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
-		budgetv1.RegisterAuthServiceServer(server, grpcadapter.NewAuthServer(authSvc))
+		if cfg.GoogleClientID != "" {
+			authSvc.SetGoogleVerifier(aauth.NewGoogleVerifier(cfg.GoogleClientID))
+		}
+		budgetv1.RegisterAuthServiceServer(server, grpcadapter.NewAuthServerWithPasswordAuth(authSvc, cfg.AuthPasswordEnabled))
 
 		// OAuth (if Redis is available)
 		if redisClient != nil {

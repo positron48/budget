@@ -6,6 +6,7 @@ services:
       args:
         NEXT_PUBLIC_GRPC_BASE_URL: ${NEXT_PUBLIC_GRPC_BASE_URL}
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
         ENVOY_URL: ${ENVOY_URL}
     volumes:
       - ./web:/app
@@ -14,4 +15,3 @@ services:
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"
     command: npm run dev -- --hostname 0.0.0.0 --port 3000
-

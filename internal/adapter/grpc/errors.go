@@ -20,6 +20,12 @@ func mapError(err error) error {
 	switch {
 	case errors.Is(err, authuse.ErrInvalidCredentials):
 		return status.Error(codes.Unauthenticated, err.Error())
+	case errors.Is(err, authuse.ErrUserNotFound):
+		return status.Error(codes.NotFound, err.Error())
+	case errors.Is(err, authuse.ErrGoogleAuthDisabled):
+		return status.Error(codes.FailedPrecondition, err.Error())
+	case errors.Is(err, authuse.ErrGoogleEmailNotVerified):
+		return status.Error(codes.Unauthenticated, err.Error())
 	case errors.Is(err, txuse.ErrFxRateNotFound):
 		return status.Error(codes.FailedPrecondition, err.Error())
 	case errors.Is(err, tenuse.ErrPermissionDenied):

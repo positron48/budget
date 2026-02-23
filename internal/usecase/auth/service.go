@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type PasswordHasher interface {
@@ -50,6 +52,17 @@ type UserRepo interface {
 	GetByEmail(ctx context.Context, email string) (User, []TenantMembership, error)
 }
 
+type GoogleClaims struct {
+	Email         string
+	Name          string
+	EmailVerified bool
+	Locale        string
+}
+
+type GoogleTokenVerifier interface {
+	VerifyIDToken(ctx context.Context, idToken string) (GoogleClaims, error)
+}
+
 type RefreshTokenRepo interface {
 	Store(ctx context.Context, userID, tenantID, token string, expiresAt time.Time) error
 	Rotate(ctx context.Context, oldToken, newToken string, newExpiresAt time.Time) error
@@ -66,6 +79,7 @@ type Service struct {
 	tokens     RefreshTokenRepo
 	hasher     PasswordHasher
 	issuer     TokenIssuer
+	google     GoogleTokenVerifier
 	accessTTL  time.Duration
 	refreshTTL time.Duration
 }
@@ -75,6 +89,9 @@ func NewService(users UserRepo, tokens RefreshTokenRepo, hasher PasswordHasher, 
 }
 
 var ErrInvalidCredentials = errors.New("invalid credentials")
+var ErrGoogleAuthDisabled = errors.New("google auth is disabled")
+var ErrGoogleEmailNotVerified = errors.New("google email is not verified")
+var ErrUserNotFound = errors.New("user not found")
 
 func (s *Service) Register(ctx context.Context, email, password, name, locale, tenantName string) (User, Tenant, TokenPair, error) {
 	hash, err := s.hasher.Hash(password)
@@ -137,6 +154,83 @@ func (s *Service) Login(ctx context.Context, email, password string) (User, []Te
 		return User{}, nil, TokenPair{}, err
 	}
 	return u, memberships, tp, nil
+}
+
+func (s *Service) SetGoogleVerifier(verifier GoogleTokenVerifier) {
+	s.google = verifier
+}
+
+func (s *Service) GoogleAuth(ctx context.Context, idToken, locale, tenantName string) (User, []TenantMembership, *Tenant, TokenPair, error) {
+	if s.google == nil {
+		return User{}, nil, nil, TokenPair{}, ErrGoogleAuthDisabled
+	}
+
+	claims, err := s.google.VerifyIDToken(ctx, idToken)
+	if err != nil {
+		return User{}, nil, nil, TokenPair{}, err
+	}
+	if !claims.EmailVerified {
+		return User{}, nil, nil, TokenPair{}, ErrGoogleEmailNotVerified
+	}
+
+	user, memberships, err := s.users.GetByEmail(ctx, claims.Email)
+	var createdTenant *Tenant
+	if err != nil {
+		if !errors.Is(err, ErrUserNotFound) {
+			return User{}, nil, nil, TokenPair{}, err
+		}
+		name := claims.Name
+		if name == "" {
+			name = claims.Email
+		}
+		effectiveLocale := locale
+		if effectiveLocale == "" {
+			effectiveLocale = claims.Locale
+		}
+		if effectiveLocale == "" {
+			effectiveLocale = "ru"
+		}
+
+		// Password-based auth is deprecated for web flow, but DB schema still requires hash.
+		fallbackPassword := uuid.NewString()
+		hash, hashErr := s.hasher.Hash(fallbackPassword)
+		if hashErr != nil {
+			return User{}, nil, nil, TokenPair{}, hashErr
+		}
+
+		createdUser, tenant, createErr := s.users.CreateWithDefaultTenant(ctx, claims.Email, hash, name, effectiveLocale, tenantName)
+		if createErr != nil {
+			return User{}, nil, nil, TokenPair{}, createErr
+		}
+		user = createdUser
+		createdTenant = &tenant
+		memberships = []TenantMembership{{
+			TenantID:  tenant.ID,
+			Role:      "owner",
+			IsDefault: true,
+		}}
+	}
+
+	tenantID := ""
+	for _, m := range memberships {
+		if m.IsDefault {
+			tenantID = m.TenantID
+			break
+		}
+	}
+	if tenantID == "" && len(memberships) > 0 {
+		tenantID = memberships[0].TenantID
+	}
+
+	tp, err := s.issuer.Issue(ctx, user.ID, tenantID, s.accessTTL, s.refreshTTL)
+	if err != nil {
+		return User{}, nil, nil, TokenPair{}, err
+	}
+	if err := s.tokens.Store(ctx, user.ID, tenantID, tp.RefreshToken, tp.RefreshTokenExpiresAt); err != nil {
+		return User{}, nil, nil, TokenPair{}, err
+	}
+
+	return user, memberships, createdTenant, tp, nil
 }
 
 // StoreRefreshToken сохраняет refresh token в базе данных

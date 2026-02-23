@@ -32,11 +32,29 @@
 ## Полезные файлы
 - `README.md`, `README_EN.md` — основная документация.
 - `env.example` — переменные окружения.
+- `docs/GOOGLE_AUTH_SETUP.md` — пошаговая настройка Google auth (GCP, `.env`, k3s, секреты).
 - `IMPLEMENTATION_PLAN.md`, `FRONTEND_IMPLEMENTATION_PLAN.md` — планы/идеи.
 - `web/README.md` — детали по фронтенду.
 - `doc/agent-guides/create-transaction-api-flow.md` — подробный флоу создания транзакции через API.
 
 ## Контекст для быстрого входа
 - Основной домен: транзакции, категории, отчеты, организации (tenant).
-- Аутентификация: JWT/refresh‑токены, Argon2id.
+- Аутентификация: JWT/refresh‑токены, Argon2id + вход/регистрация через Google ID token (`AuthService.GoogleAuth`).
 - Интеграции: gRPC, PostgreSQL, мониторинг (Prometheus/Grafana), OpenTelemetry.
+
+## OAuth Google (web)
+- Web логин/регистрация используют Google Identity Services и передают `id_token` в `AuthService.GoogleAuth`.
+- Backend валидирует токен через Google `tokeninfo` endpoint и `GOOGLE_CLIENT_ID` (audience check).
+- Пользователь ищется по email; если не найден, создается аккаунт + дефолтный tenant.
+- Поле tenant/company в регистрации опционально: пустое значение приводит к стандартному имени tenant (`My Budget` в репозитории).
+
+### Обязательные env для Google web auth
+- Backend: `GOOGLE_CLIENT_ID`
+- Frontend: `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
+
+### Kubernetes (budget app)
+- `devops-time-host/apps/budget/base/configmap.yaml` содержит:
+  - `GOOGLE_CLIENT_ID`
+  - `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
+- `devops-time-host/apps/budget/base/app-deployment.yaml` прокидывает `GOOGLE_CLIENT_ID` в `budget-app`.
+- `devops-time-host/apps/budget/base/web-deployment.yaml` прокидывает `NEXT_PUBLIC_GOOGLE_CLIENT_ID` в `budget-web`.

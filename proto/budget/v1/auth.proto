@@ -41,6 +41,19 @@ message LoginResponse {
 message RefreshTokenRequest { string refresh_token = 1; }
 message RefreshTokenResponse { TokenPair tokens = 1; }
 
+message GoogleAuthRequest {
+  string id_token = 1;
+  string locale = 2;      // optional locale for new users
+  string tenant_name = 3; // optional initial tenant name for new users
+}
+
+message GoogleAuthResponse {
+  TokenPair tokens = 1;
+  User user = 2;
+  repeated TenantMembership memberships = 3;
+  Tenant tenant = 4; // set only when a new user is created
+}
+
 message RequestPasswordResetRequest { string email = 1; }
 message RequestPasswordResetResponse {}
 
@@ -53,9 +66,9 @@ message ResetPasswordResponse {}
 service AuthService {
   rpc Register(RegisterRequest) returns (RegisterResponse);
   rpc Login(LoginRequest) returns (LoginResponse);
+  rpc GoogleAuth(GoogleAuthRequest) returns (GoogleAuthResponse);
   rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
   rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse);
   rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
 }
-
 

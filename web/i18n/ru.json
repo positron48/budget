@@ -55,6 +55,10 @@
     "passwordPlaceholder": "Введите ваш пароль",
     "signIn": "Войти",
     "signingIn": "Вход...",
+    "continueWithGoogle": "Продолжить через Google",
+    "googleOnlyHint": "Вход и регистрация доступны только через Google",
+    "loadingGoogle": "Google авторизация еще загружается, попробуйте через пару секунд.",
+    "googleConfigError": "Google авторизация не настроена.",
     "loginError": "Ошибка входа. Проверьте ваши учетные данные.",
     "register": {
       "title": "Создать аккаунт",
@@ -64,6 +68,7 @@
       "name": "Имя",
       "locale": "Язык",
       "tenantName": "Название организации",
+      "tenantNameOptional": "Поле необязательное",
       "submit": "Создать аккаунт",
       "submitting": "Создание...",
       "emailPlaceholder": "Введите ваш email",
@@ -370,5 +375,4 @@
     "passwordTitle": "Изменить пароль"
   }
 }
-
 

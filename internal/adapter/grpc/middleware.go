@@ -65,7 +65,7 @@ func isPublicMethod(fullMethod string) bool {
 	switch fullMethod {
 	case "/grpc.health.v1.Health/Check", "/grpc.health.v1.Health/Watch":
 		return true
-	case "/budget.v1.AuthService/Register", "/budget.v1.AuthService/Login", "/budget.v1.AuthService/RefreshToken":
+	case "/budget.v1.AuthService/Register", "/budget.v1.AuthService/Login", "/budget.v1.AuthService/GoogleAuth", "/budget.v1.AuthService/RefreshToken":
 		return true
 	case "/budget.v1.OAuthService/GenerateAuthLink", "/budget.v1.OAuthService/GetVerificationCode", "/budget.v1.OAuthService/VerifyAuthCode",
 		"/budget.v1.OAuthService/CancelAuth", "/budget.v1.OAuthService/GetAuthStatus":

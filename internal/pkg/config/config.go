@@ -7,17 +7,19 @@ import (
 )
 
 type Config struct {
-	AppEnv        string
-	GRPCAddr      string
-	DatabaseURL   string
-	RedisURL      string
-	JWTSignKey    string
-	JWTAccessTTL  time.Duration
-	JWTRefreshTTL time.Duration
-	MetricsAddr   string
-	OTelEndpoint  string
-	OTelInsecure  bool
-	OAuth         OAuthConfig
+	AppEnv              string
+	GRPCAddr            string
+	DatabaseURL         string
+	RedisURL            string
+	JWTSignKey          string
+	GoogleClientID      string
+	AuthPasswordEnabled bool
+	JWTAccessTTL        time.Duration
+	JWTRefreshTTL       time.Duration
+	MetricsAddr         string
+	OTelEndpoint        string
+	OTelInsecure        bool
+	OAuth               OAuthConfig
 }
 
 func getenv(key, def string) string {
@@ -55,6 +57,8 @@ func Load() (Config, error) {
 	if cfg.JWTSignKey == "" {
 		return Config{}, fmt.Errorf("JWT_SIGN_KEY is required")
 	}
+	cfg.GoogleClientID = getenv("GOOGLE_CLIENT_ID", "")
+	cfg.AuthPasswordEnabled = getenv("AUTH_PASSWORD_ENABLED", "true") == "true"
 
 	cfg.MetricsAddr = getenv("METRICS_ADDR", "")
 	cfg.OTelEndpoint = getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")

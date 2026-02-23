@@ -62,6 +62,7 @@ services:
       args:
         NEXT_PUBLIC_GRPC_BASE_URL: ${NEXT_PUBLIC_GRPC_BASE_URL}
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
         ENVOY_URL: ${ENVOY_URL}
     env_file:
       - .env
@@ -142,4 +143,3 @@ networks:
     ipam:
       config:
         - subnet: 172.24.0.0/16
-

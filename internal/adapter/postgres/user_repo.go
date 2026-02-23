@@ -84,7 +84,7 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (useauth.User, 
 	).Scan(&u.ID, &u.Email, &u.Name, &u.Locale, &u.PasswordHash)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return useauth.User{}, nil, err
+			return useauth.User{}, nil, useauth.ErrUserNotFound
 		}
 		return useauth.User{}, nil, err
 	}

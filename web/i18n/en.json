@@ -55,6 +55,10 @@
     "passwordPlaceholder": "Enter your password",
     "signIn": "Sign In",
     "signingIn": "Signing in...",
+    "continueWithGoogle": "Continue with Google",
+    "googleOnlyHint": "Sign in and sign up are available only via Google",
+    "loadingGoogle": "Google auth is still loading, try again in a few seconds.",
+    "googleConfigError": "Google auth is not configured.",
     "loginError": "Login failed. Please check your credentials.",
     "register": {
       "title": "Create Account",
@@ -64,6 +68,7 @@
       "name": "Name",
       "locale": "Language",
       "tenantName": "Organization Name",
+      "tenantNameOptional": "Optional field",
       "submit": "Create Account",
       "submitting": "Creating...",
       "emailPlaceholder": "Enter your email",
@@ -369,5 +374,4 @@
     "passwordTitle": "Change password"
   }
 }
-
 
