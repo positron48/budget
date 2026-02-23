@@ -45,7 +45,9 @@ func (v *GoogleVerifier) VerifyIDToken(ctx context.Context, idToken string) (use
 	if err != nil {
 		return useauth.GoogleClaims{}, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return useauth.GoogleClaims{}, fmt.Errorf("invalid google id token")

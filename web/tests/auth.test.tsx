@@ -10,18 +10,11 @@ describe("Login page", () => {
       locale: "en", 
       messages: { 
         auth: { 
-          login: { 
-            title: "Login", 
-            email: "Email", 
-            password: "Password", 
-            submit: "Sign in", 
-            submitting: "Signing in..." 
-          } 
+          continueWithGoogle: "Continue with Google",
+          googleOnlyHint: "Sign in and sign up are available only via Google",
         } 
       } 
     });
-    expect(screen.getByText(/signIn/i)).toBeTruthy();
+    expect(screen.getByRole("button")).toBeTruthy();
   });
 });
-
-

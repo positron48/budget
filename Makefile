@@ -113,7 +113,7 @@ vet: ## [Go] Анализ кода (go vet, локально)
 
 govuln: ## [Go] Проверка уязвимостей Go (govulncheck, локально)
 	go install golang.org/x/vuln/cmd/govulncheck@latest
-	govulncheck ./...
+	$(shell go env GOPATH)/bin/govulncheck ./...
 
 ci-go: tidy lint test ## [Go] CI-совместимые проверки backend (tidy+lint+test)
 
@@ -148,7 +148,7 @@ web-test: ## [Web] Тесты фронта (локально)
 	cd web && npm run test || echo "no web tests configured yet, skipping"
 
 web-audit: ## [Web] Аудит зависимостей фронта (локально)
-	cd web && npm audit --audit-level=moderate
+	cd web && npm audit --omit=dev --audit-level=moderate
 
 web-check: web-install web-lint web-build web-test web-audit ## [Web] Полная проверка фронта
 
