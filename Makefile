@@ -198,6 +198,13 @@ dmigrate-up: ## [Migrate] Миграции вверх в docker (без лока
 dmigrate-down: ## [Migrate] Откат одной миграции в docker
 	docker run --rm -v $(PWD)/migrations:/migrations --network host migrate/migrate -database "postgres://budget:budget@localhost:5432/budget?sslmode=disable" -path /migrations down 1
 
+# Миграции через сеть docker compose (работает на macOS, когда контейнеры уже подняты)
+dmigrate-up-compose: ## [Migrate] Миграции вверх через сеть compose (macOS / после make up)
+	docker run --rm -v $(PWD)/migrations:/migrations --network budget_budget-network migrate/migrate -database "postgres://budget:budget@db:5432/budget?sslmode=disable" -path /migrations up
+
+dmigrate-down-compose: ## [Migrate] Откат одной миграции через сеть compose
+	docker run --rm -v $(PWD)/migrations:/migrations --network budget_budget-network migrate/migrate -database "postgres://budget:budget@db:5432/budget?sslmode=disable" -path /migrations down 1
+
 # =============================================================================
 # ARTIFACT DEPLOYMENT (GitHub Releases)
 # =============================================================================
