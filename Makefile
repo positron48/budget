@@ -112,7 +112,7 @@ vet: ## [Go] Анализ кода (go vet, локально)
 	go vet ./...
 
 govuln: ## [Go] Проверка уязвимостей Go (govulncheck, локально)
-	go install golang.org/x/vuln/cmd/govulncheck@latest
+	go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
 	$(shell go env GOPATH)/bin/govulncheck ./...
 
 ci-go: tidy lint test ## [Go] CI-совместимые проверки backend (tidy+lint+test)
