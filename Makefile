@@ -103,10 +103,10 @@ test: ## [Go] Запуск тестов Go (-race, coverage, локально)
 pgtest: ## [Go] Интеграционные тесты PostgreSQL (PG_INTEGRATION=1)
 	docker run --rm -v $(PWD):/app -w /app --network host golang:1.25.9 bash -c "PG_INTEGRATION=1 go test ./internal/adapter/postgres -run Test.*_PG -v"
 
-LINT_IMAGE_TAG ?= v2.1.0
+LINT_IMAGE_TAG ?= v2.11.4
 
 lint: ## [Go] Линтер Go (golangci-lint, локально)
-	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.0 run --timeout=5m
+	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.4 run --timeout=5m
 
 vet: ## [Go] Анализ кода (go vet, локально)
 	go vet ./...
