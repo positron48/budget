@@ -1,8 +1,8 @@
 module github.com/positron48/budget
 
-go 1.24.0
+go 1.25.0
 
-toolchain go1.24.13
+toolchain go1.25.9
 
 require (
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
@@ -19,7 +19,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.40.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.47.0
-	google.golang.org/grpc v1.78.0
+	google.golang.org/grpc v1.79.3
 	google.golang.org/protobuf v1.36.11
 )
 
