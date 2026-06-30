@@ -89,7 +89,7 @@ export default function Select({ value, onChange, options, className = "", size 
         createPortal(
           <div
             ref={dropdownRef}
-            className="fixed z-50 rounded-none border border-border text-foreground shadow-xl overflow-auto max-h-60 animate-in backdrop-blur supports-[backdrop-filter]:bg-card/70"
+            className="fixed z-50 rounded-lg border border-border text-foreground shadow-xl overflow-auto max-h-60 animate-in backdrop-blur supports-[backdrop-filter]:bg-card/70"
             style={{
               backgroundColor: "hsl(var(--card) / 0.95)",
               top: dropdownPos.top,

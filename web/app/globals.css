@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @import "./theme.css";
 
+/* Use class-based dark mode (.dark on <html>) instead of prefers-color-scheme,
+   so the in-app theme toggle drives all dark: utilities. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -31,7 +35,6 @@
 }
 
 body {
-  background-color: #020617;
   background: hsl(var(--background));
   color: hsl(var(--foreground));
   font-family: var(--font-sans), system-ui, sans-serif;
@@ -135,7 +138,7 @@ input.date-input::-webkit-calendar-picker-indicator {
 
 /* Card styles */
 .card {
-  @apply rounded-none border bg-card text-card-foreground shadow-sm;
+  @apply rounded-lg border bg-card text-card-foreground shadow-sm;
 }
 
 .card-header {

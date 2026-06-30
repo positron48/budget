@@ -64,6 +64,8 @@ import {
   Loader2,
   BarChart,
   Layers,
+  Sun,
+  Moon,
   // Upload as UploadIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -134,7 +136,9 @@ export type IconName =
   | "folder-open"
   | "user"
   | "bar-chart"
-  | "layers";
+  | "layers"
+  | "sun"
+  | "moon";
 
 const iconMap: Record<IconName, LucideIcon> = {
   home: Home,
@@ -203,6 +207,8 @@ const iconMap: Record<IconName, LucideIcon> = {
   user: User,
   "bar-chart": BarChart,
   layers: Layers,
+  sun: Sun,
+  moon: Moon,
 };
 
 interface IconProps {

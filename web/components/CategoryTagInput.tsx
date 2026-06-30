@@ -137,7 +137,7 @@ export default function CategoryTagInput({
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef} style={{ zIndex: 9999999 }}>
-      <div className="w-full min-h-[40px] px-3 py-2 border border-border rounded-none bg-secondary/60 text-foreground focus-within:ring-2 focus-within:ring-primary/40 focus-within:border-transparent transition-all duration-200 text-sm">
+      <div className="w-full min-h-[40px] px-3 py-2 border border-border rounded-lg bg-secondary/60 text-foreground focus-within:ring-2 focus-within:ring-primary/40 focus-within:border-transparent transition-all duration-200 text-sm">
         <div className="flex items-center flex-wrap gap-1">
           {selectedCategories.map(cat => (
             <span
@@ -173,7 +173,7 @@ export default function CategoryTagInput({
       {isOpen && createPortal(
         <div
           data-dropdown="category-tag-input"
-          className="fixed border border-border shadow-xl max-h-60 overflow-hidden rounded-none backdrop-blur supports-[backdrop-filter]:bg-card/70"
+          className="fixed border border-border shadow-xl max-h-60 overflow-hidden rounded-lg backdrop-blur supports-[backdrop-filter]:bg-card/70"
           style={{
             backgroundColor: "hsl(var(--card) / 0.95)",
             zIndex: 9999999,

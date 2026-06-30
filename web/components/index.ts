@@ -25,6 +25,9 @@ export { default as SummaryReportFilters } from "./SummaryReportFilters";
 export { default as CategoryToggleChart } from "./CategoryToggleChart";
 export { default as InteractiveChart } from "./InteractiveChart";
 export { default as CombinedChart } from "./CombinedChart";
+export { default as ThemeToggle } from "./ThemeToggle";
+export { default as ConfirmDialog } from "./ConfirmDialog";
+export { ToastProvider, useToast } from "./Toast";
 
 export * from "./Card";
 export type { IconName } from "./Icon";

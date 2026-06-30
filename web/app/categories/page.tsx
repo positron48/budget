@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { ClientsProvider, useClients } from "@/app/providers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { LoadingSpinner, Icon, Button } from "@/components";
+import { LoadingSpinner, Icon, Button, ConfirmDialog, useToast } from "@/components";
 
 // enums are numeric in TS output; 2 = EXPENSE, 1 = INCOME
 
@@ -13,6 +13,8 @@ function CategoriesInner() {
   const qc = useQueryClient();
   const t = useTranslations("categories");
   const tc = useTranslations("common");
+  const toast = useToast();
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const expenseInputRef = React.useRef<HTMLInputElement | null>(null);
   const incomeInputRef = React.useRef<HTMLInputElement | null>(null);
   const surfaceCard = "border border-border bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60";
@@ -59,7 +61,7 @@ function CategoriesInner() {
       // Check for duplicates
       const isDuplicate = expenseCategories.some(cat => cat.code.toLowerCase() === newExpenseCode.toLowerCase());
       if (isDuplicate) {
-        throw new Error("Категория с таким названием уже существует");
+        throw new Error(t("errDuplicate"));
       }
       return await category.createCategory({ kind: 2, code: newExpenseCode, isActive: true } as any);
     },
@@ -76,7 +78,7 @@ function CategoriesInner() {
       // Check for duplicates
       const isDuplicate = incomeCategories.some(cat => cat.code.toLowerCase() === newIncomeCode.toLowerCase());
       if (isDuplicate) {
-        throw new Error("Категория с таким названием уже существует");
+        throw new Error(t("errDuplicate"));
       }
       return await category.createCategory({ kind: 1, code: newIncomeCode, isActive: true } as any);
     },
@@ -91,21 +93,19 @@ function CategoriesInner() {
   const deleteMut = useMutation({
     mutationFn: async (id: string) => {
       const response = await category.deleteCategory({ id } as any);
-      console.log("Delete response:", response);
       return response;
     },
     onSuccess: () => {
-      console.log("Category deleted successfully");
+      setDeleteTargetId(null);
       qc.invalidateQueries({ queryKey: ["categories"] });
     },
     onError: (error: any) => {
-      console.error("Delete error:", error);
-      // Check if it's a foreign key constraint error
+      setDeleteTargetId(null);
       if (error?.message?.includes("foreign key constraint") || error?.message?.includes("transactions_category_id_fkey")) {
-        throw new Error("Нельзя удалить категорию, которая используется в транзакциях. Сначала удалите или измените все связанные транзакции.");
+        toast.error(t("errDeleteInUse"));
+      } else {
+        toast.error(t("errDeleteGeneric"));
       }
-      // Generic error for other cases
-      throw new Error("Не удалось удалить категорию. Попробуйте еще раз.");
     },
   });
   
@@ -117,7 +117,7 @@ function CategoriesInner() {
     mutationFn: async (payload: { id: string; code: string; isActive: boolean }) => {
       // Validate empty name
       if (!payload.code.trim()) {
-        throw new Error("Название категории не может быть пустым");
+        throw new Error(t("errEmptyName"));
       }
       
       // Check for duplicates (excluding current category)
@@ -126,7 +126,7 @@ function CategoriesInner() {
         cat.id !== payload.id && cat.code.toLowerCase() === payload.code.toLowerCase()
       );
       if (isDuplicate) {
-        throw new Error("Категория с таким названием уже существует");
+        throw new Error(t("errDuplicate"));
       }
       
       return await category.updateCategory(payload as any);
@@ -145,7 +145,7 @@ function CategoriesInner() {
     mutationFn: async (payload: { id: string; isActive: boolean }) => {
       const categoryItem = [...expenseCategories, ...incomeCategories].find(c => c.id === payload.id);
       if (!categoryItem) {
-        throw new Error("Категория не найдена");
+        throw new Error(t("errNotFound"));
       }
       
       return await category.updateCategory({
@@ -239,9 +239,9 @@ function CategoriesInner() {
                       : "text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--info)/0.08)]"
                   }`}
                   onClick={() => startEdit(c)}
-                  title={`${c?.code || "Без названия"} (${c?.isActive ? 'активна' : 'неактивна'})`}
+                  title={`${c?.code || t("untitled")} (${c?.isActive ? t("active") : t("inactive")})`}
                 >
-                  {c?.code || "Без названия"}
+                  {c?.code || t("untitled")}
                 </div>
               )}
             </div>
@@ -257,11 +257,7 @@ function CategoriesInner() {
             </button>
             <button
               className="h-5 w-5 p-0 text-muted-foreground hover:text-[hsl(var(--negative))] flex items-center justify-center"
-              onClick={() => {
-                if (confirm("Вы уверены, что хотите удалить эту категорию?")) {
-                  deleteMut.mutate(c?.id);
-                }
-              }}
+              onClick={() => setDeleteTargetId(c?.id)}
               title={tc("delete")}
               disabled={deleteMut.isPending}
             >
@@ -275,7 +271,7 @@ function CategoriesInner() {
               className="h-5 w-5 p-0 text-muted-foreground hover:text-[hsl(var(--positive))] flex items-center justify-center"
               onClick={() => toggleActiveMut.mutate({ id: c.id, isActive: !c.isActive })}
               disabled={toggleActiveMut.isPending}
-              title={c?.isActive ? "Деактивировать" : "Активировать"}
+              title={c?.isActive ? t("deactivate") : t("activate")}
             >
               {toggleActiveMut.isPending ? (
                 <div className="w-2.5 h-2.5 border border-muted-foreground/60 border-t-transparent rounded-full animate-spin" />
@@ -480,24 +476,14 @@ function CategoriesInner() {
           </div>
         )}
 
-        {/* Global error display for delete mutations */}
-        {deleteMut.error && (
-          <div className="fixed bottom-4 right-4 bg-[hsl(var(--negative)/0.12)] border border-[hsl(var(--negative)/0.4)] rounded-lg p-4 max-w-md shadow-lg">
-            <div className="flex items-start space-x-3 text-[hsl(var(--negative))]">
-              <Icon name="alert-circle" size={16} className="mt-0.5 flex-shrink-0" />
-              <div>
-                <h3 className="text-sm font-medium mb-1">Не удалось удалить категорию</h3>
-                <p className="text-xs opacity-90">{(deleteMut.error as any).message}</p>
-                <button
-                  onClick={() => deleteMut.reset()}
-                  className="mt-2 text-xs underline-offset-2 hover:underline"
-                >
-                  Закрыть
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ConfirmDialog
+          open={deleteTargetId !== null}
+          message={t("confirmDelete")}
+          confirmLabel={tc("delete")}
+          loading={deleteMut.isPending}
+          onConfirm={() => deleteTargetId && deleteMut.mutate(deleteTargetId)}
+          onCancel={() => setDeleteTargetId(null)}
+        />
       </div>
     </div>
   );

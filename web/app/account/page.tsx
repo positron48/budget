@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { authStore } from "@/lib/auth/store";
 import { useTranslations } from "next-intl";
-import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription, Icon, Modal } from "@/components";
+import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription, Icon, Modal, useToast } from "@/components";
 import { normalizeApiErrorMessage } from "@/lib/api/errors";
 
 function AccountInner() {
@@ -13,6 +13,7 @@ function AccountInner() {
   const qc = useQueryClient();
   const t = useTranslations("tenants");
   const tc = useTranslations("common");
+  const toast = useToast();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["tenants"],
@@ -56,12 +57,12 @@ function AccountInner() {
     },
   });
 
-  const currentTenantId = authStore.getTenant();
+  const [currentTenantId, setCurrentTenantId] = useState<string | undefined>(authStore.getTenant());
   const makeActive = (id: string) => {
     authStore.set({ tenantId: id });
-    if (typeof window !== "undefined") {
-      window.location.reload();
-    }
+    setCurrentTenantId(id);
+    // Refetch all data for the newly active tenant without a full page reload.
+    qc.invalidateQueries();
   };
 
   const roleLabel = (role: number) => {
@@ -110,7 +111,7 @@ function AccountInner() {
       setEditOpen(false);
     },
     onError: (e: any) => {
-      alert(normalizeApiErrorMessage(e, "Не удалось обновить аккаунт"));
+      toast.error(normalizeApiErrorMessage(e, t("errUpdateAccount")));
     },
   });
 
@@ -124,7 +125,7 @@ function AccountInner() {
       await refetchMembers();
     },
     onError: (e: any) => {
-      alert(normalizeApiErrorMessage(e, "Не удалось добавить участника"));
+      toast.error(normalizeApiErrorMessage(e, t("errAddMember")));
     },
   });
 
@@ -135,7 +136,7 @@ function AccountInner() {
       await refetchMembers();
     },
     onError: (e: any) => {
-      alert(normalizeApiErrorMessage(e, "Не удалось обновить роль"));
+      toast.error(normalizeApiErrorMessage(e, t("errUpdateRole")));
     },
   });
 
@@ -145,7 +146,7 @@ function AccountInner() {
       await refetchMembers();
     },
     onError: (e: any) => {
-      alert(normalizeApiErrorMessage(e, "Не удалось удалить участника"));
+      toast.error(normalizeApiErrorMessage(e, t("errRemoveMember")));
     },
   });
 

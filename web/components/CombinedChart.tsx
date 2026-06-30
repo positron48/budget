@@ -1,3 +1,5 @@
+"use client";
+
 import { memo, useMemo, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import { useTranslations } from "next-intl";
@@ -237,7 +239,7 @@ const CombinedChart = memo(function CombinedChart({
                 cy={yScale(value, range)}
                 r={tooltip?.key === itemKey ? 6 : 4}
                 fill={color}
-                stroke="white"
+                stroke="hsl(var(--card))"
                 strokeWidth="2"
                 opacity={tooltip && tooltip.key !== itemKey && !active ? 0.45 : 1}
                 className="cursor-pointer"
@@ -267,7 +269,7 @@ const CombinedChart = memo(function CombinedChart({
   };
 
   const renderLineChart = () => (
-    <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
+    <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`} className="w-full min-w-[560px] sm:min-w-0" preserveAspectRatio="xMidYMid meet">
       {renderGrid(mainRange)}
       {renderMonthLabels()}
       {showExpenses && renderLineSeries(t("expense"), "expense", "#ef4444", totalByMonth.map((month) => month.expenses))}
@@ -283,7 +285,7 @@ const CombinedChart = memo(function CombinedChart({
     const zeroY = yScale(0, mainRange);
 
     return (
-      <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
+      <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`} className="w-full min-w-[560px] sm:min-w-0" preserveAspectRatio="xMidYMid meet">
         {renderGrid(mainRange)}
         {renderMonthLabels(barWidth, barSpacing)}
         {months.map((month, monthIndex) => {
@@ -329,7 +331,7 @@ const CombinedChart = memo(function CombinedChart({
   };
 
   const renderCumulativeChart = () => (
-    <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
+    <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`} className="w-full min-w-[560px] sm:min-w-0" preserveAspectRatio="xMidYMid meet">
       {renderGrid(cumulativeRange)}
       {renderMonthLabels()}
       {cumulativeByMonth.map((month, index) => {
@@ -384,7 +386,7 @@ const CombinedChart = memo(function CombinedChart({
               cy={yScale(month.cumulativeNet, cumulativeRange)}
               r={tooltip?.key === itemKey ? 6 : 4}
               fill={color}
-              stroke="white"
+              stroke="hsl(var(--card))"
               strokeWidth="2"
               className="cursor-pointer"
               onMouseEnter={(event) =>
@@ -455,13 +457,17 @@ const CombinedChart = memo(function CombinedChart({
         </div>
 
         <div className="relative mb-6" ref={containerRef}>
-          {chartType === "line" ? renderLineChart() : renderBarChart()}
+          <div className="overflow-x-auto">
+            {chartType === "line" ? renderLineChart() : renderBarChart()}
+          </div>
           <div className="mt-6 pt-6 border-t border-border/70">
             <div className="mb-3">
               <h4 className="text-sm font-medium text-foreground">{t("cumulativeNetIncome")}</h4>
               <p className="text-xs text-muted-foreground">{t("cumulativeNetIncomeDescription")}</p>
             </div>
-            {renderCumulativeChart()}
+            <div className="overflow-x-auto">
+              {renderCumulativeChart()}
+            </div>
           </div>
           {tooltip && (
             <div

@@ -21,7 +21,7 @@ export default function CategoryBadge({
   const t = useTranslations("transactions");
   if (!categoryId && !categoryName && !categoryCode) {
     return (
-      <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium text-muted-foreground rounded-none ${className}`}>
+      <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium text-muted-foreground rounded-lg ${className}`}>
         <Icon name="tag" size={10} className="mr-1" />
         {t("noCategory")}
       </span>
@@ -57,7 +57,7 @@ export default function CategoryBadge({
   const displayName = categoryCode || getCategoryName() || t("noCategory");
 
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium border rounded-none ${colors.bg} ${colors.text} ${colors.border} ${className}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium border rounded-lg ${colors.bg} ${colors.text} ${colors.border} ${className}`}>
       <Icon name="tag" size={10} className="mr-1" />
       {displayName}
     </span>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useTranslations, useLocale } from "next-intl";
 import Icon from "./Icon";
 
 interface CategoryTranslation {
@@ -24,10 +25,10 @@ interface CategorySingleInputProps {
   className?: string;
 }
 
-function getCategoryDisplayName(category: CategoryItem): string {
+function getCategoryDisplayName(category: CategoryItem, locale: string): string {
   const translations = category.translations || [];
-  const ru = translations.find(t => t.locale === "ru");
-  if (ru) return ru.name;
+  const current = translations.find(t => t.locale === locale);
+  if (current) return current.name;
   const en = translations.find(t => t.locale === "en");
   if (en) return en.name;
   if (translations.length > 0) return translations[0].name;
@@ -38,10 +39,13 @@ export default function CategorySingleInput({
   categories,
   value,
   onChange,
-  placeholder = "Введите название категории...",
+  placeholder,
   disabled = false,
   className = "",
 }: CategorySingleInputProps) {
+  const t = useTranslations("transactions");
+  const locale = useLocale();
+  const placeholderText = placeholder ?? t("categoryPlaceholderSingle");
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
@@ -54,7 +58,7 @@ export default function CategorySingleInput({
   const filtered = useMemo(() => {
     const term = searchTerm.toLowerCase();
     return categories.filter(c =>
-      getCategoryDisplayName(c).toLowerCase().includes(term) || c.code.toLowerCase().includes(term)
+      getCategoryDisplayName(c, locale).toLowerCase().includes(term) || c.code.toLowerCase().includes(term)
     );
   }, [categories, searchTerm]);
 
@@ -109,7 +113,7 @@ export default function CategorySingleInput({
   return (
     <div className={`relative ${className}`} ref={containerRef} style={{ zIndex: 9999999 }}>
       <div
-        className={`w-full min-h-[40px] px-3 py-2 border border-border rounded-none text-sm transition-all duration-200 bg-secondary/60 text-foreground ${
+        className={`w-full min-h-[40px] px-3 py-2 border border-border rounded-lg text-sm transition-all duration-200 bg-secondary/60 text-foreground ${
           disabled ? "opacity-60 cursor-not-allowed" : "focus-within:ring-2 focus-within:ring-primary/40 focus-within:border-transparent"
         }`}
       >
@@ -118,7 +122,7 @@ export default function CategorySingleInput({
             ref={inputRef}
             type="text"
             className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
-            placeholder={selected ? getCategoryDisplayName(selected) : placeholder}
+            placeholder={selected ? getCategoryDisplayName(selected, locale) : placeholderText}
             value={searchTerm}
             disabled={disabled}
             onFocus={openDropdown}
@@ -144,7 +148,7 @@ export default function CategorySingleInput({
               type="button"
               onClick={clearSelection}
               className="text-muted-foreground hover:text-foreground"
-              aria-label="Очистить категорию"
+              aria-label={t("clearCategory")}
             >
               <Icon name="close" size={14} />
             </button>
@@ -155,7 +159,7 @@ export default function CategorySingleInput({
       {isOpen && createPortal(
         <div
           data-dropdown="category-single-input"
-          className="fixed rounded-none border border-border shadow-xl max-h-60 overflow-hidden backdrop-blur supports-[backdrop-filter]:bg-card/70"
+          className="fixed rounded-lg border border-border shadow-xl max-h-60 overflow-hidden backdrop-blur supports-[backdrop-filter]:bg-card/70"
           style={{
             zIndex: 9999999,
             top: dropdownPosition.top,
@@ -176,15 +180,15 @@ export default function CategorySingleInput({
                 onMouseDown={(e) => { e.preventDefault(); selectCategory(cat.id); }}
               >
                 <div>
-                  <div className="text-sm font-medium text-foreground">{getCategoryDisplayName(cat)}</div>
-                  {cat.code !== getCategoryDisplayName(cat) && (
+                  <div className="text-sm font-medium text-foreground">{getCategoryDisplayName(cat, locale)}</div>
+                  {cat.code !== getCategoryDisplayName(cat, locale) && (
                     <div className="text-xs text-muted-foreground">{cat.code}</div>
                   )}
                 </div>
                 {value === cat.id && <Icon name="check" size={14} className="text-[hsl(var(--primary))]" />}
               </div>
             )) : (
-              <div className="px-3 py-2 text-sm text-muted-foreground">Категории не найдены</div>
+              <div className="px-3 py-2 text-sm text-muted-foreground">{t("categoriesNotFound")}</div>
             )}
           </div>
         </div>,

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import Icon from "./Icon";
 
 interface Category {
@@ -20,9 +21,11 @@ export default function CategorySelect({
   categories,
   selectedIds,
   onSelectionChange,
-  placeholder = "Выберите категории...",
+  placeholder,
   className = ""
 }: CategorySelectProps) {
+  const t = useTranslations("categories");
+  const placeholderText = placeholder ?? t("selectPlaceholder");
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -84,7 +87,7 @@ export default function CategorySelect({
             ))}
           </>
         ) : (
-          <span className="text-slate-500 dark:text-slate-400">{placeholder}</span>
+          <span className="text-slate-500 dark:text-slate-400">{placeholderText}</span>
         )}
         <Icon 
           name={isOpen ? "chevron-up" : "chevron-down"} 
@@ -104,7 +107,7 @@ export default function CategorySelect({
               />
               <input
                 type="text"
-                placeholder="Поиск категорий..."
+                placeholder={t("searchPlaceholder")}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-8 pr-3 py-2 border border-slate-200 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"

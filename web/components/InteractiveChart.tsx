@@ -1,3 +1,5 @@
+"use client";
+
 import { memo, useState, useMemo, useRef } from "react";
 import type { MouseEvent } from "react";
 import { useTranslations } from "next-intl";
@@ -171,8 +173,8 @@ const InteractiveChart = memo(function InteractiveChart({
     const xScale = (index: number) => padding.left + labelOffset + (months.length <= 1 ? chartWidth / 2 : (index / (months.length - 1)) * chartWidth);
     const yScale = (value: number) => padding.top + chartHeight - (value / maxValue.maxValue) * chartHeight;
     return (
-      <div className="w-full">
-        <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
+      <div className="w-full overflow-x-auto">
+        <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`} className="w-full min-w-[560px] sm:min-w-0" preserveAspectRatio="xMidYMid meet">
           {/* Grid lines */}
           {Array.from({ length: Math.round(maxValue.maxValue / maxValue.step) + 1 }, (_, index) => index * maxValue.step).map((value) => (
             <g key={value}>
@@ -243,7 +245,7 @@ const InteractiveChart = memo(function InteractiveChart({
                         cy={yScale(value)}
                         r={tooltip?.key === itemKey ? "6" : "4"}
                         fill={category.color}
-                        stroke="white"
+                        stroke="hsl(var(--card))"
                         strokeWidth="2"
                         opacity={tooltip && tooltip.key !== itemKey && !seriesActive ? 0.45 : 1}
                         className="cursor-pointer"
@@ -291,8 +293,8 @@ const InteractiveChart = memo(function InteractiveChart({
     const xScale = (index: number) => padding.left + labelOffset + index * (barWidth + barSpacing);
 
     return (
-      <div className="w-full">
-        <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
+      <div className="w-full overflow-x-auto">
+        <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`} className="w-full min-w-[560px] sm:min-w-0" preserveAspectRatio="xMidYMid meet">
           {/* Grid lines */}
           {Array.from({ length: Math.round(maxValue.maxValue / maxValue.step) + 1 }, (_, index) => index * maxValue.step).map((value) => (
             <g key={value}>
@@ -392,8 +394,8 @@ const InteractiveChart = memo(function InteractiveChart({
     const yScale = (value: number) => padding.top + chartHeight - (value / maxValue.maxValue) * chartHeight;
 
     return (
-      <div className="w-full">
-        <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
+      <div className="w-full overflow-x-auto">
+        <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`} className="w-full min-w-[560px] sm:min-w-0" preserveAspectRatio="xMidYMid meet">
           {/* Grid lines */}
           {Array.from({ length: Math.round(maxValue.maxValue / maxValue.step) + 1 }, (_, index) => index * maxValue.step).map((value) => (
             <g key={value}>
@@ -567,15 +569,17 @@ const InteractiveChart = memo(function InteractiveChart({
                   ? "bg-card/70 border border-border/70"
                   : "bg-secondary/40 border border-border/40 text-muted-foreground opacity-70";
                 return (
-                  <div 
-                    key={category.id} 
-                    className={`flex items-center justify-between text-sm cursor-pointer p-2 rounded-none transition-colors ${baseClass}`}
+                  <button
+                    type="button"
+                    key={category.id}
+                    aria-pressed={isVisible}
+                    className={`flex items-center justify-between text-sm cursor-pointer p-2 rounded-lg transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${baseClass}`}
                     onClick={() => toggleCategory(category.id)}
                   >
                     <div className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: isVisible ? category.color : '#9CA3AF' }}
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: isVisible ? category.color : 'hsl(var(--muted-foreground))' }}
                       />
                       <span className={isVisible ? "text-foreground" : "text-muted-foreground"}>
                         {category.name}
@@ -584,7 +588,7 @@ const InteractiveChart = memo(function InteractiveChart({
                     <span className="font-medium text-muted-foreground">
                       {formatAmountWithSpaces(category.total)} {currencyCode}
                     </span>
-                  </div>
+                  </button>
                 );
               })}
           </div>

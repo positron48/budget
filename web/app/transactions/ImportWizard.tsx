@@ -480,7 +480,7 @@ export default function ImportWizard({ onClose, onCompleted }: Props) {
       onDrop={handleDrop}
     >
       {isDragging && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-none bg-secondary/80 border-2 border-dashed border-border/70">
+        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-secondary/80 border-2 border-dashed border-border/70">
           <div className="text-center">
             <div className="text-lg font-semibold text-foreground">{t("dragOverlayTitle") as string}</div>
             <div className="mt-1 text-sm text-muted-foreground">{t("dragOverlaySubtitle") as string}</div>
@@ -489,24 +489,24 @@ export default function ImportWizard({ onClose, onCompleted }: Props) {
       )}
       {/* Step header */}
       <div className="flex items-center gap-2 text-sm">
-        <span className={`px-2 py-0.5 rounded-none ${step >= 0 ? "bg-[hsl(var(--primary))] text-primary-foreground" : "bg-secondary/60 text-muted-foreground"}`}>1</span>
+        <span className={`px-2 py-0.5 rounded-lg ${step >= 0 ? "bg-[hsl(var(--primary))] text-primary-foreground" : "bg-secondary/60 text-muted-foreground"}`}>1</span>
         <span className={step === 0 ? "font-semibold text-foreground" : "text-muted-foreground"}>{t("importStepFile")}</span>
         <Icon name="chevron-right" size={14} className="text-muted-foreground" />
-        <span className={`px-2 py-0.5 rounded-none ${step >= 1 ? "bg-[hsl(var(--primary))] text-primary-foreground" : "bg-secondary/60 text-muted-foreground"}`}>2</span>
+        <span className={`px-2 py-0.5 rounded-lg ${step >= 1 ? "bg-[hsl(var(--primary))] text-primary-foreground" : "bg-secondary/60 text-muted-foreground"}`}>2</span>
         <span className={step === 1 ? "font-semibold text-foreground" : "text-muted-foreground"}>{t("importStepMapping")}</span>
         {(!autoCreateMissingCategories && missingCategoryNames.length > 0) ? (
           <>
             <Icon name="chevron-right" size={14} className="text-muted-foreground" />
-            <span className={`px-2 py-0.5 rounded-none ${step >= 2 ? "bg-[hsl(var(--primary))] text-primary-foreground" : "bg-secondary/60 text-muted-foreground"}`}>3</span>
+            <span className={`px-2 py-0.5 rounded-lg ${step >= 2 ? "bg-[hsl(var(--primary))] text-primary-foreground" : "bg-secondary/60 text-muted-foreground"}`}>3</span>
             <span className={step === 2 ? "font-semibold text-foreground" : "text-muted-foreground"}>{t("importStepCategoryMap")}</span>
             <Icon name="chevron-right" size={14} className="text-muted-foreground" />
-            <span className={`px-2 py-0.5 rounded-none ${step >= 3 ? "bg-[hsl(var(--primary))] text-primary-foreground" : "bg-secondary/60 text-muted-foreground"}`}>4</span>
+            <span className={`px-2 py-0.5 rounded-lg ${step >= 3 ? "bg-[hsl(var(--primary))] text-primary-foreground" : "bg-secondary/60 text-muted-foreground"}`}>4</span>
             <span className={step === 3 ? "font-semibold text-foreground" : "text-muted-foreground"}>{t("importStepPreview")}</span>
           </>
         ) : (
           <>
             <Icon name="chevron-right" size={14} className="text-muted-foreground" />
-            <span className={`px-2 py-0.5 rounded-none ${step >= 2 ? "bg-[hsl(var(--primary))] text-primary-foreground" : "bg-secondary/60 text-muted-foreground"}`}>3</span>
+            <span className={`px-2 py-0.5 rounded-lg ${step >= 2 ? "bg-[hsl(var(--primary))] text-primary-foreground" : "bg-secondary/60 text-muted-foreground"}`}>3</span>
             <span className={step === 2 ? "font-semibold text-foreground" : "text-muted-foreground"}>{t("importStepPreview")}</span>
           </>
         )}
@@ -515,7 +515,7 @@ export default function ImportWizard({ onClose, onCompleted }: Props) {
       {/* Step 0: instructions + file */}
       {step === 0 && (
         <div className="space-y-4">
-          <div className="rounded-none border border-border p-3 bg-card/80">
+          <div className="rounded-lg border border-border p-3 bg-card/80">
             <div className="text-sm font-medium text-foreground">{t("importInstructionsTitle")}</div>
             <ul className="mt-2 list-disc pl-5 text-sm text-muted-foreground space-y-1">
               {(t.raw("importInstructionsList") as string[]).map((line, idx) => (
@@ -523,7 +523,7 @@ export default function ImportWizard({ onClose, onCompleted }: Props) {
               ))}
             </ul>
             <div className="mt-2 text-xs text-muted-foreground">{t("importSampleHeader")}</div>
-            <pre className="mt-1 text-xs p-2 bg-background/60 rounded-none border border-border/60 overflow-x-auto">{locale === "ru" ? `date,amount,currency,type,category,comment\n2024-01-02,1200.50,RUB,expense,Еда,Обед\n2024-01-03,50000,RUB,income,Зарплата,Аванс\n` : `date,amount,currency,type,category,comment\n2024-01-02,1200.50,USD,expense,Food,Lunch\n2024-01-03,50000,USD,income,Salary,Advance\n`}</pre>
+            <pre className="mt-1 text-xs p-2 bg-background/60 rounded-lg border border-border/60 overflow-x-auto">{locale === "ru" ? `date,amount,currency,type,category,comment\n2024-01-02,1200.50,RUB,expense,Еда,Обед\n2024-01-03,50000,RUB,income,Зарплата,Аванс\n` : `date,amount,currency,type,category,comment\n2024-01-02,1200.50,USD,expense,Food,Lunch\n2024-01-03,50000,USD,income,Salary,Advance\n`}</pre>
           </div>
           <div className="flex items-center justify-center gap-3">
             <input
@@ -562,7 +562,7 @@ export default function ImportWizard({ onClose, onCompleted }: Props) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-muted-foreground">{t("delimiter")}</label>
-              <select className="input text-sm rounded-none w-full" value={delimiter} onChange={(e) => {
+              <select className="input text-sm rounded-lg w-full" value={delimiter} onChange={(e) => {
                 const d = e.target.value; setDelimiter(d); if (text) { const res = parseCsv(text, d, quote); setParsed(res); setMapping(guessMapping(res.headers)); }
               }}>
                 <option value=",">,</option>
@@ -573,7 +573,7 @@ export default function ImportWizard({ onClose, onCompleted }: Props) {
             </div>
             <div>
               <label className="text-xs text-muted-foreground">{t("quote")}</label>
-              <select className="input text-sm rounded-none w-full" value={quote} onChange={(e) => {
+              <select className="input text-sm rounded-lg w-full" value={quote} onChange={(e) => {
                 const q = e.target.value; setQuote(q); if (text) { const res = parseCsv(text, delimiter, q); setParsed(res); setMapping(guessMapping(res.headers)); }
               }}>
                 <option value='"'>&quot;</option>
@@ -584,7 +584,7 @@ export default function ImportWizard({ onClose, onCompleted }: Props) {
               <div key={key}>
                 <label className="text-xs text-muted-foreground">{t(key as any)}</label>
                 <select
-                  className="input text-sm rounded-none w-full"
+                  className="input text-sm rounded-lg w-full"
                   value={(mapping[key] as string) || ""}
                   onChange={(e) => setMapping((m) => ({ ...m, [key]: e.target.value || undefined }))}
                 >
@@ -598,7 +598,7 @@ export default function ImportWizard({ onClose, onCompleted }: Props) {
           </div>
 
           {mapping.categoryColumn && missingCategoryNames.length > 0 && (
-            <div className="rounded-none border border-border p-3 bg-card/70">
+            <div className="rounded-lg border border-border p-3 bg-card/70">
               <div className="flex items-center justify-between">
                 <div className="font-medium text-sm">{t("categoryHandlingTitle")}</div>
                 <label className="text-sm inline-flex items-center gap-2">
@@ -628,7 +628,7 @@ export default function ImportWizard({ onClose, onCompleted }: Props) {
             <span className="mr-3">{t("validRows")}: <b className="text-green-600">{preview.valid}</b></span>
             <span>{t("invalidRows")}: <b className="text-red-600">{preview.invalid}</b></span>
           </div>
-          <div className="overflow-x-auto rounded-none border border-border">
+          <div className="overflow-x-auto rounded-lg border border-border">
             <table className="min-w-full text-xs">
               <thead className="bg-secondary/40">
                 <tr>

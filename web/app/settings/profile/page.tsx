@@ -2,9 +2,10 @@
 
 import { ClientsProvider, useClients } from "@/app/providers";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Icon, Input } from "@/components";
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Icon, Input, useToast } from "@/components";
 import { normalizeApiErrorMessage } from "@/lib/api/errors";
 import { authStore } from "@/lib/auth/store";
 
@@ -13,6 +14,8 @@ function ProfileSettingsInner() {
   const qc = useQueryClient();
   const t = useTranslations("profile");
   const tc = useTranslations("common");
+  const toast = useToast();
+  const router = useRouter();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["me"],
@@ -47,15 +50,15 @@ function ProfileSettingsInner() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ locale }),
           });
-          // reload to re-hydrate translations
-          window.location.reload();
+          // Re-render server components to re-hydrate translations without a full reload.
+          router.refresh();
         } catch {
           // ignore
         }
       }
     },
     onError: (err: any) => {
-      alert(normalizeApiErrorMessage(err, "Не удалось обновить профиль"));
+      toast.error(normalizeApiErrorMessage(err, t("errUpdateProfile")));
     },
   });
 
@@ -70,7 +73,7 @@ function ProfileSettingsInner() {
       setNewPassword("");
     },
     onError: (e: any) => {
-      alert(normalizeApiErrorMessage(e, "Не удалось изменить пароль"));
+      toast.error(normalizeApiErrorMessage(e, t("errChangePassword")));
     },
   });
 

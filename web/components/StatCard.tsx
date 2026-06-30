@@ -16,10 +16,10 @@ interface StatCardProps {
 
 export default function StatCard({ icon, title, value, change, color = "primary" }: StatCardProps) {
   const colorClasses = {
-    primary: "text-blue-600 bg-blue-50 dark:bg-blue-950/20",
-    success: "text-green-600 bg-green-50 dark:bg-green-950/20",
-    warning: "text-yellow-600 bg-yellow-50 dark:bg-yellow-950/20",
-    danger: "text-red-600 bg-red-50 dark:bg-red-950/20",
+    primary: "text-[hsl(var(--primary))] bg-[hsl(var(--primary)/0.12)]",
+    success: "text-[hsl(var(--positive))] bg-[hsl(var(--positive)/0.12)]",
+    warning: "text-[hsl(var(--warning))] bg-[hsl(var(--warning)/0.12)]",
+    danger: "text-[hsl(var(--negative))] bg-[hsl(var(--negative)/0.12)]",
   };
 
   return (
@@ -31,7 +31,7 @@ export default function StatCard({ icon, title, value, change, color = "primary"
             <p className="text-2xl font-bold text-foreground mb-1">{value}</p>
             {change && (
               <p className={`text-sm font-medium flex items-center space-x-1 ${
-                change.isPositive ? 'text-green-600' : 'text-red-600'
+                change.isPositive ? 'text-[hsl(var(--positive))]' : 'text-[hsl(var(--negative))]'
               }`}>
                 <Icon 
                   name={change.isPositive ? "trending-up" : "trending-down"} 

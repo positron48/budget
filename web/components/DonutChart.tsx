@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useMemo, useRef, useState } from "react";
 import { chartPalettes, themeColors } from "@/lib/theme/colors";
 
@@ -304,5 +306,3 @@ export default function DonutChart({
     </div>
   );
 }
-
-

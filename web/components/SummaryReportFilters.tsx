@@ -1,5 +1,5 @@
 import { memo, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components";
 import { formatDateLocal } from "@/lib/utils";
@@ -23,15 +23,16 @@ const SummaryReportFilters = memo(function SummaryReportFilters({
   onIncludeExtraordinaryChange,
 }: SummaryReportFiltersProps) {
   const t = useTranslations("reports");
-  const inputClass = "input text-sm rounded-none";
+  const locale = useLocale();
+  const inputClass = "input text-sm rounded-lg";
   const { report } = useClients();
-  
+
   // Get date range from backend
   const { data: dateRangeData, error: dateRangeError, isLoading: dateRangeLoading } = useQuery({
-    queryKey: ["dateRange"],
-    queryFn: async () => (await report.getDateRange({ 
-      locale: "ru", 
-      timezoneOffsetMinutes: new Date().getTimezoneOffset() 
+    queryKey: ["dateRange", locale],
+    queryFn: async () => (await report.getDateRange({
+      locale,
+      timezoneOffsetMinutes: new Date().getTimezoneOffset()
     } as any)) as any,
     retry: false,
     refetchOnWindowFocus: false,

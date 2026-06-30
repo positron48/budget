@@ -9,17 +9,18 @@ interface TransactionStatsProps {
   period?: string;
 }
 
-export default function TransactionStats({ 
-  totalIncome, 
-  totalExpenses, 
-  currencyCode, 
-  period = "за период" 
+export default function TransactionStats({
+  totalIncome,
+  totalExpenses,
+  currencyCode,
+  period
 }: TransactionStatsProps) {
   const t = useTranslations("transactions");
+  const periodText = period ?? t("periodCurrent");
   const netIncome = totalIncome - totalExpenses;
   const isPositive = netIncome >= 0;
   const cardBase =
-    "rounded-none border p-4 shadow-sm bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60 transition-colors";
+    "rounded-lg border p-4 shadow-sm bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60 transition-colors";
   const accentCard = (token: string) =>
     `${cardBase} border-[hsl(var(--${token})/0.4)] bg-[hsl(var(--${token})/0.08)]`;
   
@@ -39,9 +40,9 @@ export default function TransactionStats({
             <p className="text-2xl font-bold text-foreground">
               {formatCurrency(totalIncome, currencyCode)}
             </p>
-            <p className="text-xs text-muted-foreground">{period}</p>
+            <p className="text-xs text-muted-foreground">{periodText}</p>
           </div>
-          <div className="w-10 h-10 rounded-none bg-[hsl(var(--positive)/0.2)] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-[hsl(var(--positive)/0.2)] flex items-center justify-center">
             <Icon name="trending-up" size={20} className="text-[hsl(var(--positive))]" />
           </div>
         </div>
@@ -57,9 +58,9 @@ export default function TransactionStats({
             <p className="text-2xl font-bold text-foreground">
               {formatCurrency(totalExpenses, currencyCode)}
             </p>
-            <p className="text-xs text-muted-foreground">{period}</p>
+            <p className="text-xs text-muted-foreground">{periodText}</p>
           </div>
-          <div className="w-10 h-10 rounded-none bg-[hsl(var(--negative)/0.2)] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-[hsl(var(--negative)/0.2)] flex items-center justify-center">
             <Icon name="trending-down" size={20} className="text-[hsl(var(--negative))]" />
           </div>
         </div>
@@ -80,7 +81,7 @@ export default function TransactionStats({
               {formatCurrency(Math.abs(netIncome), currencyCode)}
             </p>
             <p className="text-xs text-muted-foreground">
-              {isPositive ? t("profit") : t("loss")} {period}
+              {isPositive ? t("profit") : t("loss")} {periodText}
             </p>
           </div>
           <div className="flex items-center space-x-2">
@@ -95,7 +96,7 @@ export default function TransactionStats({
               </div>
             )}
             <div
-              className={`w-8 h-8 rounded-none flex items-center justify-center ${
+              className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                 isPositive
                   ? "bg-[hsl(var(--primary)/0.2)]"
                   : "bg-[hsl(var(--warning)/0.2)]"

@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { Button } from "@/components";
 
 function FxInner() {
   const { fx } = useClients();
@@ -199,19 +200,9 @@ function FxInner() {
                     autoComplete="off"
                   />
                 </div>
-                <button 
-                  className="btn btn-primary" 
-                  disabled={upsertMut.isPending}
-                >
-                  {upsertMut.isPending ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      <span>{tc("loading")}</span>
-                    </div>
-                  ) : (
-                    <span>{t("save")}</span>
-                  )}
-                </button>
+                <Button type="submit" loading={upsertMut.isPending} icon="check">
+                  {upsertMut.isPending ? tc("loading") : t("save")}
+                </Button>
               </form>
             </div>
           </div>

@@ -1,3 +1,5 @@
+"use client";
+
 import { memo, useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button } from "@/components";
@@ -73,7 +75,7 @@ const CategoryToggleChart = memo(function CategoryToggleChart({
                   size="sm"
                   variant="outline"
                   onClick={() => toggleCategory(category.id)}
-                  className={`text-xs flex items-center gap-2 rounded-none border ${
+                  className={`text-xs flex items-center gap-2 rounded-lg border ${
                     isActive ? "!text-foreground" : "!text-muted-foreground !border-border bg-secondary/60"
                   }`}
                   style={
@@ -112,7 +114,7 @@ const CategoryToggleChart = memo(function CategoryToggleChart({
                 </div>
                 
                 {/* Stacked Bar */}
-                <div className="relative h-6 bg-secondary/40 border border-border rounded-none overflow-hidden">
+                <div className="relative h-6 bg-secondary/40 border border-border rounded-lg overflow-hidden">
                   {visibleCategoriesData.map((category, catIndex) => {
                     const categoryValue = category.values[monthIndex] || 0;
                     const categoryPercentage = monthTotal > 0 ? (categoryValue / monthTotal) * 100 : 0;
@@ -146,7 +148,7 @@ const CategoryToggleChart = memo(function CategoryToggleChart({
             {visibleCategoriesData.map((category) => (
               <div
                 key={category.id}
-                className={`flex items-center justify-between text-sm px-3 py-2 border border-border/60 rounded-none ${
+                className={`flex items-center justify-between text-sm px-3 py-2 border border-border/60 rounded-lg ${
                   visibleCategories.has(category.id) ? "bg-card/70" : "bg-secondary/50 text-muted-foreground"
                 }`}
               >

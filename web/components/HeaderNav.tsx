@@ -5,9 +5,9 @@ import { useRouter, usePathname } from "next/navigation";
 import { authStore, AUTH_CHANGED_EVENT, TENANT_CHANGED_EVENT } from "@/lib/auth/store";
 import { useTranslations } from "next-intl";
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Icon, Button } from "@/components";
+import { Icon, Button, ThemeToggle } from "@/components";
 import { useClients } from "@/app/providers";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export default function HeaderNav() {
   const router = useRouter();
@@ -19,6 +19,7 @@ export default function HeaderNav() {
   const [mounted, setMounted] = useState<boolean>(false);
   const accountRef = useRef<HTMLDivElement | null>(null);
   const { tenant } = useClients();
+  const qc = useQueryClient();
   const [isAuthorized, setIsAuthorized] = useState<boolean>(Boolean(authStore.getAccess()));
   const [currentTenantId, setCurrentTenantId] = useState<string | undefined>(authStore.getTenant());
 
@@ -79,7 +80,9 @@ export default function HeaderNav() {
     } catch {
       // Ignore locale change errors
     }
-    window.location.reload();
+    setCurrentLocale(loc);
+    // Re-render server components (layout reloads messages) without a full reload.
+    router.refresh();
   };
 
   const isActive = (path: string) => {
@@ -91,6 +94,7 @@ export default function HeaderNav() {
     { href: "/transactions", label: t("transactions"), icon: "transactions" },
     { href: "/categories", label: t("categories"), icon: "categories" },
     { href: "/reports", label: t("reports"), icon: "reports" },
+    { href: "/fx", label: t("fx"), icon: "fx" },
     { href: "/account", label: t("tenants"), icon: "tenants" },
     { href: "/settings/profile", label: t("profile"), icon: "profile" },
   ];
@@ -130,6 +134,8 @@ export default function HeaderNav() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  title={item.label}
+                  aria-label={item.label}
                   className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                     isActive(item.href)
                       ? "bg-primary text-primary-foreground"
@@ -169,6 +175,9 @@ export default function HeaderNav() {
               </button>
             </div>
 
+            {/* Theme Switcher */}
+            <ThemeToggle />
+
             {/* Account selector with logout (only when authorized). Mount-gated to avoid hydration mismatch */}
             {mounted && isAuthorized && (
               <div className="relative" ref={accountRef}>
@@ -182,7 +191,7 @@ export default function HeaderNav() {
                 </Button>
                 {isAccountOpen && (
                   <div
-                    className="absolute right-0 top-full mt-2 w-64 border border-border rounded-none shadow-lg z-[200] backdrop-blur supports-[backdrop-filter]:bg-card/70"
+                    className="absolute right-0 top-full mt-2 w-64 border border-border rounded-lg shadow-lg z-[200] backdrop-blur supports-[backdrop-filter]:bg-card/70"
                     style={{ backgroundColor: "hsl(var(--card) / 0.95)" }}
                   >
                     <div className="py-1 max-h-80 overflow-auto">
@@ -193,7 +202,10 @@ export default function HeaderNav() {
                             if (!m?.tenant?.id) return;
                             setIsAccountOpen(false);
                             authStore.set({ tenantId: m.tenant.id });
-                            window.location.reload();
+                            setCurrentTenantId(m.tenant.id);
+                            // Refetch all data for the newly selected tenant without a full reload.
+                            qc.invalidateQueries();
+                            router.refresh();
                           }}
                           className={`w-full text-left px-3 py-2 text-sm hover:bg-secondary/40 flex items-center justify-between ${
                             currentTenantId === m?.tenant?.id ? "font-medium" : ""
@@ -252,7 +264,18 @@ export default function HeaderNav() {
                   <span>{item.label}</span>
                 </Link>
               ))}
-              {/* No explicit logout in mobile list; use account selector above */}
+              {mounted && isAuthorized && (
+                <>
+                  <div className="my-2 border-t border-border/60" />
+                  <button
+                    onClick={() => { setIsMenuOpen(false); onLogout(); }}
+                    className="w-full flex items-center space-x-3 px-4 py-2 text-sm font-medium rounded-md text-[hsl(var(--negative))] hover:bg-accent"
+                  >
+                    <Icon name="logout" size={18} />
+                    <span>{t("logout")}</span>
+                  </button>
+                </>
+              )}
             </nav>
           </div>
         )}

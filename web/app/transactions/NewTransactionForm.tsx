@@ -7,8 +7,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useClients } from "@/app/providers";
 import { TransactionType, CategoryKind } from "@/proto/budget/v1/common_pb";
-import { Icon, CategorySingleInput } from "@/components";
+import { Icon, CategorySingleInput, Select } from "@/components";
 import { useTranslations } from "next-intl";
+
+const CURRENCIES = ["RUB", "USD", "EUR", "GBP", "KZT", "CNY", "TRY", "GEL", "AMD", "RSD"] as const;
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  RUB: "₽", USD: "$", EUR: "€", GBP: "£", KZT: "₸", CNY: "¥", TRY: "₺", GEL: "₾", AMD: "֏", RSD: "дин",
+};
 
 const schema = z.object({
   type: z.number().int().min(1).max(2),
@@ -55,6 +60,8 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
 
   const typeWatch = watch("type");
   const typeValue = useMemo(() => Number(typeWatch), [typeWatch]);
+  const currencyWatch = watch("currencyCode") || "RUB";
+  const currencySymbol = CURRENCY_SYMBOLS[currencyWatch] ?? "";
   const mappedKind = useMemo(() => (
     typeValue === TransactionType.INCOME ? CategoryKind.INCOME : CategoryKind.EXPENSE
   ), [typeValue]);
@@ -147,14 +154,14 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
           <label
             className={`cursor-pointer rounded-md border p-2 text-sm transition-colors ${
               typeValue === TransactionType.EXPENSE
-                ? "border-red-500 bg-red-950/40"
+                ? "border-[hsl(var(--negative))] bg-[hsl(var(--negative)/0.12)]"
                 : "border-border bg-secondary/50 hover:bg-secondary/70"
             }`}
           >
             <input type="radio" className="sr-only" checked={typeValue === TransactionType.EXPENSE} onChange={() => setValue('type', TransactionType.EXPENSE)} />
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-500/20">
-                <Icon name="trending-down" size={14} className="text-red-600" />
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[hsl(var(--negative)/0.2)]">
+                <Icon name="trending-down" size={14} className="text-[hsl(var(--negative))]" />
               </span>
               <span>{t("expense")}</span>
             </div>
@@ -162,14 +169,14 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
           <label
             className={`cursor-pointer rounded-md border p-2 text-sm transition-colors ${
               typeValue === TransactionType.INCOME
-                ? "border-green-500 bg-emerald-950/40"
+                ? "border-[hsl(var(--positive))] bg-[hsl(var(--positive)/0.12)]"
                 : "border-border bg-secondary/50 hover:bg-secondary/70"
             }`}
           >
             <input type="radio" className="sr-only" checked={typeValue === TransactionType.INCOME} onChange={() => setValue('type', TransactionType.INCOME)} />
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-500/20">
-                <Icon name="trending-up" size={14} className="text-green-600" />
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[hsl(var(--positive)/0.2)]">
+                <Icon name="trending-up" size={14} className="text-[hsl(var(--positive))]" />
               </span>
               <span>{t("income")}</span>
             </div>
@@ -189,12 +196,12 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
         <div className="grid grid-cols-3 gap-2">
           <div className="col-span-2">
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₽</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{currencySymbol}</span>
               <input
                 ref={amountRef}
                 type="text"
                 inputMode="decimal"
-                className={`${baseInputClass} pl-7 font-medium`}
+                className={`${baseInputClass} pl-8 font-medium`}
                 placeholder="0,00"
                 value={amountInput}
                 onChange={(e) => handleAmountChange(e.target.value)}
@@ -203,9 +210,13 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
               {/* hidden input registered with RHF to carry numeric value */}
               <input ref={hiddenAmountRef} type="hidden" />
             </div>
-            {errors.amount && <p className="text-xs text-red-600 mt-0.5">{errors.amount.message}</p>}
+            {errors.amount && <p className="text-xs text-[hsl(var(--negative))] mt-0.5">{errors.amount.message}</p>}
           </div>
-          <input className={`${baseInputClass} text-center`} placeholder={t("currency") as string} {...register('currencyCode')} />
+          <Select
+            value={currencyWatch}
+            onChange={(v) => setValue('currencyCode', String(v), { shouldDirty: true, shouldValidate: true })}
+            options={CURRENCIES.map((c) => ({ value: c, label: c }))}
+          />
         </div>
       </div>
 

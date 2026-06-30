@@ -1,4 +1,65 @@
+/* Light theme (default) */
 :root {
+  color-scheme: light;
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 217 91% 55%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 210 40% 94%;
+  --muted-foreground: 215 16% 42%;
+  --accent: 210 40% 92%;
+  --accent-foreground: 222 47% 11%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 214 32% 88%;
+  --input: 214 32% 91%;
+  --ring: 217 91% 55%;
+  --radius: 0.5rem;
+  --positive: 142 71% 38%;
+  --positive-foreground: 0 0% 100%;
+  --negative: 0 72% 51%;
+  --negative-foreground: 0 0% 100%;
+  --warning: 38 92% 45%;
+  --warning-foreground: 0 0% 100%;
+  --info: 217 92% 55%;
+  --info-foreground: 0 0% 100%;
+
+  /* Chart palettes (shared across themes) */
+  --chart-mixed-1: 242 75% 60%;
+  --chart-mixed-2: 142 71% 42%;
+  --chart-mixed-3: 0 78% 55%;
+  --chart-mixed-4: 188 84% 40%;
+  --chart-mixed-5: 43 90% 50%;
+  --chart-mixed-6: 277 70% 58%;
+  --chart-mixed-7: 173 70% 36%;
+  --chart-mixed-8: 217 91% 55%;
+  --chart-mixed-9: 21 85% 50%;
+  --chart-warm-1: 0 78% 55%;
+  --chart-warm-2: 32 90% 55%;
+  --chart-warm-3: 14 90% 52%;
+  --chart-warm-4: 334 78% 52%;
+  --chart-warm-5: 346 80% 62%;
+  --chart-warm-6: 354 70% 56%;
+  --chart-warm-7: 23 85% 56%;
+  --chart-warm-8: 45 85% 42%;
+  --chart-cool-1: 217 91% 55%;
+  --chart-cool-2: 142 71% 42%;
+  --chart-cool-3: 188 84% 40%;
+  --chart-cool-4: 251 85% 58%;
+  --chart-cool-5: 171 70% 36%;
+  --chart-cool-6: 198 88% 52%;
+  --chart-cool-7: 152 70% 40%;
+  --chart-cool-8: 222 75% 62%;
+}
+
+/* Dark theme */
+.dark {
   color-scheme: dark;
   --background: 226 71% 4%;
   --foreground: 210 40% 98%;
@@ -19,7 +80,6 @@
   --border: 215 28% 24%;
   --input: 215 28% 18%;
   --ring: 217 91% 60%;
-  --radius: 0.5rem;
   --positive: 142 71% 45%;
   --positive-foreground: 142 18% 15%;
   --negative: 0 84% 60%;
@@ -28,6 +88,7 @@
   --warning-foreground: 40 98% 15%;
   --info: 217 92% 60%;
   --info-foreground: 0 0% 100%;
+
   --chart-mixed-1: 242 75% 65%;
   --chart-mixed-2: 142 71% 45%;
   --chart-mixed-3: 0 84% 60%;
@@ -54,4 +115,3 @@
   --chart-cool-7: 152 76% 46%;
   --chart-cool-8: 222 84% 75%;
 }
-

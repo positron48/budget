@@ -2,26 +2,27 @@
 
 import { ClientsProvider, useClients } from "@/app/providers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState, useCallback, useRef } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { TransactionType, CategoryKind } from "@/proto/budget/v1/common_pb";
-import { useTranslations } from "next-intl";
-import { Icon, Button, Card, CardContent, TransactionStats, CategoryBadge, Modal, SortableHeader, ExportButton, QuickFilters } from "@/components";
+import { useTranslations, useLocale } from "next-intl";
+import { Icon, Button, Card, CardContent, TransactionStats, CategoryBadge, Modal, SortableHeader, ExportButton, QuickFilters, useToast, Select } from "@/components";
 import { formatDateLocal } from "@/lib/utils";
 import ImportWizard from "./ImportWizard";
 import NewTransactionForm, { NewTxFormRef } from "./NewTransactionForm";
 import FiltersForm from "@/components/FiltersForm";
 import { formatCurrency } from "@/lib/utils";
 
-const SURFACE_CARD = "rounded-none border border-border bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60";
-const PANEL_CARD = "rounded-none border border-border bg-secondary/40";
+const SURFACE_CARD = "rounded-lg border border-border bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60";
+const PANEL_CARD = "rounded-lg border border-border bg-secondary/40";
 
 function TransactionsInner() {
   const { transaction, category } = useClients();
   const t = useTranslations("transactions");
   const tc = useTranslations("common");
+  const locale = useLocale();
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(20);
   const [type, setType] = useState<number>(0);
   // Устанавливаем фильтр по умолчанию на текущий месяц
   const getCurrentMonthRange = () => {
@@ -49,18 +50,18 @@ function TransactionsInner() {
   const setTypeCallback = useCallback((value: number) => setType(value), []);
   const setFromCallback = useCallback((value: string) => setFrom(value), []);
   const setToCallback = useCallback((value: string) => setTo(value), []);
-  const setSearchCallback = useCallback((value: string) => {
-    setSearch(value);
-    // Добавляем небольшую задержку для debounce
-    setTimeout(() => {
-      // Принудительно фокусируем инпут после обновления
-      const searchInput = document.querySelector('input[placeholder="Поиск..."]') as HTMLInputElement;
-      if (searchInput && document.activeElement === searchInput) {
-        searchInput.focus();
-      }
-    }, 100);
-  }, []);
+  const setSearchCallback = useCallback((value: string) => setSearch(value), []);
   const setSelectedCategoryIdsCallback = useCallback((value: string[]) => setSelectedCategoryIds(value), []);
+
+  // Debounce search so we don't fire a request on every keystroke.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(id);
+  }, [search]);
 
   const handleSort = useCallback((field: string, direction: "asc" | "desc" | null) => {
     if (direction === null) {
@@ -88,10 +89,10 @@ function TransactionsInner() {
         req.dateRange.to = { seconds: Math.floor(tdate.getTime() / 1000) };
       }
     }
-    if (search) req.search = search;
+    if (debouncedSearch) req.search = debouncedSearch;
     if (selectedCategoryIds.length) req.categoryIds = selectedCategoryIds;
     return req;
-  }, [page, pageSize, sort, type, from, to, search, selectedCategoryIds]);
+  }, [page, pageSize, sort, type, from, to, debouncedSearch, selectedCategoryIds]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["transactions", request],
@@ -121,10 +122,10 @@ function TransactionsInner() {
         req.dateRange.to = { seconds: Math.floor(tdate.getTime() / 1000) };
       }
     }
-    if (search) req.search = search;
+    if (debouncedSearch) req.search = debouncedSearch;
     if (selectedCategoryIds.length) req.categoryIds = selectedCategoryIds;
     return req;
-  }, [type, from, to, search, selectedCategoryIds]);
+  }, [type, from, to, debouncedSearch, selectedCategoryIds]);
 
   const { data: totalsData, isLoading: totalsLoading, error: totalsError } = useQuery({
     queryKey: ["transactionsTotals", totalsRequest],
@@ -143,22 +144,21 @@ function TransactionsInner() {
 
   // Загружаем категории для фильтров и отображения
   const { data: categoriesData, isLoading: categoriesLoading } = useQuery({
-    queryKey: ["categories"],
+    queryKey: ["categories", locale],
     queryFn: async () => {
-      console.log('Fetching categories...');
       try {
         // Загружаем категории доходов
         const incomeResult = await category.listCategories({
           kind: CategoryKind.INCOME,
           includeInactive: false,
-          locale: "ru"
+          locale
         } as any);
-        
+
         // Загружаем категории расходов
         const expenseResult = await category.listCategories({
           kind: CategoryKind.EXPENSE,
           includeInactive: false,
-          locale: "ru"
+          locale
         } as any);
         
         // Объединяем результаты
@@ -169,10 +169,8 @@ function TransactionsInner() {
           ]
         };
         
-        console.log('Categories result:', combinedResult);
         return combinedResult;
       } catch (error) {
-        console.error('Error fetching categories:', error);
         throw error;
       }
     },
@@ -200,7 +198,17 @@ function TransactionsInner() {
     setPage(1);
   }, []);
 
-  const hasActiveFilters = type || from || to || search || selectedCategoryIds.length > 0;
+  // "Active" means the user deviated from the default current-month view.
+  const hasActiveFilters = useMemo(() => {
+    const def = getCurrentMonthRange();
+    return Boolean(
+      type ||
+      search ||
+      selectedCategoryIds.length > 0 ||
+      from !== def.from ||
+      to !== def.to
+    );
+  }, [type, search, selectedCategoryIds, from, to]);
 
   const filtersProps = useMemo(() => ({
     type,
@@ -375,8 +383,17 @@ function TransactionsInner() {
             {/* Pagination */}
             {data?.page && (
               <div className={`${SURFACE_CARD} mt-4 flex items-center justify-between p-4 rounded-lg`}>
-                <div className="text-sm text-muted-foreground">
-                  {t("showing")} {((page - 1) * pageSize) + 1} - {Math.min(page * pageSize, Number(data.page.totalItems))} {t("of")} {Number(data.page.totalItems)} {t("transactions")}
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <span>
+                    {t("showing")} {((page - 1) * pageSize) + 1} - {Math.min(page * pageSize, Number(data.page.totalItems))} {t("of")} {Number(data.page.totalItems)} {t("transactions")}
+                  </span>
+                  <Select
+                    size="sm"
+                    className="w-20"
+                    value={pageSize}
+                    onChange={(v) => { setPageSize(Number(v)); setPage(1); }}
+                    options={[10, 20, 50, 100].map((n) => ({ value: n, label: String(n) }))}
+                  />
                 </div>
                 <div className="flex items-center space-x-2">
                   <Button
@@ -452,7 +469,9 @@ function TransactionTable({
 }) {
   const { transaction } = useClients();
   const t = useTranslations("transactions");
-  const tableCardClass = `${SURFACE_CARD} shadow-lg overflow-hidden !rounded-none`;
+  const locale = useLocale();
+  const toast = useToast();
+  const tableCardClass = `${SURFACE_CARD} shadow-lg overflow-hidden !rounded-lg`;
   const inlineInputClass =
     "w-full px-2 py-1 rounded-md border border-border bg-background/80 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-transparent";
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -492,20 +511,13 @@ function TransactionTable({
         if (payload.categoryId !== null) {
           // Проверяем, что категория существует в списке
           const categoryExists = categories.some(cat => cat.id === payload.categoryId);
-          console.log('Category exists:', categoryExists, 'Category ID:', payload.categoryId);
-          console.log('Available categories:', categories.map(c => ({ id: c.id, code: c.code, kind: c.kind })));
-          
           if (categoryExists) {
             tx.categoryId = payload.categoryId;
-            console.log('Updating categoryId:', payload.categoryId);
           } else {
-            console.error('Category not found:', payload.categoryId);
-            console.error('This might be because the category is not available for this transaction type');
-            throw new Error(`Категория с ID ${payload.categoryId} не найдена или недоступна для данного типа транзакции`);
+            throw new Error(t("categoryNotFound"));
           }
         } else {
           tx.categoryId = null;
-          console.log('Removing categoryId');
         }
       }
       if (payload.occurredAt !== undefined) {
@@ -516,12 +528,6 @@ function TransactionTable({
         paths.push("is_extraordinary");
         tx.isExtraordinary = payload.isExtraordinary;
       }
-              console.log('Update request:', { 
-          id: payload.id, 
-          transaction: tx, 
-          updateMask: { paths },
-          payload: payload
-        });
       return transaction.updateTransaction({
         id: payload.id,
         transaction: tx,
@@ -533,19 +539,13 @@ function TransactionTable({
       onChanged();
     },
     onError: (error) => {
-      console.error('Error updating transaction:', error);
       // Сбрасываем состояние редактирования при ошибке
       setEditingId(null);
-      // Можно добавить уведомление об ошибке
-      alert('Ошибка при обновлении транзакции: ' + (error as any).message);
+      toast.error(`${t("updateError")}: ${(error as any).message}`);
     },
   });
 
   // Отладочная информация
-  console.log('Categories loaded:', categories.length);
-  console.log('Categories loading:', categoriesLoading);
-  console.log('Sample category:', categories[0]);
-  console.log('Sample transaction:', items[0]);
 
   // Не возвращаемся раньше времени, чтобы показать таблицу с фильтрами даже когда транзакций нет
 
@@ -561,7 +561,7 @@ function TransactionTable({
                 onSort={onSort}
                 defaultDirection="asc"
               >
-                Тип
+                {t("type")}
               </SortableHeader>
               <SortableHeader
                 field="occurred_at"
@@ -569,7 +569,7 @@ function TransactionTable({
                 onSort={onSort}
                 defaultDirection="desc"
               >
-                Дата
+                {t("date")}
               </SortableHeader>
               <SortableHeader
                 field="comment"
@@ -577,7 +577,7 @@ function TransactionTable({
                 onSort={onSort}
                 defaultDirection="asc"
               >
-                Описание
+                {t("comment")}
               </SortableHeader>
               <SortableHeader
                 field="category_code"
@@ -585,7 +585,7 @@ function TransactionTable({
                 onSort={onSort}
                 defaultDirection="asc"
               >
-                Категория
+                {t("category")}
               </SortableHeader>
               <SortableHeader
                 field="amount_numeric"
@@ -594,7 +594,7 @@ function TransactionTable({
                 className="text-right"
                 defaultDirection="asc"
               >
-                Сумма
+                {t("amount")}
               </SortableHeader>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 {t("extraordinaryShort")}
@@ -662,7 +662,7 @@ function TransactionTable({
                   {editingId === tx?.id ? (
                     <input
                       className={inlineInputClass}
-                      placeholder="Описание"
+                      placeholder={t("comment")}
                       value={editComment}
                       onChange={(e) => setEditComment(e.target.value)}
                       autoComplete="off"
@@ -677,7 +677,7 @@ function TransactionTable({
                   {editingId === tx?.id ? (
                     categoriesLoading ? (
                       <div className={`${inlineInputClass} text-center text-muted-foreground`}>
-                        Загрузка категорий...
+                        {t("loadingCategories")}
                       </div>
                     ) : (
                       <select
@@ -685,7 +685,7 @@ function TransactionTable({
                         value={editCategoryId}
                         onChange={(e) => setEditCategoryId(e.target.value)}
                       >
-                        <option value="">Без категории</option>
+                        <option value="">{t("noCategory")}</option>
                         {categories
                           .filter((cat: any) => {
                             const isExpense = tx?.type === TransactionType.EXPENSE;
@@ -701,9 +701,9 @@ function TransactionTable({
                           .map((cat: any) => {
                             const getCategoryName = (cat: any) => {
                               if (cat.translations) {
-                                const ruTranslation = cat.translations.find((t: any) => t.locale === "ru");
-                                if (ruTranslation) return ruTranslation.name;
-                                const enTranslation = cat.translations.find((t: any) => t.locale === "en");
+                                const current = cat.translations.find((tr: any) => tr.locale === locale);
+                                if (current) return current.name;
+                                const enTranslation = cat.translations.find((tr: any) => tr.locale === "en");
                                 if (enTranslation) return enTranslation.name;
                                 if (cat.translations.length > 0) return cat.translations[0].name;
                               }
@@ -782,15 +782,7 @@ function TransactionTable({
                         loading={updateMut.isPending}
                         icon="check"
                         onClick={() => {
-                          console.log('Sending update with values:', {
-                            editComment,
-                            editAmount,
-                            editCategoryId,
-                            editDate,
-                            categoryId: editCategoryId === "" ? undefined : editCategoryId,
-                            occurredAt: editDate ? { seconds: Math.floor(new Date(editDate).getTime() / 1000) } : undefined,
-                          });
-                                                      updateMut.mutate({
+                          updateMut.mutate({
                               id: tx.id as string,
                               comment: editComment,
                               amountMinorUnits: editAmount ? Math.round(parseFloat(editAmount.replace(',', '.')) * 100) : undefined,

@@ -3,6 +3,66 @@ import { useTranslations } from "next-intl";
 import { TransactionType } from "@/proto/budget/v1/common_pb";
 import { Icon, CategoryTagInput, Select, Input } from "@/components";
 
+const DATE_INPUT_CLASS = "input text-sm rounded-lg";
+
+function DateInputField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [localValue, setLocalValue] = useState(value);
+
+  // Синхронизируем локальное значение с пропсом при изменении извне
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
+  return (
+    <div className="space-y-1">
+      <label className="text-xs font-medium text-muted-foreground">{label}</label>
+      <div className="relative">
+        <input
+          ref={inputRef}
+          className={`${DATE_INPUT_CLASS} w-full pr-12 date-input`}
+          type="date"
+          value={localValue}
+          onChange={(e) => setLocalValue(e.target.value)}
+          onBlur={(e) => {
+            if (e.target.value !== value) {
+              onChange(e.target.value);
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.currentTarget.blur();
+            }
+          }}
+          autoComplete="off"
+        />
+        <button
+          type="button"
+          onClick={() => {
+            if (!inputRef.current) return;
+            if (typeof inputRef.current.showPicker === "function") {
+              inputRef.current.showPicker();
+            } else {
+              inputRef.current.focus();
+            }
+          }}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Icon name="calendar" size={16} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 interface FiltersFormProps {
   type: number;
   from: string;
@@ -33,7 +93,7 @@ const FiltersForm = memo(function FiltersForm({
   onCategoryIdsChange,
 }: FiltersFormProps) {
   const t = useTranslations("transactions");
-  const inputClass = "input text-sm rounded-none";
+  const inputClass = DATE_INPUT_CLASS;
 
   const typeOptions = useMemo(
     () => [
@@ -44,67 +104,8 @@ const FiltersForm = memo(function FiltersForm({
     [t]
   );
 
-  const DateInputField = ({
-    label,
-    value,
-    onChange,
-  }: {
-    label: string;
-    value: string;
-    onChange: (val: string) => void;
-  }) => {
-    const inputRef = useRef<HTMLInputElement>(null);
-    const [localValue, setLocalValue] = useState(value);
-    
-    // Синхронизируем локальное значение с пропсом при изменении извне
-    useEffect(() => {
-      setLocalValue(value);
-    }, [value]);
-    
-    return (
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground">{label}</label>
-        <div className="relative">
-          <input
-            ref={inputRef}
-            className={`${inputClass} w-full pr-12 date-input`}
-            type="date"
-            value={localValue}
-            onChange={(e) => setLocalValue(e.target.value)}
-            onBlur={(e) => {
-              // Обновляем родительское состояние только при потере фокуса
-              if (e.target.value !== value) {
-                onChange(e.target.value);
-              }
-            }}
-            onKeyDown={(e) => {
-              // Также обновляем при нажатии Enter
-              if (e.key === "Enter") {
-                e.currentTarget.blur();
-              }
-            }}
-            autoComplete="off"
-          />
-          <button
-            type="button"
-            onClick={() => {
-              if (!inputRef.current) return;
-              if (typeof inputRef.current.showPicker === "function") {
-                inputRef.current.showPicker();
-              } else {
-                inputRef.current.focus();
-              }
-            }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Icon name="calendar" size={16} />
-          </button>
-        </div>
-      </div>
-    );
-  };
   return (
-    <div className="rounded-none border border-border bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60 px-4 py-4 space-y-3">
+    <div className="rounded-lg border border-border bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60 px-4 py-4 space-y-3">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">{t("type")}</label>

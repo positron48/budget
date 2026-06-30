@@ -18,8 +18,8 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center mb-4">
-            <span className="text-3xl text-white">💼</span>
+          <div className="mx-auto w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mb-4">
+            <Icon name="wallet" size={32} className="text-white" />
           </div>
           <h1 className="text-3xl font-bold text-foreground mb-2">{t("title")}</h1>
           <p className="text-muted-foreground">{t("subtitle")}</p>
