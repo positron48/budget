@@ -34,6 +34,19 @@ type TooltipState = {
 const formatValue = (value: number, currencyCode: string) =>
   `${formatAmountWithSpaces(value)}${currencyCode ? ` ${currencyCode}` : ""}`;
 
+const niceStep = (roughStep: number) => {
+  const exponent = Math.floor(Math.log10(Math.max(roughStep, 1)));
+  const fraction = roughStep / 10 ** exponent;
+  const niceFraction = fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10;
+  return niceFraction * 10 ** exponent;
+};
+
+const niceMax = (value: number) => {
+  const max = Math.max(value, 100);
+  const step = niceStep(max / 4);
+  return { maxValue: Math.ceil(max / step) * step, step };
+};
+
 const InteractiveChart = memo(function InteractiveChart({
   title,
   description,
@@ -125,14 +138,14 @@ const InteractiveChart = memo(function InteractiveChart({
         const monthMax = monthValues[monthValues.length - 1] || 0;
         if (monthMax > max) max = monthMax;
       });
-      return Math.max(max, 100);
+      return niceMax(max);
     } else if (chartType === "bar") {
       // For bar chart, use the maximum total by month
       let max = 0;
       totalByMonth.forEach(value => {
         if (value > max) max = value;
       });
-      return Math.max(max, 100);
+      return niceMax(max);
     } else {
       // For line chart, use individual category values
       let max = 0;
@@ -141,7 +154,7 @@ const InteractiveChart = memo(function InteractiveChart({
           if (value > max) max = value;
         });
       });
-      return Math.max(max, 100);
+      return niceMax(max);
     }
   }, [visibleCategoriesData, chartType, cumulativeValues, totalByMonth]);
 
@@ -156,32 +169,32 @@ const InteractiveChart = memo(function InteractiveChart({
     const svgWidth = width + labelOffset; // увеличиваем ширину SVG для подписей
 
     const xScale = (index: number) => padding.left + labelOffset + (months.length <= 1 ? chartWidth / 2 : (index / (months.length - 1)) * chartWidth);
-    const yScale = (value: number) => padding.top + chartHeight - (value / maxValue) * chartHeight;
+    const yScale = (value: number) => padding.top + chartHeight - (value / maxValue.maxValue) * chartHeight;
     return (
       <div className="w-full">
         <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
           {/* Grid lines */}
-          {[0, 0.25, 0.5, 0.75, 1].map((ratio) => (
-            <g key={ratio}>
+          {Array.from({ length: Math.round(maxValue.maxValue / maxValue.step) + 1 }, (_, index) => index * maxValue.step).map((value) => (
+            <g key={value}>
               <line
                 x1={padding.left + labelOffset}
-                y1={padding.top + (1 - ratio) * chartHeight}
+                y1={yScale(value)}
                 x2={padding.left + labelOffset + chartWidth}
-                y2={padding.top + (1 - ratio) * chartHeight}
+                y2={yScale(value)}
                 stroke="currentColor"
                 strokeWidth="1"
                 opacity="0.1"
               />
               <text
                 x={padding.left + labelOffset - 10}
-                y={padding.top + (1 - ratio) * chartHeight + 4}
+                y={yScale(value) + 4}
                 textAnchor="end"
                 fontSize="12"
                 fill="currentColor"
                 opacity="0.6"
                 className="select-none"
               >
-                {formatAmountWithSpaces(maxValue * ratio)}
+                {formatAmountWithSpaces(value)}
               </text>
             </g>
           ))}
@@ -281,27 +294,27 @@ const InteractiveChart = memo(function InteractiveChart({
       <div className="w-full">
         <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
           {/* Grid lines */}
-          {[0, 0.25, 0.5, 0.75, 1].map((ratio) => (
-            <g key={ratio}>
+          {Array.from({ length: Math.round(maxValue.maxValue / maxValue.step) + 1 }, (_, index) => index * maxValue.step).map((value) => (
+            <g key={value}>
               <line
                 x1={padding.left + labelOffset}
-                y1={padding.top + (1 - ratio) * chartHeight}
+                y1={padding.top + chartHeight - (value / maxValue.maxValue) * chartHeight}
                 x2={padding.left + labelOffset + chartWidth}
-                y2={padding.top + (1 - ratio) * chartHeight}
+                y2={padding.top + chartHeight - (value / maxValue.maxValue) * chartHeight}
                 stroke="currentColor"
                 strokeWidth="1"
                 opacity="0.1"
               />
               <text
                 x={padding.left + labelOffset - 10}
-                y={padding.top + (1 - ratio) * chartHeight + 4}
+                y={padding.top + chartHeight - (value / maxValue.maxValue) * chartHeight + 4}
                 textAnchor="end"
                 fontSize="12"
                 fill="currentColor"
                 opacity="0.6"
                 className="select-none"
               >
-                {formatAmountWithSpaces(maxValue * ratio)}
+                {formatAmountWithSpaces(value)}
               </text>
             </g>
           ))}
@@ -335,7 +348,7 @@ const InteractiveChart = memo(function InteractiveChart({
                   const value = category.values[monthIndex] || 0;
                   if (value === 0) return null;
 
-                  const barHeight = (value / maxValue) * chartHeight;
+                  const barHeight = (value / maxValue.maxValue) * chartHeight;
                   currentY -= barHeight;
                   const itemKey = `bar-${category.id}-${monthIndex}`;
 
@@ -376,33 +389,33 @@ const InteractiveChart = memo(function InteractiveChart({
     const svgWidth = width + labelOffset; // увеличиваем ширину SVG для подписей
 
     const xScale = (index: number) => padding.left + labelOffset + (months.length <= 1 ? chartWidth / 2 : (index / (months.length - 1)) * chartWidth);
-    const yScale = (value: number) => padding.top + chartHeight - (value / maxValue) * chartHeight;
+    const yScale = (value: number) => padding.top + chartHeight - (value / maxValue.maxValue) * chartHeight;
 
     return (
       <div className="w-full">
         <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
           {/* Grid lines */}
-          {[0, 0.25, 0.5, 0.75, 1].map((ratio) => (
-            <g key={ratio}>
+          {Array.from({ length: Math.round(maxValue.maxValue / maxValue.step) + 1 }, (_, index) => index * maxValue.step).map((value) => (
+            <g key={value}>
               <line
                 x1={padding.left + labelOffset}
-                y1={padding.top + (1 - ratio) * chartHeight}
+                y1={yScale(value)}
                 x2={padding.left + labelOffset + chartWidth}
-                y2={padding.top + (1 - ratio) * chartHeight}
+                y2={yScale(value)}
                 stroke="currentColor"
                 strokeWidth="1"
                 opacity="0.1"
               />
               <text
                 x={padding.left + labelOffset - 10}
-                y={padding.top + (1 - ratio) * chartHeight + 4}
+                y={yScale(value) + 4}
                 textAnchor="end"
                 fontSize="12"
                 fill="currentColor"
                 opacity="0.6"
                 className="select-none"
               >
-                {formatAmountWithSpaces(maxValue * ratio)}
+                {formatAmountWithSpaces(value)}
               </text>
             </g>
           ))}

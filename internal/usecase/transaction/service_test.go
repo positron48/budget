@@ -59,7 +59,7 @@ func (noopTxRepo) GetDateRange(ctx context.Context, tenantID string) (earliest, 
 
 func TestService_CreateForUser_ValidationsAndCompute(t *testing.T) {
 	svc := NewService(noopTxRepo{}, stubFxRepo{rate: "1.0000", provider: "test"}, stubTenantRepo{defCcy: "RUB"}, stubCategoryRepo{})
-	tx, err := svc.CreateForUser(context.Background(), "t1", "u1", domain.TransactionTypeExpense, "cat1", domain.Money{CurrencyCode: "USD", MinorUnits: 123}, time.Now(), "")
+	tx, err := svc.CreateForUser(context.Background(), "t1", "u1", domain.TransactionTypeExpense, "cat1", domain.Money{CurrencyCode: "USD", MinorUnits: 123}, time.Now(), "", false)
 	if err != nil || tx.ID == "" || tx.BaseAmount.CurrencyCode != "RUB" {
 		t.Fatalf("create: %v %#v", err, tx)
 	}
@@ -185,7 +185,7 @@ func (incomeCatRepo2) Get(ctx context.Context, id string) (domain.Category, erro
 
 func TestService_CreateForUser_TypeMismatch(t *testing.T) {
 	svc := NewService(noopTxRepo{}, stubFxRepo{}, stubTenantRepo{defCcy: "EUR"}, incomeCatRepo2{})
-	_, err := svc.CreateForUser(context.Background(), "t1", "u1", domain.TransactionTypeExpense, "cat1", domain.Money{CurrencyCode: "EUR", MinorUnits: 100}, time.Now(), "")
+	_, err := svc.CreateForUser(context.Background(), "t1", "u1", domain.TransactionTypeExpense, "cat1", domain.Money{CurrencyCode: "EUR", MinorUnits: 100}, time.Now(), "", false)
 	if err == nil {
 		t.Fatal("expected type mismatch")
 	}

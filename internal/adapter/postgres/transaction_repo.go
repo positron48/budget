@@ -27,15 +27,15 @@ func (r *TransactionRepo) Create(ctx context.Context, tx domain.Transaction) (do
 	}
 	if err := r.pool.DB.QueryRow(ctx,
 		`INSERT INTO transactions (tenant_id, user_id, category_id, type, amount_numeric, currency_code,
-                                   base_amount_numeric, base_currency_code, fx_rate, fx_provider, fx_as_of, occurred_at, comment)
+                                   base_amount_numeric, base_currency_code, fx_rate, fx_provider, fx_as_of, occurred_at, comment, is_extraordinary)
           VALUES ($1,$2,$3,$4,$5::numeric,$6,
                   CASE WHEN $8::numeric IS NULL THEN $5::numeric ELSE ($5::numeric * $8::numeric) END,
-                  $7, $8::numeric, $9, $10, $11, $12)
+                  $7, $8::numeric, $9, $10, $11, $12, $13)
           RETURNING id`,
 		tx.TenantID, tx.UserID, tx.CategoryID, string(tx.Type),
 		toDecimal(tx.Amount.MinorUnits), tx.Amount.CurrencyCode,
 		tx.BaseAmount.CurrencyCode,
-		fxRate, fxProvider, fxAsOf, tx.OccurredAt, tx.Comment,
+		fxRate, fxProvider, fxAsOf, tx.OccurredAt, tx.Comment, tx.IsExtraordinary,
 	).Scan(&id); err != nil {
 		return domain.Transaction{}, err
 	}
@@ -56,10 +56,10 @@ func (r *TransactionRepo) Update(ctx context.Context, tx domain.Transaction) (do
 		`UPDATE transactions
            SET category_id=$2, type=$3, amount_numeric=$4::numeric, currency_code=$5,
                base_amount_numeric=CASE WHEN $7::numeric IS NULL THEN $4::numeric ELSE ($4::numeric * $7::numeric) END,
-               base_currency_code=$6, fx_rate=$7::numeric, fx_provider=$8, fx_as_of=$9, occurred_at=$10, comment=$11
+               base_currency_code=$6, fx_rate=$7::numeric, fx_provider=$8, fx_as_of=$9, occurred_at=$10, comment=$11, is_extraordinary=$12
          WHERE id=$1`,
 		tx.ID, tx.CategoryID, string(tx.Type), toDecimal(tx.Amount.MinorUnits), tx.Amount.CurrencyCode,
-		tx.BaseAmount.CurrencyCode, fxRate, fxProvider, fxAsOf, tx.OccurredAt, tx.Comment,
+		tx.BaseAmount.CurrencyCode, fxRate, fxProvider, fxAsOf, tx.OccurredAt, tx.Comment, tx.IsExtraordinary,
 	)
 	if err != nil {
 		return domain.Transaction{}, err
@@ -80,9 +80,9 @@ func (r *TransactionRepo) Get(ctx context.Context, id string) (domain.Transactio
 	var fxAsOf *time.Time
 	err := r.pool.DB.QueryRow(ctx,
 		`SELECT id, tenant_id, user_id, category_id, type::text, amount_numeric::text, currency_code,
-                base_amount_numeric::text, base_currency_code, fx_rate::text, fx_provider, fx_as_of, occurred_at, comment, created_at
+                base_amount_numeric::text, base_currency_code, fx_rate::text, fx_provider, fx_as_of, occurred_at, comment, created_at, is_extraordinary
            FROM transactions WHERE id=$1`, id,
-	).Scan(&t.ID, &t.TenantID, &t.UserID, &t.CategoryID, &typ, &amountDec, &t.Amount.CurrencyCode, &baseDec, &t.BaseAmount.CurrencyCode, &fxRate, &fxProvider, &fxAsOf, &t.OccurredAt, &t.Comment, &t.CreatedAt)
+	).Scan(&t.ID, &t.TenantID, &t.UserID, &t.CategoryID, &typ, &amountDec, &t.Amount.CurrencyCode, &baseDec, &t.BaseAmount.CurrencyCode, &fxRate, &fxProvider, &fxAsOf, &t.OccurredAt, &t.Comment, &t.CreatedAt, &t.IsExtraordinary)
 	if err != nil {
 		return domain.Transaction{}, err
 	}
@@ -130,6 +130,9 @@ func (r *TransactionRepo) List(ctx context.Context, tenantID string, filter txus
 	}
 	if filter.Search != nil && *filter.Search != "" {
 		add("comment ILIKE $%d", "%"+*filter.Search+"%")
+	}
+	if filter.ExcludeExtraordinary {
+		where = append(where, "is_extraordinary = FALSE")
 	}
 	clause := strings.Join(where, " AND ")
 
@@ -190,12 +193,12 @@ func (r *TransactionRepo) List(ctx context.Context, tenantID string, filter txus
 		// Replace category_code with c.code in ORDER BY clause
 		orderByWithJoin := strings.ReplaceAll(orderBy, "category_code", "c.code")
 		query = fmt.Sprintf(
-			"SELECT t.id, t.tenant_id, t.user_id, t.category_id, t.type::text, t.amount_numeric::text, t.currency_code, t.base_amount_numeric::text, t.base_currency_code, t.fx_rate::text, t.fx_provider, t.fx_as_of, t.occurred_at, t.comment, t.created_at FROM transactions t LEFT JOIN categories c ON t.category_id = c.id WHERE %s ORDER BY %s OFFSET $%d LIMIT $%d",
-			strings.ReplaceAll(clause, "tenant_id=$1", "t.tenant_id=$1"), orderByWithJoin, offIdx, limIdx,
+			"SELECT t.id, t.tenant_id, t.user_id, t.category_id, t.type::text, t.amount_numeric::text, t.currency_code, t.base_amount_numeric::text, t.base_currency_code, t.fx_rate::text, t.fx_provider, t.fx_as_of, t.occurred_at, t.comment, t.created_at, t.is_extraordinary FROM transactions t LEFT JOIN categories c ON t.category_id = c.id WHERE %s ORDER BY %s OFFSET $%d LIMIT $%d",
+			strings.ReplaceAll(strings.ReplaceAll(clause, "tenant_id=$1", "t.tenant_id=$1"), "is_extraordinary", "t.is_extraordinary"), orderByWithJoin, offIdx, limIdx,
 		)
 	} else {
 		query = fmt.Sprintf(
-			"SELECT id, tenant_id, user_id, category_id, type::text, amount_numeric::text, currency_code, base_amount_numeric::text, base_currency_code, fx_rate::text, fx_provider, fx_as_of, occurred_at, comment, created_at FROM transactions WHERE %s ORDER BY %s OFFSET $%d LIMIT $%d",
+			"SELECT id, tenant_id, user_id, category_id, type::text, amount_numeric::text, currency_code, base_amount_numeric::text, base_currency_code, fx_rate::text, fx_provider, fx_as_of, occurred_at, comment, created_at, is_extraordinary FROM transactions WHERE %s ORDER BY %s OFFSET $%d LIMIT $%d",
 			clause, orderBy, offIdx, limIdx,
 		)
 	}
@@ -210,7 +213,7 @@ func (r *TransactionRepo) List(ctx context.Context, tenantID string, filter txus
 		var typ, amountDec, baseDec string
 		var fxRate, fxProvider *string
 		var fxAsOf *time.Time
-		if err := rows.Scan(&t.ID, &t.TenantID, &t.UserID, &t.CategoryID, &typ, &amountDec, &t.Amount.CurrencyCode, &baseDec, &t.BaseAmount.CurrencyCode, &fxRate, &fxProvider, &fxAsOf, &t.OccurredAt, &t.Comment, &t.CreatedAt); err != nil {
+		if err := rows.Scan(&t.ID, &t.TenantID, &t.UserID, &t.CategoryID, &typ, &amountDec, &t.Amount.CurrencyCode, &baseDec, &t.BaseAmount.CurrencyCode, &fxRate, &fxProvider, &fxAsOf, &t.OccurredAt, &t.Comment, &t.CreatedAt, &t.IsExtraordinary); err != nil {
 			return nil, 0, err
 		}
 		t.Type = domain.TransactionType(typ)
@@ -260,6 +263,9 @@ func (r *TransactionRepo) Totals(ctx context.Context, tenantID string, filter tx
 	}
 	if filter.Search != nil && *filter.Search != "" {
 		add("comment ILIKE $%d", "%"+*filter.Search+"%")
+	}
+	if filter.ExcludeExtraordinary {
+		where = append(where, "is_extraordinary = FALSE")
 	}
 	clause := strings.Join(where, " AND ")
 

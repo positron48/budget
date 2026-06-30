@@ -25,7 +25,7 @@ type TransactionServer struct {
 		Get(ctx context.Context, id string) (domain.Transaction, error)
 		List(ctx context.Context, tenantID string, filter txusecase.ListFilter) ([]domain.Transaction, int64, error)
 		Totals(ctx context.Context, tenantID string, filter txusecase.ListFilter) (domain.Money, domain.Money, error)
-		CreateForUser(ctx context.Context, tenantID, userID string, txType domain.TransactionType, categoryID string, amount domain.Money, occurredAt time.Time, comment string) (domain.Transaction, error)
+		CreateForUser(ctx context.Context, tenantID, userID string, txType domain.TransactionType, categoryID string, amount domain.Money, occurredAt time.Time, comment string, isExtraordinary bool) (domain.Transaction, error)
 	}
 }
 
@@ -37,7 +37,7 @@ func NewTransactionServer(svc interface {
 	Get(context.Context, string) (domain.Transaction, error)
 	List(context.Context, string, txusecase.ListFilter) ([]domain.Transaction, int64, error)
 	Totals(context.Context, string, txusecase.ListFilter) (domain.Money, domain.Money, error)
-	CreateForUser(context.Context, string, string, domain.TransactionType, string, domain.Money, time.Time, string) (domain.Transaction, error)
+	CreateForUser(context.Context, string, string, domain.TransactionType, string, domain.Money, time.Time, string, bool) (domain.Transaction, error)
 },
 ) *TransactionServer {
 	return &TransactionServer{svc: svc}
@@ -57,7 +57,7 @@ func (s *TransactionServer) CreateTransaction(ctx context.Context, req *budgetv1
 	if req.GetOccurredAt() != nil {
 		occurredAt = req.GetOccurredAt().AsTime()
 	}
-	created, err := s.svc.CreateForUser(ctx, tenantID, userID, mapTxType(req.GetType()), req.GetCategoryId(), amount, occurredAt, req.GetComment())
+	created, err := s.svc.CreateForUser(ctx, tenantID, userID, mapTxType(req.GetType()), req.GetCategoryId(), amount, occurredAt, req.GetComment(), req.GetIsExtraordinary())
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -216,17 +216,18 @@ func toProtoTx(t domain.Transaction) *budgetv1.Transaction {
 		}
 	}
 	return &budgetv1.Transaction{
-		Id:         t.ID,
-		TenantId:   t.TenantID,
-		UserId:     t.UserID,
-		CategoryId: t.CategoryID,
-		Type:       toProtoTxType(t.Type),
-		Amount:     &budgetv1.Money{CurrencyCode: t.Amount.CurrencyCode, MinorUnits: t.Amount.MinorUnits},
-		BaseAmount: &budgetv1.Money{CurrencyCode: t.BaseAmount.CurrencyCode, MinorUnits: t.BaseAmount.MinorUnits},
-		Fx:         fx,
-		OccurredAt: timestamppb.New(t.OccurredAt),
-		Comment:    t.Comment,
-		CreatedAt:  timestamppb.New(t.CreatedAt),
+		Id:              t.ID,
+		TenantId:        t.TenantID,
+		UserId:          t.UserID,
+		CategoryId:      t.CategoryID,
+		Type:            toProtoTxType(t.Type),
+		Amount:          &budgetv1.Money{CurrencyCode: t.Amount.CurrencyCode, MinorUnits: t.Amount.MinorUnits},
+		BaseAmount:      &budgetv1.Money{CurrencyCode: t.BaseAmount.CurrencyCode, MinorUnits: t.BaseAmount.MinorUnits},
+		Fx:              fx,
+		OccurredAt:      timestamppb.New(t.OccurredAt),
+		Comment:         t.Comment,
+		CreatedAt:       timestamppb.New(t.CreatedAt),
+		IsExtraordinary: t.IsExtraordinary,
 	}
 }
 
@@ -273,6 +274,8 @@ func applyFieldMask(cur *domain.Transaction, patch *budgetv1.Transaction, mask *
 			}
 		case "comment":
 			cur.Comment = patch.GetComment()
+		case "is_extraordinary":
+			cur.IsExtraordinary = patch.GetIsExtraordinary()
 		}
 	}
 }

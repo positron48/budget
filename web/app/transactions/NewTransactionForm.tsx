@@ -17,6 +17,7 @@ const schema = z.object({
   occurredAt: z.string(),
   categoryId: z.string().optional(),
   comment: z.string().optional(),
+  isExtraordinary: z.boolean().optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -45,6 +46,7 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
       type: TransactionType.EXPENSE,
       currencyCode: "RUB",
       occurredAt: toLocalInput(new Date()),
+      isExtraordinary: false,
     },
   });
   // removed saving state
@@ -71,6 +73,7 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
       };
       if (v.categoryId) payload.categoryId = v.categoryId;
       if (v.comment) payload.comment = v.comment;
+      payload.isExtraordinary = Boolean(v.isExtraordinary);
       await transaction.createTransaction(payload as any);
       qc.invalidateQueries({ queryKey: ["transactions"] });
   }, [transaction, qc]);
@@ -227,6 +230,14 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
         <textarea rows={2} className={baseInputClass} placeholder={t("noComment") as string} {...register('comment')} />
       </div>
 
+      <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border bg-secondary/40 p-2 text-sm text-foreground">
+        <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[hsl(var(--primary))]" {...register('isExtraordinary')} />
+        <span>
+          <span className="block font-medium">{t("extraordinary")}</span>
+          <span className="block text-xs text-muted-foreground">{t("extraordinaryHint")}</span>
+        </span>
+      </label>
+
       {/* Footer buttons supplied by parent if needed */}
 
       <div className="hidden" />
@@ -235,5 +246,4 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
 });
 
 export default NewTransactionForm;
-
 

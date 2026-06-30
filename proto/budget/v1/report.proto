@@ -19,6 +19,7 @@ message GetMonthlySummaryRequest {
   string locale = 3;          // preferred translation
   string target_currency_code = 4; // if empty, use tenant default currency
   int32 timezone_offset_minutes = 5; // minutes to add to local time to get UTC (JS getTimezoneOffset)
+  bool exclude_extraordinary = 6; // exclude one-off operations from the report
 }
 
 message GetMonthlySummaryResponse {
@@ -41,6 +42,7 @@ message GetSummaryReportRequest {
   string locale = 3;          // preferred translation
   string target_currency_code = 4; // if empty, use tenant default currency
   int32 timezone_offset_minutes = 5; // minutes to add to local time to get UTC (JS getTimezoneOffset)
+  bool exclude_extraordinary = 6; // exclude one-off operations from the report
 }
 
 message GetSummaryReportResponse {
@@ -65,5 +67,4 @@ service ReportService {
   rpc GetSummaryReport(GetSummaryReportRequest) returns (GetSummaryReportResponse);
   rpc GetDateRange(GetDateRangeRequest) returns (GetDateRangeResponse);
 }
-
 

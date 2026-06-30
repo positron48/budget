@@ -20,6 +20,7 @@ message Transaction {
   google.protobuf.Timestamp occurred_at = 9;
   string comment = 10;
   google.protobuf.Timestamp created_at = 11;
+  bool is_extraordinary = 12;              // one-off operation excluded from reports on demand
 }
 
 message CreateTransactionRequest {
@@ -28,6 +29,7 @@ message CreateTransactionRequest {
   Money amount = 3;                        // original amount
   google.protobuf.Timestamp occurred_at = 4;
   string comment = 5;
+  bool is_extraordinary = 6;
 }
 message CreateTransactionResponse { Transaction transaction = 1; }
 
@@ -84,5 +86,4 @@ message GetTransactionsTotalsResponse {
   Money total_income = 1;   // in tenant base currency
   Money total_expense = 2;  // in tenant base currency
 }
-
 

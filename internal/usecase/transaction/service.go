@@ -37,17 +37,18 @@ type CategoryRepo interface {
 }
 
 type ListFilter struct {
-	From          *time.Time
-	To            *time.Time
-	CategoryIDs   []string
-	Type          *domain.TransactionType
-	MinMinorUnits *int64
-	MaxMinorUnits *int64
-	CurrencyCode  *string
-	Search        *string
-	Page          int
-	PageSize      int
-	Sort          string // e.g. "occurred_at desc", "amount_numeric asc", "comment asc"
+	From                 *time.Time
+	To                   *time.Time
+	CategoryIDs          []string
+	Type                 *domain.TransactionType
+	MinMinorUnits        *int64
+	MaxMinorUnits        *int64
+	CurrencyCode         *string
+	Search               *string
+	ExcludeExtraordinary bool
+	Page                 int
+	PageSize             int
+	Sort                 string // e.g. "occurred_at desc", "amount_numeric asc", "comment asc"
 }
 
 type Service struct {
@@ -134,7 +135,7 @@ func (s *Service) Totals(ctx context.Context, tenantID string, filter ListFilter
 }
 
 // High-level API used by controller (business rules live here)
-func (s *Service) CreateForUser(ctx context.Context, tenantID, userID string, txType domain.TransactionType, categoryID string, amount domain.Money, occurredAt time.Time, comment string) (domain.Transaction, error) {
+func (s *Service) CreateForUser(ctx context.Context, tenantID, userID string, txType domain.TransactionType, categoryID string, amount domain.Money, occurredAt time.Time, comment string, isExtraordinary bool) (domain.Transaction, error) {
 	// validate category
 	cat, err := s.cats.Get(ctx, categoryID)
 	if err != nil || cat.TenantID != tenantID {
@@ -148,15 +149,16 @@ func (s *Service) CreateForUser(ctx context.Context, tenantID, userID string, tx
 		return domain.Transaction{}, err
 	}
 	tx := domain.Transaction{
-		TenantID:   tenantID,
-		UserID:     userID,
-		CategoryID: categoryID,
-		Type:       txType,
-		Amount:     amount,
-		BaseAmount: base,
-		Fx:         fx,
-		OccurredAt: occurredAt,
-		Comment:    comment,
+		TenantID:        tenantID,
+		UserID:          userID,
+		CategoryID:      categoryID,
+		Type:            txType,
+		Amount:          amount,
+		BaseAmount:      base,
+		Fx:              fx,
+		OccurredAt:      occurredAt,
+		Comment:         comment,
+		IsExtraordinary: isExtraordinary,
 	}
 	return s.txs.Create(ctx, tx)
 }

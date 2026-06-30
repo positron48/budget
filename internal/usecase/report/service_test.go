@@ -52,7 +52,7 @@ func TestReport_MonthlySummary(t *testing.T) {
 		{CategoryID: "books", Type: domain.TransactionTypeExpense, BaseAmount: domain.Money{CurrencyCode: "RUB", MinorUnits: 5000}, OccurredAt: time.Now()},
 	}
 	rep := Service{fx: fxRepoStub{}, tenants: tRepoStub{base: "RUB"}, cats: cRepoStub{}, txsvc: stubTxService{items: items}}
-	sum, err := rep.GetMonthlySummary(context.Background(), "t1", 2025, 2, "en", "", 0)
+	sum, err := rep.GetMonthlySummary(context.Background(), "t1", 2025, 2, "en", "", 0, false)
 	if err != nil {
 		t.Fatalf("summary: %v", err)
 	}
@@ -65,7 +65,7 @@ func TestReport_TargetDiffersFromBase(t *testing.T) {
 	// one expense in EUR base, target USD with fx 2.0
 	items := []domain.Transaction{{CategoryID: "rent", Type: domain.TransactionTypeExpense, BaseAmount: domain.Money{CurrencyCode: "EUR", MinorUnits: 10000}, OccurredAt: time.Now()}}
 	rep := Service{fx: fxRepoStub{}, tenants: tRepoStub{base: "EUR"}, cats: cRepoStub{}, txsvc: stubTxService{items: items}}
-	sum, err := rep.GetMonthlySummary(context.Background(), "t1", 2025, 2, "en", "USD", 0)
+	sum, err := rep.GetMonthlySummary(context.Background(), "t1", 2025, 2, "en", "USD", 0, false)
 	if err != nil {
 		t.Fatalf("summary: %v", err)
 	}

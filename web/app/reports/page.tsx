@@ -36,7 +36,8 @@ function MonthlyReportInner() {
   const [year, setYear] = useState<number>(today.getFullYear());
   const [month, setMonth] = useState<number>(today.getMonth() + 1); // 1..12
   const [currency] = useState<string>("");
-  const req = useMemo(() => ({ year, month, targetCurrencyCode: currency, timezoneOffsetMinutes: new Date().getTimezoneOffset() } as any), [year, month, currency]);
+  const [includeExtraordinary, setIncludeExtraordinary] = useState(true);
+  const req = useMemo(() => ({ year, month, targetCurrencyCode: currency, timezoneOffsetMinutes: new Date().getTimezoneOffset(), excludeExtraordinary: !includeExtraordinary } as any), [year, month, currency, includeExtraordinary]);
 
   const locale = useLocale();
   const years = useMemo(() => {
@@ -139,6 +140,15 @@ function MonthlyReportInner() {
                 </div>
               </div>
             </div>
+            <label className="flex items-center gap-3 text-sm text-foreground">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-[hsl(var(--primary))]"
+                checked={includeExtraordinary}
+                onChange={(e) => setIncludeExtraordinary(e.target.checked)}
+              />
+              <span>{t("includeExtraordinary")}</span>
+            </label>
           </div>
         </CardContent>
       </Card>
@@ -356,13 +366,15 @@ function SummaryReportInner() {
   const [from, setFrom] = useState<string>(getCurrentYearRange().from);
   const [to, setTo] = useState<string>(getCurrentYearRange().to);
   const [currency] = useState<string>("");
+  const [includeExtraordinary, setIncludeExtraordinary] = useState(true);
   
   const req = useMemo(() => ({ 
     fromDate: from, 
     toDate: to, 
     targetCurrencyCode: currency, 
-    timezoneOffsetMinutes: new Date().getTimezoneOffset() 
-  } as any), [from, to, currency]);
+    timezoneOffsetMinutes: new Date().getTimezoneOffset(),
+    excludeExtraordinary: !includeExtraordinary,
+  } as any), [from, to, currency, includeExtraordinary]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["summary", req],
@@ -441,8 +453,10 @@ function SummaryReportInner() {
           <SummaryReportFilters
             from={from}
             to={to}
+            includeExtraordinary={includeExtraordinary}
             onFromChange={setFrom}
             onToChange={setTo}
+            onIncludeExtraordinaryChange={setIncludeExtraordinary}
           />
         </CardContent>
       </Card>

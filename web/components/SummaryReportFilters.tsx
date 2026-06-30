@@ -8,15 +8,19 @@ import { useClients } from "@/app/providers";
 interface SummaryReportFiltersProps {
   from: string;
   to: string;
+  includeExtraordinary: boolean;
   onFromChange: (value: string) => void;
   onToChange: (value: string) => void;
+  onIncludeExtraordinaryChange: (value: boolean) => void;
 }
 
 const SummaryReportFilters = memo(function SummaryReportFilters({
   from,
   to,
+  includeExtraordinary,
   onFromChange,
   onToChange,
+  onIncludeExtraordinaryChange,
 }: SummaryReportFiltersProps) {
   const t = useTranslations("reports");
   const inputClass = "input text-sm rounded-none";
@@ -35,6 +39,11 @@ const SummaryReportFilters = memo(function SummaryReportFilters({
   
   const [earliestDate, setEarliestDate] = useState<string>("");
   const [latestDate, setLatestDate] = useState<string>("");
+  const [draftFrom, setDraftFrom] = useState(from);
+  const [draftTo, setDraftTo] = useState(to);
+
+  useEffect(() => setDraftFrom(from), [from]);
+  useEffect(() => setDraftTo(to), [to]);
   
   useEffect(() => {
     if (dateRangeData) {
@@ -126,6 +135,12 @@ const SummaryReportFilters = memo(function SummaryReportFilters({
     onToChange(range.to);
   };
 
+  const commitDate = (value: string, onCommit: (value: string) => void) => {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      onCommit(value);
+    }
+  };
+
   return (
     <div className="mb-6">
       <div className="flex flex-wrap items-center gap-2 mb-6">
@@ -163,8 +178,12 @@ const SummaryReportFilters = memo(function SummaryReportFilters({
           <input
             className={`${inputClass} w-full`}
             type="date"
-            value={from}
-            onChange={(e) => onFromChange(e.target.value)}
+            value={draftFrom}
+            onChange={(e) => {
+              setDraftFrom(e.target.value);
+              commitDate(e.target.value, onFromChange);
+            }}
+            onBlur={(e) => commitDate(e.target.value, onFromChange)}
             autoComplete="off"
           />
         </div>
@@ -174,12 +193,26 @@ const SummaryReportFilters = memo(function SummaryReportFilters({
           <input
             className={`${inputClass} w-full`}
             type="date"
-            value={to}
-            onChange={(e) => onToChange(e.target.value)}
+            value={draftTo}
+            onChange={(e) => {
+              setDraftTo(e.target.value);
+              commitDate(e.target.value, onToChange);
+            }}
+            onBlur={(e) => commitDate(e.target.value, onToChange)}
             autoComplete="off"
           />
         </div>
       </div>
+
+      <label className="mt-4 flex cursor-pointer items-center gap-3 text-sm text-foreground">
+        <input
+          type="checkbox"
+          className="h-4 w-4 accent-[hsl(var(--primary))]"
+          checked={includeExtraordinary}
+          onChange={(e) => onIncludeExtraordinaryChange(e.target.checked)}
+        />
+        <span>{t("includeExtraordinary")}</span>
+      </label>
     </div>
   );
 });

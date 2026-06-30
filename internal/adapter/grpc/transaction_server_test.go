@@ -45,7 +45,7 @@ func (s txSvcStub) Totals(ctx context.Context, tenantID string, filter txuse.Lis
 	return domain.Money{CurrencyCode: "RUB", MinorUnits: 0}, domain.Money{CurrencyCode: "RUB", MinorUnits: 0}, s.err
 }
 
-func (s txSvcStub) CreateForUser(ctx context.Context, tenantID, userID string, txType domain.TransactionType, categoryID string, amount domain.Money, occurredAt time.Time, comment string) (domain.Transaction, error) {
+func (s txSvcStub) CreateForUser(ctx context.Context, tenantID, userID string, txType domain.TransactionType, categoryID string, amount domain.Money, occurredAt time.Time, comment string, isExtraordinary bool) (domain.Transaction, error) {
 	return s.tx, s.err
 }
 
@@ -75,7 +75,7 @@ func (txSvcBaseErr) Totals(ctx context.Context, tenantID string, filter txuse.Li
 	return domain.Money{}, domain.Money{}, errors.New("boom")
 }
 
-func (txSvcBaseErr) CreateForUser(ctx context.Context, tenantID, userID string, txType domain.TransactionType, categoryID string, amount domain.Money, occurredAt time.Time, comment string) (domain.Transaction, error) {
+func (txSvcBaseErr) CreateForUser(ctx context.Context, tenantID, userID string, txType domain.TransactionType, categoryID string, amount domain.Money, occurredAt time.Time, comment string, isExtraordinary bool) (domain.Transaction, error) {
 	return domain.Transaction{}, nil
 }
 
@@ -170,7 +170,7 @@ func (txSvcEcho) Totals(ctx context.Context, tenantID string, filter txuse.ListF
 	return domain.Money{CurrencyCode: "EUR", MinorUnits: 100}, domain.Money{CurrencyCode: "EUR", MinorUnits: 50}, nil
 }
 
-func (txSvcEcho) CreateForUser(ctx context.Context, tenantID, userID string, txType domain.TransactionType, categoryID string, amount domain.Money, occurredAt time.Time, comment string) (domain.Transaction, error) {
+func (txSvcEcho) CreateForUser(ctx context.Context, tenantID, userID string, txType domain.TransactionType, categoryID string, amount domain.Money, occurredAt time.Time, comment string, isExtraordinary bool) (domain.Transaction, error) {
 	return domain.Transaction{ID: "tx"}, nil
 }
 

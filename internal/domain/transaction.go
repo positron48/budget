@@ -18,15 +18,16 @@ type FxInfo struct {
 }
 
 type Transaction struct {
-	ID         string
-	TenantID   string
-	UserID     string
-	CategoryID string
-	Type       TransactionType
-	Amount     Money
-	BaseAmount Money
-	Fx         *FxInfo
-	OccurredAt time.Time
-	Comment    string
-	CreatedAt  time.Time
+	ID              string
+	TenantID        string
+	UserID          string
+	CategoryID      string
+	Type            TransactionType
+	Amount          Money
+	BaseAmount      Money
+	Fx              *FxInfo
+	OccurredAt      time.Time
+	Comment         string
+	CreatedAt       time.Time
+	IsExtraordinary bool
 }

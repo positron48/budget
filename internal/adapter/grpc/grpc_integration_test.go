@@ -489,7 +489,7 @@ func (memTxSvc) Totals(ctx context.Context, tenantID string, filter txuse.ListFi
 	return domain.Money{CurrencyCode: "USD", MinorUnits: 100}, domain.Money{CurrencyCode: "USD", MinorUnits: 50}, nil
 }
 
-func (memTxSvc) CreateForUser(ctx context.Context, tenantID, userID string, txType domain.TransactionType, categoryID string, amount domain.Money, occurredAt time.Time, comment string) (domain.Transaction, error) {
+func (memTxSvc) CreateForUser(ctx context.Context, tenantID, userID string, txType domain.TransactionType, categoryID string, amount domain.Money, occurredAt time.Time, comment string, isExtraordinary bool) (domain.Transaction, error) {
 	return domain.Transaction{ID: "tx1", TenantID: tenantID, UserID: userID, CategoryID: categoryID, Type: txType, Amount: amount, BaseAmount: amount, OccurredAt: occurredAt, CreatedAt: time.Now()}, nil
 }
 
@@ -499,7 +499,7 @@ func (memTxSvc) GetDateRange(ctx context.Context, tenantID string) (earliest, la
 
 type memReportSvc struct{}
 
-func (memReportSvc) GetMonthlySummary(ctx context.Context, tenantID string, year int, month int, locale string, targetCurrencyCode string, tzOffsetMinutes int) (repuse.MonthlySummary, error) {
+func (memReportSvc) GetMonthlySummary(ctx context.Context, tenantID string, year int, month int, locale string, targetCurrencyCode string, tzOffsetMinutes int, excludeExtraordinary bool) (repuse.MonthlySummary, error) {
 	return repuse.MonthlySummary{
 		Items:        []repuse.MonthlyItem{{CategoryID: "c1", CategoryName: "Food", Type: domain.TransactionTypeExpense, Total: domain.Money{CurrencyCode: "USD", MinorUnits: 500}}},
 		TotalIncome:  domain.Money{CurrencyCode: "USD", MinorUnits: 0},
@@ -511,7 +511,7 @@ func (memReportSvc) GetDateRange(ctx context.Context, tenantID string, locale st
 	return repuse.DateRange{}, nil
 }
 
-func (memReportSvc) GetSummaryReport(ctx context.Context, tenantID string, fromDate string, toDate string, locale string, targetCurrencyCode string, tzOffsetMinutes int) (repuse.SummaryReport, error) {
+func (memReportSvc) GetSummaryReport(ctx context.Context, tenantID string, fromDate string, toDate string, locale string, targetCurrencyCode string, tzOffsetMinutes int, excludeExtraordinary bool) (repuse.SummaryReport, error) {
 	return repuse.SummaryReport{}, nil
 }
 

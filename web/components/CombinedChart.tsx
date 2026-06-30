@@ -45,6 +45,13 @@ const chartRight = chartLeft + chartWidth;
 const formatValue = (value: number, currencyCode: string) =>
   `${formatAmountWithSpaces(value)}${currencyCode ? ` ${currencyCode}` : ""}`;
 
+const niceStep = (roughStep: number) => {
+  const exponent = Math.floor(Math.log10(Math.max(roughStep, 1)));
+  const fraction = roughStep / 10 ** exponent;
+  const niceFraction = fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10;
+  return niceFraction * 10 ** exponent;
+};
+
 const getRange = (values: number[]) => {
   const finiteValues = values.filter(Number.isFinite);
   let minValue = Math.min(0, ...finiteValues);
@@ -54,9 +61,12 @@ const getRange = (values: number[]) => {
     minValue -= 100;
     maxValue += 100;
   }
-
-  const pad = Math.max((maxValue - minValue) * 0.08, 1);
-  return { minValue: minValue - pad, maxValue: maxValue + pad };
+  const step = niceStep((maxValue - minValue) / 4);
+  return {
+    minValue: Math.floor(minValue / step) * step,
+    maxValue: Math.ceil(maxValue / step) * step,
+    step,
+  };
 };
 
 const getX = (index: number, count: number) => {
@@ -151,13 +161,12 @@ const CombinedChart = memo(function CombinedChart({
     return padding.top + chartHeight - ((value - range.minValue) / span) * chartHeight;
   };
 
-  const renderGrid = (range: { minValue: number; maxValue: number }) => (
+  const renderGrid = (range: { minValue: number; maxValue: number; step: number }) => (
     <>
-      {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-        const value = range.minValue + (range.maxValue - range.minValue) * ratio;
+      {Array.from({ length: Math.round((range.maxValue - range.minValue) / range.step) + 1 }, (_, index) => range.minValue + index * range.step).map((value) => {
         const y = yScale(value, range);
         return (
-          <g key={ratio}>
+          <g key={value}>
             <line x1={chartLeft} y1={y} x2={chartRight} y2={y} stroke="currentColor" strokeWidth="1" opacity="0.1" />
             <text
               x={chartLeft - 10}
@@ -323,6 +332,36 @@ const CombinedChart = memo(function CombinedChart({
     <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
       {renderGrid(cumulativeRange)}
       {renderMonthLabels()}
+      {cumulativeByMonth.map((month, index) => {
+        if (month.monthlyNet === 0) return null;
+        const slotWidth = chartWidth / Math.max(months.length, 1);
+        const barWidth = Math.max(14, slotWidth * 0.34);
+        const x = getX(index, months.length) - barWidth / 2;
+        const zeroY = yScale(0, cumulativeRange);
+        const valueY = yScale(month.monthlyNet, cumulativeRange);
+        const itemKey = `cumulative-monthly-${index}`;
+        return (
+          <rect
+            key={itemKey}
+            x={x}
+            y={Math.min(zeroY, valueY)}
+            width={barWidth}
+            height={Math.abs(zeroY - valueY)}
+            rx="3"
+            fill={month.monthlyNet >= 0 ? "#22c55e" : "#ef4444"}
+            opacity={tooltip && tooltip.key !== itemKey ? 0.25 : 0.28}
+            className="cursor-pointer"
+            onMouseEnter={(event) =>
+              showTooltip(event, itemKey, months[index], [
+                `${t("netIncome")}: ${formatValue(month.monthlyNet, currencyCode)}`,
+                `${t("cumulativeNetIncome")}: ${formatValue(month.cumulativeNet, currencyCode)}`,
+              ])
+            }
+            onMouseMove={moveTooltip}
+            onMouseLeave={clearTooltip}
+          />
+        );
+      })}
       <polyline
         data-testid="cumulative-net-line"
         points={cumulativeByMonth

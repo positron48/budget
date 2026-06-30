@@ -72,7 +72,7 @@ type DateRange struct {
 	LatestDate   string // YYYY-MM-DD format
 }
 
-func (s *Service) GetMonthlySummary(ctx context.Context, tenantID string, year int, month int, locale string, targetCurrencyCode string, tzOffsetMinutes int) (MonthlySummary, error) {
+func (s *Service) GetMonthlySummary(ctx context.Context, tenantID string, year int, month int, locale string, targetCurrencyCode string, tzOffsetMinutes int, excludeExtraordinary bool) (MonthlySummary, error) {
 	// compute month range using client timezone offset to avoid crossing day boundaries
 	// tzOffsetMinutes comes from JS getTimezoneOffset(), e.g. Moscow is -180
 	fromLocal := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.FixedZone("client", -tzOffsetMinutes*60))
@@ -96,7 +96,7 @@ func (s *Service) GetMonthlySummary(ctx context.Context, tenantID string, year i
 	page := 1
 	pageSize := 500
 	for {
-		f := txusecase.ListFilter{From: &from, To: &to, Page: page, PageSize: pageSize}
+		f := txusecase.ListFilter{From: &from, To: &to, ExcludeExtraordinary: excludeExtraordinary, Page: page, PageSize: pageSize}
 		items, total, err := s.txsvc.List(ctx, tenantID, f)
 		if err != nil {
 			return MonthlySummary{}, err
@@ -176,7 +176,7 @@ func (s *Service) GetMonthlySummary(ctx context.Context, tenantID string, year i
 	}, nil
 }
 
-func (s *Service) GetSummaryReport(ctx context.Context, tenantID string, fromDate, toDate, locale, targetCurrencyCode string, tzOffsetMinutes int) (SummaryReport, error) {
+func (s *Service) GetSummaryReport(ctx context.Context, tenantID string, fromDate, toDate, locale, targetCurrencyCode string, tzOffsetMinutes int, excludeExtraordinary bool) (SummaryReport, error) {
 	// Parse date range
 	fromLocal, err := time.Parse("2006-01-02", fromDate)
 	if err != nil {
@@ -216,7 +216,7 @@ func (s *Service) GetSummaryReport(ctx context.Context, tenantID string, fromDat
 	page := 1
 	pageSize := 500
 	for {
-		f := txusecase.ListFilter{From: &from, To: &to, Page: page, PageSize: pageSize}
+		f := txusecase.ListFilter{From: &from, To: &to, ExcludeExtraordinary: excludeExtraordinary, Page: page, PageSize: pageSize}
 		items, total, err := s.txsvc.List(ctx, tenantID, f)
 		if err != nil {
 			return SummaryReport{}, err

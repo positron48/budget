@@ -460,6 +460,7 @@ function TransactionTable({
   const [editAmount, setEditAmount] = useState<string>("");
   const [editCategoryId, setEditCategoryId] = useState<string>("");
   const [editDate, setEditDate] = useState<string>("");
+  const [editIsExtraordinary, setEditIsExtraordinary] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const updateMut = useMutation({
@@ -469,6 +470,7 @@ function TransactionTable({
       amountMinorUnits?: number;
       categoryId?: string;
       occurredAt?: { seconds: number };
+      isExtraordinary?: boolean;
     }) => {
       const paths: string[] = [];
       const tx: any = {};
@@ -509,6 +511,10 @@ function TransactionTable({
       if (payload.occurredAt !== undefined) {
         paths.push("occurred_at");
         tx.occurredAt = payload.occurredAt;
+      }
+      if (payload.isExtraordinary !== undefined) {
+        paths.push("is_extraordinary");
+        tx.isExtraordinary = payload.isExtraordinary;
       }
               console.log('Update request:', { 
           id: payload.id, 
@@ -590,6 +596,9 @@ function TransactionTable({
               >
                 Сумма
               </SortableHeader>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                {t("extraordinaryShort")}
+              </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 <div className="flex items-center justify-end space-x-2">
                   {hasActiveFilters && (
@@ -745,6 +754,25 @@ function TransactionTable({
                     </div>
                   )}
                 </td>
+                <td className="px-4 py-3">
+                  {editingId === tx?.id ? (
+                    <label className="inline-flex items-center gap-2 text-sm text-foreground">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-[hsl(var(--primary))]"
+                        checked={editIsExtraordinary}
+                        onChange={(e) => setEditIsExtraordinary(e.target.checked)}
+                      />
+                      <span>{t("extraordinaryShort")}</span>
+                    </label>
+                  ) : tx?.isExtraordinary ? (
+                    <span className="inline-flex rounded border border-[hsl(var(--primary)/0.35)] bg-[hsl(var(--primary)/0.12)] px-2 py-1 text-xs font-medium text-[hsl(var(--primary))]">
+                      {t("extraordinaryShort")}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">-</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-center">
                   {editingId === tx?.id ? (
                     <div className="flex items-center justify-center space-x-1">
@@ -768,6 +796,7 @@ function TransactionTable({
                               amountMinorUnits: editAmount ? Math.round(parseFloat(editAmount.replace(',', '.')) * 100) : undefined,
                               categoryId: editCategoryId === "" ? undefined : editCategoryId,
                               occurredAt: editDate ? { seconds: Math.floor(new Date(editDate).getTime() / 1000) } : undefined,
+                              isExtraordinary: editIsExtraordinary,
                             });
                         }}
                         >
@@ -789,6 +818,7 @@ function TransactionTable({
                           setEditComment(tx?.comment ?? "");
                           setEditAmount(tx?.amount?.minorUnits ? (Number(tx.amount.minorUnits) / 100).toString() : "");
                           setEditCategoryId(tx?.categoryId ?? "");
+                          setEditIsExtraordinary(Boolean(tx?.isExtraordinary));
                           const toLocalInput = (d: Date) => {
                             const pad = (n: number) => String(n).padStart(2, "0");
                             return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -822,7 +852,7 @@ function TransactionTable({
             ))}
             {items.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center">
+                <td colSpan={7} className="px-4 py-12 text-center">
                   <div className="inline-flex items-center justify-center w-16 h-16 bg-secondary/60 rounded-full mb-4">
                     <Icon name="receipt" size={32} className="text-muted-foreground" />
                   </div>
@@ -863,4 +893,3 @@ function TransactionTable({
     </Card>
   );
 }
-
