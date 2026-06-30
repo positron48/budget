@@ -1,4 +1,5 @@
-import { memo, useState, useMemo } from "react";
+import { memo, useState, useMemo, useRef } from "react";
+import type { MouseEvent } from "react";
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button } from "@/components";
 import { formatAmountWithSpaces } from "@/lib/utils";
@@ -22,6 +23,16 @@ interface InteractiveChartProps {
 }
 
 type ChartType = "line" | "bar" | "area";
+type TooltipState = {
+  x: number;
+  y: number;
+  key: string;
+  title: string;
+  lines: string[];
+} | null;
+
+const formatValue = (value: number, currencyCode: string) =>
+  `${formatAmountWithSpaces(value)}${currencyCode ? ` ${currencyCode}` : ""}`;
 
 const InteractiveChart = memo(function InteractiveChart({
   title,
@@ -32,10 +43,38 @@ const InteractiveChart = memo(function InteractiveChart({
   className,
 }: InteractiveChartProps) {
   const t = useTranslations("reports");
+  const containerRef = useRef<HTMLDivElement>(null);
   const [visibleCategories, setVisibleCategories] = useState<Set<string>>(
     new Set(categories.map(cat => cat.id))
   );
   const [chartType, setChartType] = useState<ChartType>("bar");
+  const [tooltip, setTooltip] = useState<TooltipState>(null);
+
+  const showTooltip = (
+    event: MouseEvent<Element>,
+    key: string,
+    titleText: string,
+    lines: string[]
+  ) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    setTooltip({
+      x: event.clientX - (rect?.left || 0),
+      y: event.clientY - (rect?.top || 0),
+      key,
+      title: titleText,
+      lines,
+    });
+  };
+
+  const moveTooltip = (event: MouseEvent<Element>) => {
+    if (!tooltip) return;
+    const rect = containerRef.current?.getBoundingClientRect();
+    setTooltip((current) =>
+      current ? { ...current, x: event.clientX - (rect?.left || 0), y: event.clientY - (rect?.top || 0) } : null
+    );
+  };
+
+  const clearTooltip = () => setTooltip(null);
 
   const toggleCategory = (categoryId: string) => {
     const newVisible = new Set(visibleCategories);
@@ -116,9 +155,8 @@ const InteractiveChart = memo(function InteractiveChart({
     const chartHeight = height - padding.top - padding.bottom;
     const svgWidth = width + labelOffset; // увеличиваем ширину SVG для подписей
 
-    const xScale = (index: number) => padding.left + labelOffset + (index / (months.length - 1)) * chartWidth;
+    const xScale = (index: number) => padding.left + labelOffset + (months.length <= 1 ? chartWidth / 2 : (index / (months.length - 1)) * chartWidth);
     const yScale = (value: number) => padding.top + chartHeight - (value / maxValue) * chartHeight;
-
     return (
       <div className="w-full">
         <svg width="100%" height={height} viewBox={`0 0 ${svgWidth} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet">
@@ -165,6 +203,7 @@ const InteractiveChart = memo(function InteractiveChart({
 
           {/* Lines for each category */}
           {visibleCategoriesData.map((category) => {
+            const seriesActive = tooltip?.key.startsWith(`line-${category.id}-`);
             const points = category.values
               .map((value, index) => `${xScale(index)},${yScale(value)}`)
               .join(' ');
@@ -175,22 +214,47 @@ const InteractiveChart = memo(function InteractiveChart({
                   points={points}
                   fill="none"
                   stroke={category.color}
-                  strokeWidth="3"
+                  strokeWidth={seriesActive ? "4" : "3"}
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  opacity={tooltip && !seriesActive ? 0.35 : 1}
                 />
                 {/* Data points */}
-                {category.values.map((value, index) => (
-                  <circle
-                    key={index}
-                    cx={xScale(index)}
-                    cy={yScale(value)}
-                    r="4"
-                    fill={category.color}
-                    stroke="white"
-                    strokeWidth="2"
-                  />
-                ))}
+                {category.values.map((value, index) => {
+                  const itemKey = `line-${category.id}-${index}`;
+                  return (
+                    <g key={itemKey}>
+                      <circle
+                        data-testid={itemKey}
+                        cx={xScale(index)}
+                        cy={yScale(value)}
+                        r={tooltip?.key === itemKey ? "6" : "4"}
+                        fill={category.color}
+                        stroke="white"
+                        strokeWidth="2"
+                        opacity={tooltip && tooltip.key !== itemKey && !seriesActive ? 0.45 : 1}
+                        className="cursor-pointer"
+                        onMouseEnter={(event) =>
+                          showTooltip(event, itemKey, months[index], [`${category.name}: ${formatValue(value, currencyCode)}`])
+                        }
+                        onMouseMove={moveTooltip}
+                        onMouseLeave={clearTooltip}
+                      />
+                      <circle
+                        cx={xScale(index)}
+                        cy={yScale(value)}
+                        r="14"
+                        fill="transparent"
+                        className="cursor-pointer"
+                        onMouseEnter={(event) =>
+                          showTooltip(event, itemKey, months[index], [`${category.name}: ${formatValue(value, currencyCode)}`])
+                        }
+                        onMouseMove={moveTooltip}
+                        onMouseLeave={clearTooltip}
+                      />
+                    </g>
+                  );
+                })}
               </g>
             );
           })}
@@ -212,7 +276,6 @@ const InteractiveChart = memo(function InteractiveChart({
     const barSpacing = chartWidth / months.length * 0.2;
 
     const xScale = (index: number) => padding.left + labelOffset + index * (barWidth + barSpacing);
-    const yScale = (value: number) => padding.top + chartHeight - (value / maxValue) * chartHeight;
 
     return (
       <div className="w-full">
@@ -274,16 +337,24 @@ const InteractiveChart = memo(function InteractiveChart({
 
                   const barHeight = (value / maxValue) * chartHeight;
                   currentY -= barHeight;
+                  const itemKey = `bar-${category.id}-${monthIndex}`;
 
                   return (
                     <rect
-                      key={category.id}
+                      key={itemKey}
+                      data-testid={itemKey}
                       x={x}
                       y={currentY}
                       width={barWidth}
                       height={barHeight}
                       fill={category.color}
-                      opacity="0.8"
+                      opacity={tooltip && tooltip.key !== itemKey ? 0.45 : 0.85}
+                      className="cursor-pointer"
+                      onMouseEnter={(event) =>
+                        showTooltip(event, itemKey, month, [`${category.name}: ${formatValue(value, currencyCode)}`])
+                      }
+                      onMouseMove={moveTooltip}
+                      onMouseLeave={clearTooltip}
                     />
                   );
                 })}
@@ -304,7 +375,7 @@ const InteractiveChart = memo(function InteractiveChart({
     const chartHeight = height - padding.top - padding.bottom;
     const svgWidth = width + labelOffset; // увеличиваем ширину SVG для подписей
 
-    const xScale = (index: number) => padding.left + labelOffset + (index / (months.length - 1)) * chartWidth;
+    const xScale = (index: number) => padding.left + labelOffset + (months.length <= 1 ? chartWidth / 2 : (index / (months.length - 1)) * chartWidth);
     const yScale = (value: number) => padding.top + chartHeight - (value / maxValue) * chartHeight;
 
     return (
@@ -353,6 +424,7 @@ const InteractiveChart = memo(function InteractiveChart({
 
           {/* Stacked areas */}
           {visibleCategoriesData.map((category, categoryIndex) => {
+            const itemKey = `area-${category.id}`;
             // Create area path for this category
             const topPoints: string[] = [];
             const bottomPoints: string[] = [];
@@ -373,16 +445,25 @@ const InteractiveChart = memo(function InteractiveChart({
             return (
               <g key={category.id}>
                 <path
+                  data-testid={itemKey}
                   d={areaPath}
                   fill={category.color}
-                  opacity="0.7"
+                  opacity={tooltip && tooltip.key !== itemKey ? 0.35 : 0.7}
+                  className="cursor-pointer"
+                  onMouseEnter={(event) =>
+                    showTooltip(event, itemKey, category.name, [
+                      `${t("total")}: ${formatValue(category.total, currencyCode)}`,
+                    ])
+                  }
+                  onMouseMove={moveTooltip}
+                  onMouseLeave={clearTooltip}
                 />
                 {/* Top line for this category */}
                 <polyline
                   points={topPoints.join(' ')}
                   fill="none"
                   stroke={category.color}
-                  strokeWidth="2"
+                  strokeWidth={tooltip?.key === itemKey ? "3" : "2"}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
@@ -445,8 +526,20 @@ const InteractiveChart = memo(function InteractiveChart({
       </CardHeader>
       <CardContent>
         {/* Chart */}
-        <div className="mb-6">
+        <div className="relative mb-6" ref={containerRef}>
           {renderChart()}
+          {tooltip && (
+            <div
+              role="tooltip"
+              className="pointer-events-none absolute z-10 rounded bg-foreground px-2 py-1 text-xs text-background shadow"
+              style={{ left: tooltip.x + 8, top: tooltip.y - 8 }}
+            >
+              <div className="font-medium">{tooltip.title}</div>
+              {tooltip.lines.map((line) => (
+                <div key={line}>{line}</div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Interactive Legend */}

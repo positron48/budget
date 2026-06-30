@@ -273,6 +273,8 @@
     "toggleCategories": "Toggle categories",
     "categoryTotals": "Category Totals",
     "monthlyTrends": "Monthly Trends",
+    "cumulativeNetIncome": "Cumulative Net Income",
+    "cumulativeNetIncomeDescription": "Running total of monthly income minus expenses",
     "expensesByMonth": "Expenses by Month",
     "incomeByMonth": "Income by Month",
     "overallExpensesChart": "Overall Expenses by Category",
@@ -374,4 +376,3 @@
     "passwordTitle": "Change password"
   }
 }
-

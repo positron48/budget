@@ -274,6 +274,8 @@
     "toggleCategories": "Включить/выключить категории",
     "categoryTotals": "Итоги по категориям",
     "monthlyTrends": "Месячные тренды",
+    "cumulativeNetIncome": "Накопительная чистая прибыль",
+    "cumulativeNetIncomeDescription": "Нарастающий итог доходов минус расходов по месяцам",
     "expensesByMonth": "Расходы по месяцам",
     "incomeByMonth": "Доходы по месяцам",
     "overallExpensesChart": "Общие расходы по категориям",
@@ -375,4 +377,3 @@
     "passwordTitle": "Изменить пароль"
   }
 }
-
