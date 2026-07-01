@@ -81,6 +81,13 @@ func main() {
 			sug.Fatalw("db not ready after retries", "error", lastErr)
 		}
 		defer db.Close()
+
+		// Apply embedded schema migrations automatically on startup so new
+		// releases roll out DB changes immediately on deploy.
+		if err := postgres.RunMigrations(cfg.DatabaseURL); err != nil {
+			sug.Fatalw("database migration failed", "error", err)
+		}
+		sug.Infow("database migrations are up to date")
 	} else {
 		sug.Warn("DATABASE_URL is empty; running without DB connection")
 	}
