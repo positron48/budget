@@ -303,6 +303,8 @@
     "allTime": "Все время",
     "toggleCategories": "Включить/выключить категории",
     "categoryTotals": "Итоги по категориям",
+    "average": "Среднее",
+    "averageLine": "Средняя линия",
     "monthlyTrends": "Месячные тренды",
     "cumulativeNetIncome": "Накопительная чистая прибыль",
     "cumulativeNetIncomeDescription": "Нарастающий итог доходов минус расходов по месяцам",

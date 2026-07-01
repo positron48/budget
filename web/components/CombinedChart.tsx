@@ -90,8 +90,9 @@ const CombinedChart = memo(function CombinedChart({
 }: CombinedChartProps) {
   const t = useTranslations("reports");
   const containerRef = useRef<HTMLDivElement>(null);
-  const [showExpenses, setShowExpenses] = useState(true);
-  const [showIncomes, setShowIncomes] = useState(true);
+  // Expenses and incomes are always shown; the "net" series is derived from both.
+  const showExpenses = true;
+  const showIncomes = true;
   const [chartType, setChartType] = useState<ChartType>("line");
   const [tooltip, setTooltip] = useState<TooltipState>(null);
 
@@ -442,20 +443,6 @@ const CombinedChart = memo(function CombinedChart({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="mb-6">
-          <h4 className="text-sm font-medium text-foreground mb-3">{t("toggleCategories")}</h4>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant={showExpenses ? "primary" : "outline"} onClick={() => setShowExpenses(!showExpenses)} className="text-xs flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ef4444" }} />
-              {t("expense")}
-            </Button>
-            <Button size="sm" variant={showIncomes ? "primary" : "outline"} onClick={() => setShowIncomes(!showIncomes)} className="text-xs flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#22c55e" }} />
-              {t("income")}
-            </Button>
-          </div>
-        </div>
-
         <div className="relative mb-6" ref={containerRef}>
           <div className="overflow-x-auto">
             {chartType === "line" ? renderLineChart() : renderBarChart()}

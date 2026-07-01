@@ -63,6 +63,7 @@ const InteractiveChart = memo(function InteractiveChart({
     new Set(categories.map(cat => cat.id))
   );
   const [chartType, setChartType] = useState<ChartType>("bar");
+  const [showAverage, setShowAverage] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipState>(null);
 
   const showTooltip = (
@@ -109,10 +110,18 @@ const InteractiveChart = memo(function InteractiveChart({
   );
 
   const totalByMonth = useMemo(() => {
-    return months.map((_, monthIndex) => 
+    return months.map((_, monthIndex) =>
       visibleCategoriesData.reduce((sum, cat) => sum + (cat.values[monthIndex] || 0), 0)
     );
   }, [visibleCategoriesData, months]);
+
+  // Average of monthly totals across months that actually have data.
+  // Empty (e.g. future) months are excluded so the line reflects real activity.
+  const averageValue = useMemo(() => {
+    const active = totalByMonth.filter((value) => value > 0);
+    if (active.length === 0) return 0;
+    return active.reduce((sum, value) => sum + value, 0) / active.length;
+  }, [totalByMonth]);
 
   // Calculate cumulative values for stacked areas
   const cumulativeValues = useMemo(() => {
@@ -156,10 +165,42 @@ const InteractiveChart = memo(function InteractiveChart({
           if (value > max) max = value;
         });
       });
+      // Keep the average reference line within the plotted area.
+      if (showAverage) max = Math.max(max, averageValue);
       return niceMax(max);
     }
-  }, [visibleCategoriesData, chartType, cumulativeValues, totalByMonth]);
+  }, [visibleCategoriesData, chartType, cumulativeValues, totalByMonth, showAverage, averageValue]);
 
+
+  const renderAverageLine = (yScale: (value: number) => number, left: number, right: number) => {
+    if (!showAverage || averageValue <= 0) return null;
+    const y = yScale(averageValue);
+    return (
+      <g>
+        <line
+          data-testid="average-line"
+          x1={left}
+          y1={y}
+          x2={right}
+          y2={y}
+          stroke="hsl(var(--primary))"
+          strokeWidth="2"
+          strokeDasharray="6,4"
+          opacity="0.9"
+        />
+        <text
+          x={right}
+          y={y - 6}
+          textAnchor="end"
+          fontSize="12"
+          fill="hsl(var(--primary))"
+          className="select-none"
+        >
+          {`${t("average")}: ${formatValue(averageValue, currencyCode)}`}
+        </text>
+      </g>
+    );
+  };
 
   const renderLineChart = () => {
     const width = 1200;
@@ -273,6 +314,8 @@ const InteractiveChart = memo(function InteractiveChart({
               </g>
             );
           })}
+
+          {renderAverageLine(yScale, padding.left + labelOffset, padding.left + labelOffset + chartWidth)}
         </svg>
       </div>
     );
@@ -291,6 +334,7 @@ const InteractiveChart = memo(function InteractiveChart({
     const barSpacing = chartWidth / months.length * 0.2;
 
     const xScale = (index: number) => padding.left + labelOffset + index * (barWidth + barSpacing);
+    const yScale = (value: number) => padding.top + chartHeight - (value / maxValue.maxValue) * chartHeight;
 
     return (
       <div className="w-full overflow-x-auto">
@@ -376,6 +420,8 @@ const InteractiveChart = memo(function InteractiveChart({
               </g>
             );
           })}
+
+          {renderAverageLine(yScale, padding.left + labelOffset, padding.left + labelOffset + chartWidth)}
         </svg>
       </div>
     );
@@ -485,6 +531,8 @@ const InteractiveChart = memo(function InteractiveChart({
               </g>
             );
           })}
+
+          {renderAverageLine(yScale, padding.left + labelOffset, padding.left + labelOffset + chartWidth)}
         </svg>
       </div>
     );
@@ -535,6 +583,17 @@ const InteractiveChart = memo(function InteractiveChart({
               className="text-xs"
             >
               <Icon name="layers" size={14} />
+            </Button>
+            <Button
+              size="sm"
+              variant={showAverage ? "primary" : "outline"}
+              onClick={() => setShowAverage((value) => !value)}
+              aria-pressed={showAverage}
+              title={t("averageLine")}
+              className="text-xs ml-1 flex items-center gap-1.5"
+            >
+              <span className="inline-block w-3 border-t-2 border-dashed border-current" />
+              {t("average")}
             </Button>
           </div>
         </div>

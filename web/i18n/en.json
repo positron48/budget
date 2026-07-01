@@ -303,6 +303,8 @@
     "allTime": "All Time",
     "toggleCategories": "Toggle categories",
     "categoryTotals": "Category Totals",
+    "average": "Average",
+    "averageLine": "Average line",
     "monthlyTrends": "Monthly Trends",
     "cumulativeNetIncome": "Cumulative Net Income",
     "cumulativeNetIncomeDescription": "Running total of monthly income minus expenses",
