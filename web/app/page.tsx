@@ -68,8 +68,9 @@ function DashboardInner() {
     () => monthly?.totalIncome?.currencyCode || monthly?.totalExpense?.currencyCode || "RUB",
     [monthly]
   );
+  // Totals are kept in minor units; formatCurrency divides by 100 for display.
   const sum = (arr: any[]) =>
-    arr.reduce((s, it) => s + Math.abs(Number(it?.total?.minorUnits ?? 0) / 100), 0);
+    arr.reduce((s, it) => s + Math.abs(Number(it?.total?.minorUnits ?? 0)), 0);
   const expensesItems = useMemo(
     () => items.filter((it) => it?.type === TransactionType.EXPENSE),
     [items]
@@ -174,7 +175,7 @@ function DashboardInner() {
               <ul className="divide-y divide-border/60">
                 {recentItems.map((tx: any) => {
                   const isExpense = tx?.type === TransactionType.EXPENSE;
-                  const amount = Math.abs(Number(tx?.amount?.minorUnits ?? 0) / 100);
+                  const amount = Math.abs(Number(tx?.amount?.minorUnits ?? 0));
                   return (
                     <li key={tx?.id} className="flex items-center justify-between gap-3 py-2.5">
                       <div className="min-w-0 flex items-center gap-2">
