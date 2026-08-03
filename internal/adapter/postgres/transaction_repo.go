@@ -176,9 +176,12 @@ func (r *TransactionRepo) List(ctx context.Context, tenantID string, filter txus
 			"created_at":          "created_at",
 			"created_at asc":      "created_at ASC",
 			"created_at desc":     "created_at DESC",
-			"category_code":       "category_code",
-			"category_code asc":   "category_code ASC",
-			"category_code desc":  "category_code DESC",
+			"category_code":         "category_code",
+			"category_code asc":     "category_code ASC",
+			"category_code desc":    "category_code DESC",
+			"is_extraordinary":      "is_extraordinary",
+			"is_extraordinary asc":  "is_extraordinary ASC",
+			"is_extraordinary desc": "is_extraordinary DESC",
 		}
 		if validSort, exists := validSortFields[strings.ToLower(filter.Sort)]; exists {
 			orderBy = validSort

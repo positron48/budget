@@ -596,9 +596,14 @@ function TransactionTable({
               >
                 {t("amount")}
               </SortableHeader>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <SortableHeader
+                field="is_extraordinary"
+                currentSort={currentSort}
+                onSort={onSort}
+                defaultDirection="desc"
+              >
                 {t("extraordinaryShort")}
-              </th>
+              </SortableHeader>
               <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 <div className="flex items-center justify-end space-x-2">
                   {hasActiveFilters && (

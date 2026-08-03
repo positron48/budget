@@ -27,6 +27,9 @@ func TestTransactionRepo_SortValidation(t *testing.T) {
 		"category_code",
 		"category_code asc",
 		"category_code desc",
+		"is_extraordinary",
+		"is_extraordinary asc",
+		"is_extraordinary desc",
 	}
 
 	invalidSorts := []string{
@@ -85,31 +88,37 @@ func TestTransactionRepo_SortFieldMapping(t *testing.T) {
 		"created_at":          "created_at",
 		"created_at asc":      "created_at ASC",
 		"created_at desc":     "created_at DESC",
-		"category_code":       "c.code", // This gets replaced in the actual query
-		"category_code asc":   "c.code ASC",
-		"category_code desc":  "c.code DESC",
+		"category_code":         "c.code", // This gets replaced in the actual query
+		"category_code asc":     "c.code ASC",
+		"category_code desc":    "c.code DESC",
+		"is_extraordinary":      "is_extraordinary",
+		"is_extraordinary asc":  "is_extraordinary ASC",
+		"is_extraordinary desc": "is_extraordinary DESC",
 	}
 
 	// This simulates the validation logic from the repository
 	validSortFields := map[string]string{
-		"occurred_at":         "occurred_at",
-		"occurred_at asc":     "occurred_at ASC",
-		"occurred_at desc":    "occurred_at DESC",
-		"amount_numeric":      "CASE WHEN type = 'expense' THEN -amount_numeric ELSE amount_numeric END",
-		"amount_numeric asc":  "CASE WHEN type = 'expense' THEN -amount_numeric ELSE amount_numeric END ASC",
-		"amount_numeric desc": "CASE WHEN type = 'expense' THEN -amount_numeric ELSE amount_numeric END DESC",
-		"comment":             "comment",
-		"comment asc":         "comment ASC",
-		"comment desc":        "comment DESC",
-		"type":                "type",
-		"type asc":            "type ASC",
-		"type desc":           "type DESC",
-		"created_at":          "created_at",
-		"created_at asc":      "created_at ASC",
-		"created_at desc":     "created_at DESC",
-		"category_code":       "c.code", // This gets replaced in the actual query
-		"category_code asc":   "c.code ASC",
-		"category_code desc":  "c.code DESC",
+		"occurred_at":           "occurred_at",
+		"occurred_at asc":       "occurred_at ASC",
+		"occurred_at desc":      "occurred_at DESC",
+		"amount_numeric":        "CASE WHEN type = 'expense' THEN -amount_numeric ELSE amount_numeric END",
+		"amount_numeric asc":    "CASE WHEN type = 'expense' THEN -amount_numeric ELSE amount_numeric END ASC",
+		"amount_numeric desc":   "CASE WHEN type = 'expense' THEN -amount_numeric ELSE amount_numeric END DESC",
+		"comment":               "comment",
+		"comment asc":           "comment ASC",
+		"comment desc":          "comment DESC",
+		"type":                  "type",
+		"type asc":              "type ASC",
+		"type desc":             "type DESC",
+		"created_at":            "created_at",
+		"created_at asc":        "created_at ASC",
+		"created_at desc":       "created_at DESC",
+		"category_code":         "c.code", // This gets replaced in the actual query
+		"category_code asc":     "c.code ASC",
+		"category_code desc":    "c.code DESC",
+		"is_extraordinary":      "is_extraordinary",
+		"is_extraordinary asc":  "is_extraordinary ASC",
+		"is_extraordinary desc": "is_extraordinary DESC",
 	}
 
 	for input, expected := range sortMappings {
