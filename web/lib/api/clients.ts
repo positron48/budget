@@ -10,6 +10,7 @@ import { TransactionService } from "../../proto/budget/v1/transaction_pb";
 import { ReportService } from "../../proto/budget/v1/report_pb";
 import { FxService } from "../../proto/budget/v1/fx_pb";
 import { ImportService } from "../../proto/budget/v1/import_pb";
+import { CurrencyExchangeService } from "../../proto/budget/v1/currency_exchange_pb";
 
 export function createClients(transport: Transport) {
   return {
@@ -21,7 +22,7 @@ export function createClients(transport: Transport) {
     report: createClient(ReportService as any, transport),
     fx: createClient(FxService as any, transport),
     importSvc: createClient(ImportService as any, transport),
+    currencyExchange: createClient(CurrencyExchangeService as any, transport),
   } as const;
 }
-
 

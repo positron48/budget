@@ -10,7 +10,7 @@ import (
 )
 
 // NewTenantGuardUnaryInterceptor ensures the authenticated user is a member of the active tenant
-// for tenant-scoped RPCs (Category, Transaction, Report). Non-tenant-scoped methods are bypassed.
+// for tenant-scoped RPCs (Category, Transaction, CurrencyExchange, Report). Non-tenant-scoped methods are bypassed.
 func NewTenantGuardUnaryInterceptor(validate func(ctx context.Context, userID, tenantID string) (bool, error)) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if !isTenantScopedMethod(info.FullMethod) {
@@ -37,6 +37,8 @@ func isTenantScopedMethod(fullMethod string) bool {
 	case hasPrefix(fullMethod, "/budget.v1.CategoryService/"):
 		return true
 	case hasPrefix(fullMethod, "/budget.v1.TransactionService/"):
+		return true
+	case hasPrefix(fullMethod, "/budget.v1.CurrencyExchangeService/"):
 		return true
 	case hasPrefix(fullMethod, "/budget.v1.ReportService/"):
 		return true

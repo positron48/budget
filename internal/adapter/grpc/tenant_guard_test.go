@@ -48,3 +48,12 @@ func TestTenantGuard_MissingContext(t *testing.T) {
 		t.Fatalf("expected Unauthenticated, got %v", err)
 	}
 }
+
+func TestTenantGuard_CurrencyExchangeIsTenantScoped(t *testing.T) {
+	it := NewTenantGuardUnaryInterceptor(func(ctx context.Context, userID, tenantID string) (bool, error) { return false, nil })
+	ctx := ctxutil.WithUserID(ctxutil.WithTenantID(context.Background(), "t1"), "u1")
+	_, err := it(ctx, nil, &grpc.UnaryServerInfo{FullMethod: "/budget.v1.CurrencyExchangeService/ListCurrencyExchanges"}, handlerOK)
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected PermissionDenied, got %v", err)
+	}
+}

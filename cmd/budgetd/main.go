@@ -21,6 +21,7 @@ import (
 	"github.com/positron48/budget/internal/domain"
 	useauth "github.com/positron48/budget/internal/usecase/auth"
 	"github.com/positron48/budget/internal/usecase/category"
+	currencyexchange "github.com/positron48/budget/internal/usecase/currencyexchange"
 	useoauth "github.com/positron48/budget/internal/usecase/oauth"
 	reportuse "github.com/positron48/budget/internal/usecase/report"
 	"github.com/positron48/budget/internal/usecase/tenant"
@@ -198,6 +199,11 @@ func main() {
 		txRepo := postgres.NewTransactionRepo(db)
 		txSvc := transaction.NewService(txRepo, fxRepo, tenantRepo, categoryRepo)
 		budgetv1.RegisterTransactionServiceServer(server, grpcadapter.NewTransactionServer(txSvc))
+
+		// Currency exchanges
+		currencyExchangeRepo := postgres.NewCurrencyExchangeRepo(db)
+		currencyExchangeSvc := currencyexchange.NewService(currencyExchangeRepo)
+		budgetv1.RegisterCurrencyExchangeServiceServer(server, grpcadapter.NewCurrencyExchangeServer(currencyExchangeSvc))
 
 		// Report
 		reportSvc := reportuse.NewService(txSvc, fxRepo, tenantRepo, categoryRepo)

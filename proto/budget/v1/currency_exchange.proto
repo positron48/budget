@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package budget.v1;
+
+option go_package = "github.com/positron48/budget/gen/go/budget/v1;budgetv1";
+
+import "google/protobuf/timestamp.proto";
+import "budget/v1/common.proto";
+
+message CurrencyExchange {
+  string id = 1;
+  string tenant_id = 2;
+  string user_id = 3;
+  Money from_amount = 4;
+  Money to_amount = 5;
+  string rate_decimal = 6; // to_amount / from_amount
+  google.protobuf.Timestamp occurred_at = 7;
+  string note = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+message CreateCurrencyExchangeRequest {
+  Money from_amount = 1;
+  Money to_amount = 2;
+  google.protobuf.Timestamp occurred_at = 3;
+  string note = 4;
+}
+
+message CreateCurrencyExchangeResponse {
+  CurrencyExchange exchange = 1;
+}
+
+message ListCurrencyExchangesRequest {
+  PageRequest page = 1;
+}
+
+message ListCurrencyExchangesResponse {
+  repeated CurrencyExchange exchanges = 1;
+  PageResponse page = 2;
+}
+
+message DeleteCurrencyExchangeRequest {
+  string id = 1;
+}
+
+message DeleteCurrencyExchangeResponse {}
+
+service CurrencyExchangeService {
+  rpc CreateCurrencyExchange(CreateCurrencyExchangeRequest) returns (CreateCurrencyExchangeResponse);
+  rpc ListCurrencyExchanges(ListCurrencyExchangesRequest) returns (ListCurrencyExchangesResponse);
+  rpc DeleteCurrencyExchange(DeleteCurrencyExchangeRequest) returns (DeleteCurrencyExchangeResponse);
+}
