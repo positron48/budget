@@ -101,7 +101,7 @@ test: ## [Go] Запуск тестов Go (-race, coverage, локально)
 	go test ./... -race -coverprofile=coverage.out -covermode=atomic
 
 pgtest: ## [Go] Интеграционные тесты PostgreSQL (PG_INTEGRATION=1)
-	docker run --rm -v $(PWD):/app -w /app --network host golang:1.25.9 bash -c "PG_INTEGRATION=1 go test ./internal/adapter/postgres -run Test.*_PG -v"
+	docker run --rm -v $(PWD):/app -w /app --network host golang:1.25.13 bash -c "PG_INTEGRATION=1 go test ./internal/adapter/postgres -run Test.*_PG -v"
 
 LINT_IMAGE_TAG ?= v2.11.4
 

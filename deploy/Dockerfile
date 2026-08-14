@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM golang:1.25.12 as builder
+FROM golang:1.25.13 as builder
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
@@ -14,4 +14,3 @@ ENV GRPC_ADDR=0.0.0.0:8080
 EXPOSE 8080
 USER nonroot:nonroot
 ENTRYPOINT ["/app/budgetd"]
-
