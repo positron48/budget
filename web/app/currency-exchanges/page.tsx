@@ -8,6 +8,43 @@ import { Button, Card, CardContent, ConfirmDialog, Icon, Modal } from "@/compone
 import { formatCurrency } from "@/lib/utils";
 
 const CURRENCIES = ["RUB", "USD", "EUR", "GBP", "KZT", "CNY", "TRY", "GEL", "AMD", "RSD"];
+const QUICK_CURRENCIES = ["RUB", "USD", "EUR"];
+
+interface CurrencyPickerProps {
+  value: string;
+  onChange: (currency: string) => void;
+  quickLabel: string;
+  allLabel: string;
+}
+
+function CurrencyPicker({ value, onChange, quickLabel, allLabel }: CurrencyPickerProps) {
+  return (
+    <div className="space-y-2">
+      <span className="block text-xs font-medium text-muted-foreground">{quickLabel}</span>
+      <div className="grid grid-cols-3 gap-1.5">
+        {QUICK_CURRENCIES.map((currency) => (
+          <button
+            key={currency}
+            type="button"
+            aria-pressed={value === currency}
+            onClick={() => onChange(currency)}
+            className={`h-9 rounded-md border px-2 text-xs font-semibold transition-colors ${
+              value === currency
+                ? "border-[hsl(var(--primary))] bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"
+                : "border-border bg-[hsl(var(--secondary))] text-foreground hover:border-[hsl(var(--primary))] hover:bg-[hsl(var(--accent))]"
+            }`}
+          >
+            {currency}
+          </button>
+        ))}
+      </div>
+      <label className="block text-xs font-medium text-muted-foreground">{allLabel}</label>
+      <select className="input w-full" value={value} onChange={(event) => onChange(event.target.value)}>
+        {CURRENCIES.map((currency) => <option key={currency} value={currency}>{currency}</option>)}
+      </select>
+    </div>
+  );
+}
 
 function localDateTimeValue(date: Date) {
   const pad = (value: number) => String(value).padStart(2, "0");
@@ -30,9 +67,9 @@ function CurrencyExchangesInner() {
   const [showCreate, setShowCreate] = useState(false);
   const [deleteID, setDeleteID] = useState<string | null>(null);
   const [fromAmount, setFromAmount] = useState("");
-  const [fromCurrency, setFromCurrency] = useState("USD");
+  const [fromCurrency, setFromCurrency] = useState("RUB");
   const [toAmount, setToAmount] = useState("");
-  const [toCurrency, setToCurrency] = useState("RUB");
+  const [toCurrency, setToCurrency] = useState("EUR");
   const [occurredAt, setOccurredAt] = useState(() => localDateTimeValue(new Date()));
   const [note, setNote] = useState("");
   const [formError, setFormError] = useState("");
@@ -48,7 +85,9 @@ function CurrencyExchangesInner() {
 
   const resetForm = () => {
     setFromAmount("");
+    setFromCurrency("RUB");
     setToAmount("");
+    setToCurrency("EUR");
     setNote("");
     setOccurredAt(localDateTimeValue(new Date()));
     setFormError("");
@@ -200,19 +239,23 @@ function CurrencyExchangesInner() {
               <legend className="px-1 text-sm font-semibold">{t("from")}</legend>
               <label className="block text-xs font-medium text-muted-foreground">{t("amount")}</label>
               <input className={inputClass} inputMode="decimal" required value={fromAmount} onChange={(event) => setFromAmount(event.target.value)} placeholder="100.00" />
-              <label className="block text-xs font-medium text-muted-foreground">{t("currency")}</label>
-              <select className={inputClass} value={fromCurrency} onChange={(event) => setFromCurrency(event.target.value)}>
-                {CURRENCIES.map((currency) => <option key={currency} value={currency}>{currency}</option>)}
-              </select>
+              <CurrencyPicker
+                value={fromCurrency}
+                onChange={setFromCurrency}
+                quickLabel={t("quickCurrencies")}
+                allLabel={t("allCurrencies")}
+              />
             </fieldset>
             <fieldset className="space-y-2 rounded-lg border border-border p-3">
               <legend className="px-1 text-sm font-semibold">{t("to")}</legend>
               <label className="block text-xs font-medium text-muted-foreground">{t("amount")}</label>
               <input className={inputClass} inputMode="decimal" required value={toAmount} onChange={(event) => setToAmount(event.target.value)} placeholder="9500.00" />
-              <label className="block text-xs font-medium text-muted-foreground">{t("currency")}</label>
-              <select className={inputClass} value={toCurrency} onChange={(event) => setToCurrency(event.target.value)}>
-                {CURRENCIES.map((currency) => <option key={currency} value={currency}>{currency}</option>)}
-              </select>
+              <CurrencyPicker
+                value={toCurrency}
+                onChange={setToCurrency}
+                quickLabel={t("quickCurrencies")}
+                allLabel={t("allCurrencies")}
+              />
             </fieldset>
           </div>
           <div className="space-y-2">

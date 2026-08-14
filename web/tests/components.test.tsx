@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from "vitest";
 import { renderWithIntl } from "./utils";
 
 // Import components
-import { Button, Input, Icon, Badge, Card, CardTitle, LoadingSpinner } from "@/components";
+import { Button, Input, Icon, Badge, Card, CardTitle, LoadingSpinner, Modal } from "@/components";
 
 describe('Components', () => {
   describe('Button', () => {
@@ -163,6 +163,31 @@ describe('Components', () => {
     it('renders with custom text', () => {
       render(<LoadingSpinner text="Loading data..." />);
       expect(screen.getByText('Loading data...')).toBeInTheDocument();
+    });
+  });
+
+  describe('Modal', () => {
+    it('keeps input focus when the parent rerenders with a new onClose callback', () => {
+      function ModalHarness() {
+        const [value, setValue] = React.useState("");
+        return (
+          <Modal open title="Test modal" onClose={() => undefined}>
+            <input
+              aria-label="Amount"
+              value={value}
+              onChange={(event) => setValue(event.target.value)}
+            />
+          </Modal>
+        );
+      }
+
+      render(<ModalHarness />);
+      const input = screen.getByLabelText("Amount");
+      input.focus();
+      fireEvent.change(input, { target: { value: "12" } });
+
+      expect(input).toHaveValue("12");
+      expect(input).toHaveFocus();
     });
   });
 });

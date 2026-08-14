@@ -164,6 +164,8 @@
     "to": "You receive",
     "amount": "Amount",
     "currency": "Currency",
+    "quickCurrencies": "Quick select",
+    "allCurrencies": "All currencies",
     "date": "Date",
     "note": "Note",
     "notePlaceholder": "For example, exchanged at a bank",

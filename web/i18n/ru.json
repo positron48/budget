@@ -164,6 +164,8 @@
     "to": "Получаю",
     "amount": "Сумма",
     "currency": "Валюта",
+    "quickCurrencies": "Быстрый выбор",
+    "allCurrencies": "Все валюты",
     "date": "Дата",
     "note": "Заметка",
     "notePlaceholder": "Например, обмен в банке",

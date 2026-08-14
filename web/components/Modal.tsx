@@ -15,7 +15,12 @@ interface ModalProps {
 
 export default function Modal({ open, title, onClose, children, footer, maxWidthClass = "max-w-lg" }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
   const titleId = useId();
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -31,7 +36,7 @@ export default function Modal({ open, title, onClose, children, footer, maxWidth
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key === "Tab" && dialog) {
@@ -63,22 +68,22 @@ export default function Modal({ open, title, onClose, children, footer, maxWidth
       document.body.style.overflow = prevOverflow;
       previouslyFocused?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-3">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in" onClick={onClose} />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
-        className={`relative w-full ${maxWidthClass} rounded-lg bg-card text-foreground border border-border shadow-2xl overflow-hidden animate-in`}
+        className={`relative w-full ${maxWidthClass} rounded-lg bg-[hsl(var(--card))] text-foreground border border-border shadow-2xl overflow-hidden animate-in`}
       >
-        <div className="px-4 sm:px-5 py-3 border-b border-border flex items-center justify-between bg-card">
+        <div className="px-4 sm:px-5 py-3 border-b border-border flex items-center justify-between bg-[hsl(var(--card))]">
           <h3 id={titleId} className="text-lg font-semibold">{title}</h3>
           <button
             onClick={onClose}
@@ -92,7 +97,7 @@ export default function Modal({ open, title, onClose, children, footer, maxWidth
           {children}
         </div>
         {footer && (
-          <div className="px-4 sm:px-5 py-3 border-t border-border bg-card">
+          <div className="px-4 sm:px-5 py-3 border-t border-border bg-[hsl(var(--card))]">
             <div className="flex items-center justify-end gap-2">{footer}</div>
           </div>
         )}
@@ -101,5 +106,4 @@ export default function Modal({ open, title, onClose, children, footer, maxWidth
     document.body
   );
 }
-
 
