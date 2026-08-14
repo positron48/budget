@@ -57,6 +57,23 @@ function formatRate(value: string, locale: string) {
   return new Intl.NumberFormat(locale, { maximumFractionDigits: 8 }).format(numeric);
 }
 
+function displayRate(exchange: any) {
+  const fromAmount = Math.abs(Number(exchange.fromAmount?.minorUnits ?? 0));
+  const toAmount = Math.abs(Number(exchange.toAmount?.minorUnits ?? 0));
+  const fromCurrency = exchange.fromAmount?.currencyCode ?? "";
+  const toCurrency = exchange.toAmount?.currencyCode ?? "";
+
+  if (fromAmount <= 0 || toAmount <= 0) {
+    return { from: fromCurrency, to: toCurrency, rate: exchange.rateDecimal };
+  }
+
+  if (fromAmount >= toAmount) {
+    return { from: toCurrency, to: fromCurrency, rate: String(fromAmount / toAmount) };
+  }
+
+  return { from: fromCurrency, to: toCurrency, rate: String(toAmount / fromAmount) };
+}
+
 function CurrencyExchangesInner() {
   const { currencyExchange } = useClients();
   const t = useTranslations("currencyExchanges");
@@ -173,42 +190,68 @@ function CurrencyExchangesInner() {
 
         {!isLoading && !error && exchanges.length > 0 && (
           <div className="space-y-3">
-            {exchanges.map((exchange: any) => {
-              const date = exchange.occurredAt?.seconds
-                ? new Date(Number(exchange.occurredAt.seconds) * 1000)
-                : null;
-              return (
-                <Card key={exchange.id}>
-                  <CardContent className="py-4">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0 space-y-2">
-                        <div className="flex flex-wrap items-center gap-2 text-lg font-semibold">
-                          <span>{formatCurrency(Number(exchange.fromAmount?.minorUnits ?? 0), exchange.fromAmount?.currencyCode)}</span>
-                          <Icon name="arrow-right" size={18} className="text-muted-foreground" />
-                          <span>{formatCurrency(Number(exchange.toAmount?.minorUnits ?? 0), exchange.toAmount?.currencyCode)}</span>
-                        </div>
-                        <div className="inline-flex rounded-md bg-primary/10 px-2.5 py-1 text-sm font-medium text-primary">
-                          {t("rateFormat", {
-                            from: exchange.fromAmount?.currencyCode,
-                            rate: formatRate(exchange.rateDecimal, locale),
-                            to: exchange.toAmount?.currencyCode,
-                          })}
-                        </div>
-                        {exchange.note && <p className="text-sm text-foreground">{exchange.note}</p>}
-                        {date && (
-                          <p className="text-xs text-muted-foreground">
-                            {new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(date)}
-                          </p>
-                        )}
-                      </div>
-                      <Button variant="ghost" size="sm" icon="trash" onClick={() => setDeleteID(exchange.id)}>
-                        {tc("delete")}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+            <Card>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px]">
+                  <thead className="bg-secondary/40">
+                    <tr className="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      <th className="px-4 py-3">{t("date")}</th>
+                      <th className="px-4 py-3 text-right">{t("from")}</th>
+                      <th className="w-8 py-3" aria-label={t("to")} />
+                      <th className="px-4 py-3 text-right">{t("to")}</th>
+                      <th className="px-4 py-3">{t("rate")}</th>
+                      <th className="px-4 py-3">{t("note")}</th>
+                      <th className="w-12 px-2 py-3" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {exchanges.map((exchange: any) => {
+                      const date = exchange.occurredAt?.seconds
+                        ? new Date(Number(exchange.occurredAt.seconds) * 1000)
+                        : null;
+                      const rate = displayRate(exchange);
+                      return (
+                        <tr key={exchange.id} className="transition-colors hover:bg-secondary/20">
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">
+                            {date && new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(date)}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold">
+                            {formatCurrency(Number(exchange.fromAmount?.minorUnits ?? 0), exchange.fromAmount?.currencyCode)}
+                          </td>
+                          <td className="py-3 text-center">
+                            <Icon name="arrow-right" size={16} className="text-muted-foreground" />
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold">
+                            {formatCurrency(Number(exchange.toAmount?.minorUnits ?? 0), exchange.toAmount?.currencyCode)}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-primary">
+                            {t("rateFormat", {
+                              from: rate.from,
+                              rate: formatRate(rate.rate, locale),
+                              to: rate.to,
+                            })}
+                          </td>
+                          <td className="max-w-xs truncate px-4 py-3 text-sm" title={exchange.note || undefined}>
+                            {exchange.note || "—"}
+                          </td>
+                          <td className="px-2 py-2 text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon="trash"
+                              aria-label={tc("delete")}
+                              onClick={() => setDeleteID(exchange.id)}
+                            >
+                              <span className="sr-only">{tc("delete")}</span>
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
 
             <div className="flex items-center justify-between pt-2">
               <span className="text-sm text-muted-foreground">{t("showing", { count: exchanges.length, total: totalItems })}</span>
