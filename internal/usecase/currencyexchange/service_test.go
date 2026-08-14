@@ -10,6 +10,7 @@ import (
 
 type repoStub struct {
 	created        domain.CurrencyExchange
+	updated        domain.CurrencyExchange
 	listedTenantID string
 	deletedTenant  string
 	deletedID      string
@@ -17,6 +18,11 @@ type repoStub struct {
 
 func (r *repoStub) Create(_ context.Context, exchange domain.CurrencyExchange) (domain.CurrencyExchange, error) {
 	r.created = exchange
+	return exchange, nil
+}
+
+func (r *repoStub) Update(_ context.Context, exchange domain.CurrencyExchange) (domain.CurrencyExchange, error) {
+	r.updated = exchange
 	return exchange, nil
 }
 
@@ -85,6 +91,26 @@ func TestServiceCreateValidatesAmountsAndCurrencies(t *testing.T) {
 				t.Fatalf("got %v, want %v", err, test.wantErr)
 			}
 		})
+	}
+}
+
+func TestServiceUpdateNormalizesAndPropagatesExchange(t *testing.T) {
+	repo := &repoStub{}
+	service := NewService(repo)
+	updated, err := service.Update(context.Background(), domain.CurrencyExchange{
+		ID:         "exchange-1",
+		TenantID:   "tenant-1",
+		FromAmount: domain.Money{CurrencyCode: " eur ", MinorUnits: 100},
+		ToAmount:   domain.Money{CurrencyCode: "rub", MinorUnits: 9500},
+	})
+	if err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	if updated.ID != "exchange-1" || repo.updated.TenantID != "tenant-1" {
+		t.Fatalf("exchange identity was not propagated: %#v", repo.updated)
+	}
+	if updated.FromAmount.CurrencyCode != "EUR" || updated.ToAmount.CurrencyCode != "RUB" {
+		t.Fatalf("currencies were not normalized: %#v", updated)
 	}
 }
 

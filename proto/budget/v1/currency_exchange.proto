@@ -30,6 +30,18 @@ message CreateCurrencyExchangeResponse {
   CurrencyExchange exchange = 1;
 }
 
+message UpdateCurrencyExchangeRequest {
+  string id = 1;
+  Money from_amount = 2;
+  Money to_amount = 3;
+  google.protobuf.Timestamp occurred_at = 4;
+  string note = 5;
+}
+
+message UpdateCurrencyExchangeResponse {
+  CurrencyExchange exchange = 1;
+}
+
 message ListCurrencyExchangesRequest {
   PageRequest page = 1;
 }
@@ -47,6 +59,7 @@ message DeleteCurrencyExchangeResponse {}
 
 service CurrencyExchangeService {
   rpc CreateCurrencyExchange(CreateCurrencyExchangeRequest) returns (CreateCurrencyExchangeResponse);
+  rpc UpdateCurrencyExchange(UpdateCurrencyExchangeRequest) returns (UpdateCurrencyExchangeResponse);
   rpc ListCurrencyExchanges(ListCurrencyExchangesRequest) returns (ListCurrencyExchangesResponse);
   rpc DeleteCurrencyExchange(DeleteCurrencyExchangeRequest) returns (DeleteCurrencyExchangeResponse);
 }

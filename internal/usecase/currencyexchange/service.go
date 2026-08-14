@@ -15,6 +15,7 @@ var (
 
 type Repo interface {
 	Create(ctx context.Context, exchange domain.CurrencyExchange) (domain.CurrencyExchange, error)
+	Update(ctx context.Context, exchange domain.CurrencyExchange) (domain.CurrencyExchange, error)
 	List(ctx context.Context, tenantID string, page, pageSize int) ([]domain.CurrencyExchange, int64, error)
 	Delete(ctx context.Context, tenantID, id string) error
 }
@@ -28,15 +29,29 @@ func NewService(repo Repo) *Service {
 }
 
 func (s *Service) Create(ctx context.Context, exchange domain.CurrencyExchange) (domain.CurrencyExchange, error) {
+	if err := validate(&exchange); err != nil {
+		return domain.CurrencyExchange{}, err
+	}
+	return s.repo.Create(ctx, exchange)
+}
+
+func (s *Service) Update(ctx context.Context, exchange domain.CurrencyExchange) (domain.CurrencyExchange, error) {
+	if err := validate(&exchange); err != nil {
+		return domain.CurrencyExchange{}, err
+	}
+	return s.repo.Update(ctx, exchange)
+}
+
+func validate(exchange *domain.CurrencyExchange) error {
 	if exchange.FromAmount.MinorUnits <= 0 || exchange.ToAmount.MinorUnits <= 0 {
-		return domain.CurrencyExchange{}, ErrInvalidAmount
+		return ErrInvalidAmount
 	}
 	exchange.FromAmount.CurrencyCode = strings.ToUpper(strings.TrimSpace(exchange.FromAmount.CurrencyCode))
 	exchange.ToAmount.CurrencyCode = strings.ToUpper(strings.TrimSpace(exchange.ToAmount.CurrencyCode))
 	if len(exchange.FromAmount.CurrencyCode) != 3 || len(exchange.ToAmount.CurrencyCode) != 3 || exchange.FromAmount.CurrencyCode == exchange.ToAmount.CurrencyCode {
-		return domain.CurrencyExchange{}, ErrInvalidCurrency
+		return ErrInvalidCurrency
 	}
-	return s.repo.Create(ctx, exchange)
+	return nil
 }
 
 func (s *Service) List(ctx context.Context, tenantID string, page, pageSize int) ([]domain.CurrencyExchange, int64, error) {

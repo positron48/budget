@@ -16,6 +16,7 @@ type CurrencyExchangeServer struct {
 	budgetv1.UnimplementedCurrencyExchangeServiceServer
 	svc interface {
 		Create(context.Context, domain.CurrencyExchange) (domain.CurrencyExchange, error)
+		Update(context.Context, domain.CurrencyExchange) (domain.CurrencyExchange, error)
 		List(context.Context, string, int, int) ([]domain.CurrencyExchange, int64, error)
 		Delete(context.Context, string, string) error
 	}
@@ -23,10 +24,46 @@ type CurrencyExchangeServer struct {
 
 func NewCurrencyExchangeServer(svc interface {
 	Create(context.Context, domain.CurrencyExchange) (domain.CurrencyExchange, error)
+	Update(context.Context, domain.CurrencyExchange) (domain.CurrencyExchange, error)
 	List(context.Context, string, int, int) ([]domain.CurrencyExchange, int64, error)
 	Delete(context.Context, string, string) error
 }) *CurrencyExchangeServer {
 	return &CurrencyExchangeServer{svc: svc}
+}
+
+func (s *CurrencyExchangeServer) UpdateCurrencyExchange(ctx context.Context, req *budgetv1.UpdateCurrencyExchangeRequest) (*budgetv1.UpdateCurrencyExchangeResponse, error) {
+	if req.GetId() == "" {
+		return nil, invalidArg("id is required")
+	}
+	if req.GetFromAmount() == nil || req.GetToAmount() == nil {
+		return nil, invalidArg("from_amount and to_amount are required")
+	}
+	tenantID, _ := ctxutil.TenantIDFromContext(ctx)
+	occurredAt := time.Now()
+	if req.GetOccurredAt() != nil {
+		occurredAt = req.GetOccurredAt().AsTime()
+	}
+	updated, err := s.svc.Update(ctx, domain.CurrencyExchange{
+		ID:       req.GetId(),
+		TenantID: tenantID,
+		FromAmount: domain.Money{
+			CurrencyCode: req.GetFromAmount().GetCurrencyCode(),
+			MinorUnits:   req.GetFromAmount().GetMinorUnits(),
+		},
+		ToAmount: domain.Money{
+			CurrencyCode: req.GetToAmount().GetCurrencyCode(),
+			MinorUnits:   req.GetToAmount().GetMinorUnits(),
+		},
+		OccurredAt: occurredAt,
+		Note:       req.GetNote(),
+	})
+	if err != nil {
+		if errors.Is(err, currencyexchange.ErrInvalidAmount) || errors.Is(err, currencyexchange.ErrInvalidCurrency) {
+			return nil, invalidArg(err.Error())
+		}
+		return nil, mapError(err)
+	}
+	return &budgetv1.UpdateCurrencyExchangeResponse{Exchange: toProtoCurrencyExchange(updated)}, nil
 }
 
 func (s *CurrencyExchangeServer) CreateCurrencyExchange(ctx context.Context, req *budgetv1.CreateCurrencyExchangeRequest) (*budgetv1.CreateCurrencyExchangeResponse, error) {

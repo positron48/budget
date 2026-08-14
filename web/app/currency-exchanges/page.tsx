@@ -82,6 +82,7 @@ function CurrencyExchangesInner() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
+  const [editingID, setEditingID] = useState<string | null>(null);
   const [deleteID, setDeleteID] = useState<string | null>(null);
   const [fromAmount, setFromAmount] = useState("");
   const [fromCurrency, setFromCurrency] = useState("RUB");
@@ -110,7 +111,33 @@ function CurrencyExchangesInner() {
     setFormError("");
   };
 
-  const createMutation = useMutation({
+  const closeForm = () => {
+    setShowCreate(false);
+    setEditingID(null);
+    setFormError("");
+  };
+
+  const openCreate = () => {
+    resetForm();
+    setEditingID(null);
+    setShowCreate(true);
+  };
+
+  const openEdit = (exchange: any) => {
+    setFromAmount(String(Number(exchange.fromAmount?.minorUnits ?? 0) / 100));
+    setFromCurrency(exchange.fromAmount?.currencyCode ?? "RUB");
+    setToAmount(String(Number(exchange.toAmount?.minorUnits ?? 0) / 100));
+    setToCurrency(exchange.toAmount?.currencyCode ?? "EUR");
+    setOccurredAt(exchange.occurredAt?.seconds
+      ? localDateTimeValue(new Date(Number(exchange.occurredAt.seconds) * 1000))
+      : localDateTimeValue(new Date()));
+    setNote(exchange.note ?? "");
+    setFormError("");
+    setEditingID(exchange.id);
+    setShowCreate(true);
+  };
+
+  const saveMutation = useMutation({
     mutationFn: async () => {
       const fromValue = Number(fromAmount.replace(",", "."));
       const toValue = Number(toAmount.replace(",", "."));
@@ -120,18 +147,22 @@ function CurrencyExchangesInner() {
       if (!Number.isFinite(fromValue) || !Number.isFinite(toValue) || fromMinorUnits <= 0 || toMinorUnits <= 0) {
         throw new Error(t("positiveAmount"));
       }
-      return currencyExchange.createCurrencyExchange({
+      const payload = {
         fromAmount: { currencyCode: fromCurrency, minorUnits: fromMinorUnits },
         toAmount: { currencyCode: toCurrency, minorUnits: toMinorUnits },
         occurredAt: { seconds: Math.floor(new Date(occurredAt).getTime() / 1000) },
         note: note.trim(),
-      } as any);
+      };
+      if (editingID) {
+        return currencyExchange.updateCurrencyExchange({ id: editingID, ...payload } as any);
+      }
+      return currencyExchange.createCurrencyExchange(payload as any);
     },
     onSuccess: async () => {
       setPage(1);
       await queryClient.invalidateQueries({ queryKey: ["currency-exchanges"] });
       resetForm();
-      setShowCreate(false);
+      closeForm();
     },
     onError: (mutationError) => setFormError((mutationError as Error).message),
   });
@@ -147,7 +178,7 @@ function CurrencyExchangesInner() {
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
     setFormError("");
-    createMutation.mutate();
+    saveMutation.mutate();
   };
 
   const exchanges = data?.exchanges ?? [];
@@ -163,7 +194,7 @@ function CurrencyExchangesInner() {
             <h1 className="text-3xl font-bold text-foreground">{t("title")}</h1>
             <p className="mt-1 text-muted-foreground">{t("description")}</p>
           </div>
-          <Button icon="plus" onClick={() => setShowCreate(true)}>{t("create")}</Button>
+          <Button icon="plus" onClick={openCreate}>{t("create")}</Button>
         </div>
 
         {isLoading && (
@@ -201,7 +232,7 @@ function CurrencyExchangesInner() {
                       <th className="px-4 py-3 text-right">{t("to")}</th>
                       <th className="px-4 py-3">{t("rate")}</th>
                       <th className="px-4 py-3">{t("note")}</th>
-                      <th className="w-12 px-2 py-3" />
+                      <th className="w-20 px-2 py-3" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -234,16 +265,27 @@ function CurrencyExchangesInner() {
                           <td className="max-w-xs truncate px-4 py-3 text-sm" title={exchange.note || undefined}>
                             {exchange.note || "—"}
                           </td>
-                          <td className="px-2 py-2 text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              icon="trash"
-                              aria-label={tc("delete")}
-                              onClick={() => setDeleteID(exchange.id)}
-                            >
-                              <span className="sr-only">{tc("delete")}</span>
-                            </Button>
+                          <td className="px-2 py-2">
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                icon="edit"
+                                aria-label={tc("edit")}
+                                onClick={() => openEdit(exchange)}
+                              >
+                                <span className="sr-only">{tc("edit")}</span>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                icon="trash"
+                                aria-label={tc("delete")}
+                                onClick={() => setDeleteID(exchange.id)}
+                              >
+                                <span className="sr-only">{tc("delete")}</span>
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -266,13 +308,13 @@ function CurrencyExchangesInner() {
 
       <Modal
         open={showCreate}
-        title={t("newExchange")}
-        onClose={() => { setShowCreate(false); setFormError(""); }}
+        title={editingID ? t("editExchange") : t("newExchange")}
+        onClose={closeForm}
         maxWidthClass="max-w-xl"
         footer={(
           <>
-            <Button variant="outline" onClick={() => setShowCreate(false)} disabled={createMutation.isPending}>{tc("cancel")}</Button>
-            <Button type="submit" form="currency-exchange-form" loading={createMutation.isPending}>{tc("save")}</Button>
+            <Button variant="outline" onClick={closeForm} disabled={saveMutation.isPending}>{tc("cancel")}</Button>
+            <Button type="submit" form="currency-exchange-form" loading={saveMutation.isPending}>{tc("save")}</Button>
           </>
         )}
       >

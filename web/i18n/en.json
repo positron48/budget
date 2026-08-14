@@ -160,6 +160,7 @@
     "description": "Record the actual amounts and rate for each exchange",
     "create": "Add exchange",
     "newExchange": "New currency exchange",
+    "editExchange": "Edit currency exchange",
     "from": "You give",
     "to": "You receive",
     "amount": "Amount",

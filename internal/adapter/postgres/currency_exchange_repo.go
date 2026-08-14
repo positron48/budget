@@ -42,6 +42,40 @@ func (r *CurrencyExchangeRepo) Create(ctx context.Context, exchange domain.Curre
 	return created, nil
 }
 
+func (r *CurrencyExchangeRepo) Update(ctx context.Context, exchange domain.CurrencyExchange) (domain.CurrencyExchange, error) {
+	var updated domain.CurrencyExchange
+	var fromDecimalValue, toDecimalValue string
+	err := r.pool.DB.QueryRow(ctx, `
+		UPDATE currency_exchanges SET
+			from_amount_numeric = $3::numeric,
+			from_currency_code = $4,
+			to_amount_numeric = $5::numeric,
+			to_currency_code = $6,
+			occurred_at = $7,
+			note = $8
+		WHERE tenant_id = $1 AND id = $2
+		RETURNING id, tenant_id, user_id,
+			from_amount_numeric::text, from_currency_code,
+			to_amount_numeric::text, to_currency_code,
+			rate_numeric::text, occurred_at, note, created_at`,
+		exchange.TenantID, exchange.ID,
+		toDecimal(exchange.FromAmount.MinorUnits), exchange.FromAmount.CurrencyCode,
+		toDecimal(exchange.ToAmount.MinorUnits), exchange.ToAmount.CurrencyCode,
+		exchange.OccurredAt, exchange.Note,
+	).Scan(
+		&updated.ID, &updated.TenantID, &updated.UserID,
+		&fromDecimalValue, &updated.FromAmount.CurrencyCode,
+		&toDecimalValue, &updated.ToAmount.CurrencyCode,
+		&updated.RateDecimal, &updated.OccurredAt, &updated.Note, &updated.CreatedAt,
+	)
+	if err != nil {
+		return domain.CurrencyExchange{}, err
+	}
+	updated.FromAmount.MinorUnits = fromDecimal(fromDecimalValue)
+	updated.ToAmount.MinorUnits = fromDecimal(toDecimalValue)
+	return updated, nil
+}
+
 func (r *CurrencyExchangeRepo) List(ctx context.Context, tenantID string, page, pageSize int) ([]domain.CurrencyExchange, int64, error) {
 	if page < 1 {
 		page = 1
