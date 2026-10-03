@@ -74,3 +74,16 @@ FROM fx_rates GROUP BY provider, from_currency_code ORDER BY from_currency_code;
 - `npm test` — 70 тестов успешно, включая переключение и сохранение валюты, отдельный выбор для бюджета, пересчёт карточек/групп/итога, сохранение исходных остатков, неполную оценку и точное округление больших сумм.
 - `npm run build` — успешно после финальных изменений, существующие предупреждения линтера в других компонентах. Прямой `tsc --noEmit` обнаруживает существующие ошибки в старых тестах (Jest globals, тип Transport и сравнение сортировки); production-сборка проверку типов приложения проходит.
 - Фактическая загрузка официального API и SQL-проверка production описаны выше. Новый frontend ещё не проверялся в опубликованном сайте, новый backend worker ещё не запущен в production; требуется выпуск кода.
+
+## Подтверждённый production rollout, 03.10.2026
+
+- Код выпуска: `913fbfa16d74c11cf8f0d758859c8391ca364b0d` (`Automate CBR rates and convert savings balances`).
+- [GitHub CI 37144410452](https://github.com/positron48/budget/actions/runs/37144410452): **success**, включая Go/web, security и обе Docker-сборки.
+- GitOps-коммит `860eaee437817da20c90817af73780d5a34d7636`; Flux подтвердил applied revision и Ready.
+- Backend: `sha256:e44c61d665f2b22d17f69a14d8956734f022303307aa3a1d58ba6182841b9915`, pod `budget-app-9645cdd8b-r667d` Ready, 0 restarts.
+- Frontend: `sha256:de2b69becd16a907aa73e576d7fdf163aedd55d561a0f504a8c3433990d3d816`, pod `budget-web-8495cfd958-gstcv` Ready, 0 restarts.
+- OCI revision обоих образов совпал с коммитом кода. `kubectl rollout status` для обоих Deployment успешен.
+- Новый backend: миграции актуальны, gRPC запущен, **03.10.2026 21:35:42 МСК** — `CBR FX import complete`, `quotes=3897`. Это запуск фонового импортера из production-образа; последующее ежедневное выполнение обеспечивает worker.
+- После фоновой загрузки SQL подтвердил `cbr|3897|9|2024-12-29|2026-10-03`: повторный импорт не создал дублей.
+- В браузере `/assets` загружает интерфейс с выбором валюты; без production-сессии выполняется штатный переход на `/login` с Google-входом. Пересчёт приватных счетов в опубликованном сайте без пользовательской сессии не проверялся; его поведение подтверждено локальными UI и PostgreSQL тестами.
+- Одноразовый бинарник импорта `/tmp/budget-fximport-20261003` удалён с сервера; резервная копия таблицы сохранена.
