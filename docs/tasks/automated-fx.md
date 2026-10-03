@@ -97,3 +97,14 @@ FROM fx_rates GROUP BY provider, from_currency_code ORDER BY from_currency_code;
 Исправление: `authStore.getTenant()` использует явно выбранный бюджет, а при его отсутствии — `tenant_id` access token, как backend. Разбор JWT на клиенте служит только выбору UI/cache key; проверка подписи и прав остаётся на сервере. `useAssetTenant` слушает обновление авторизации, чтобы обновиться при ротации токена. Пользовательский выбор другого бюджета сохраняет приоритет.
 
 Регрессия `web/tests/assets-session.test.tsx` использует настоящий authStore: два наличных без места и банковский счёт отображаются при отсутствующей/пустой настройке бюджета, загрузка запускается после появления токена, явный выбор не перезаписывается, повреждённый токен не ломает страницу и logout очищает вычисленный бюджет. До исправления 4 теста падали, после — все 5 проходят. Записи production не изменялись.
+
+Проверка реального usecase `GetOverview` с production-БД (read-only, без вывода сумм) вернула для RUB, USD и EUR: `accounts=3 cash=2 bank=1 incomplete=false`. Временная проверочная программа удалена; пользовательские данные не менялись.
+
+Выпуск исправления:
+
+- Код: `f26415f23cd701a86d02fff783ceb250fdd3baa8`.
+- [CI 37147729990](https://github.com/positron48/budget/actions/runs/37147729990): success; локально 20 целевых web-тестов и production build прошли.
+- Flux applied revision: `main@sha1:1a8a2ae2f66fb806f158e9c4e5e1a350c0d5680b`.
+- Frontend: `sha256:a9f97f9d4645d1d5f84b4193273478a4caae826a071d39b5940a3cd02e2a62df`, OCI revision совпадает с `f26415f`, pod `budget-web-5ffd88cbbb-ktphc` Ready, 0 restarts.
+- Backend пересобран штатным CI: `sha256:bd58164d734b579ba1d7f58c496193e96db814a74ea296da3ce7dbddf886c916`; rollout backend и frontend успешен.
+- Для уже открытой страницы нужен reload, чтобы загрузить исправленный JS. Приватная сессия пользователя в браузере агента отсутствует; фактическое отображение после reload пользователем отдельно не наблюдалось.
