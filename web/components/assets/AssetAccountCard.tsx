@@ -15,8 +15,10 @@ import type { AssetAction } from "./AssetDialogs";
 export default function AssetAccountCard({
   account,
   onAction,
+  valuation,
 }: {
   account: AssetAccount;
+  valuation?: { total: bigint; incomplete: boolean; currency: string };
   onAction: (action: AssetAction) => void;
 }) {
   const t = useTranslations("assets");
@@ -53,6 +55,17 @@ export default function AssetAccountCard({
         {account.archived && <span className="asset-tag">{t("archived")}</span>}
       </div>
       <div className="my-5 space-y-1.5">
+        {valuation && account.balances.length > 0 && (
+          <div className="mb-3" aria-label={t("convertedValue")}>
+            <p className="text-xs text-[hsl(var(--muted-foreground))]">
+              {t("convertedValue")}{valuation.incomplete ? ` · ${t("partial")}` : ""}
+            </p>
+            <p className="mt-1 break-words text-2xl font-semibold tabular-nums">
+              {assetMoney(valuation.total, valuation.currency, locale)}
+            </p>
+            <p className="mt-2 text-xs text-[hsl(var(--muted-foreground))]">{t("originalBalances")}</p>
+          </div>
+        )}
         {account.balances.length ? (
           account.balances.map((b) => (
             <div

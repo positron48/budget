@@ -9,10 +9,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/positron48/budget/internal/adapter/cbr"
 	"github.com/positron48/budget/internal/adapter/postgres"
 	"github.com/positron48/budget/internal/adapter/redis"
 	"github.com/positron48/budget/internal/pkg/config"
 	"github.com/positron48/budget/internal/pkg/logger"
+	"github.com/positron48/budget/internal/usecase/fximport"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	budgetv1 "github.com/positron48/budget/gen/go/budget/v1"
@@ -61,7 +63,8 @@ func main() {
 	}
 
 	// DB connect with initial retry (helps when Postgres is still starting in docker-compose)
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	var db *postgres.Pool
 	if cfg.DatabaseURL != "" {
 		var lastErr error
@@ -196,6 +199,26 @@ func main() {
 		fxRepo := postgres.NewFxRepo(db)
 		budgetv1.RegisterFxServiceServer(server, grpcadapter.NewFxServer(fxRepo))
 
+		// Import failures do not block serving the last saved rates.
+		if os.Getenv("FX_IMPORT_ENABLED") != "false" {
+			importer := fximport.Service{Source: cbr.New(), Store: fxRepo}
+			importDone := make(chan struct{})
+			defer func() { cancel(); <-importDone }()
+			go func() {
+				defer close(importDone)
+				importer.Run(ctx, func(n int, err error) {
+					if ctx.Err() != nil {
+						return
+					}
+					if err != nil {
+						sug.Errorw("CBR FX import failed; retrying in one hour", "error", err)
+					} else {
+						sug.Infow("CBR FX import complete", "quotes", n)
+					}
+				})
+			}()
+		}
+
 		// Assets
 		assetRepo := postgres.NewAssetRepo(db)
 		assetSvc := asset.NewService(assetRepo, fxRepo, tenantRepo)
@@ -241,6 +264,7 @@ func main() {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
+	cancel()
 	sug.Info("shutting down gRPC server...")
 	done := make(chan struct{})
 	go func() { server.GracefulStop(); close(done) }()

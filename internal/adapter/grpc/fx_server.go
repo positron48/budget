@@ -8,6 +8,8 @@ import (
 	"time"
 
 	budgetv1 "github.com/positron48/budget/gen/go/budget/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -37,11 +39,15 @@ func (s *FxServer) GetRate(ctx context.Context, req *budgetv1.GetRateRequest) (*
 	if req.GetAsOf() != nil {
 		asOf = req.GetAsOf().AsTime()
 	}
-	rate, provider, err := s.repo.GetRateAsOf(ctx, req.GetFromCurrencyCode(), req.GetToCurrencyCode(), asOf)
+	rows, err := s.repo.BatchGetRates(ctx, []string{req.GetFromCurrencyCode()}, req.GetToCurrencyCode(), asOf)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return &budgetv1.GetRateResponse{Rate: &budgetv1.FxRate{FromCurrencyCode: req.GetFromCurrencyCode(), ToCurrencyCode: req.GetToCurrencyCode(), RateDecimal: rate, AsOf: timestamppb.New(asOf), Provider: provider}}, nil
+	if len(rows) == 0 {
+		return nil, status.Error(codes.NotFound, "FX rate not found")
+	}
+	row := rows[0]
+	return &budgetv1.GetRateResponse{Rate: &budgetv1.FxRate{FromCurrencyCode: row.From, ToCurrencyCode: row.To, RateDecimal: row.Rate, AsOf: timestamppb.New(row.AsOf), Provider: row.Provider}}, nil
 }
 
 func (s *FxServer) UpsertRate(ctx context.Context, req *budgetv1.UpsertRateRequest) (*budgetv1.UpsertRateResponse, error) {

@@ -24,7 +24,7 @@ function FxInner() {
     return {
       fromCurrencyCodes: codes,
       toCurrencyCode: toCode.toUpperCase(),
-      asOf: { seconds: Math.floor(new Date(asOf).getTime() / 1000) },
+      asOf: { seconds: BigInt(Math.floor(new Date(asOf).getTime() / 1000)) },
     } as any;
   }, [fromCodes, toCode, asOf]);
   const { data, isLoading, error } = useQuery({
@@ -45,11 +45,14 @@ function FxInner() {
           fromCurrencyCode: uFrom.toUpperCase(),
           toCurrencyCode: uTo.toUpperCase(),
           rateDecimal: uRate,
-          asOf: { seconds: Math.floor(new Date(uDate).getTime() / 1000) },
+          asOf: { seconds: BigInt(Math.floor(new Date(uDate).getTime() / 1000)) },
           provider: "manual",
         },
       } as any),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["fx"] }),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: ["fx"] }),
+      qc.invalidateQueries({ queryKey: ["assets"] }),
+    ]),
   });
 
   return (
@@ -138,7 +141,7 @@ function FxInner() {
                       <td className="py-2 text-right">{r?.rateDecimal}</td>
                       <td className="py-2">{r?.provider}</td>
                       <td className="py-2">
-                        {r?.asOf?.seconds ? new Date(r.asOf.seconds * 1000).toISOString().slice(0, 10) : ""}
+                        {r?.asOf?.seconds ? new Date(Number(r.asOf.seconds) * 1000).toISOString().slice(0, 10) : ""}
                       </td>
                     </tr>
                   ))}

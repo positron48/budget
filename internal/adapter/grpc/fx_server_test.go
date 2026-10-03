@@ -65,9 +65,14 @@ func (s fxStub) BatchGetRates(ctx context.Context, fromCurrencies []string, to s
 }
 
 func TestFxServer_GetRate_Success(t *testing.T) {
-	srv := NewFxServer(fxStub{rate: "1.2345", provider: "prov"})
+	date := time.Date(2024, 12, 29, 0, 0, 0, 0, time.UTC)
+	srv := NewFxServer(fxStub{batch: []struct {
+		From, To, Rate string
+		AsOf           time.Time
+		Provider       string
+	}{{From: "USD", To: "RUB", Rate: "1.2345", Provider: "prov", AsOf: date}}})
 	out, err := srv.GetRate(context.Background(), &budgetv1.GetRateRequest{FromCurrencyCode: "USD", ToCurrencyCode: "RUB"})
-	if err != nil || out.GetRate().GetRateDecimal() != "1.2345" {
+	if err != nil || out.GetRate().GetRateDecimal() != "1.2345" || !out.GetRate().GetAsOf().AsTime().Equal(date) {
 		t.Fatalf("unexpected: %v %#v", err, out)
 	}
 }

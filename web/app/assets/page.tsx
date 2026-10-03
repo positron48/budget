@@ -16,6 +16,8 @@ import {
   assetDate,
   assetMoney,
   useAssetTenant,
+  useAssetDisplayCurrency,
+  valueAssetAccounts,
 } from "@/lib/assets";
 import AssetAccountCard from "@/components/assets/AssetAccountCard";
 import AssetDialogs, { AssetAction } from "@/components/assets/AssetDialogs";
@@ -25,23 +27,25 @@ function AssetsOverview() {
   const t = useTranslations("assets");
   const locale = useLocale();
   const tenant = useAssetTenant();
-  const [target, setTarget] = useState("");
+  const { target, setTarget, ready } = useAssetDisplayCurrency(tenant);
   const [kind, setKind] = useState("");
   const [institution, setInstitution] = useState("");
   const [archived, setArchived] = useState(false);
   const [action, setAction] = useState<AssetAction | null>(null);
   const overview = useQuery<GetOverviewResponse>({
     queryKey: ["assets", "overview", tenant, target],
-    enabled: !!tenant,
+    enabled: ready,
     queryFn: () => asset.getOverview({ targetCurrencyCode: target }),
   });
   const all = useQuery<{ accounts: AssetAccount[] }>({
     queryKey: ["assets", "accounts", tenant, archived],
-    enabled: !!tenant,
+    enabled: !!tenant && archived,
     queryFn: () => asset.listAccounts({ includeArchived: archived }),
   });
-  const accounts = all.data?.accounts || overview.data?.accounts || [];
-  const activeAccounts = accounts.filter((a) => !a.archived);
+  const accounts = archived
+    ? all.data?.accounts || []
+    : overview.data?.accounts || [];
+  const activeAccounts = overview.data?.accounts || [];
   const visible = accounts.filter(
     (a) =>
       (archived ? a.archived : !a.archived) &&
@@ -52,39 +56,14 @@ function AssetsOverview() {
     new Set(accounts.map((a) => a.institution).filter(Boolean)),
   ).sort();
   const currency = overview.data?.total?.currencyCode || target || "RUB";
-  const summaries = useMemo(() => {
-    const rates = new Map(
-      overview.data?.rates.map((r) => [r.fromCurrencyCode, r.rateDecimal]) ||
-        [],
-    );
-    return ASSET_KINDS.map((k) => {
-      const group = (overview.data?.accounts || []).filter((a) => a.kind === k);
-      let total = 0n;
-      let incomplete = false;
-      for (const a of group)
-        for (const b of a.balances) {
-          if (!b.amount) continue;
-          if (b.amount.currencyCode === currency) {
-            total += b.amount.minorUnits;
-            continue;
-          }
-          const rate = rates.get(b.amount.currencyCode);
-          if (!rate) {
-            incomplete ||= b.amount.minorUnits !== 0n;
-            continue;
-          }
-          const [whole, fraction = ""] = rate.split(".");
-          const numerator = BigInt(whole + fraction);
-          const denominator = 10n ** BigInt(fraction.length);
-          const signed = b.amount.minorUnits * numerator;
-          const absolute = signed < 0n ? -signed : signed;
-          const converted = (absolute + denominator / 2n) / denominator;
-          total += signed < 0n ? -converted : converted;
-        }
-      return { kind: k, count: group.length, total, incomplete };
-    });
-  }, [overview.data, currency]);
-  const loading = !tenant || overview.isLoading || all.isLoading;
+  const rates = useMemo(() => new Map(
+    overview.data?.rates.map((r) => [r.fromCurrencyCode, r.rateDecimal]) || [],
+  ), [overview.data]);
+  const summaries = useMemo(() => ASSET_KINDS.map((k) => {
+    const group = (overview.data?.accounts || []).filter((a) => a.kind === k);
+    return { kind: k, count: group.length, ...valueAssetAccounts(group, rates, currency) };
+  }), [overview.data, rates, currency]);
+  const loading = !ready || overview.isLoading || (archived && all.isLoading);
   return (
     <main className="asset-page container mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
       <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
@@ -115,7 +94,7 @@ function AssetsOverview() {
           </Button>
         </div>
       </div>
-      {(overview.error || all.error) && (
+      {(overview.error || (archived && all.error)) && (
         <div
           role="alert"
           className="mb-5 rounded-xl border border-[hsl(var(--negative)/0.3)] bg-[hsl(var(--negative)/0.07)] p-4"
@@ -162,6 +141,7 @@ function AssetsOverview() {
             <span className="mb-1.5 block">{t("displayCurrency")}</span>
             <select
               className="input !bg-[hsl(var(--card))]"
+              aria-label={t("displayCurrency")}
               value={target || currency}
               onChange={(e) => setTarget(e.target.value)}
             >
@@ -178,7 +158,7 @@ function AssetsOverview() {
               {overview.data.rates.map((r) => (
                 <span key={r.fromCurrencyCode}>
                   {r.fromCurrencyCode} → {currency}: {r.rateDecimal} ·{" "}
-                  {assetDate(r.asOf, locale)}
+                  {assetDate(r.asOf, locale)} · {r.provider === "cbr" ? t("cbr") : r.provider}
                 </span>
               ))}
             </div>
@@ -280,7 +260,12 @@ function AssetsOverview() {
       ) : visible.length ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {visible.map((a) => (
-            <AssetAccountCard key={a.id} account={a} onAction={setAction} />
+            <AssetAccountCard
+              key={a.id} account={a} onAction={setAction}
+              valuation={!a.archived && !overview.error && overview.data
+                ? { ...valueAssetAccounts([a], rates, currency), currency }
+                : undefined}
+            />
           ))}
         </div>
       ) : (

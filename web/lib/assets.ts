@@ -121,3 +121,57 @@ export function accountCurrencies(account?: AssetAccount) {
 export function hasNegativeBalance(account: AssetAccount) {
   return account.balances.some((b) => (b.amount?.minorUnits ?? 0n) < 0n);
 }
+
+// Match the backend: round each balance half away from zero, then sum minor units.
+export function convertAssetMinor(amount: bigint, rate: string): bigint {
+  if (!/^\d+(\.\d+)?$/.test(rate)) throw new Error("rate");
+  const [whole, fraction = ""] = rate.split(".");
+  const numerator = BigInt(whole + fraction);
+  if (numerator <= 0n) throw new Error("rate");
+  const denominator = 10n ** BigInt(fraction.length);
+  const signed = amount * numerator;
+  const absolute = signed < 0n ? -signed : signed;
+  const result = (absolute + denominator / 2n) / denominator;
+  return signed < 0n ? -result : result;
+}
+
+export function valueAssetAccounts(
+  accounts: AssetAccount[],
+  rates: ReadonlyMap<string, string>,
+  currency: string,
+) {
+  let total = 0n;
+  let incomplete = false;
+  for (const account of accounts) {
+    for (const { amount } of account.balances) {
+      if (!amount || amount.minorUnits === 0n) continue;
+      if (amount.currencyCode === currency) total += amount.minorUnits;
+      else {
+        const rate = rates.get(amount.currencyCode);
+        if (!rate) { incomplete = true; continue; }
+        try { total += convertAssetMinor(amount.minorUnits, rate); }
+        catch { incomplete = true; }
+      }
+    }
+  }
+  return { total, incomplete };
+}
+
+export function useAssetDisplayCurrency(tenant?: string) {
+  const [selection, setSelection] = useState<{ tenant: string; code: string }>();
+  useEffect(() => {
+    if (!tenant) return;
+    let code = "";
+    try { code = localStorage.getItem(`assets:display-currency:${tenant}`) || ""; }
+    catch { /* Storage may be disabled; selection still works for this visit. */ }
+    setSelection({ tenant, code: /^[A-Z]{3}$/.test(code) ? code : "" });
+  }, [tenant]);
+  const ready = !!tenant && selection?.tenant === tenant;
+  const select = (code: string) => {
+    if (!tenant) return;
+    setSelection({ tenant, code });
+    try { localStorage.setItem(`assets:display-currency:${tenant}`, code); }
+    catch { /* Keep the in-memory choice. */ }
+  };
+  return { target: ready ? selection.code : "", setTarget: select, ready };
+}

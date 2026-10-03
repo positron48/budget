@@ -27,3 +27,19 @@ describe("exact savings amounts", () => {
     expect(() => parseAssetAmount("-1", true)).toThrow("amount");
   });
 });
+
+describe("savings conversion", () => {
+  it("rounds positive and negative halves away from zero without float precision loss", async () => {
+    const { convertAssetMinor } = await import("@/lib/assets");
+    expect(convertAssetMinor(1n, "0.5")).toBe(1n);
+    expect(convertAssetMinor(-1n, "0.5")).toBe(-1n);
+    expect(convertAssetMinor(9007199254740993n, "1.25")).toBe(11258999068426241n);
+    expect(() => convertAssetMinor(1n, "0")).toThrow();
+  });
+  it("does not mark zero foreign balances as missing and rounds before adding", async () => {
+    const { valueAssetAccounts } = await import("@/lib/assets");
+    const account = (minorUnits: bigint, currencyCode = "USD") => ({ balances: [{ amount: { minorUnits, currencyCode } }] }) as any;
+    expect(valueAssetAccounts([account(1n), account(1n), account(0n, "XYZ")], new Map([["USD", "0.5"]]), "EUR")).toEqual({ total: 2n, incomplete: false });
+    expect(valueAssetAccounts([account(10n), account(1n, "XYZ")], new Map([["USD", "2"]]), "EUR")).toEqual({ total: 20n, incomplete: true });
+  });
+});

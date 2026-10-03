@@ -445,6 +445,9 @@
     "errChangePassword": "Failed to change password"
   },
   "assets": {
+    "convertedValue": "Value in selected currency",
+    "originalBalances": "Original balances",
+    "cbr": "Bank of Russia",
     "eyebrow": "Accounts and assets",
     "title": "Savings",
     "subtitle": "Your money and investments, organized by account, currency and location.",
