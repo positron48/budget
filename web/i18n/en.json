@@ -52,6 +52,8 @@
     "recentTransactions": "Recent transactions",
     "viewAll": "View all",
     "noRecent": "No transactions yet",
+    "recentLoadError": "Could not load recent transactions",
+    "retry": "Try again",
     "addTransaction": "Add transaction",
     "expenseBreakdown": "Expenses by category",
     "sections": "Sections",

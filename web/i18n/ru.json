@@ -52,6 +52,8 @@
     "recentTransactions": "Последние транзакции",
     "viewAll": "Все",
     "noRecent": "Пока нет транзакций",
+    "recentLoadError": "Не удалось загрузить последние транзакции",
+    "retry": "Повторить",
     "addTransaction": "Добавить транзакцию",
     "expenseBreakdown": "Расходы по категориям",
     "sections": "Разделы",

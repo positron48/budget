@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
-import { ClientsProvider, useClients } from "@/app/providers";
+import { useClients } from "@/app/providers";
 import {
   Icon,
   Card,
@@ -20,6 +20,7 @@ import {
 } from "@/components";
 import type { IconName } from "@/components/Icon";
 import { TransactionType } from "@/proto/budget/v1/common_pb";
+import type { ListTransactionsResponse } from "@/proto/budget/v1/transaction_pb";
 import { formatCurrency, formatAmountWithSpaces } from "@/lib/utils";
 import { chartPalettes } from "@/lib/theme/colors";
 import NewTransactionForm, { NewTxFormRef } from "./transactions/NewTransactionForm";
@@ -56,9 +57,9 @@ function DashboardInner() {
     () => ({ page: { page: 1, pageSize: 5, sort: "occurred_at desc" } }),
     []
   );
-  const { data: recent, isLoading: recentLoading, refetch: refetchRecent } = useQuery({
+  const { data: recent, isLoading: recentLoading, error: recentError, refetch: refetchRecent } = useQuery({
     queryKey: ["dashboard-recent", recentReq],
-    queryFn: async () => (await transaction.listTransactions(recentReq as any)) as any,
+    queryFn: async (): Promise<ListTransactionsResponse> => transaction.listTransactions(recentReq),
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -100,7 +101,7 @@ function DashboardInner() {
     [expensesItems, warm]
   );
 
-  const recentItems = useMemo(() => (recent?.items ?? []) as any[], [recent]);
+  const recentItems = recent?.transactions ?? [];
 
   const sections: { title: string; href: string; icon: IconName; color: string }[] = [
     { title: t("transactions.title"), href: "/transactions", icon: "transactions", color: "bg-[hsl(var(--info))]" },
@@ -169,11 +170,16 @@ function DashboardInner() {
           <CardContent>
             {recentLoading ? (
               <LoadingSpinner text={tc("loading")} className="py-6" />
+            ) : recentError ? (
+              <div role="alert" className="py-8 text-center space-y-3">
+                <p className="text-sm text-destructive">{t("recentLoadError")}</p>
+                <Button variant="outline" onClick={() => refetchRecent()}>{t("retry")}</Button>
+              </div>
             ) : recentItems.length === 0 ? (
               <p className="text-sm text-muted-foreground py-8 text-center">{t("noRecent")}</p>
             ) : (
               <ul className="divide-y divide-border/60">
-                {recentItems.map((tx: any) => {
+                {recentItems.map((tx) => {
                   const isExpense = tx?.type === TransactionType.EXPENSE;
                   const amount = Math.abs(Number(tx?.amount?.minorUnits ?? 0));
                   return (
@@ -261,9 +267,5 @@ function DashboardInner() {
 }
 
 export default function HomePage() {
-  return (
-    <ClientsProvider>
-      <DashboardInner />
-    </ClientsProvider>
-  );
+  return <DashboardInner />;
 }

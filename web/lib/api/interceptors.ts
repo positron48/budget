@@ -28,17 +28,20 @@ export function loggingInterceptor(): Interceptor {
   return (next) => async (req: any) => next(req);
 }
 
+// All client providers use the same browser session and rotating refresh token.
+// Keep the in-flight refresh shared across transports, including during navigation.
+let refreshPromise: Promise<string> | null = null;
+
 export function refreshAuthInterceptor(
   opts: {
+    getAccessToken: () => string | undefined;
     getRefreshToken: () => string | undefined;
     setTokens: (accessToken: string, refreshToken: string) => void;
     onRefreshFail?: () => void;
   }
 ): Interceptor {
-  let refreshing = false;
-  let refreshPromise: Promise<any> | null = null;
-
   return (next) => async (req: any) => {
+    const originalAccess = opts.getAccessToken();
     try {
       return await next(req);
     } catch (e: any) {
@@ -52,85 +55,56 @@ export function refreshAuthInterceptor(
         throw e;
       }
 
-      console.log("🔄 Token refresh needed:", { code, message: e?.message, url: req?.url });
-
-      // If already refreshing, wait for the current refresh to complete
-      if (refreshing && refreshPromise) {
-        console.log("⏳ Waiting for existing refresh to complete...");
-        try {
-          await refreshPromise;
-          // Retry the original request with the new token
-          const token = opts.getRefreshToken();
-          if (token) {
-            req.header.set("authorization", `Bearer ${token}`);
-            return await next(req);
-          }
-        } catch (refreshError) {
-          console.error("❌ Refresh failed while waiting:", refreshError);
-          // Refresh failed, throw original error
-          throw e;
-        }
+      // An older request can fail after another request has already refreshed.
+      const currentAccess = opts.getAccessToken();
+      if (currentAccess && currentAccess !== originalAccess) {
+        req.header.set("authorization", `Bearer ${currentAccess}`);
+        return next(req);
       }
 
-      // Start refresh process
-      console.log("🚀 Starting token refresh...");
-      refreshing = true;
-      refreshPromise = (async () => {
-        try {
+      if (!refreshPromise) {
+        refreshPromise = (async () => {
           const refreshToken = opts.getRefreshToken();
           if (!refreshToken) {
+            opts.onRefreshFail?.();
             throw new Error("No refresh token available");
           }
-
-          console.log("📡 Calling refresh token endpoint...");
-
-          // Create a bare transport without interceptors to avoid recursion
-          const { createGrpcWebTransport } = await import("@connectrpc/connect-web");
-          if (!transportBaseUrl) {
-            throw new Error("NEXT_PUBLIC_GRPC_BASE_URL is not configured");
+          try {
+            // Use a bare transport so refreshing cannot recurse.
+            const { createGrpcWebTransport } = await import("@connectrpc/connect-web");
+            if (!transportBaseUrl) {
+              throw new Error("NEXT_PUBLIC_GRPC_BASE_URL is not configured");
+            }
+            const bareTransport = createGrpcWebTransport({ baseUrl: transportBaseUrl });
+            const authClient = createClient(AuthService, bareTransport);
+            const resp = await authClient.refreshToken({ refreshToken });
+            const newAccess = resp.tokens?.accessToken;
+            if (!newAccess) {
+              throw new Error("No access token in refresh response");
+            }
+            opts.setTokens(newAccess, resp.tokens?.refreshToken || refreshToken);
+            return newAccess;
+          } catch (refreshError: any) {
+            // A network/server outage does not invalidate the saved session.
+            if (refreshError?.code === Code.Unauthenticated) {
+              opts.onRefreshFail?.();
+            }
+            throw refreshError;
           }
-          const bareTransport = createGrpcWebTransport({ 
-            baseUrl: transportBaseUrl,
-          });
-          
-          const authClient = createClient(AuthService, bareTransport);
-          const resp: any = await authClient.refreshToken({ refreshToken });
-          
-          const newAccess = resp?.tokens?.accessToken;
-          const newRefresh = resp?.tokens?.refreshToken;
-          
-          if (!newAccess) {
-            throw new Error("No access token in refresh response");
-          }
-
-          console.log("✅ Token refresh successful");
-          opts.setTokens(newAccess, newRefresh || refreshToken);
-          return newAccess;
-        } catch (refreshError) {
-          console.error("❌ Token refresh failed:", refreshError);
-          if (opts.onRefreshFail) {
-            opts.onRefreshFail();
-          }
-          throw refreshError;
-        } finally {
-          refreshing = false;
+        })().finally(() => {
           refreshPromise = null;
-        }
-      })();
+        });
+      }
 
+      let newAccessToken: string;
       try {
-        const newAccessToken = await refreshPromise;
-        console.log("🔄 Retrying original request with new token...");
-        // Retry the original request with the new access token
-        req.header.set("authorization", `Bearer ${newAccessToken}`);
-        return await next(req);
-      } catch (refreshError) {
-        console.error("❌ Failed to retry request after refresh:", refreshError);
-        // Refresh failed, throw original error
+        newAccessToken = await refreshPromise;
+      } catch {
         throw e;
       }
+      req.header.set("authorization", `Bearer ${newAccessToken}`);
+      return next(req);
     }
   };
 }
-
 

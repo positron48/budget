@@ -15,6 +15,7 @@ export function ClientsProvider({ children }: { children: React.ReactNode }) {
     return [
       loggingInterceptor(),
       refreshAuthInterceptor({
+        getAccessToken: () => authStore.getAccess(),
         getRefreshToken: () => authStore.getRefresh(),
         setTokens: (accessToken: string, refreshToken: string) => authStore.set({ accessToken, refreshToken }),
         onRefreshFail: () => {
@@ -40,5 +41,4 @@ export function useClients(): any {
   if (!ctx) throw new Error("ClientsProvider missing");
   return ctx;
 }
-
 
