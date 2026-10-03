@@ -32,7 +32,7 @@
 ## Полезные файлы
 - `README.md`, `README_EN.md` — основная документация.
 - `env.example` — переменные окружения.
-- `docs/GOOGLE_AUTH_SETUP.md` — пошаговая настройка Google auth (GCP, `.env`, k3s, секреты).
+- `docs/GOOGLE_AUTH_SETUP.md` — настройка Google auth (GCP, `.env`, k3s, секреты) и восстановление веб-сессии.
 - `IMPLEMENTATION_PLAN.md`, `FRONTEND_IMPLEMENTATION_PLAN.md` — планы/идеи.
 - `web/README.md` — детали по фронтенду.
 - `doc/agent-guides/create-transaction-api-flow.md` — подробный флоу создания транзакции через API.
