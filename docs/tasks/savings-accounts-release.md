@@ -40,3 +40,16 @@ TenantGuard защищает все RPC нового сервиса. Чтени�
 ## Публикация
 
 CI default-ветки публикует backend/web в GHCR; Flux обновляет digest и rollout. Завершение выпуска подтверждается отдельно состоянием GitHub Actions, digest работающих pod, версией миграции, логами backend и публичной страницей `/assets`.
+
+### Подтверждённый production rollout, 3 октября 2026
+
+- Код выпуска: `53a6c63d749cd20f74ec8e57519ef50d6693f640`.
+- [GitHub CI 37138170458](https://github.com/positron48/budget/actions/runs/37138170458): success, включая Go/web, security и обе Docker-сборки.
+- GitOps: `edaa0c95388b3585997d5e3635d39dc3f5cf7f59`; Flux подтвердил applied revision.
+- Backend: `sha256:1a3cc7436790aa7c4b67b23e9ec698646ba4dcbee4ab3c569f2587587ce67daa`, pod `budget-app-9db8696c4-47t4j` Ready.
+- Frontend: `sha256:32260fbd9721054d88924a5dcfe88b06044a4d3f557f9b739e0de527144dd79c`, pod `budget-web-68db596766-5pk4x` Ready.
+- Для обоих образов GHCR OCI revision совпал с коммитом кода выпуска. Оба `kubectl rollout status` успешны.
+- `schema_migrations`: version 10, dirty false; таблица `asset_accounts` существует. Backend startup logs: migrations up to date, gRPC listening.
+- `https://budget.qantrix.ru/assets` возвращает HTTP 200 и новый интерфейс. В браузере без production-сессии работает штатный переход на вход через Google; пункт Savings виден в навигации.
+- Публичный `AssetService/ListAccounts` через `/grpc` доступен и отклоняет анонимный вызов с gRPC Unauthenticated (16). Финансовые действия и содержимое счетов проверены на отдельном локальном QA-бюджете; реальные пользовательские данные не изменялись при проверке.
+- Временные QA-сервисы, вход и контейнеры удалены. Основная production резервная копия сохранена на сервере.
