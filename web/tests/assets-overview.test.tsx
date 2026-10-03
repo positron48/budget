@@ -11,7 +11,7 @@ vi.mock("@/app/providers", () => ({
   ClientsProvider: ({ children }: { children: React.ReactNode }) => children,
   useClients: () => ({ asset: { getOverview, listAccounts } }),
 }));
-vi.mock("@/lib/auth/store", () => ({ authStore: { getTenant: vi.fn() }, TENANT_CHANGED_EVENT: "tenant-changed" }));
+vi.mock("@/lib/auth/store", () => ({ authStore: { getTenant: vi.fn() }, TENANT_CHANGED_EVENT: "tenant-changed", AUTH_CHANGED_EVENT: "auth-changed" }));
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string) => key.split(".").reduce((v: any, k) => v?.[k], en.assets) || key,
   useLocale: () => "en-US",

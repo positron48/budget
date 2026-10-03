@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { authStore, TENANT_CHANGED_EVENT } from "@/lib/auth/store";
+import { authStore, AUTH_CHANGED_EVENT, TENANT_CHANGED_EVENT } from "@/lib/auth/store";
 import type { AssetAccount } from "@/proto/budget/v1/asset_pb";
 
 export const ASSET_CURRENCIES = [
@@ -30,7 +30,11 @@ export function useAssetTenant() {
     const update = () => setTenant(authStore.getTenant());
     update();
     window.addEventListener(TENANT_CHANGED_EVENT, update);
-    return () => window.removeEventListener(TENANT_CHANGED_EVENT, update);
+    window.addEventListener(AUTH_CHANGED_EVENT, update);
+    return () => {
+      window.removeEventListener(TENANT_CHANGED_EVENT, update);
+      window.removeEventListener(AUTH_CHANGED_EVENT, update);
+    };
   }, []);
   return tenant;
 }

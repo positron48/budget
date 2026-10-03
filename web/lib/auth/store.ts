@@ -26,7 +26,22 @@ export const authStore = {
   },
   getTenant(): string | undefined {
     if (typeof window === "undefined") return undefined;
-    return window.localStorage.getItem(TENANT_KEY) ?? undefined;
+    const selected = window.localStorage.getItem(TENANT_KEY);
+    if (selected) return selected;
+    // Existing sessions can have tokens without an explicit budget selection.
+    // Match the server's JWT default; this is a UI hint, not token validation.
+    try {
+      const token = window.localStorage.getItem(ACCESS_KEY);
+      const parts = token?.split(".");
+      if (parts?.length !== 3) return undefined;
+      const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+      const claims = JSON.parse(atob(payload.padEnd(Math.ceil(payload.length / 4) * 4, "=")));
+      return typeof claims?.tenant_id === "string" && claims.tenant_id
+        ? claims.tenant_id
+        : undefined;
+    } catch {
+      return undefined;
+    }
   },
   getLocale(): string | undefined {
     if (typeof window === "undefined") return undefined;
@@ -57,5 +72,4 @@ export const authStore = {
     window.dispatchEvent(new Event(TENANT_CHANGED_EVENT));
   },
 };
-
 
