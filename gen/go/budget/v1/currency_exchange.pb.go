@@ -23,18 +23,20 @@ const (
 )
 
 type CurrencyExchange struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	FromAmount    *Money                 `protobuf:"bytes,4,opt,name=from_amount,json=fromAmount,proto3" json:"from_amount,omitempty"`
-	ToAmount      *Money                 `protobuf:"bytes,5,opt,name=to_amount,json=toAmount,proto3" json:"to_amount,omitempty"`
-	RateDecimal   string                 `protobuf:"bytes,6,opt,name=rate_decimal,json=rateDecimal,proto3" json:"rate_decimal,omitempty"` // to_amount / from_amount
-	OccurredAt    *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=occurred_at,json=occurredAt,proto3" json:"occurred_at,omitempty"`
-	Note          string                 `protobuf:"bytes,8,opt,name=note,proto3" json:"note,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Id                 string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	TenantId           string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	UserId             string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	FromAmount         *Money                 `protobuf:"bytes,4,opt,name=from_amount,json=fromAmount,proto3" json:"from_amount,omitempty"`
+	ToAmount           *Money                 `protobuf:"bytes,5,opt,name=to_amount,json=toAmount,proto3" json:"to_amount,omitempty"`
+	RateDecimal        string                 `protobuf:"bytes,6,opt,name=rate_decimal,json=rateDecimal,proto3" json:"rate_decimal,omitempty"` // to_amount / from_amount
+	OccurredAt         *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=occurred_at,json=occurredAt,proto3" json:"occurred_at,omitempty"`
+	Note               string                 `protobuf:"bytes,8,opt,name=note,proto3" json:"note,omitempty"`
+	CreatedAt          *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	FromAssetAccountId string                 `protobuf:"bytes,10,opt,name=from_asset_account_id,json=fromAssetAccountId,proto3" json:"from_asset_account_id,omitempty"`
+	ToAssetAccountId   string                 `protobuf:"bytes,11,opt,name=to_asset_account_id,json=toAssetAccountId,proto3" json:"to_asset_account_id,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *CurrencyExchange) Reset() {
@@ -130,14 +132,31 @@ func (x *CurrencyExchange) GetCreatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *CurrencyExchange) GetFromAssetAccountId() string {
+	if x != nil {
+		return x.FromAssetAccountId
+	}
+	return ""
+}
+
+func (x *CurrencyExchange) GetToAssetAccountId() string {
+	if x != nil {
+		return x.ToAssetAccountId
+	}
+	return ""
+}
+
 type CreateCurrencyExchangeRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	FromAmount    *Money                 `protobuf:"bytes,1,opt,name=from_amount,json=fromAmount,proto3" json:"from_amount,omitempty"`
-	ToAmount      *Money                 `protobuf:"bytes,2,opt,name=to_amount,json=toAmount,proto3" json:"to_amount,omitempty"`
-	OccurredAt    *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=occurred_at,json=occurredAt,proto3" json:"occurred_at,omitempty"`
-	Note          string                 `protobuf:"bytes,4,opt,name=note,proto3" json:"note,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	FromAmount         *Money                 `protobuf:"bytes,1,opt,name=from_amount,json=fromAmount,proto3" json:"from_amount,omitempty"`
+	ToAmount           *Money                 `protobuf:"bytes,2,opt,name=to_amount,json=toAmount,proto3" json:"to_amount,omitempty"`
+	OccurredAt         *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=occurred_at,json=occurredAt,proto3" json:"occurred_at,omitempty"`
+	Note               string                 `protobuf:"bytes,4,opt,name=note,proto3" json:"note,omitempty"`
+	FromAssetAccountId string                 `protobuf:"bytes,5,opt,name=from_asset_account_id,json=fromAssetAccountId,proto3" json:"from_asset_account_id,omitempty"`
+	ToAssetAccountId   string                 `protobuf:"bytes,6,opt,name=to_asset_account_id,json=toAssetAccountId,proto3" json:"to_asset_account_id,omitempty"`
+	RequestKey         string                 `protobuf:"bytes,7,opt,name=request_key,json=requestKey,proto3" json:"request_key,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *CreateCurrencyExchangeRequest) Reset() {
@@ -198,6 +217,27 @@ func (x *CreateCurrencyExchangeRequest) GetNote() string {
 	return ""
 }
 
+func (x *CreateCurrencyExchangeRequest) GetFromAssetAccountId() string {
+	if x != nil {
+		return x.FromAssetAccountId
+	}
+	return ""
+}
+
+func (x *CreateCurrencyExchangeRequest) GetToAssetAccountId() string {
+	if x != nil {
+		return x.ToAssetAccountId
+	}
+	return ""
+}
+
+func (x *CreateCurrencyExchangeRequest) GetRequestKey() string {
+	if x != nil {
+		return x.RequestKey
+	}
+	return ""
+}
+
 type CreateCurrencyExchangeResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Exchange      *CurrencyExchange      `protobuf:"bytes,1,opt,name=exchange,proto3" json:"exchange,omitempty"`
@@ -243,14 +283,16 @@ func (x *CreateCurrencyExchangeResponse) GetExchange() *CurrencyExchange {
 }
 
 type UpdateCurrencyExchangeRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	FromAmount    *Money                 `protobuf:"bytes,2,opt,name=from_amount,json=fromAmount,proto3" json:"from_amount,omitempty"`
-	ToAmount      *Money                 `protobuf:"bytes,3,opt,name=to_amount,json=toAmount,proto3" json:"to_amount,omitempty"`
-	OccurredAt    *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=occurred_at,json=occurredAt,proto3" json:"occurred_at,omitempty"`
-	Note          string                 `protobuf:"bytes,5,opt,name=note,proto3" json:"note,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Id                 string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	FromAmount         *Money                 `protobuf:"bytes,2,opt,name=from_amount,json=fromAmount,proto3" json:"from_amount,omitempty"`
+	ToAmount           *Money                 `protobuf:"bytes,3,opt,name=to_amount,json=toAmount,proto3" json:"to_amount,omitempty"`
+	OccurredAt         *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=occurred_at,json=occurredAt,proto3" json:"occurred_at,omitempty"`
+	Note               string                 `protobuf:"bytes,5,opt,name=note,proto3" json:"note,omitempty"`
+	FromAssetAccountId *string                `protobuf:"bytes,6,opt,name=from_asset_account_id,json=fromAssetAccountId,proto3,oneof" json:"from_asset_account_id,omitempty"`
+	ToAssetAccountId   *string                `protobuf:"bytes,7,opt,name=to_asset_account_id,json=toAssetAccountId,proto3,oneof" json:"to_asset_account_id,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *UpdateCurrencyExchangeRequest) Reset() {
@@ -314,6 +356,20 @@ func (x *UpdateCurrencyExchangeRequest) GetOccurredAt() *timestamppb.Timestamp {
 func (x *UpdateCurrencyExchangeRequest) GetNote() string {
 	if x != nil {
 		return x.Note
+	}
+	return ""
+}
+
+func (x *UpdateCurrencyExchangeRequest) GetFromAssetAccountId() string {
+	if x != nil && x.FromAssetAccountId != nil {
+		return *x.FromAssetAccountId
+	}
+	return ""
+}
+
+func (x *UpdateCurrencyExchangeRequest) GetToAssetAccountId() string {
+	if x != nil && x.ToAssetAccountId != nil {
+		return *x.ToAssetAccountId
 	}
 	return ""
 }
@@ -542,7 +598,7 @@ var File_budget_v1_currency_exchange_proto protoreflect.FileDescriptor
 
 const file_budget_v1_currency_exchange_proto_rawDesc = "" +
 	"\n" +
-	"!budget/v1/currency_exchange.proto\x12\tbudget.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x16budget/v1/common.proto\"\xe9\x02\n" +
+	"!budget/v1/currency_exchange.proto\x12\tbudget.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x16budget/v1/common.proto\"\xcb\x03\n" +
 	"\x10CurrencyExchange\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x12\x17\n" +
@@ -555,16 +611,23 @@ const file_budget_v1_currency_exchange_proto_rawDesc = "" +
 	"occurredAt\x12\x12\n" +
 	"\x04note\x18\b \x01(\tR\x04note\x129\n" +
 	"\n" +
-	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xd2\x01\n" +
+	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x121\n" +
+	"\x15from_asset_account_id\x18\n" +
+	" \x01(\tR\x12fromAssetAccountId\x12-\n" +
+	"\x13to_asset_account_id\x18\v \x01(\tR\x10toAssetAccountId\"\xd5\x02\n" +
 	"\x1dCreateCurrencyExchangeRequest\x121\n" +
 	"\vfrom_amount\x18\x01 \x01(\v2\x10.budget.v1.MoneyR\n" +
 	"fromAmount\x12-\n" +
 	"\tto_amount\x18\x02 \x01(\v2\x10.budget.v1.MoneyR\btoAmount\x12;\n" +
 	"\voccurred_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"occurredAt\x12\x12\n" +
-	"\x04note\x18\x04 \x01(\tR\x04note\"Y\n" +
+	"\x04note\x18\x04 \x01(\tR\x04note\x121\n" +
+	"\x15from_asset_account_id\x18\x05 \x01(\tR\x12fromAssetAccountId\x12-\n" +
+	"\x13to_asset_account_id\x18\x06 \x01(\tR\x10toAssetAccountId\x12\x1f\n" +
+	"\vrequest_key\x18\a \x01(\tR\n" +
+	"requestKey\"Y\n" +
 	"\x1eCreateCurrencyExchangeResponse\x127\n" +
-	"\bexchange\x18\x01 \x01(\v2\x1b.budget.v1.CurrencyExchangeR\bexchange\"\xe2\x01\n" +
+	"\bexchange\x18\x01 \x01(\v2\x1b.budget.v1.CurrencyExchangeR\bexchange\"\x80\x03\n" +
 	"\x1dUpdateCurrencyExchangeRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x121\n" +
 	"\vfrom_amount\x18\x02 \x01(\v2\x10.budget.v1.MoneyR\n" +
@@ -572,7 +635,11 @@ const file_budget_v1_currency_exchange_proto_rawDesc = "" +
 	"\tto_amount\x18\x03 \x01(\v2\x10.budget.v1.MoneyR\btoAmount\x12;\n" +
 	"\voccurred_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"occurredAt\x12\x12\n" +
-	"\x04note\x18\x05 \x01(\tR\x04note\"Y\n" +
+	"\x04note\x18\x05 \x01(\tR\x04note\x126\n" +
+	"\x15from_asset_account_id\x18\x06 \x01(\tH\x00R\x12fromAssetAccountId\x88\x01\x01\x122\n" +
+	"\x13to_asset_account_id\x18\a \x01(\tH\x01R\x10toAssetAccountId\x88\x01\x01B\x18\n" +
+	"\x16_from_asset_account_idB\x16\n" +
+	"\x14_to_asset_account_id\"Y\n" +
 	"\x1eUpdateCurrencyExchangeResponse\x127\n" +
 	"\bexchange\x18\x01 \x01(\v2\x1b.budget.v1.CurrencyExchangeR\bexchange\"J\n" +
 	"\x1cListCurrencyExchangesRequest\x12*\n" +
@@ -654,6 +721,7 @@ func file_budget_v1_currency_exchange_proto_init() {
 		return
 	}
 	file_budget_v1_common_proto_init()
+	file_budget_v1_currency_exchange_proto_msgTypes[3].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

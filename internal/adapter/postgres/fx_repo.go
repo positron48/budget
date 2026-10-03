@@ -2,10 +2,23 @@ package postgres
 
 import (
 	"context"
+	"github.com/positron48/budget/internal/domain"
 	"time"
 )
 
 type FxRepo struct{ pool *Pool }
+
+func (r *FxRepo) GetAssetRates(ctx context.Context, codes []string, target string, at time.Time) ([]domain.AssetFxRate, error) {
+	rows, err := r.BatchGetRates(ctx, codes, target, at)
+	if err != nil {
+		return nil, err
+	}
+	out := []domain.AssetFxRate{}
+	for _, row := range rows {
+		out = append(out, domain.AssetFxRate{From: row.From, To: row.To, RateDecimal: row.Rate, AsOf: row.AsOf, Provider: row.Provider})
+	}
+	return out, nil
+}
 
 func NewFxRepo(pool *Pool) *FxRepo { return &FxRepo{pool: pool} }
 

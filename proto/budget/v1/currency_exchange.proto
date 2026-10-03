@@ -17,6 +17,8 @@ message CurrencyExchange {
   google.protobuf.Timestamp occurred_at = 7;
   string note = 8;
   google.protobuf.Timestamp created_at = 9;
+  string from_asset_account_id = 10;
+  string to_asset_account_id = 11;
 }
 
 message CreateCurrencyExchangeRequest {
@@ -24,6 +26,9 @@ message CreateCurrencyExchangeRequest {
   Money to_amount = 2;
   google.protobuf.Timestamp occurred_at = 3;
   string note = 4;
+  string from_asset_account_id = 5;
+  string to_asset_account_id = 6;
+  string request_key = 7;
 }
 
 message CreateCurrencyExchangeResponse {
@@ -36,6 +41,8 @@ message UpdateCurrencyExchangeRequest {
   Money to_amount = 3;
   google.protobuf.Timestamp occurred_at = 4;
   string note = 5;
+  optional string from_asset_account_id = 6;
+  optional string to_asset_account_id = 7;
 }
 
 message UpdateCurrencyExchangeResponse {

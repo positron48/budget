@@ -2,6 +2,7 @@ package grpcadapter
 
 import (
 	"context"
+	budgetv1 "github.com/positron48/budget/gen/go/budget/v1"
 	"testing"
 
 	"github.com/positron48/budget/internal/pkg/ctxutil"
@@ -55,5 +56,25 @@ func TestTenantGuard_CurrencyExchangeIsTenantScoped(t *testing.T) {
 	_, err := it(ctx, nil, &grpc.UnaryServerInfo{FullMethod: "/budget.v1.CurrencyExchangeService/ListCurrencyExchanges"}, handlerOK)
 	if status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("expected PermissionDenied, got %v", err)
+	}
+}
+
+func TestTenantGuard_AllAssetRPCs(t *testing.T) {
+	for _, method := range budgetv1.AssetService_ServiceDesc.Methods {
+		t.Run(method.MethodName, func(t *testing.T) {
+			called := false
+			handler := func(context.Context, interface{}) (interface{}, error) { called = true; return nil, nil }
+			guard := NewTenantGuardUnaryInterceptor(func(context.Context, string, string) (bool, error) { return false, nil })
+			info := &grpc.UnaryServerInfo{FullMethod: "/budget.v1.AssetService/" + method.MethodName}
+			_, err := guard(context.Background(), nil, info, handler)
+			if status.Code(err) != codes.Unauthenticated {
+				t.Fatalf("missing auth: %v", err)
+			}
+			ctx := ctxutil.WithUserID(ctxutil.WithTenantID(context.Background(), "foreign"), "user")
+			_, err = guard(ctx, nil, info, handler)
+			if status.Code(err) != codes.PermissionDenied || called {
+				t.Fatalf("foreign tenant reached handler: %v", err)
+			}
+		})
 	}
 }

@@ -8,6 +8,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useClients } from "@/app/providers";
 import { TransactionType, CategoryKind } from "@/proto/budget/v1/common_pb";
 import { Icon, CategorySingleInput, Select } from "@/components";
+import AssetAccountSelect from "@/components/assets/AssetAccountSelect";
+import { parseAssetAmount, localAssetTime } from "@/lib/assets";
 import { useTranslations } from "next-intl";
 
 const CURRENCIES = ["RUB", "USD", "EUR", "GBP", "KZT", "CNY", "TRY", "GEL", "AMD", "RSD"] as const;
@@ -20,9 +22,10 @@ const schema = z.object({
   amount: z.number().min(0.01),
   currencyCode: z.string().min(3),
   occurredAt: z.string(),
-  categoryId: z.string().optional(),
+  categoryId: z.string().min(1),
   comment: z.string().optional(),
   isExtraordinary: z.boolean().optional(),
+  assetAccountId: z.string().optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -34,23 +37,27 @@ export interface NewTxFormRef {
 interface Props {
   onClose: () => void;
   onSaved: () => void;
+  initialAccountId?: string;
+  initialCurrency?: string;
+  initialType?: number;
 }
 
-const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransactionForm({ onClose, onSaved }: Props, ref) {
+const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransactionForm({ onClose, onSaved, initialAccountId, initialCurrency, initialType }: Props, ref) {
   const { transaction, category } = useClients();
   const t = useTranslations("transactions");
+  const ta = useTranslations("assets");
+  const requestKey = useRef<string>(crypto.randomUUID());
+  const [submitError, setSubmitError] = useState("");
   const qc = useQueryClient();
-  const toLocalInput = (d: Date) => {
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  };
+
 
   const { register, handleSubmit, reset, watch, setValue, getValues, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      type: TransactionType.EXPENSE,
-      currencyCode: "RUB",
-      occurredAt: toLocalInput(new Date()),
+      type: initialType ?? TransactionType.EXPENSE,
+      currencyCode: initialCurrency || "RUB",
+      assetAccountId: initialAccountId || "",
+      occurredAt: localAssetTime(),
       isExtraordinary: false,
     },
   });
@@ -75,27 +82,31 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
   const submitInternal = useMemo(() => async (v: FormValues) => {
       const payload: any = {
         type: Number(v.type),
-        amount: { currencyCode: v.currencyCode, minorUnits: Math.round(v.amount * 100) },
+        amount: { currencyCode: v.currencyCode, minorUnits: parseAssetAmount(amountInput || String(v.amount), true) },
         occurredAt: { seconds: Math.floor(new Date(v.occurredAt).getTime() / 1000) },
       };
       if (v.categoryId) payload.categoryId = v.categoryId;
       if (v.comment) payload.comment = v.comment;
       payload.isExtraordinary = Boolean(v.isExtraordinary);
+      payload.assetAccountId = v.assetAccountId || "";
+      payload.requestKey = requestKey.current;
       await transaction.createTransaction(payload as any);
       qc.invalidateQueries({ queryKey: ["transactions"] });
-  }, [transaction, qc]);
+      qc.invalidateQueries({ queryKey: ["assets"] });
+      requestKey.current = crypto.randomUUID();
+  }, [transaction, qc, amountInput]);
 
   const onSubmit = useMemo(() => {
     return async (v: FormValues) => {
-      await submitInternal(v);
-      onSaved();
-      onClose();
+      setSubmitError("");
+      try { await submitInternal(v); onSaved(); onClose(); } catch (e) { setSubmitError((e as Error).message === "amount" ? ta("errors.amount") : t("updateError")); }
     };
-  }, [submitInternal, onSaved, onClose]);
+  }, [submitInternal, onSaved, onClose, ta, t]);
 
   const onSubmitAndAddMore = useMemo(() => {
     return async (v: FormValues) => {
-      await submitInternal(v);
+      setSubmitError("");
+      try { await submitInternal(v); } catch (e) { setSubmitError((e as Error).message === "amount" ? ta("errors.amount") : t("updateError")); return; }
       const current = getValues();
       reset({
         ...current,
@@ -106,7 +117,7 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
       setAmountInput("");
       setTimeout(() => amountRef.current?.focus(), 0);
     };
-  }, [submitInternal, getValues, reset]);
+  }, [submitInternal, getValues, reset, ta, t]);
 
   // expose submit methods for parent modal footer buttons
   useImperativeHandle(ref, () => ({
@@ -187,7 +198,7 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
       {/* Дата */}
       <div className="space-y-1">
         <label className={baseLabelClass}>{t("date")}</label>
-        <input type="datetime-local" className={baseInputClass} {...register('occurredAt')} />
+        <input type="datetime-local" step="1" className={baseInputClass} {...register('occurredAt')} />
       </div>
 
       {/* Сумма/валюта */}
@@ -214,11 +225,13 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
           </div>
           <Select
             value={currencyWatch}
-            onChange={(v) => setValue('currencyCode', String(v), { shouldDirty: true, shouldValidate: true })}
+            onChange={(v) => { setValue('currencyCode', String(v), { shouldDirty: true, shouldValidate: true }); setValue('assetAccountId', ""); }}
             options={CURRENCIES.map((c) => ({ value: c, label: c }))}
           />
         </div>
       </div>
+
+      <AssetAccountSelect value={watch("assetAccountId") || ""} onChange={value => setValue("assetAccountId", value)} currency={currencyWatch} />
 
       {/* Категория */}
       <div className="space-y-1">
@@ -234,6 +247,8 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
           />
         )}
       </div>
+
+      {errors.categoryId && <p role="alert" className="text-xs text-[hsl(var(--negative))]">{t("categoryRequired")}</p>}
 
       {/* Комментарий */}
       <div className="space-y-1">
@@ -251,6 +266,7 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
 
       {/* Footer buttons supplied by parent if needed */}
 
+      {submitError && <p role="alert" className="text-sm text-[hsl(var(--negative))]">{submitError}</p>}
       <div className="hidden" />
     </form>
   );

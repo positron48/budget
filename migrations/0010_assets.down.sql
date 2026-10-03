@@ -1,0 +1,12 @@
+DROP TABLE IF EXISTS financial_write_requests;
+DROP TABLE IF EXISTS asset_movements;
+ALTER TABLE currency_exchanges DROP CONSTRAINT IF EXISTS exchanges_asset_pair_check;
+ALTER TABLE currency_exchanges DROP CONSTRAINT IF EXISTS exchanges_to_asset_fk;
+ALTER TABLE currency_exchanges DROP CONSTRAINT IF EXISTS exchanges_from_asset_fk;
+ALTER TABLE currency_exchanges DROP COLUMN IF EXISTS to_asset_account_id;
+ALTER TABLE currency_exchanges DROP COLUMN IF EXISTS from_asset_account_id;
+ALTER TABLE transactions DROP CONSTRAINT IF EXISTS transactions_asset_account_fk;
+ALTER TABLE transactions DROP COLUMN IF EXISTS asset_account_id;
+DROP TABLE IF EXISTS asset_transfers;
+DROP TABLE IF EXISTS asset_snapshots;
+DROP TABLE IF EXISTS asset_accounts;

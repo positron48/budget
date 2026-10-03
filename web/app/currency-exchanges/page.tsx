@@ -1,11 +1,12 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState, useRef } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ClientsProvider, useClients } from "@/app/providers";
 import { Button, Card, CardContent, ConfirmDialog, Icon, Modal } from "@/components";
-import { formatCurrency } from "@/lib/utils";
+import AssetAccountSelect from "@/components/assets/AssetAccountSelect";
+import { assetAmountInput, parseAssetAmount, assetMoney, localAssetTime } from "@/lib/assets";
 
 const CURRENCIES = ["RUB", "USD", "EUR", "GBP", "KZT", "CNY", "TRY", "GEL", "AMD", "RSD"];
 const QUICK_CURRENCIES = ["RUB", "USD", "EUR"];
@@ -46,10 +47,6 @@ function CurrencyPicker({ value, onChange, quickLabel, allLabel }: CurrencyPicke
   );
 }
 
-function localDateTimeValue(date: Date) {
-  const pad = (value: number) => String(value).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
 
 function formatRate(value: string, locale: string) {
   const numeric = Number(value);
@@ -88,9 +85,13 @@ function CurrencyExchangesInner() {
   const [fromCurrency, setFromCurrency] = useState("RUB");
   const [toAmount, setToAmount] = useState("");
   const [toCurrency, setToCurrency] = useState("EUR");
-  const [occurredAt, setOccurredAt] = useState(() => localDateTimeValue(new Date()));
+  const [occurredAt, setOccurredAt] = useState(() => localAssetTime(new Date()));
   const [note, setNote] = useState("");
   const [formError, setFormError] = useState("");
+  const [fromAccount, setFromAccount] = useState("");
+  const [toAccount, setToAccount] = useState("");
+  const requestKey = useRef(crypto.randomUUID());
+  const ta = useTranslations("assets");
   const pageSize = 20;
 
   const request = useMemo(() => ({ page: { page, pageSize } }), [page]);
@@ -103,11 +104,12 @@ function CurrencyExchangesInner() {
 
   const resetForm = () => {
     setFromAmount("");
+    setFromAccount(""); setToAccount(""); requestKey.current = crypto.randomUUID();
     setFromCurrency("RUB");
     setToAmount("");
     setToCurrency("EUR");
     setNote("");
-    setOccurredAt(localDateTimeValue(new Date()));
+    setOccurredAt(localAssetTime(new Date()));
     setFormError("");
   };
 
@@ -124,14 +126,15 @@ function CurrencyExchangesInner() {
   };
 
   const openEdit = (exchange: any) => {
-    setFromAmount(String(Number(exchange.fromAmount?.minorUnits ?? 0) / 100));
+    setFromAmount(assetAmountInput(exchange.fromAmount?.minorUnits ?? 0n));
     setFromCurrency(exchange.fromAmount?.currencyCode ?? "RUB");
-    setToAmount(String(Number(exchange.toAmount?.minorUnits ?? 0) / 100));
+    setToAmount(assetAmountInput(exchange.toAmount?.minorUnits ?? 0n));
     setToCurrency(exchange.toAmount?.currencyCode ?? "EUR");
     setOccurredAt(exchange.occurredAt?.seconds
-      ? localDateTimeValue(new Date(Number(exchange.occurredAt.seconds) * 1000))
-      : localDateTimeValue(new Date()));
+      ? localAssetTime(new Date(Number(exchange.occurredAt.seconds) * 1000))
+      : localAssetTime(new Date()));
     setNote(exchange.note ?? "");
+    setFromAccount(exchange.fromAssetAccountId || ""); setToAccount(exchange.toAssetAccountId || "");
     setFormError("");
     setEditingID(exchange.id);
     setShowCreate(true);
@@ -139,19 +142,16 @@ function CurrencyExchangesInner() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const fromValue = Number(fromAmount.replace(",", "."));
-      const toValue = Number(toAmount.replace(",", "."));
-      const fromMinorUnits = Math.round(fromValue * 100);
-      const toMinorUnits = Math.round(toValue * 100);
       if (fromCurrency === toCurrency) throw new Error(t("sameCurrency"));
-      if (!Number.isFinite(fromValue) || !Number.isFinite(toValue) || fromMinorUnits <= 0 || toMinorUnits <= 0) {
-        throw new Error(t("positiveAmount"));
-      }
+      if (!!fromAccount !== !!toAccount) throw new Error(ta("errors.exchangeAccounts"));
+      let fromMinorUnits: bigint, toMinorUnits: bigint;
+      try { fromMinorUnits = parseAssetAmount(fromAmount, true); toMinorUnits = parseAssetAmount(toAmount, true); } catch { throw new Error(t("positiveAmount")); }
       const payload = {
         fromAmount: { currencyCode: fromCurrency, minorUnits: fromMinorUnits },
         toAmount: { currencyCode: toCurrency, minorUnits: toMinorUnits },
         occurredAt: { seconds: Math.floor(new Date(occurredAt).getTime() / 1000) },
         note: note.trim(),
+        fromAssetAccountId: fromAccount, toAssetAccountId: toAccount, requestKey: requestKey.current,
       };
       if (editingID) {
         return currencyExchange.updateCurrencyExchange({ id: editingID, ...payload } as any);
@@ -161,6 +161,7 @@ function CurrencyExchangesInner() {
     onSuccess: async () => {
       setPage(1);
       await queryClient.invalidateQueries({ queryKey: ["currency-exchanges"] });
+      await queryClient.invalidateQueries({ queryKey: ["assets"] });
       resetForm();
       closeForm();
     },
@@ -172,6 +173,7 @@ function CurrencyExchangesInner() {
     onSuccess: async () => {
       setDeleteID(null);
       await queryClient.invalidateQueries({ queryKey: ["currency-exchanges"] });
+      await queryClient.invalidateQueries({ queryKey: ["assets"] });
     },
   });
 
@@ -247,13 +249,13 @@ function CurrencyExchangesInner() {
                             {date && new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(date)}
                           </td>
                           <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold">
-                            {formatCurrency(Number(exchange.fromAmount?.minorUnits ?? 0), exchange.fromAmount?.currencyCode)}
+                            {assetMoney(exchange.fromAmount?.minorUnits ?? 0n, exchange.fromAmount?.currencyCode, locale)}
                           </td>
                           <td className="py-3 text-center">
                             <Icon name="arrow-right" size={16} className="text-muted-foreground" />
                           </td>
                           <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold">
-                            {formatCurrency(Number(exchange.toAmount?.minorUnits ?? 0), exchange.toAmount?.currencyCode)}
+                            {assetMoney(exchange.toAmount?.minorUnits ?? 0n, exchange.toAmount?.currencyCode, locale)}
                           </td>
                           <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-primary">
                             {t("rateFormat", {
@@ -326,10 +328,11 @@ function CurrencyExchangesInner() {
               <input className={inputClass} inputMode="decimal" required value={fromAmount} onChange={(event) => setFromAmount(event.target.value)} placeholder="100.00" />
               <CurrencyPicker
                 value={fromCurrency}
-                onChange={setFromCurrency}
+                onChange={value => { setFromCurrency(value); setFromAccount(""); }}
                 quickLabel={t("quickCurrencies")}
                 allLabel={t("allCurrencies")}
               />
+              <AssetAccountSelect value={fromAccount} onChange={setFromAccount} currency={fromCurrency} hint={false} />
             </fieldset>
             <fieldset className="space-y-2 rounded-lg border border-border p-3">
               <legend className="px-1 text-sm font-semibold">{t("to")}</legend>
@@ -337,15 +340,16 @@ function CurrencyExchangesInner() {
               <input className={inputClass} inputMode="decimal" required value={toAmount} onChange={(event) => setToAmount(event.target.value)} placeholder="9500.00" />
               <CurrencyPicker
                 value={toCurrency}
-                onChange={setToCurrency}
+                onChange={value => { setToCurrency(value); setToAccount(""); }}
                 quickLabel={t("quickCurrencies")}
                 allLabel={t("allCurrencies")}
               />
+              <AssetAccountSelect value={toAccount} onChange={setToAccount} currency={toCurrency} hint={false} />
             </fieldset>
           </div>
           <div className="space-y-2">
             <label className="block text-sm font-medium">{t("date")}</label>
-            <input className={inputClass} type="datetime-local" required value={occurredAt} onChange={(event) => setOccurredAt(event.target.value)} />
+            <input className={inputClass} type="datetime-local" step="1" required value={occurredAt} onChange={(event) => setOccurredAt(event.target.value)} />
           </div>
           <div className="space-y-2">
             <label className="block text-sm font-medium">{t("note")}</label>

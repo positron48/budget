@@ -10,10 +10,12 @@ import { TransactionService } from "../../proto/budget/v1/transaction_pb";
 import { ReportService } from "../../proto/budget/v1/report_pb";
 import { FxService } from "../../proto/budget/v1/fx_pb";
 import { ImportService } from "../../proto/budget/v1/import_pb";
+import { AssetService } from "../../proto/budget/v1/asset_pb";
 import { CurrencyExchangeService } from "../../proto/budget/v1/currency_exchange_pb";
 
 export function createClients(transport: Transport) {
   return {
+    asset: createClient(AssetService as any, transport),
     auth: createClient(AuthService as any, transport),
     user: createClient(UserService as any, transport),
     tenant: createClient(TenantService as any, transport),

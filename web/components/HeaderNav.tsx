@@ -92,6 +92,7 @@ export default function HeaderNav() {
   const navItems = [
     { href: "/", label: t("home"), icon: "home" },
     { href: "/transactions", label: t("transactions"), icon: "transactions" },
+    { href: "/assets", label: t("assets"), icon: "wallet" },
     { href: "/currency-exchanges", label: t("currencyExchanges"), icon: "fx" },
     { href: "/categories", label: t("categories"), icon: "categories" },
     { href: "/reports", label: t("reports"), icon: "reports" },
@@ -120,17 +121,17 @@ export default function HeaderNav() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo and Desktop Navigation */}
-          <div className="flex items-center space-x-8">
+          <div className="flex items-center gap-3 xl:gap-8">
             <Link 
               href="/" 
               className="flex items-center space-x-2 text-xl font-bold text-primary hover:text-primary/80 transition-colors"
             >
               <Icon name="wallet" size={24} className="text-primary" />
-              <span>Budget Manager</span>
+              <span>Budget<span className="hidden sm:inline"> Manager</span></span>
             </Link>
             
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-1">
+            <nav className="hidden lg:flex items-center space-x-1">
               {navItems.slice(1).map((item) => (
                 <Link
                   key={item.href}
@@ -144,14 +145,14 @@ export default function HeaderNav() {
                   }`}
                 >
                   <Icon name={item.icon as any} size={16} />
-                  <span className="hidden lg:inline">{item.label}</span>
+                  <span className="hidden 2xl:inline">{item.label}</span>
                 </Link>
               ))}
             </nav>
           </div>
 
           {/* Right side - Locale and Account */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-1.5 sm:gap-4">
             {/* Locale Switcher */}
             <div className="flex items-center space-x-1 bg-muted rounded-md p-1">
               <button
@@ -187,8 +188,9 @@ export default function HeaderNav() {
                   variant="outline"
                   size="sm"
                   icon="wallet"
+                  aria-label={activeTenantName || "Account"}
                 >
-                  {activeTenantName || "Account"}
+                  <span className="hidden max-w-40 truncate sm:inline">{activeTenantName || "Account"}</span>
                 </Button>
                 {isAccountOpen && (
                   <div
@@ -231,7 +233,7 @@ export default function HeaderNav() {
             )}
 
             {/* Mobile Menu Button */}
-            <div className="md:hidden">
+            <div className="lg:hidden">
               <Button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 variant="ghost"
@@ -248,7 +250,7 @@ export default function HeaderNav() {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden border-t bg-background animate-in">
+          <div className="lg:hidden border-t bg-background animate-in">
             <nav className="py-4 space-y-1">
               {navItems.map((item) => (
                 <Link

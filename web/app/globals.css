@@ -212,3 +212,46 @@ input.date-input::-webkit-calendar-picker-indicator {
     transform: translateY(10px);
   }
 }
+
+/* Savings: original-currency balances stay prominent; valuations carry their dates. */
+.asset-total-panel {
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  padding: 1.75rem;
+  background: linear-gradient(120deg, hsl(var(--primary) / .075), hsl(var(--card)) 64%);
+}
+.asset-account-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid hsl(var(--border));
+  border-radius: .875rem;
+  padding: 1.25rem;
+  background: hsl(var(--card));
+  transition: border-color .18s, box-shadow .18s;
+}
+.asset-account-card:hover { border-color: hsl(var(--primary) / .35); box-shadow: 0 4px 20px hsl(var(--foreground) / .035); }
+.asset-kind-icon { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; border-radius: .75rem; color: hsl(var(--primary)); background: hsl(var(--primary) / .09); }
+.asset-kind-cash { color: hsl(var(--positive)); background: hsl(var(--positive) / .1); }
+.asset-kind-deposit { color: hsl(var(--chart-cool-4)); background: hsl(var(--chart-cool-4) / .1); }
+.asset-kind-investment { color: hsl(var(--chart-cool-3)); background: hsl(var(--chart-cool-3) / .1); }
+.asset-summary { display: flex; align-items: center; gap: .75rem; text-align: left; padding: 1rem; border: 1px solid hsl(var(--border)); border-radius: .875rem; background: hsl(var(--card)); cursor: pointer; }
+.asset-summary:hover, .asset-summary-selected { border-color: hsl(var(--primary) / .6); background: hsl(var(--primary) / .04); }
+.asset-tag { display: inline-block; border-radius: .4rem; padding: .2rem .5rem; font-size: .75rem; color: hsl(var(--muted-foreground)); background: hsl(var(--secondary)); }
+.asset-empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 3.5rem 1.5rem; border: 1px dashed hsl(var(--border)); border-radius: 1rem; }
+.asset-history-list { overflow: hidden; border: 1px solid hsl(var(--border)); border-radius: .875rem; background: hsl(var(--card)); }
+.asset-history-row { display: flex; align-items: flex-start; gap: .875rem; padding: 1rem 1.25rem; }
+.asset-history-row + .asset-history-row { border-top: 1px solid hsl(var(--border)); }
+.asset-history-icon { display: flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border-radius: 50%; color: hsl(var(--primary)); background: hsl(var(--primary) / .08); }
+.asset-history-positive { color: hsl(var(--positive)); background: hsl(var(--positive) / .08); }
+.asset-history-negative { color: hsl(var(--negative)); background: hsl(var(--negative) / .07); }
+.asset-history-action { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: .375rem; color: hsl(var(--muted-foreground)); cursor: pointer; }
+.asset-history-action:hover { background: hsl(var(--secondary)); color: hsl(var(--primary)); }
+@media (max-width: 639px) { .asset-total-panel { padding: 1.25rem; } .asset-summary { flex-direction: column; align-items: flex-start; padding: .875rem; } .asset-history-row { gap: .5rem; padding: .875rem; } }
+
+@media (max-width: 639px) {
+  .asset-history-row { display: grid; grid-template-columns: 2.25rem minmax(0, 1fr); }
+  .asset-history-row > div:last-child { grid-column: 2; text-align: left; }
+  .asset-history-row > div:last-child > p { white-space: normal; overflow-wrap: anywhere; }
+  .asset-history-row > div:last-child > div { justify-content: flex-start; }
+  .asset-page h1, .asset-total-panel .tabular-nums { overflow-wrap: anywhere; }
+}

@@ -32,6 +32,9 @@ func NewCurrencyExchangeServer(svc interface {
 }
 
 func (s *CurrencyExchangeServer) UpdateCurrencyExchange(ctx context.Context, req *budgetv1.UpdateCurrencyExchangeRequest) (*budgetv1.UpdateCurrencyExchangeResponse, error) {
+	if (req.FromAssetAccountId == nil) != (req.ToAssetAccountId == nil) {
+		return nil, invalidArg("both account fields must be provided together")
+	}
 	if req.GetId() == "" {
 		return nil, invalidArg("id is required")
 	}
@@ -54,8 +57,11 @@ func (s *CurrencyExchangeServer) UpdateCurrencyExchange(ctx context.Context, req
 			CurrencyCode: req.GetToAmount().GetCurrencyCode(),
 			MinorUnits:   req.GetToAmount().GetMinorUnits(),
 		},
-		OccurredAt: occurredAt,
-		Note:       req.GetNote(),
+		OccurredAt:            occurredAt,
+		Note:                  req.GetNote(),
+		FromAssetAccountID:    req.GetFromAssetAccountId(),
+		ToAssetAccountID:      req.GetToAssetAccountId(),
+		PreserveAssetAccounts: req.FromAssetAccountId == nil,
 	})
 	if err != nil {
 		if errors.Is(err, currencyexchange.ErrInvalidAmount) || errors.Is(err, currencyexchange.ErrInvalidCurrency) {
@@ -67,6 +73,7 @@ func (s *CurrencyExchangeServer) UpdateCurrencyExchange(ctx context.Context, req
 }
 
 func (s *CurrencyExchangeServer) CreateCurrencyExchange(ctx context.Context, req *budgetv1.CreateCurrencyExchangeRequest) (*budgetv1.CreateCurrencyExchangeResponse, error) {
+	ctx = ctxutil.WithFinancialRequest(ctx, req.GetRequestKey(), req)
 	if req.GetFromAmount() == nil || req.GetToAmount() == nil {
 		return nil, invalidArg("from_amount and to_amount are required")
 	}
@@ -87,8 +94,11 @@ func (s *CurrencyExchangeServer) CreateCurrencyExchange(ctx context.Context, req
 			CurrencyCode: req.GetToAmount().GetCurrencyCode(),
 			MinorUnits:   req.GetToAmount().GetMinorUnits(),
 		},
-		OccurredAt: occurredAt,
-		Note:       req.GetNote(),
+		OccurredAt:         occurredAt,
+		Note:               req.GetNote(),
+		FromAssetAccountID: req.GetFromAssetAccountId(),
+		ToAssetAccountID:   req.GetToAssetAccountId(),
+		RequestKey:         req.GetRequestKey(),
 	})
 	if err != nil {
 		if errors.Is(err, currencyexchange.ErrInvalidAmount) || errors.Is(err, currencyexchange.ErrInvalidCurrency) {
@@ -156,9 +166,11 @@ func toProtoCurrencyExchange(item domain.CurrencyExchange) *budgetv1.CurrencyExc
 			CurrencyCode: item.ToAmount.CurrencyCode,
 			MinorUnits:   item.ToAmount.MinorUnits,
 		},
-		RateDecimal: item.RateDecimal,
-		OccurredAt:  timestamppb.New(item.OccurredAt),
-		Note:        item.Note,
-		CreatedAt:   timestamppb.New(item.CreatedAt),
+		RateDecimal:        item.RateDecimal,
+		OccurredAt:         timestamppb.New(item.OccurredAt),
+		Note:               item.Note,
+		CreatedAt:          timestamppb.New(item.CreatedAt),
+		FromAssetAccountId: item.FromAssetAccountID,
+		ToAssetAccountId:   item.ToAssetAccountID,
 	}
 }

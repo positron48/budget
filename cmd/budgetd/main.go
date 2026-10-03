@@ -19,6 +19,7 @@ import (
 	aauth "github.com/positron48/budget/internal/adapter/auth"
 	grpcadapter "github.com/positron48/budget/internal/adapter/grpc"
 	"github.com/positron48/budget/internal/domain"
+	"github.com/positron48/budget/internal/usecase/asset"
 	useauth "github.com/positron48/budget/internal/usecase/auth"
 	"github.com/positron48/budget/internal/usecase/category"
 	currencyexchange "github.com/positron48/budget/internal/usecase/currencyexchange"
@@ -194,6 +195,11 @@ func main() {
 		// Fx
 		fxRepo := postgres.NewFxRepo(db)
 		budgetv1.RegisterFxServiceServer(server, grpcadapter.NewFxServer(fxRepo))
+
+		// Assets
+		assetRepo := postgres.NewAssetRepo(db)
+		assetSvc := asset.NewService(assetRepo, fxRepo, tenantRepo)
+		budgetv1.RegisterAssetServiceServer(server, grpcadapter.NewAssetServer(assetSvc))
 
 		// Transaction (wire repos into usecase)
 		txRepo := postgres.NewTransactionRepo(db)

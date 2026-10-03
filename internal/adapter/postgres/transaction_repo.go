@@ -14,7 +14,7 @@ type TransactionRepo struct{ pool *Pool }
 
 func NewTransactionRepo(pool *Pool) *TransactionRepo { return &TransactionRepo{pool: pool} }
 
-func (r *TransactionRepo) Create(ctx context.Context, tx domain.Transaction) (domain.Transaction, error) {
+func (r *TransactionRepo) create(ctx context.Context, tx domain.Transaction) (domain.Transaction, error) {
 	var id string
 	var fxRate *string
 	var fxProvider *string
@@ -25,24 +25,24 @@ func (r *TransactionRepo) Create(ctx context.Context, tx domain.Transaction) (do
 		asOf := tx.Fx.AsOf.Truncate(24 * time.Hour)
 		fxAsOf = &asOf
 	}
-	if err := r.pool.DB.QueryRow(ctx,
+	if err := r.pool.query(ctx).QueryRow(ctx,
 		`INSERT INTO transactions (tenant_id, user_id, category_id, type, amount_numeric, currency_code,
-                                   base_amount_numeric, base_currency_code, fx_rate, fx_provider, fx_as_of, occurred_at, comment, is_extraordinary)
+                                   base_amount_numeric, base_currency_code, fx_rate, fx_provider, fx_as_of, occurred_at, comment, is_extraordinary, asset_account_id)
           VALUES ($1,$2,$3,$4,$5::numeric,$6,
                   CASE WHEN $8::numeric IS NULL THEN $5::numeric ELSE ($5::numeric * $8::numeric) END,
-                  $7, $8::numeric, $9, $10, $11, $12, $13)
+                  $7, $8::numeric, $9, $10, $11, $12, $13, NULLIF($14,'')::uuid)
           RETURNING id`,
 		tx.TenantID, tx.UserID, tx.CategoryID, string(tx.Type),
 		toDecimal(tx.Amount.MinorUnits), tx.Amount.CurrencyCode,
 		tx.BaseAmount.CurrencyCode,
-		fxRate, fxProvider, fxAsOf, tx.OccurredAt, tx.Comment, tx.IsExtraordinary,
+		fxRate, fxProvider, fxAsOf, tx.OccurredAt, tx.Comment, tx.IsExtraordinary, tx.AssetAccountID,
 	).Scan(&id); err != nil {
 		return domain.Transaction{}, err
 	}
 	return r.Get(ctx, id)
 }
 
-func (r *TransactionRepo) Update(ctx context.Context, tx domain.Transaction) (domain.Transaction, error) {
+func (r *TransactionRepo) update(ctx context.Context, tx domain.Transaction) (domain.Transaction, error) {
 	var fxRate *string
 	var fxProvider *string
 	var fxAsOf *time.Time
@@ -52,14 +52,14 @@ func (r *TransactionRepo) Update(ctx context.Context, tx domain.Transaction) (do
 		asOf := tx.Fx.AsOf.Truncate(24 * time.Hour)
 		fxAsOf = &asOf
 	}
-	_, err := r.pool.DB.Exec(ctx,
+	_, err := r.pool.query(ctx).Exec(ctx,
 		`UPDATE transactions
            SET category_id=$2, type=$3, amount_numeric=$4::numeric, currency_code=$5,
                base_amount_numeric=CASE WHEN $7::numeric IS NULL THEN $4::numeric ELSE ($4::numeric * $7::numeric) END,
-               base_currency_code=$6, fx_rate=$7::numeric, fx_provider=$8, fx_as_of=$9, occurred_at=$10, comment=$11, is_extraordinary=$12
-         WHERE id=$1`,
+               base_currency_code=$6, fx_rate=$7::numeric, fx_provider=$8, fx_as_of=$9, occurred_at=$10, comment=$11, is_extraordinary=$12, asset_account_id=NULLIF($13,'')::uuid
+         WHERE id=$1 AND tenant_id=$14`,
 		tx.ID, tx.CategoryID, string(tx.Type), toDecimal(tx.Amount.MinorUnits), tx.Amount.CurrencyCode,
-		tx.BaseAmount.CurrencyCode, fxRate, fxProvider, fxAsOf, tx.OccurredAt, tx.Comment, tx.IsExtraordinary,
+		tx.BaseAmount.CurrencyCode, fxRate, fxProvider, fxAsOf, tx.OccurredAt, tx.Comment, tx.IsExtraordinary, tx.AssetAccountID, tx.TenantID,
 	)
 	if err != nil {
 		return domain.Transaction{}, err
@@ -67,22 +67,21 @@ func (r *TransactionRepo) Update(ctx context.Context, tx domain.Transaction) (do
 	return r.Get(ctx, tx.ID)
 }
 
-func (r *TransactionRepo) Delete(ctx context.Context, id string) error {
-	_, err := r.pool.DB.Exec(ctx, `DELETE FROM transactions WHERE id=$1`, id)
-	return err
+func (r *TransactionRepo) Get(ctx context.Context, id string) (domain.Transaction, error) {
+	return r.get(ctx, id, false)
 }
 
-func (r *TransactionRepo) Get(ctx context.Context, id string) (domain.Transaction, error) {
+func (r *TransactionRepo) get(ctx context.Context, id string, lock bool) (domain.Transaction, error) {
 	var t domain.Transaction
 	var amountDec, baseDec string
 	var typ string
 	var fxRate, fxProvider *string
 	var fxAsOf *time.Time
-	err := r.pool.DB.QueryRow(ctx,
+	err := r.pool.query(ctx).QueryRow(ctx,
 		`SELECT id, tenant_id, user_id, category_id, type::text, amount_numeric::text, currency_code,
-                base_amount_numeric::text, base_currency_code, fx_rate::text, fx_provider, fx_as_of, occurred_at, comment, created_at, is_extraordinary
-           FROM transactions WHERE id=$1`, id,
-	).Scan(&t.ID, &t.TenantID, &t.UserID, &t.CategoryID, &typ, &amountDec, &t.Amount.CurrencyCode, &baseDec, &t.BaseAmount.CurrencyCode, &fxRate, &fxProvider, &fxAsOf, &t.OccurredAt, &t.Comment, &t.CreatedAt, &t.IsExtraordinary)
+                base_amount_numeric::text, base_currency_code, fx_rate::text, fx_provider, fx_as_of, occurred_at, comment, created_at, is_extraordinary, COALESCE(asset_account_id::text,'')
+           FROM transactions WHERE id=$1 AND ($2='' OR tenant_id::text=$2)`+lockClause(lock), id, activeTenant(ctx),
+	).Scan(&t.ID, &t.TenantID, &t.UserID, &t.CategoryID, &typ, &amountDec, &t.Amount.CurrencyCode, &baseDec, &t.BaseAmount.CurrencyCode, &fxRate, &fxProvider, &fxAsOf, &t.OccurredAt, &t.Comment, &t.CreatedAt, &t.IsExtraordinary, &t.AssetAccountID)
 	if err != nil {
 		return domain.Transaction{}, err
 	}
@@ -148,7 +147,7 @@ func (r *TransactionRepo) List(ctx context.Context, tenantID string, filter txus
 	offset := (page - 1) * size
 
 	var total int64
-	if err := r.pool.DB.QueryRow(ctx, "SELECT COUNT(*) FROM transactions WHERE "+clause, args...).Scan(&total); err != nil {
+	if err := r.pool.query(ctx).QueryRow(ctx, "SELECT COUNT(*) FROM transactions WHERE "+clause, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 
@@ -161,21 +160,21 @@ func (r *TransactionRepo) List(ctx context.Context, tenantID string, filter txus
 	if filter.Sort != "" {
 		// Validate and sanitize sort parameter
 		validSortFields := map[string]string{
-			"occurred_at":         "occurred_at",
-			"occurred_at asc":     "occurred_at ASC",
-			"occurred_at desc":    "occurred_at DESC",
-			"amount_numeric":      "CASE WHEN type = 'expense' THEN -amount_numeric ELSE amount_numeric END",
-			"amount_numeric asc":  "CASE WHEN type = 'expense' THEN -amount_numeric ELSE amount_numeric END ASC",
-			"amount_numeric desc": "CASE WHEN type = 'expense' THEN -amount_numeric ELSE amount_numeric END DESC",
-			"comment":             "comment",
-			"comment asc":         "comment ASC",
-			"comment desc":        "comment DESC",
-			"type":                "type",
-			"type asc":            "type ASC",
-			"type desc":           "type DESC",
-			"created_at":          "created_at",
-			"created_at asc":      "created_at ASC",
-			"created_at desc":     "created_at DESC",
+			"occurred_at":           "occurred_at",
+			"occurred_at asc":       "occurred_at ASC",
+			"occurred_at desc":      "occurred_at DESC",
+			"amount_numeric":        "CASE WHEN type = 'expense' THEN -amount_numeric ELSE amount_numeric END",
+			"amount_numeric asc":    "CASE WHEN type = 'expense' THEN -amount_numeric ELSE amount_numeric END ASC",
+			"amount_numeric desc":   "CASE WHEN type = 'expense' THEN -amount_numeric ELSE amount_numeric END DESC",
+			"comment":               "comment",
+			"comment asc":           "comment ASC",
+			"comment desc":          "comment DESC",
+			"type":                  "type",
+			"type asc":              "type ASC",
+			"type desc":             "type DESC",
+			"created_at":            "created_at",
+			"created_at asc":        "created_at ASC",
+			"created_at desc":       "created_at DESC",
 			"category_code":         "category_code",
 			"category_code asc":     "category_code ASC",
 			"category_code desc":    "category_code DESC",
@@ -196,16 +195,16 @@ func (r *TransactionRepo) List(ctx context.Context, tenantID string, filter txus
 		// Replace category_code with c.code in ORDER BY clause
 		orderByWithJoin := strings.ReplaceAll(orderBy, "category_code", "c.code")
 		query = fmt.Sprintf(
-			"SELECT t.id, t.tenant_id, t.user_id, t.category_id, t.type::text, t.amount_numeric::text, t.currency_code, t.base_amount_numeric::text, t.base_currency_code, t.fx_rate::text, t.fx_provider, t.fx_as_of, t.occurred_at, t.comment, t.created_at, t.is_extraordinary FROM transactions t LEFT JOIN categories c ON t.category_id = c.id WHERE %s ORDER BY %s OFFSET $%d LIMIT $%d",
+			"SELECT t.id, t.tenant_id, t.user_id, t.category_id, t.type::text, t.amount_numeric::text, t.currency_code, t.base_amount_numeric::text, t.base_currency_code, t.fx_rate::text, t.fx_provider, t.fx_as_of, t.occurred_at, t.comment, t.created_at, t.is_extraordinary, COALESCE(t.asset_account_id::text,'') FROM transactions t LEFT JOIN categories c ON t.category_id = c.id WHERE %s ORDER BY %s OFFSET $%d LIMIT $%d",
 			strings.ReplaceAll(strings.ReplaceAll(clause, "tenant_id=$1", "t.tenant_id=$1"), "is_extraordinary", "t.is_extraordinary"), orderByWithJoin, offIdx, limIdx,
 		)
 	} else {
 		query = fmt.Sprintf(
-			"SELECT id, tenant_id, user_id, category_id, type::text, amount_numeric::text, currency_code, base_amount_numeric::text, base_currency_code, fx_rate::text, fx_provider, fx_as_of, occurred_at, comment, created_at, is_extraordinary FROM transactions WHERE %s ORDER BY %s OFFSET $%d LIMIT $%d",
+			"SELECT id, tenant_id, user_id, category_id, type::text, amount_numeric::text, currency_code, base_amount_numeric::text, base_currency_code, fx_rate::text, fx_provider, fx_as_of, occurred_at, comment, created_at, is_extraordinary, COALESCE(asset_account_id::text,'') FROM transactions WHERE %s ORDER BY %s OFFSET $%d LIMIT $%d",
 			clause, orderBy, offIdx, limIdx,
 		)
 	}
-	rows, err := r.pool.DB.Query(ctx, query, append(args, offset, size)...)
+	rows, err := r.pool.query(ctx).Query(ctx, query, append(args, offset, size)...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -216,7 +215,7 @@ func (r *TransactionRepo) List(ctx context.Context, tenantID string, filter txus
 		var typ, amountDec, baseDec string
 		var fxRate, fxProvider *string
 		var fxAsOf *time.Time
-		if err := rows.Scan(&t.ID, &t.TenantID, &t.UserID, &t.CategoryID, &typ, &amountDec, &t.Amount.CurrencyCode, &baseDec, &t.BaseAmount.CurrencyCode, &fxRate, &fxProvider, &fxAsOf, &t.OccurredAt, &t.Comment, &t.CreatedAt, &t.IsExtraordinary); err != nil {
+		if err := rows.Scan(&t.ID, &t.TenantID, &t.UserID, &t.CategoryID, &typ, &amountDec, &t.Amount.CurrencyCode, &baseDec, &t.BaseAmount.CurrencyCode, &fxRate, &fxProvider, &fxAsOf, &t.OccurredAt, &t.Comment, &t.CreatedAt, &t.IsExtraordinary, &t.AssetAccountID); err != nil {
 			return nil, 0, err
 		}
 		t.Type = domain.TransactionType(typ)
@@ -275,7 +274,7 @@ func (r *TransactionRepo) Totals(ctx context.Context, tenantID string, filter tx
 	// Sum by base amount to avoid FX conversion per-request
 	// base_currency_code is same for tenant (default), but keep it just in case
 	var incomeDec, expenseDec, baseCurrency string
-	err := r.pool.DB.QueryRow(ctx,
+	err := r.pool.query(ctx).QueryRow(ctx,
 		"SELECT "+
 			"COALESCE(SUM(CASE WHEN type='income' THEN base_amount_numeric END), 0)::text AS income, "+
 			"COALESCE(SUM(CASE WHEN type='expense' THEN base_amount_numeric END), 0)::text AS expense, "+
@@ -339,7 +338,7 @@ func fromDecimal(dec string) int64 { // parse "123.45" → 12345
 func (r *TransactionRepo) GetDateRange(ctx context.Context, tenantID string) (earliest, latest time.Time, err error) {
 	var earliestTime, latestTime time.Time
 
-	err = r.pool.DB.QueryRow(ctx,
+	err = r.pool.query(ctx).QueryRow(ctx,
 		`SELECT MIN(occurred_at), MAX(occurred_at) FROM transactions WHERE tenant_id = $1`,
 		tenantID,
 	).Scan(&earliestTime, &latestTime)

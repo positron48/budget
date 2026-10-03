@@ -1,0 +1,124 @@
+syntax = "proto3";
+package budget.v1;
+option go_package = "github.com/positron48/budget/gen/go/budget/v1;budgetv1";
+
+import "google/protobuf/timestamp.proto";
+import "budget/v1/common.proto";
+import "budget/v1/fx.proto";
+
+message AssetBalance {
+  Money amount = 1;
+  Money confirmed_amount = 2;
+  google.protobuf.Timestamp confirmed_at = 3;
+}
+message AssetAccount {
+  string id = 1;
+  string tenant_id = 2;
+  string name = 3;
+  string kind = 4; // cash, bank, deposit, investment
+  string institution = 5;
+  string note = 6;
+  string fixed_currency_code = 7; // deposit currency or whole portfolio valuation currency
+  string deposit_rate_decimal = 8;
+  string deposit_opened_on = 9; // YYYY-MM-DD or empty
+  string deposit_matures_on = 10;
+  bool archived = 11;
+  int64 version = 12;
+  google.protobuf.Timestamp created_at = 13;
+  repeated AssetBalance balances = 14;
+}
+message AssetSnapshot {
+  string id = 1;
+  string account_id = 2;
+  Money amount = 3;
+  google.protobuf.Timestamp as_of = 4;
+  string kind = 5; // opening, reconciliation, valuation
+  string note = 6;
+  int64 version = 7;
+  google.protobuf.Timestamp created_at = 8;
+  string user_id = 9;
+}
+message AssetTransfer {
+  string id = 1;
+  string from_account_id = 2; // empty means outside tracked accounts
+  string to_account_id = 3;
+  Money from_amount = 4;
+  Money to_amount = 5;
+  google.protobuf.Timestamp occurred_at = 6;
+  string note = 7;
+  int64 version = 8;
+  google.protobuf.Timestamp created_at = 9;
+  string user_id = 10;
+}
+message AssetHistoryItem {
+  string id = 1;
+  string kind = 2; // opening, reconciliation, valuation, income, expense, transfer, exchange
+  Money amount = 3; // signed movement, or absolute snapshot
+  google.protobuf.Timestamp occurred_at = 4;
+  string note = 5;
+  string source_id = 6;
+  string counterparty_name = 7;
+  AssetSnapshot snapshot = 8;
+  AssetTransfer transfer = 9;
+  string user_id = 10;
+  Money calculated_amount = 11; // before applying this snapshot; absent when no preceding base exists
+}
+message CreateAccountRequest {
+  AssetAccount account = 1;
+  repeated AssetSnapshot opening_balances = 2;
+  string request_key = 3;
+}
+message CreateAccountResponse { AssetAccount account = 1; }
+message UpdateAccountRequest { AssetAccount account = 1; }
+message UpdateAccountResponse { AssetAccount account = 1; }
+message GetAccountRequest { string id = 1; }
+message GetAccountResponse { AssetAccount account = 1; }
+message ListAccountsRequest { bool include_archived = 1; }
+message ListAccountsResponse { repeated AssetAccount accounts = 1; }
+message ArchiveAccountRequest { string id = 1; int64 expected_version = 2; }
+message ArchiveAccountResponse { AssetAccount account = 1; }
+message RestoreAccountRequest { string id = 1; int64 expected_version = 2; }
+message RestoreAccountResponse { AssetAccount account = 1; }
+message DeleteEmptyAccountRequest { string id = 1; int64 expected_version = 2; }
+message DeleteEmptyAccountResponse {}
+message CreateSnapshotRequest { AssetSnapshot snapshot = 1; string request_key = 2; }
+message CreateSnapshotResponse { AssetSnapshot snapshot = 1; }
+message UpdateSnapshotRequest { AssetSnapshot snapshot = 1; }
+message UpdateSnapshotResponse { AssetSnapshot snapshot = 1; }
+message DeleteSnapshotRequest { string id = 1; int64 expected_version = 2; }
+message DeleteSnapshotResponse {}
+message CreateTransferRequest { AssetTransfer transfer = 1; string request_key = 2; }
+message CreateTransferResponse { AssetTransfer transfer = 1; }
+message UpdateTransferRequest { AssetTransfer transfer = 1; }
+message UpdateTransferResponse { AssetTransfer transfer = 1; }
+message DeleteTransferRequest { string id = 1; int64 expected_version = 2; }
+message DeleteTransferResponse {}
+message GetOverviewRequest { string target_currency_code = 1; google.protobuf.Timestamp as_of = 2; }
+message GetOverviewResponse {
+  repeated AssetAccount accounts = 1;
+  Money total = 2;
+  bool incomplete = 3;
+  repeated string missing_currencies = 4;
+  repeated FxRate rates = 5;
+  google.protobuf.Timestamp as_of = 6;
+}
+message ListAccountHistoryRequest { string account_id = 1; PageRequest page = 2; }
+message ListAccountHistoryResponse { repeated AssetHistoryItem items = 1; PageResponse page = 2; }
+
+service AssetService {
+  rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
+  rpc UpdateAccount(UpdateAccountRequest) returns (UpdateAccountResponse);
+  rpc GetAccount(GetAccountRequest) returns (GetAccountResponse);
+  rpc ListAccounts(ListAccountsRequest) returns (ListAccountsResponse);
+  rpc ArchiveAccount(ArchiveAccountRequest) returns (ArchiveAccountResponse);
+  rpc RestoreAccount(RestoreAccountRequest) returns (RestoreAccountResponse);
+  rpc DeleteEmptyAccount(DeleteEmptyAccountRequest) returns (DeleteEmptyAccountResponse);
+  rpc CreateSnapshot(CreateSnapshotRequest) returns (CreateSnapshotResponse);
+  rpc UpdateSnapshot(UpdateSnapshotRequest) returns (UpdateSnapshotResponse);
+  rpc DeleteSnapshot(DeleteSnapshotRequest) returns (DeleteSnapshotResponse);
+  rpc CreateTransfer(CreateTransferRequest) returns (CreateTransferResponse);
+  rpc UpdateTransfer(UpdateTransferRequest) returns (UpdateTransferResponse);
+  rpc DeleteTransfer(DeleteTransferRequest) returns (DeleteTransferResponse);
+  rpc GetOverview(GetOverviewRequest) returns (GetOverviewResponse);
+  rpc ListAccountHistory(ListAccountHistoryRequest) returns (ListAccountHistoryResponse);
+}

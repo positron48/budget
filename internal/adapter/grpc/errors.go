@@ -2,6 +2,7 @@ package grpcadapter
 
 import (
 	"errors"
+	"github.com/positron48/budget/internal/domain"
 
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v5"
@@ -18,6 +19,12 @@ func mapError(err error) error {
 	}
 	// domain/usecase errors
 	switch {
+	case errors.Is(err, domain.ErrAssetInvalid):
+		return status.Error(codes.InvalidArgument, err.Error())
+	case errors.Is(err, domain.ErrAssetPrecondition):
+		return status.Error(codes.FailedPrecondition, err.Error())
+	case errors.Is(err, domain.ErrAssetConflict), errors.Is(err, domain.ErrIdempotencyConflict):
+		return status.Error(codes.Aborted, err.Error())
 	case errors.Is(err, authuse.ErrInvalidCredentials):
 		return status.Error(codes.Unauthenticated, err.Error())
 	case errors.Is(err, authuse.ErrUserNotFound):

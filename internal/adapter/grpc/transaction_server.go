@@ -44,6 +44,8 @@ func NewTransactionServer(svc interface {
 }
 
 func (s *TransactionServer) CreateTransaction(ctx context.Context, req *budgetv1.CreateTransactionRequest) (*budgetv1.CreateTransactionResponse, error) {
+	ctx = ctxutil.WithAssetAccount(ctx, req.GetAssetAccountId())
+	ctx = ctxutil.WithFinancialRequest(ctx, req.GetRequestKey(), req)
 	tenantID, _ := ctxutil.TenantIDFromContext(ctx)
 	userID, _ := ctxutil.UserIDFromContext(ctx)
 	if req.GetCategoryId() == "" {
@@ -228,6 +230,7 @@ func toProtoTx(t domain.Transaction) *budgetv1.Transaction {
 		Comment:         t.Comment,
 		CreatedAt:       timestamppb.New(t.CreatedAt),
 		IsExtraordinary: t.IsExtraordinary,
+		AssetAccountId:  t.AssetAccountID,
 	}
 }
 
@@ -276,6 +279,8 @@ func applyFieldMask(cur *domain.Transaction, patch *budgetv1.Transaction, mask *
 			cur.Comment = patch.GetComment()
 		case "is_extraordinary":
 			cur.IsExtraordinary = patch.GetIsExtraordinary()
+		case "asset_account_id":
+			cur.AssetAccountID = patch.GetAssetAccountId()
 		}
 	}
 }

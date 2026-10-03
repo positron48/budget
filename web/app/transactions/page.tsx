@@ -7,10 +7,11 @@ import { TransactionType, CategoryKind } from "@/proto/budget/v1/common_pb";
 import { useTranslations, useLocale } from "next-intl";
 import { Icon, Button, Card, CardContent, TransactionStats, CategoryBadge, Modal, SortableHeader, ExportButton, QuickFilters, useToast, Select } from "@/components";
 import { formatDateLocal } from "@/lib/utils";
+import AssetAccountSelect from "@/components/assets/AssetAccountSelect";
+import { assetAmountInput, parseAssetAmount, assetMoney } from "@/lib/assets";
 import ImportWizard from "./ImportWizard";
 import NewTransactionForm, { NewTxFormRef } from "./NewTransactionForm";
 import FiltersForm from "@/components/FiltersForm";
-import { formatCurrency } from "@/lib/utils";
 
 const SURFACE_CARD = "rounded-lg border border-border bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60";
 const PANEL_CARD = "rounded-lg border border-border bg-secondary/40";
@@ -180,6 +181,7 @@ function TransactionsInner() {
   const refetchListAndTotals = useCallback(() => {
     qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["transactionsTotals"] });
+    qc.invalidateQueries({ queryKey: ["assets"] });
   }, [qc]);
 
   const deleteMut = useMutation({
@@ -479,6 +481,7 @@ function TransactionTable({
   const [editAmount, setEditAmount] = useState<string>("");
   const [editCategoryId, setEditCategoryId] = useState<string>("");
   const [editDate, setEditDate] = useState<string>("");
+  const [editAssetAccount, setEditAssetAccount] = useState("");
   const [editIsExtraordinary, setEditIsExtraordinary] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
@@ -486,23 +489,25 @@ function TransactionTable({
     mutationFn: async (payload: { 
       id: string; 
       comment?: string; 
-      amountMinorUnits?: number;
+      amountInput?: string;
+      assetAccountId?: string;
       categoryId?: string;
       occurredAt?: { seconds: number };
       isExtraordinary?: boolean;
     }) => {
       const paths: string[] = [];
       const tx: any = {};
+      if (payload.assetAccountId !== undefined) { paths.push("asset_account_id"); tx.assetAccountId = payload.assetAccountId; }
       if (payload.comment !== undefined) {
         paths.push("comment");
         tx.comment = payload.comment;
       }
-      if (payload.amountMinorUnits !== undefined) {
+      if (payload.amountInput !== undefined) {
         paths.push("amount");
         // Находим оригинальную транзакцию для получения currencyCode
         const originalTx = items.find(t => t.id === payload.id);
         tx.amount = { 
-          minorUnits: payload.amountMinorUnits,
+          minorUnits: parseAssetAmount(payload.amountInput, true),
           currencyCode: originalTx?.amount?.currencyCode || "RUB"
         };
       }
@@ -755,11 +760,13 @@ function TransactionTable({
                       }`}
                     >
                       {tx?.type === TransactionType.EXPENSE ? "-" : "+"}
-                      {formatCurrency(Number(tx?.amount?.minorUnits ?? 0), tx?.amount?.currencyCode)}
+                      {assetMoney(tx?.amount?.minorUnits ?? 0n, tx?.amount?.currencyCode, locale)}
                     </div>
                   )}
                 </td>
                 <td className="px-4 py-3">
+                  {editingId === tx?.id && <div className="mb-3 min-w-40"><AssetAccountSelect value={editAssetAccount} onChange={setEditAssetAccount} currency={tx?.amount?.currencyCode || "RUB"} hint={false} /></div>}
+                  {editingId !== tx?.id && tx?.assetAccountId && <a className="mb-2 block text-xs text-[hsl(var(--primary))]" href={`/assets/${tx.assetAccountId}`}>{locale === "ru" ? "Связанный счёт" : "Linked account"}</a>}
                   {editingId === tx?.id ? (
                     <label className="inline-flex items-center gap-2 text-sm text-foreground">
                       <input
@@ -790,10 +797,11 @@ function TransactionTable({
                           updateMut.mutate({
                               id: tx.id as string,
                               comment: editComment,
-                              amountMinorUnits: editAmount ? Math.round(parseFloat(editAmount.replace(',', '.')) * 100) : undefined,
+                              amountInput: editAmount || undefined,
                               categoryId: editCategoryId === "" ? undefined : editCategoryId,
                               occurredAt: editDate ? { seconds: Math.floor(new Date(editDate).getTime() / 1000) } : undefined,
                               isExtraordinary: editIsExtraordinary,
+                              assetAccountId: editAssetAccount,
                             });
                         }}
                         >
@@ -813,7 +821,8 @@ function TransactionTable({
                         onClick={() => {
                           setEditingId(tx?.id);
                           setEditComment(tx?.comment ?? "");
-                          setEditAmount(tx?.amount?.minorUnits ? (Number(tx.amount.minorUnits) / 100).toString() : "");
+                          setEditAssetAccount(tx?.assetAccountId || "");
+                          setEditAmount(tx?.amount?.minorUnits ? assetAmountInput(tx.amount.minorUnits) : "");
                           setEditCategoryId(tx?.categoryId ?? "");
                           setEditIsExtraordinary(Boolean(tx?.isExtraordinary));
                           const toLocalInput = (d: Date) => {

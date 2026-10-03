@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/positron48/budget/internal/domain"
+	"github.com/positron48/budget/internal/pkg/ctxutil"
 )
 
 var (
@@ -159,6 +160,8 @@ func (s *Service) CreateForUser(ctx context.Context, tenantID, userID string, tx
 		OccurredAt:      occurredAt,
 		Comment:         comment,
 		IsExtraordinary: isExtraordinary,
+		AssetAccountID:  ctxutil.AssetAccountFromContext(ctx),
+		RequestKey:      ctxutil.FinancialRequestFromContext(ctx).Key,
 	}
 	return s.txs.Create(ctx, tx)
 }

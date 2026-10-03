@@ -21,6 +21,7 @@ message Transaction {
   string comment = 10;
   google.protobuf.Timestamp created_at = 11;
   bool is_extraordinary = 12;              // one-off operation excluded from reports on demand
+  string asset_account_id = 13;            // optional account balance affected by this transaction
 }
 
 message CreateTransactionRequest {
@@ -30,6 +31,8 @@ message CreateTransactionRequest {
   google.protobuf.Timestamp occurred_at = 4;
   string comment = 5;
   bool is_extraordinary = 6;
+  string asset_account_id = 7;
+  string request_key = 8;
 }
 message CreateTransactionResponse { Transaction transaction = 1; }
 
@@ -86,4 +89,3 @@ message GetTransactionsTotalsResponse {
   Money total_income = 1;   // in tenant base currency
   Money total_expense = 2;  // in tenant base currency
 }
-

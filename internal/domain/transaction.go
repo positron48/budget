@@ -30,4 +30,6 @@ type Transaction struct {
 	Comment         string
 	CreatedAt       time.Time
 	IsExtraordinary bool
+	AssetAccountID  string
+	RequestKey      string
 }
