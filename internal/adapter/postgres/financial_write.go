@@ -147,6 +147,9 @@ func validateAssetLeg(ctx context.Context, pool *Pool, tenant, id, currency stri
 	if archived {
 		return "", domain.ErrAssetPrecondition
 	}
+	if kind == "property" {
+		return "", fmt.Errorf("%w: property uses manual valuations only", domain.ErrAssetInvalid)
+	}
 	if monetary && kind == "investment" {
 		return "", fmt.Errorf("%w: investment accounts use transfers and whole-account valuations", domain.ErrAssetInvalid)
 	}

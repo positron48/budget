@@ -87,7 +87,7 @@ type AssetAccount struct {
 	Id                 string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	TenantId           string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
 	Name               string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Kind               string                 `protobuf:"bytes,4,opt,name=kind,proto3" json:"kind,omitempty"` // cash, bank, deposit, investment
+	Kind               string                 `protobuf:"bytes,4,opt,name=kind,proto3" json:"kind,omitempty"` // cash, bank, deposit, investment, property
 	Institution        string                 `protobuf:"bytes,5,opt,name=institution,proto3" json:"institution,omitempty"`
 	Note               string                 `protobuf:"bytes,6,opt,name=note,proto3" json:"note,omitempty"`
 	FixedCurrencyCode  string                 `protobuf:"bytes,7,opt,name=fixed_currency_code,json=fixedCurrencyCode,proto3" json:"fixed_currency_code,omitempty"` // deposit currency or whole portfolio valuation currency

@@ -80,7 +80,7 @@ function AssetsOverview() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {activeAccounts.length > 0 && (
+          {activeAccounts.some((a) => a.kind !== "property") && (
             <Button
               variant="outline"
               icon="arrow-right"
@@ -176,7 +176,7 @@ function AssetsOverview() {
           </p>
         )}
       </section>
-      <div className="my-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="my-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
         {summaries.map((s) => (
           <button
             key={s.kind}

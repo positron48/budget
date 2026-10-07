@@ -62,7 +62,7 @@ func ValidateAccount(a *domain.AssetAccount) error {
 		if a.FixedCurrencyCode != "" {
 			return invalid("cash and bank accounts use currencies from their balances")
 		}
-	case "deposit", "investment":
+	case "deposit", "investment", "property":
 		if !ValidCurrency(a.FixedCurrencyCode) {
 			return invalid("account currency is required")
 		}
@@ -134,6 +134,9 @@ func (s *Service) CreateAccount(ctx context.Context, a domain.AssetAccount, open
 		openings[i].Kind = "opening"
 		if err := ValidateSnapshot(&openings[i]); err != nil {
 			return domain.AssetAccount{}, err
+		}
+		if a.Kind == "property" && openings[i].Amount.MinorUnits < 0 {
+			return domain.AssetAccount{}, invalid("property valuation cannot be negative")
 		}
 		code := openings[i].Amount.CurrencyCode
 		if seen[code] || (a.FixedCurrencyCode != "" && a.FixedCurrencyCode != code) {

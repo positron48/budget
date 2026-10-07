@@ -50,6 +50,17 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("savings display currency", () => {
+  it("shows property in its own summary and permits filtering by property", async () => {
+    const property = { id: "car", name: "Car", kind: "property", institution: "", archived: false, balances: [{ amount: { currencyCode: "USD", minorUnits: 2500000n } }] };
+    getOverview.mockResolvedValue({ accounts: [...accounts, property], total: { currencyCode: "RUB", minorUnits: 252250000n }, rates: [{ fromCurrencyCode: "USD", rateDecimal: "100", provider: "cbr" }, { fromCurrencyCode: "EUR", rateDecimal: "125", provider: "cbr" }] });
+    mount();
+    await screen.findByText("Car");
+    expect(screen.getAllByText("RUB 2,500,000.00")).toHaveLength(2);
+    expect(screen.getByText("Total assets")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Property RUB/ }));
+    expect(screen.getByText("Car")).toBeInTheDocument();
+    expect(screen.queryByText("Dollar account")).not.toBeInTheDocument();
+  });
   it("converts total, types and account cards, retaining original balances and selection", async () => {
     const view = mount();
     expect(await screen.findByText("RUB 22,500.00")).toBeInTheDocument();

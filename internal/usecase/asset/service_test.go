@@ -66,3 +66,19 @@ func TestAssetValidation(t *testing.T) {
 		t.Fatal("self-transfer accepted")
 	}
 }
+
+func TestPropertyCurrencyAndConversion(t *testing.T) {
+	a := domain.AssetAccount{Name: "Car", Kind: "property"}
+	if err := ValidateAccount(&a); !errors.Is(err, domain.ErrAssetInvalid) {
+		t.Fatalf("missing property currency: %v", err)
+	}
+	a.FixedCurrencyCode = "usd"
+	if err := ValidateAccount(&a); err != nil {
+		t.Fatal(err)
+	}
+	a.Balances = []domain.AssetBalance{{Amount: domain.Money{CurrencyCode: "USD", MinorUnits: 2500000}}}
+	result, err := Summarize([]domain.AssetAccount{a}, []domain.AssetFxRate{{From: "USD", To: "RUB", RateDecimal: "90"}}, "RUB", time.Now())
+	if err != nil || result.Total.MinorUnits != 225000000 || result.Incomplete {
+		t.Fatalf("property FX: %+v, %v", result, err)
+	}
+}

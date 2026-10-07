@@ -80,6 +80,7 @@ export function assetError(
 ) {
   const e = error as { message?: string; code?: number };
   if (e.message === "amount") return t("errors.amount");
+  if (e.message === "propertyValue") return t("errors.propertyValue");
   if (e.message === "date") return t("errors.date");
   if (e.code === Code.Aborted) return t("errors.conflict");
   if (e.code === Code.FailedPrecondition) return t("errors.precondition");
@@ -166,8 +167,16 @@ function AccountForm({
   const [asOf, setAsOf] = useState(localAssetTime);
   const [balances, setBalances] = useState([{ currency: "RUB", amount: "" }]);
   const key = useRef(crypto.randomUUID());
-  const fixed = kind === "deposit" || kind === "investment";
+  const fixed =
+    kind === "deposit" || kind === "investment" || kind === "property";
   const save = async () => {
+    if (
+      !existing &&
+      kind === "property" &&
+      parseAssetAmount(balances[0].amount) < 0n
+    ) {
+      throw new Error("propertyValue");
+    }
     const account = {
       id: existing?.id,
       version: existing?.version,
@@ -213,7 +222,11 @@ function AccountForm({
             maxLength={200}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={t("namePlaceholder")}
+            placeholder={t(
+              kind === "property"
+                ? "propertyNamePlaceholder"
+                : "namePlaceholder",
+            )}
             autoFocus
           />
         </Field>
@@ -232,22 +245,38 @@ function AccountForm({
           </select>
         </Field>
       </div>
-      <Field label={kind === "cash" ? t("location") : t("institution")}>
+      <Field
+        label={
+          kind === "property"
+            ? t("propertyLocation")
+            : kind === "cash"
+              ? t("location")
+              : t("institution")
+        }
+      >
         <input
           className="input"
           maxLength={200}
           value={institution}
           onChange={(e) => setInstitution(e.target.value)}
           placeholder={
-            kind === "cash"
-              ? t("locationPlaceholder")
-              : t("institutionPlaceholder")
+            kind === "property"
+              ? t("propertyLocationPlaceholder")
+              : kind === "cash"
+                ? t("locationPlaceholder")
+                : t("institutionPlaceholder")
           }
         />
       </Field>
       {fixed && (
         <Field
-          label={kind === "investment" ? t("valuationCurrency") : t("currency")}
+          label={
+            kind === "property"
+              ? t("propertyCurrency")
+              : kind === "investment"
+                ? t("valuationCurrency")
+                : t("currency")
+          }
         >
           <Currency
             value={currency}
@@ -259,6 +288,11 @@ function AccountForm({
       {kind === "investment" && (
         <p className="rounded-lg bg-[hsl(var(--primary)/0.07)] p-3 text-sm text-[hsl(var(--muted-foreground))]">
           {t("investmentHint")}
+        </p>
+      )}
+      {kind === "property" && (
+        <p className="rounded-lg bg-[hsl(var(--primary)/0.07)] p-3 text-sm text-[hsl(var(--muted-foreground))]">
+          {t("propertyHint")}
         </p>
       )}
       {kind === "deposit" && (
@@ -293,9 +327,11 @@ function AccountForm({
       {!existing && (
         <div className="space-y-3 rounded-xl bg-[hsl(var(--secondary))] p-4">
           <p className="font-medium">
-            {kind === "investment"
-              ? t("initialValuation")
-              : t("openingBalances")}
+            {kind === "property"
+              ? t("estimatedValue")
+              : kind === "investment"
+                ? t("initialValuation")
+                : t("openingBalances")}
           </p>
           {(fixed ? balances.slice(0, 1) : balances).map((b, index) => (
             <div className="flex items-end gap-2" key={index}>
@@ -370,7 +406,7 @@ function AccountForm({
               {t("addCurrency")}
             </Button>
           )}
-          <Field label={t("asOf")}>
+          <Field label={t(kind === "property" ? "valuedAt" : "asOf")}>
             <input
               className="input"
               type="datetime-local"
@@ -428,6 +464,9 @@ function SnapshotForm({
     (b) => b.amount?.currencyCode === currency,
   );
   const save = async () => {
+    if (account.kind === "property" && parseAssetAmount(amount) < 0n) {
+      throw new Error("propertyValue");
+    }
     const value = {
       id: snapshot?.id,
       version: snapshot?.version,
@@ -436,7 +475,9 @@ function SnapshotForm({
       asOf: assetTimestamp(asOf),
       kind:
         snapshot?.kind ||
-        (account.kind === "investment" ? "valuation" : "reconciliation"),
+        (account.kind === "investment" || account.kind === "property"
+          ? "valuation"
+          : "reconciliation"),
       note,
     };
     if (snapshot) await asset.updateSnapshot({ snapshot: value });
@@ -448,7 +489,7 @@ function SnapshotForm({
     <FormShell onSubmit={save} onClose={onClose}>
       <div className="rounded-xl bg-[hsl(var(--secondary))] p-4">
         <p className="text-xs text-[hsl(var(--muted-foreground))]">
-          {t("currentBalance")}
+          {t(account.kind === "property" ? "estimatedValue" : "currentBalance")}
         </p>
         <p className="mt-1 text-xl font-semibold tabular-nums">
           {current
@@ -459,9 +500,11 @@ function SnapshotForm({
       <div className="grid gap-4 sm:grid-cols-[1fr_110px]">
         <Field
           label={
-            account.kind === "investment"
-              ? t("wholeValuation")
-              : t("actualBalance")
+            account.kind === "property"
+              ? t("estimatedValue")
+              : account.kind === "investment"
+                ? t("wholeValuation")
+                : t("actualBalance")
           }
         >
           <input
@@ -487,7 +530,7 @@ function SnapshotForm({
           />
         </Field>
       </div>
-      <Field label={t("asOf")}>
+      <Field label={t(account.kind === "property" ? "valuedAt" : "asOf")}>
         <input
           className="input"
           type="datetime-local"
@@ -498,9 +541,11 @@ function SnapshotForm({
         />
       </Field>
       <p className="text-sm text-[hsl(var(--muted-foreground))]">
-        {account.kind === "investment"
-          ? t("investmentHint")
-          : t("snapshotHint")}
+        {account.kind === "property"
+          ? t("propertyHint")
+          : account.kind === "investment"
+            ? t("investmentHint")
+            : t("snapshotHint")}
       </p>
       <Field label={t("note")}>
         <textarea
@@ -632,7 +677,10 @@ function MovementForm({
     await onSaved();
   };
   const choices = accounts.filter(
-    (a) => !a.archived && (!exchanging || a.kind !== "investment"),
+    (a) =>
+      !a.archived &&
+      a.kind !== "property" &&
+      (!exchanging || a.kind !== "investment"),
   );
   return (
     <FormShell onSubmit={save} onClose={onClose}>
@@ -777,8 +825,13 @@ export default function AssetDialogs({
         : t("createAccount")
       : action.mode === "snapshot"
         ? action.snapshot
-          ? t("editSnapshot")
-          : action.account?.kind === "investment"
+          ? t(
+              action.account?.kind === "property"
+                ? "editPropertyValuation"
+                : "editSnapshot",
+            )
+          : action.account?.kind === "investment" ||
+              action.account?.kind === "property"
             ? t("updateValuation")
             : t("reconcile")
         : action.mode === "exchange"

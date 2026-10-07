@@ -118,6 +118,9 @@ func (r *AssetRepo) CreateAccount(ctx context.Context, a domain.AssetAccount, op
 		for _, s := range openings {
 			s.AccountID = a.ID
 			s.TenantID = a.TenantID
+			if err = checkSnapshotAccount(a, s); err != nil {
+				return domain.AssetAccount{}, err
+			}
 			if _, err = r.insertSnapshot(ctx, s); err != nil {
 				return domain.AssetAccount{}, err
 			}
@@ -159,7 +162,7 @@ func (r *AssetRepo) SetArchived(ctx context.Context, tenant, id string, version 
 				return a, e
 			}
 			for _, v := range b[id] {
-				if v.Amount.MinorUnits != 0 {
+				if a.Kind != "property" && v.Amount.MinorUnits != 0 {
 					return a, domain.ErrAssetPrecondition
 				}
 			}
@@ -220,10 +223,13 @@ func checkSnapshotAccount(a domain.AssetAccount, s domain.AssetSnapshot) error {
 	if a.FixedCurrencyCode != "" && a.FixedCurrencyCode != s.Amount.CurrencyCode {
 		return domain.ErrAssetInvalid
 	}
-	if s.Kind == "valuation" && a.Kind != "investment" {
+	if s.Kind == "valuation" && a.Kind != "investment" && a.Kind != "property" {
 		return domain.ErrAssetInvalid
 	}
-	if a.Kind == "investment" && s.Kind == "reconciliation" {
+	if (a.Kind == "investment" || a.Kind == "property") && s.Kind == "reconciliation" {
+		return domain.ErrAssetInvalid
+	}
+	if a.Kind == "property" && s.Amount.MinorUnits < 0 {
 		return domain.ErrAssetInvalid
 	}
 	return nil

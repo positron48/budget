@@ -65,7 +65,7 @@ export type AssetAccount = Message<"budget.v1.AssetAccount"> & {
   name: string;
 
   /**
-   * cash, bank, deposit, investment
+   * cash, bank, deposit, investment, property
    *
    * @generated from field: string kind = 4;
    */

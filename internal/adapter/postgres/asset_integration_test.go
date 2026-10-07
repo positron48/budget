@@ -37,7 +37,7 @@ func TestAssetsAccounting_PG(t *testing.T) {
 	create := func(name, kind string, amount int64) domain.AssetAccount {
 		t.Helper()
 		fixed := ""
-		if kind == "investment" || kind == "deposit" {
+		if kind == "investment" || kind == "deposit" || kind == "property" {
 			fixed = "RUB"
 		}
 		a, err := svc.CreateAccount(ctx, domain.AssetAccount{TenantID: tenant, Name: name, Kind: kind, FixedCurrencyCode: fixed}, []domain.AssetSnapshot{{TenantID: tenant, UserID: user, Amount: domain.Money{CurrencyCode: "RUB", MinorUnits: amount}, AsOf: opening}}, "")
@@ -282,6 +282,83 @@ func TestAssetsAccounting_PG(t *testing.T) {
 				}
 			}
 		}
+	})
+	t.Run("property valuations and monetary isolation", func(t *testing.T) {
+		before, err := svc.GetOverview(ctx, tenant, "RUB", time.Now())
+		must(err)
+		property := create("Apartment", "property", 1500000000)
+		after, err := svc.GetOverview(ctx, tenant, "RUB", time.Now())
+		must(err)
+		if after.Total.MinorUnits-before.Total.MinorUnits != 1500000000 {
+			t.Fatal("property missing from total")
+		}
+		valuation := domain.AssetSnapshot{TenantID: tenant, AccountID: property.ID, UserID: user, Kind: "valuation", Amount: domain.Money{CurrencyCode: "RUB", MinorUnits: 1600000000}, AsOf: time.Now().Add(-time.Hour)}
+		snap, err := svc.CreateSnapshot(ctx, valuation, "property-valuation")
+		must(err)
+		assertBalance(property.ID, 1600000000)
+		for _, invalid := range []domain.AssetSnapshot{
+			{Kind: "valuation", Amount: domain.Money{CurrencyCode: "RUB", MinorUnits: -1}},
+			{Kind: "reconciliation", Amount: domain.Money{CurrencyCode: "RUB", MinorUnits: 1}},
+			{Kind: "valuation", Amount: domain.Money{CurrencyCode: "USD", MinorUnits: 1}},
+		} {
+			invalid.TenantID, invalid.AccountID, invalid.AsOf = tenant, property.ID, time.Now().Add(-time.Minute)
+			if _, err = svc.CreateSnapshot(ctx, invalid, ""); !errors.Is(err, domain.ErrAssetInvalid) {
+				t.Fatalf("invalid property valuation accepted: %v", err)
+			}
+		}
+		if _, err = svc.CreateAccount(ctx, domain.AssetAccount{TenantID: tenant, Name: "Negative", Kind: "property", FixedCurrencyCode: "RUB"}, []domain.AssetSnapshot{{Amount: domain.Money{CurrencyCode: "RUB", MinorUnits: -1}, AsOf: opening}}, ""); !errors.Is(err, domain.ErrAssetInvalid) {
+			t.Fatalf("negative opening property value: %v", err)
+		}
+		if _, err = expense(property.ID, 100, time.Now(), ""); !errors.Is(err, domain.ErrAssetInvalid) {
+			t.Fatalf("property expense accepted: %v", err)
+		}
+		bankBefore := balance(bank.ID, "RUB")
+		for _, ids := range [][2]string{{bank.ID, property.ID}, {property.ID, bank.ID}, {"", property.ID}} {
+			_, err = svc.CreateTransfer(ctx, domain.AssetTransfer{TenantID: tenant, UserID: user, FromAccountID: ids[0], ToAccountID: ids[1], FromAmount: domain.Money{CurrencyCode: "RUB", MinorUnits: 100}, ToAmount: domain.Money{CurrencyCode: "RUB", MinorUnits: 100}, OccurredAt: time.Now()})
+			if !errors.Is(err, domain.ErrAssetInvalid) {
+				t.Fatalf("property transfer accepted: %v", err)
+			}
+		}
+		_, err = exRepo.Create(ctx, domain.CurrencyExchange{TenantID: tenant, UserID: user, FromAmount: domain.Money{CurrencyCode: "RUB", MinorUnits: 100}, ToAmount: domain.Money{CurrencyCode: "USD", MinorUnits: 1}, FromAssetAccountID: property.ID, ToAssetAccountID: cash.ID, OccurredAt: time.Now()})
+		if !errors.Is(err, domain.ErrAssetInvalid) {
+			t.Fatalf("property exchange accepted: %v", err)
+		}
+		assertBalance(bank.ID, bankBefore)
+		assertBalance(property.ID, 1600000000)
+		var movements int
+		must(pool.DB.QueryRow(ctx, `SELECT count(*) FROM asset_movements WHERE account_id=$1`, property.ID).Scan(&movements))
+		if movements != 0 {
+			t.Fatal("property acquired monetary movements")
+		}
+		snap.Amount.MinorUnits = 1700000000
+		snap, err = svc.UpdateSnapshot(ctx, snap)
+		must(err)
+		assertBalance(property.ID, 1700000000)
+		if _, err = repo.GetAccount(ctxutil.WithTenantID(ctx, foreign), foreign, property.ID, time.Now()); !errors.Is(err, pgx.ErrNoRows) {
+			t.Fatalf("property tenant isolation: %v", err)
+		}
+		archived, err := svc.SetArchived(ctx, tenant, property.ID, property.Version, true)
+		must(err)
+		after, err = svc.GetOverview(ctx, tenant, "RUB", time.Now())
+		must(err)
+		if after.Total != before.Total {
+			t.Fatal("archived property remains in total")
+		}
+		if _, err = svc.UpdateSnapshot(ctx, snap); !errors.Is(err, domain.ErrAssetPrecondition) {
+			t.Fatalf("archived property valuation accepted: %v", err)
+		}
+		_, err = svc.SetArchived(ctx, tenant, property.ID, archived.Version, false)
+		must(err)
+		must(svc.DeleteSnapshot(ctx, tenant, snap.ID, snap.Version))
+		assertBalance(property.ID, 1500000000)
+		applyMigrations(t, ctx, pool.DB)
+		assertBalance(property.ID, 1500000000)
+		down, err := migrations.FS.ReadFile("0011_property_assets.down.sql")
+		must(err)
+		if _, err = pool.DB.Exec(ctx, string(down)); err == nil {
+			t.Fatal("rollback accepted with existing property")
+		}
+		assertBalance(property.ID, 1500000000)
 	})
 	t.Run("migration can be reapplied", func(t *testing.T) { applyMigrations(t, ctx, pool.DB); assertBalance(cash.ID, -10000) })
 }

@@ -157,7 +157,11 @@ function AssetAccountDetail() {
       )}
       <section className="asset-total-panel">
         <p className="text-sm text-[hsl(var(--muted-foreground))]">
-          {a.kind === "investment" ? t("wholeValuation") : t("currentBalance")}
+          {a.kind === "property"
+            ? t("estimatedValue")
+            : a.kind === "investment"
+              ? t("wholeValuation")
+              : t("currentBalance")}
         </p>
         <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {a.balances.length ? (
@@ -171,14 +175,19 @@ function AssetAccountDetail() {
                   )}
                 </p>
                 <p className="mt-2 text-xs text-[hsl(var(--muted-foreground))]">
-                  {t("lastConfirmed", {
-                    amount: assetMoney(
-                      b.confirmedAmount?.minorUnits,
-                      b.amount?.currencyCode,
-                      locale,
-                    ),
-                    date: assetDate(b.confirmedAt, locale, true),
-                  })}
+                  {t(
+                    a.kind === "property"
+                      ? "propertyLastValued"
+                      : "lastConfirmed",
+                    {
+                      amount: assetMoney(
+                        b.confirmedAmount?.minorUnits,
+                        b.amount?.currencyCode,
+                        locale,
+                      ),
+                      date: assetDate(b.confirmedAt, locale, true),
+                    },
+                  )}
                 </p>
               </div>
             ))
@@ -189,6 +198,11 @@ function AssetAccountDetail() {
         {a.kind === "investment" && (
           <p className="mt-4 text-sm text-[hsl(var(--muted-foreground))]">
             {t("investmentHint")}
+          </p>
+        )}
+        {a.kind === "property" && (
+          <p className="mt-4 text-sm text-[hsl(var(--muted-foreground))]">
+            {t("propertyHint")}
           </p>
         )}
         {hasNegativeBalance(a) && (
@@ -203,27 +217,37 @@ function AssetAccountDetail() {
               icon="fx"
               onClick={() => setAction({ mode: "snapshot", account: a })}
             >
-              {a.kind === "investment" ? t("updateValuation") : t("reconcile")}
+              {a.kind === "investment" || a.kind === "property"
+                ? t("updateValuation")
+                : t("reconcile")}
             </Button>
-            <Button
-              variant="outline"
-              icon="plus"
-              onClick={() =>
-                setAction({ mode: "transfer", account: a, direction: "in" })
-              }
-            >
-              {t("topUp")}
-            </Button>
-            <Button
-              variant="outline"
-              icon="minus"
-              onClick={() =>
-                setAction({ mode: "transfer", account: a, direction: "out" })
-              }
-            >
-              {t("withdraw")}
-            </Button>
-            {a.kind !== "investment" && (
+            {a.kind !== "property" && (
+              <>
+                <Button
+                  variant="outline"
+                  icon="plus"
+                  onClick={() =>
+                    setAction({ mode: "transfer", account: a, direction: "in" })
+                  }
+                >
+                  {t("topUp")}
+                </Button>
+                <Button
+                  variant="outline"
+                  icon="minus"
+                  onClick={() =>
+                    setAction({
+                      mode: "transfer",
+                      account: a,
+                      direction: "out",
+                    })
+                  }
+                >
+                  {t("withdraw")}
+                </Button>
+              </>
+            )}
+            {a.kind !== "investment" && a.kind !== "property" && (
               <>
                 <Button
                   variant="ghost"
@@ -336,7 +360,11 @@ function AssetAccountDetail() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium">
-                      {t(`historyKinds.${item.kind}`)}
+                      {t(
+                        a.kind === "property" && item.kind === "opening"
+                          ? "initialPropertyValuation"
+                          : `historyKinds.${item.kind}`,
+                      )}
                       {item.counterpartyName && (
                         <span className="font-normal text-[hsl(var(--muted-foreground))]">
                           {" "}
@@ -493,7 +521,7 @@ function AssetAccountDetail() {
       </section>
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-[hsl(var(--border))] pt-5">
         <p className="text-xs text-[hsl(var(--muted-foreground))]">
-          {t("archiveHint")}
+          {t(a.kind === "property" ? "propertyArchiveHint" : "archiveHint")}
         </p>
         {a.archived ? (
           <Button
@@ -544,8 +572,16 @@ function AssetAccountDetail() {
         }
         message={
           deleting?.mode === "archive"
-            ? t("archiveConfirm")
-            : t("deleteConfirm")
+            ? t(
+                a.kind === "property"
+                  ? "propertyArchiveConfirm"
+                  : "archiveConfirm",
+              )
+            : t(
+                a.kind === "property"
+                  ? "deletePropertyValuationConfirm"
+                  : "deleteConfirm",
+              )
         }
         destructive={deleting?.mode !== "archive"}
         loading={remove.isPending}

@@ -31,6 +31,7 @@ export default function AssetAccountSelect({
       a.id === value ||
       (!a.archived &&
         a.kind !== "investment" &&
+        a.kind !== "property" &&
         accountCurrencies(a).includes(currency)),
   );
   return (
@@ -54,6 +55,7 @@ export default function AssetAccountSelect({
             disabled={
               a.archived ||
               a.kind === "investment" ||
+              a.kind === "property" ||
               !accountCurrencies(a).includes(currency)
             }
           >

@@ -15,7 +15,7 @@ message AssetAccount {
   string id = 1;
   string tenant_id = 2;
   string name = 3;
-  string kind = 4; // cash, bank, deposit, investment
+  string kind = 4; // cash, bank, deposit, investment, property
   string institution = 5;
   string note = 6;
   string fixed_currency_code = 7; // deposit currency or whole portfolio valuation currency

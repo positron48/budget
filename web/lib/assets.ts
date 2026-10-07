@@ -15,13 +15,14 @@ export const ASSET_CURRENCIES = [
   "AMD",
   "RSD",
 ];
-export const ASSET_KINDS = ["cash", "bank", "deposit", "investment"] as const;
+export const ASSET_KINDS = ["cash", "bank", "deposit", "investment", "property"] as const;
 export type AssetKind = (typeof ASSET_KINDS)[number];
 export const ASSET_ICONS = {
   cash: "wallet",
   bank: "credit-card",
   deposit: "piggy-bank",
   investment: "trending-up",
+  property: "home",
 } as const;
 
 export function useAssetTenant() {

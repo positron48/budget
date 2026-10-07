@@ -63,7 +63,7 @@ export default function AssetAccountCard({
             <p className="mt-1 break-words text-2xl font-semibold tabular-nums">
               {assetMoney(valuation.total, valuation.currency, locale)}
             </p>
-            <p className="mt-2 text-xs text-[hsl(var(--muted-foreground))]">{t("originalBalances")}</p>
+            <p className="mt-2 text-xs text-[hsl(var(--muted-foreground))]">{t(account.kind === "property" ? "estimatedValue" : "originalBalances")}</p>
           </div>
         )}
         {account.balances.length ? (
@@ -96,6 +96,11 @@ export default function AssetAccountCard({
             {t("wholeAccount")}
           </p>
         )}
+        {account.kind === "property" && !valuation && (
+          <p className="pt-1 text-xs text-[hsl(var(--muted-foreground))]">
+            {t("estimatedValue")}
+          </p>
+        )}
       </div>
       {account.kind === "deposit" && (
         <div className="mb-4 flex flex-wrap gap-2">
@@ -125,7 +130,7 @@ export default function AssetAccountCard({
       <div className="mt-auto flex items-center justify-between gap-2 border-t border-[hsl(var(--border))] pt-3">
         <p className="text-xs text-[hsl(var(--muted-foreground))]">
           {latest > 0n
-            ? t("checked", { date: assetDate({ seconds: latest }, locale) })
+            ? t(account.kind === "property" ? "valuedOn" : "checked", { date: assetDate({ seconds: latest }, locale) })
             : t("notChecked")}
         </p>
         {!account.archived ? (

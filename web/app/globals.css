@@ -234,6 +234,7 @@ input.date-input::-webkit-calendar-picker-indicator {
 .asset-kind-cash { color: hsl(var(--positive)); background: hsl(var(--positive) / .1); }
 .asset-kind-deposit { color: hsl(var(--chart-cool-4)); background: hsl(var(--chart-cool-4) / .1); }
 .asset-kind-investment { color: hsl(var(--chart-cool-3)); background: hsl(var(--chart-cool-3) / .1); }
+.asset-kind-property { color: hsl(var(--chart-cool-2)); background: hsl(var(--chart-cool-2) / .1); }
 .asset-summary { display: flex; align-items: center; gap: .75rem; text-align: left; padding: 1rem; border: 1px solid hsl(var(--border)); border-radius: .875rem; background: hsl(var(--card)); cursor: pointer; }
 .asset-summary:hover, .asset-summary-selected { border-color: hsl(var(--primary) / .6); background: hsl(var(--primary) / .04); }
 .asset-tag { display: inline-block; border-radius: .4rem; padding: .2rem .5rem; font-size: .75rem; color: hsl(var(--muted-foreground)); background: hsl(var(--secondary)); }
