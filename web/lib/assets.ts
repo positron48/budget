@@ -180,3 +180,22 @@ export function useAssetDisplayCurrency(tenant?: string) {
   };
   return { target: ready ? selection.code : "", setTarget: select, ready };
 }
+
+export function useAssetIncludeProperty(tenant?: string) {
+  const [selection, setSelection] = useState<{ tenant: string; include: boolean }>();
+  useEffect(() => {
+    if (!tenant) return;
+    let include = true;
+    try { include = localStorage.getItem(`assets:include-property:${tenant}`) !== "false"; }
+    catch { /* Keep the default when storage is unavailable. */ }
+    setSelection({ tenant, include });
+  }, [tenant]);
+  const ready = !!tenant && selection?.tenant === tenant;
+  const setIncludeProperty = (include: boolean) => {
+    if (!tenant) return;
+    setSelection({ tenant, include });
+    try { localStorage.setItem(`assets:include-property:${tenant}`, String(include)); }
+    catch { /* Keep the in-memory choice. */ }
+  };
+  return { includeProperty: ready ? selection.include : true, setIncludeProperty, ready };
+}

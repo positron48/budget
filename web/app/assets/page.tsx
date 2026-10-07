@@ -17,6 +17,7 @@ import {
   assetMoney,
   useAssetTenant,
   useAssetDisplayCurrency,
+  useAssetIncludeProperty,
   valueAssetAccounts,
 } from "@/lib/assets";
 import AssetAccountCard from "@/components/assets/AssetAccountCard";
@@ -28,6 +29,11 @@ function AssetsOverview() {
   const locale = useLocale();
   const tenant = useAssetTenant();
   const { target, setTarget, ready } = useAssetDisplayCurrency(tenant);
+  const {
+    includeProperty,
+    setIncludeProperty,
+    ready: propertyReady,
+  } = useAssetIncludeProperty(tenant);
   const [kind, setKind] = useState("");
   const [institution, setInstitution] = useState("");
   const [archived, setArchived] = useState(false);
@@ -56,14 +62,57 @@ function AssetsOverview() {
     new Set(accounts.map((a) => a.institution).filter(Boolean)),
   ).sort();
   const currency = overview.data?.total?.currencyCode || target || "RUB";
-  const rates = useMemo(() => new Map(
-    overview.data?.rates.map((r) => [r.fromCurrencyCode, r.rateDecimal]) || [],
-  ), [overview.data]);
-  const summaries = useMemo(() => ASSET_KINDS.map((k) => {
-    const group = (overview.data?.accounts || []).filter((a) => a.kind === k);
-    return { kind: k, count: group.length, ...valueAssetAccounts(group, rates, currency) };
-  }), [overview.data, rates, currency]);
-  const loading = !ready || overview.isLoading || (archived && all.isLoading);
+  const rates = useMemo(
+    () =>
+      new Map(
+        overview.data?.rates.map((r) => [r.fromCurrencyCode, r.rateDecimal]) ||
+          [],
+      ),
+    [overview.data],
+  );
+  const summaries = useMemo(
+    () =>
+      ASSET_KINDS.map((k) => {
+        const group = (overview.data?.accounts || []).filter(
+          (a) => a.kind === k,
+        );
+        return {
+          kind: k,
+          count: group.length,
+          ...valueAssetAccounts(group, rates, currency),
+        };
+      }),
+    [overview.data, rates, currency],
+  );
+  const displayedTotal = useMemo(() => {
+    if (includeProperty)
+      return {
+        total: overview.data?.total?.minorUnits ?? 0n,
+        incomplete: overview.data?.incomplete ?? false,
+        missingCurrencies: overview.data?.missingCurrencies ?? [],
+      };
+    const included = (overview.data?.accounts || []).filter(
+      (a) => a.kind !== "property",
+    );
+    const currencies = new Set(
+      included.flatMap((a) =>
+        a.balances
+          .filter((b) => b.amount && b.amount.minorUnits !== 0n)
+          .map((b) => b.amount!.currencyCode),
+      ),
+    );
+    return {
+      ...valueAssetAccounts(included, rates, currency),
+      missingCurrencies: (overview.data?.missingCurrencies || []).filter((c) =>
+        currencies.has(c),
+      ),
+    };
+  }, [includeProperty, overview.data, rates, currency]);
+  const loading =
+    !ready ||
+    !propertyReady ||
+    overview.isLoading ||
+    (archived && all.isLoading);
   return (
     <main className="asset-page container mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
       <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
@@ -116,8 +165,8 @@ function AssetsOverview() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm text-[hsl(var(--muted-foreground))]">
-              {t("total")}
-              {overview.data?.incomplete && (
+              {t(includeProperty ? "total" : "totalWithoutProperty")}
+              {displayedTotal.incomplete && (
                 <span className="ml-2 text-[hsl(var(--warning))]">
                   · {t("partial")}
                 </span>
@@ -126,30 +175,40 @@ function AssetsOverview() {
             <p className="mt-3 break-words text-3xl font-semibold tracking-tight tabular-nums sm:text-5xl">
               {loading || overview.error
                 ? "—"
-                : assetMoney(
-                    overview.data?.total?.minorUnits,
-                    currency,
-                    locale,
-                  )}
+                : assetMoney(displayedTotal.total, currency, locale)}
             </p>
             <p className="mt-3 text-xs text-[hsl(var(--muted-foreground))]">
               {t("accountsCount", { count: activeAccounts.length })} ·{" "}
               {t("manualValuations")}
             </p>
           </div>
-          <label className="min-w-28 text-xs text-[hsl(var(--muted-foreground))]">
-            <span className="mb-1.5 block">{t("displayCurrency")}</span>
-            <select
-              className="input !bg-[hsl(var(--card))]"
-              aria-label={t("displayCurrency")}
-              value={target || currency}
-              onChange={(e) => setTarget(e.target.value)}
-            >
-              {Array.from(new Set([currency, ...ASSET_CURRENCIES])).map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-          </label>
+          <div className="space-y-3">
+            <label className="block min-w-28 text-xs text-[hsl(var(--muted-foreground))]">
+              <span className="mb-1.5 block">{t("displayCurrency")}</span>
+              <select
+                className="input !bg-[hsl(var(--card))]"
+                aria-label={t("displayCurrency")}
+                value={target || currency}
+                onChange={(e) => setTarget(e.target.value)}
+              >
+                {Array.from(new Set([currency, ...ASSET_CURRENCIES])).map(
+                  (c) => (
+                    <option key={c}>{c}</option>
+                  ),
+                )}
+              </select>
+            </label>
+            <label className="flex max-w-60 cursor-pointer items-start gap-2 text-sm text-[hsl(var(--muted-foreground))]">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[hsl(var(--primary))]"
+                checked={includeProperty}
+                disabled={!propertyReady}
+                onChange={(e) => setIncludeProperty(e.target.checked)}
+              />
+              <span>{t("includeProperty")}</span>
+            </label>
+          </div>
         </div>
         {!!overview.data?.rates.length && (
           <details className="mt-5 border-t border-[hsl(var(--border))] pt-3 text-xs text-[hsl(var(--muted-foreground))]">
@@ -158,17 +217,18 @@ function AssetsOverview() {
               {overview.data.rates.map((r) => (
                 <span key={r.fromCurrencyCode}>
                   {r.fromCurrencyCode} → {currency}: {r.rateDecimal} ·{" "}
-                  {assetDate(r.asOf, locale)} · {r.provider === "cbr" ? t("cbr") : r.provider}
+                  {assetDate(r.asOf, locale)} ·{" "}
+                  {r.provider === "cbr" ? t("cbr") : r.provider}
                 </span>
               ))}
             </div>
           </details>
         )}
-        {overview.data?.incomplete && (
+        {displayedTotal.incomplete && (
           <p className="mt-4 flex items-start gap-2 rounded-lg bg-[hsl(var(--warning)/0.1)] p-3 text-sm">
             <Icon name="info" size={17} className="mt-0.5 shrink-0" />
             {t("missingRates", {
-              currencies: overview.data.missingCurrencies.join(", "),
+              currencies: displayedTotal.missingCurrencies.join(", "),
             })}{" "}
             <a href="/fx" className="shrink-0 underline">
               {t("setRates")}
@@ -193,7 +253,9 @@ function AssetsOverview() {
                 {t(`kinds.${s.kind}`)}
               </span>
               <span className="mt-1 block break-words text-sm font-semibold tabular-nums sm:text-base">
-                {loading || overview.error ? "—" : assetMoney(s.total, currency, locale)}
+                {loading || overview.error
+                  ? "—"
+                  : assetMoney(s.total, currency, locale)}
                 {s.incomplete ? " *" : ""}
               </span>
             </span>
@@ -261,10 +323,14 @@ function AssetsOverview() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {visible.map((a) => (
             <AssetAccountCard
-              key={a.id} account={a} onAction={setAction}
-              valuation={!a.archived && !overview.error && overview.data
-                ? { ...valueAssetAccounts([a], rates, currency), currency }
-                : undefined}
+              key={a.id}
+              account={a}
+              onAction={setAction}
+              valuation={
+                !a.archived && !overview.error && overview.data
+                  ? { ...valueAssetAccounts([a], rates, currency), currency }
+                  : undefined
+              }
             />
           ))}
         </div>

@@ -594,6 +594,8 @@
     "propertyLastValued": "{amount} · valued on {date}",
     "initialPropertyValuation": "Initial valuation",
     "editPropertyValuation": "Edit valuation",
-    "deletePropertyValuationConfirm": "Delete this valuation? The current value will be determined by the remaining valuations."
+    "deletePropertyValuationConfirm": "Delete this valuation? The current value will be determined by the remaining valuations.",
+    "includeProperty": "Include property in the total",
+    "totalWithoutProperty": "Total excluding property"
   }
 }

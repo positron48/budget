@@ -594,6 +594,8 @@
     "propertyLastValued": "{amount} · оценка от {date}",
     "initialPropertyValuation": "Начальная оценка",
     "editPropertyValuation": "Исправить оценку",
-    "deletePropertyValuationConfirm": "Удалить эту оценку? Текущая стоимость будет определена по оставшимся оценкам."
+    "deletePropertyValuationConfirm": "Удалить эту оценку? Текущая стоимость будет определена по оставшимся оценкам.",
+    "includeProperty": "Учитывать имущество в общей сумме",
+    "totalWithoutProperty": "Всего без имущества"
   }
 }
