@@ -137,7 +137,8 @@ describe("savings display currency", () => {
     expect(screen.getByText("RUB 22,500.00")).toBeInTheDocument();
     expect(screen.getByText("Total excluding property")).toBeInTheDocument();
     expect(screen.getByText("Car")).toBeInTheDocument();
-    expect(screen.getAllByText("RUB 2,500,000.00")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: /Property RUB\s2,500,000/ })).toBeInTheDocument();
+    expect(screen.getByText("RUB 2,500,000.00")).toBeInTheDocument();
     expect(localStorage.getItem("assets:include-property:tenant-a")).toBe(
       "false",
     );
@@ -202,7 +203,8 @@ describe("savings display currency", () => {
     });
     mount();
     await screen.findByText("Car");
-    expect(screen.getAllByText("RUB 2,500,000.00")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: /Property RUB\s2,500,000/ })).toBeInTheDocument();
+    expect(screen.getByText("RUB 2,500,000.00")).toBeInTheDocument();
     expect(screen.getByText("Total assets")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Property RUB/ }));
     expect(screen.getByText("Car")).toBeInTheDocument();
@@ -215,7 +217,8 @@ describe("savings display currency", () => {
       target: { value: "USD" },
     });
     expect(await screen.findByText("$225.00")).toBeInTheDocument();
-    expect(screen.getAllByText("$125.00")).toHaveLength(2); // cash group and EUR account
+    expect(screen.getByRole("button", { name: /Cash \$125/ })).toBeInTheDocument();
+    expect(screen.getByText("$125.00")).toBeInTheDocument();
     expect(screen.getByText("€100.00")).toBeInTheDocument();
     expect(screen.getAllByText("Original balances")).toHaveLength(2);
     expect(localStorage.getItem("assets:display-currency:tenant-a")).toBe(

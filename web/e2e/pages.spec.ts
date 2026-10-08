@@ -13,7 +13,7 @@ import { CurrencyExchangeService } from "../proto/budget/v1/currency_exchange_pb
 
 const services = [AuthService, UserService, TenantService, CategoryService, TransactionService, ReportService, FxService, AssetService, CurrencyExchangeService];
 const routes = readdirSync("app", { recursive: true }).filter((path) => typeof path === "string" && /(^|\/)page\.tsx$/.test(path)).map((path) => "/" + String(path).replace(/(^|\/)page\.tsx$/, "")).sort();
-const account = { id: "test-account", name: "Smoke account", kind: "bank", version: 1n, balances: [{ amount: { currencyCode: "RUB", minorUnits: 10000n } }] };
+const account = { id: "test-account", name: "Smoke account", kind: "bank", version: 1n, balances: [{ amount: { currencyCode: "RUB", minorUnits: 112931988n } }] };
 
 for (const locale of ["en", "ru"]) {
   for (const route of routes) {
@@ -36,7 +36,7 @@ for (const locale of ["en", "ru"]) {
         let data: any = {};
         if (method.name === "BatchGetRates") data = { rates: [{ fromCurrencyCode: "USD", toCurrencyCode: "RUB", rateDecimal: "80.25", provider: "cbr", asOf: { seconds: 1791417600n } }] };
         if (method.name === "GetAccount") data = { account };
-        if (method.name === "ListAccounts" || method.name === "GetOverview") data = { accounts: [account], total: { currencyCode: "RUB", minorUnits: 10000n } };
+        if (method.name === "ListAccounts" || method.name === "GetOverview") data = { accounts: [account], total: { currencyCode: "RUB", minorUnits: 112931988n } };
         const body = Buffer.from(toBinary(method.output, create(method.output, data)));
         const header = Buffer.alloc(5); header.writeUInt32BE(body.length, 1);
         const trailer = Buffer.from("grpc-status: 0\r\n");
@@ -57,6 +57,14 @@ for (const locale of ["en", "ru"]) {
         await expect(page.getByText("80.25", { exact: true })).toBeVisible();
       }
       if (route.startsWith("/assets")) await expect(page.getByText("Smoke account", { exact: true })).toBeVisible();
+      if (route === "/assets") {
+        const summary = page.locator(".asset-summary").nth(1).locator(".tabular-nums");
+        const rounded = new Intl.NumberFormat(locale, { style: "currency", currency: "RUB", maximumFractionDigits: 0, minimumFractionDigits: 0 }).format(1129320);
+        await expect(summary).toHaveText(rounded);
+        await expect(summary).toHaveAttribute("title", new Intl.NumberFormat(locale, { style: "currency", currency: "RUB" }).format(1129319.88));
+        expect(await summary.evaluate((element) => getComputedStyle(element).whiteSpace)).toBe("nowrap");
+        if (process.env.E2E_SCREENSHOT_DIR) await page.locator(".asset-summary").first().locator("..").screenshot({ path: `${process.env.E2E_SCREENSHOT_DIR}/assets-${locale}.png` });
+      }
       if (route === "/tenants") await expect(page).toHaveURL(/\/account$/);
       else await expect(page).toHaveURL(new RegExp(url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$"));
       expect(errors).toEqual([]);

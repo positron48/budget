@@ -75,8 +75,14 @@ export function assetMoney(
   minor: bigint | string | number = 0n,
   currency = "RUB",
   locale = "ru",
+  fractionDigits: 0 | 2 = 2,
 ) {
-  const value = BigInt(minor);
+  let value = BigInt(minor);
+  if (fractionDigits === 0) {
+    value = value < 0n
+      ? -((-value + 50n) / 100n) * 100n
+      : ((value + 50n) / 100n) * 100n;
+  }
   const absolute = value < 0n ? -value : value;
   const integers = new Intl.NumberFormat(locale, {
     maximumFractionDigits: 0,
@@ -84,8 +90,8 @@ export function assetMoney(
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
   })
     .formatToParts(value < 0n ? -0 : 0)
     .flatMap((part) =>

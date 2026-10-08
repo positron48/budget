@@ -14,6 +14,14 @@ describe("exact savings amounts", () => {
       "$90,071,992,547,409.93",
     );
   });
+  it("rounds summary amounts to whole units without losing int64 precision", () => {
+    expect(assetMoney(104326982n, "RUB", "en-US", 0)).toBe("RUB 1,043,270");
+    expect(assetMoney(149n, "USD", "en-US", 0)).toBe("$1");
+    expect(assetMoney(150n, "USD", "en-US", 0)).toBe("$2");
+    expect(assetMoney(-150n, "USD", "en-US", 0)).toBe("-$2");
+    expect(assetMoney(-1n, "USD", "en-US", 0)).toBe("$0");
+    expect(assetMoney(9223372036854775807n, "USD", "en-US", 0)).toBe("$92,233,720,368,547,758");
+  });
   it("rejects overflow, extra precision and nonpositive movements", () => {
     for (const value of [
       "92233720368547758.08",

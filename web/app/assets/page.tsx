@@ -252,10 +252,10 @@ function AssetsOverview() {
               <span className="block text-xs text-[hsl(var(--muted-foreground))]">
                 {t(`kinds.${s.kind}`)}
               </span>
-              <span className="mt-1 block break-words text-sm font-semibold tabular-nums sm:text-base">
+              <span title={assetMoney(s.total, currency, locale)} className="mt-1 block truncate text-sm font-semibold tabular-nums sm:text-base">
                 {loading || overview.error
                   ? "—"
-                  : assetMoney(s.total, currency, locale)}
+                  : assetMoney(s.total, currency, locale, 0)}
                 {s.incomplete ? " *" : ""}
               </span>
             </span>
