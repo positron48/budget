@@ -46,6 +46,7 @@ for (const locale of ["en", "ru"]) {
       const url = route.replace("[id]", "test-account");
       await page.goto(url);
       await page.waitForLoadState("networkidle");
+      expect(errors).toEqual([]);
       await expect(page.locator("body > main, body main").first()).toBeVisible();
       await expect(page.locator("body > main, body main").first()).not.toBeEmpty();
       if (route === "/fx") {
