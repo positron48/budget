@@ -60,10 +60,24 @@ jobs:
         run: npm run lint || echo "eslint not configured, skipping"
       - name: Build
         working-directory: web
+        env:
+          NEXT_PUBLIC_GRPC_BASE_URL: http://127.0.0.1:3030/grpc
         run: npm run build
       - name: Test
         working-directory: web
         run: npm run test
+      - name: Install browser
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+      - name: Browser integration tests
+        working-directory: web
+        run: npm run test:e2e
+      - name: Upload browser traces
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: browser-traces
+          path: web/test-results
       - name: Upload web build
         uses: actions/upload-artifact@v6
         with:

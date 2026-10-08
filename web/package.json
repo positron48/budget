@@ -10,7 +10,8 @@
     "test": "vitest --run",
     "test:watch": "vitest",
     "test:coverage": "vitest --run --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^2.7.0",
@@ -32,6 +33,7 @@
   },
   "devDependencies": {
     "@bufbuild/protoc-gen-es": "^2.7.0",
+    "@playwright/test": "^1.64.0",
     "@tailwindcss/postcss": "^4.1.13",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.0.1",

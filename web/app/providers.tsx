@@ -1,16 +1,18 @@
 "use client";
 
 import { createContext, useContext, useMemo, useState } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { createTransport } from "@/lib/api/transport";
 import { createClients } from "@/lib/api/clients";
 import { authStore } from "@/lib/auth/store";
 import { authInterceptor, tenantInterceptor, loggingInterceptor, refreshAuthInterceptor } from "@/lib/api/interceptors";
 
+import { createQueryClient } from "@/lib/query-client";
+
 const ClientsContext = createContext<any>(null);
 
 export function ClientsProvider({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(createQueryClient);
   const interceptors = useMemo(() => {
     return [
       loggingInterceptor(),
