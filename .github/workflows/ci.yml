@@ -46,7 +46,9 @@ jobs:
           go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
           actionlint -shellcheck='' -pyflakes=''
       - name: Verify release source inventory boundaries
-        run: python3 -m unittest discover -s scripts/investments -p test_source_manifest.py -v
+        run: |
+          python3 -m unittest discover -s scripts/investments -p test_source_manifest.py -v
+          python3 -m unittest discover -s scripts/investments -p test_ci_go_summary.py -v
   go:
     runs-on: ubuntu-latest
     env:
@@ -67,12 +69,19 @@ jobs:
           version: v2.11.4
           args: --timeout=5m
       - name: Test
-        run: WORKER_METRICS_HTTP_TEST=1 go test ./... -race -coverprofile=coverage.out -covermode=atomic
+        run: |
+          test_exit=0
+          WORKER_METRICS_HTTP_TEST=1 go test ./... -race -coverprofile=coverage.out -covermode=atomic -json > go-test-results.jsonl 2>&1 || test_exit=$?
+          cat go-test-results.jsonl
+          python3 scripts/investments/ci_go_summary.py go-test-results.jsonl
+          exit "$test_exit"
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v6
         with:
           name: coverage.out
-          path: coverage.out
+          path: |
+            coverage.out
+            go-test-results.jsonl
   postgres:
     name: PostgreSQL ${{ matrix.pg }} financial integration and full restore
     runs-on: ubuntu-latest
@@ -94,7 +103,12 @@ jobs:
           go-version: '1.26.9'
           cache: true
       - name: Test financial persistence and real pg_dump/pg_restore
-        run: go test -race ./internal/adapter/postgres ./internal/adapter/pgbackup -run '^(TestInvestment|TestBroker|TestMarket|TestAssets|TestBudgetFullBackup|TestMigrationUpgrade|TestUpgradeRehearsal)' -count=1
+        run: |
+          test_exit=0
+          go test -race ./internal/adapter/postgres ./internal/adapter/pgbackup -run '^(TestInvestment|TestBroker|TestMarket|TestAssets|TestBudgetFullBackup|TestMigrationUpgrade|TestUpgradeRehearsal)' -count=1 -json > financial-test-results.jsonl 2>&1 || test_exit=$?
+          cat financial-test-results.jsonl
+          python3 scripts/investments/ci_go_summary.py financial-test-results.jsonl
+          exit "$test_exit"
       - name: Test operator backup and restore through pod tools
         if: matrix.pg == 15
         env:
@@ -115,6 +129,7 @@ jobs:
           name: full-backup-fixture-report-pg${{ matrix.pg }}
           path: |
             full-backup-fixture-report.json
+            financial-test-results.jsonl
             warm-financial-read-load.log
             operator-backup-test.log
           if-no-files-found: warn
