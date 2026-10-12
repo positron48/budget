@@ -34,5 +34,6 @@ for(const locale of ["ru","en"]){test(`${locale} actual payouts preserve currenc
  await page.getByRole("combobox",{name:ru?"Счёт":"Account",exact:true}).selectOption("ledger");await page.getByRole("combobox",{name:ru?"Тип":"Type",exact:true}).selectOption("tax_refund");await page.getByRole("textbox",{name:ru?"Идентификатор инструмента":"Instrument identifier",exact:true}).fill("EMPTY");await page.getByRole("button",{name:ru?"Применить":"Apply",exact:true}).click();await expect(page.getByText(ru?"За выбранный период в журнале нет подходящих выплат.":"No matching recorded payouts in this period.",{exact:false})).toBeVisible();
  await expect(growthSection).toContainText("-100%");
  const last=calls.at(-1);expect(last.cursor).toBe("");expect(last.ledgerIds).toEqual(["ledger"]);expect(last.kinds).toEqual(["tax_refund"]);expect(last.instrumentKey).toBe("EMPTY");expect(last.fromDate).toBe("2024-01-01");
+ await expect(page).toHaveURL(url=>url.searchParams.get("ledger")==="ledger"&&url.searchParams.get("instrument")==="EMPTY"&&url.searchParams.get("kind")==="tax_refund");
  await page.reload();await expect(page.getByRole("textbox",{name:ru?"Идентификатор инструмента":"Instrument identifier",exact:true})).toHaveValue("EMPTY");await expect(page.getByRole("combobox",{name:ru?"Тип":"Type",exact:true})).toHaveValue("tax_refund");expect(writes).toEqual([]);
 });}
