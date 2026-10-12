@@ -53,3 +53,33 @@ doc/ARTIFACT_DEPLOYMENT.md
 
 # Local operator acceptance report, excluded from public source.
 /deploy/investments/README.md
+
+# Local assistant state and scratch files.
+/.codex/
+/.agents/
+/tmp/
+.envrc
+
+# Local release output, credentials and database backups.
+/dist/
+/*.tar.gz
+/*.bundle
+/*.dump
+/*.backup
+/*.pem
+/*.key
+/budgetbackup
+/marketdata
+/investmentnav
+/investcbr
+/investfxpolicy
+/investalphafx
+/alphafx
+
+# Synthetic CI output is uploaded as artifacts, never committed.
+/go-test-results.jsonl
+/financial-test-results.jsonl
+/full-backup-fixture-report.json
+/test-results/
+/playwright-report/
+*.tsbuildinfo
