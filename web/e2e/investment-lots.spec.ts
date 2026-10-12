@@ -29,6 +29,6 @@ for(const locale of ["ru","en"]){test(`${locale} FIFO lots preserve precision, l
  expect(calls.filter(c=>c.method==="GetInvestmentLots").every(c=>c.input.groupIds[0]==="chosen"&&c.input.date==="2024-01-03")).toBe(true);
  await lots.getByRole("button",{name:locale==="ru"?"Назад":"Previous",exact:true}).click();await expect(lots.getByText("9007199254740993",{exact:true})).toBeVisible();
  conflict=true;await lots.getByRole("button",{name:locale==="ru"?"Далее":"Next",exact:true}).click();await expect(lots.getByRole("alert")).toBeVisible();await lots.getByRole("button",{name:locale==="ru"?"Обновить":"Reload",exact:true}).click();await expect(lots.getByText("9007199254740993",{exact:true})).toBeVisible();
- await page.setViewportSize({width:375,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:`/private/tmp/budget-investment-lots-${locale}.png`,fullPage:true});
+ await page.setViewportSize({width:375,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:test.info().outputPath(`budget-investment-lots-${locale}.png`),fullPage:true});
  expect(calls.filter(c=>!/^(Get|List|Search)/.test(c.method))).toEqual([]);
 });}

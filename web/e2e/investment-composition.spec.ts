@@ -36,7 +36,7 @@ for(const locale of ["ru","en"]){test(`${locale} composition groups preserve URL
  const chart=section.getByRole("img",{name:locale==="ru"?"Стоимость выбранных бумаг":"Selected securities value",exact:true});await expect(chart.locator("path")).toHaveCount(2);await checkInvestmentChartKeyboard(chart);
  await section.getByRole("button",{name:locale==="ru"?"Все бумаги":"All securities",exact:true}).click();await expect(page).toHaveURL(/investments\/value\??$/);await expect(section.getByText("90 RUB",{exact:true}).first()).toBeVisible();
  await page.reload();await expect(section.getByLabel("Strategy",{exact:true})).not.toBeChecked();
- await page.setViewportSize({width:375,height:900});await expect(pie).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);await page.screenshot({path:`/private/tmp/budget-investment-composition-${locale}.png`,fullPage:true});
+ await page.setViewportSize({width:375,height:900});await expect(pie).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);await page.screenshot({path:test.info().outputPath(`budget-investment-composition-${locale}.png`),fullPage:true});
  const breakdown=section.getByLabel(locale==="ru"?"Группировать по":"Group by",{exact:true});
  await breakdown.selectOption("currency");await expect(page).toHaveURL(/composition=currency/);await expect(section.getByRole("cell",{name:"USD",exact:true})).toBeVisible();
  await breakdown.selectOption("account");await expect(section.getByRole("cell",{name:"Broker",exact:true})).toBeVisible();

@@ -65,7 +65,7 @@ func TestInvestmentReviewedNativeBondNominalAndAccrued(t *testing.T) {
 		t.Fatal(err)
 	}
 	five, nominal := "5.000000001", "500"
-	facts := md.BondFacts{Instrument: instrument, From: request.From, To: request.To, AsOf: time.Now().UTC(), Terms: md.BondTerms{Nominal: &md.BondAmount{Amount: "999", Currency: "USD"}}, Accrued: []md.BondAccrued{{Date: day, Nominal: &nominal}, {Date: day.Add(24 * time.Hour), Value: &five, Nominal: &nominal}}}
+	facts := md.BondFacts{Instrument: instrument, From: request.From, To: request.To, AsOf: time.Now().UTC().Truncate(time.Microsecond), Terms: md.BondTerms{Nominal: &md.BondAmount{Amount: "999", Currency: "USD"}}, Accrued: []md.BondAccrued{{Date: day, Nominal: &nominal}, {Date: day.Add(24 * time.Hour), Value: &five, Nominal: &nominal}}}
 	if err = repo.CompleteBondFacts(ctx, claimed, facts); err != nil {
 		t.Fatal(err)
 	}

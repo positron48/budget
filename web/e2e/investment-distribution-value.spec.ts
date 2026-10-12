@@ -34,7 +34,7 @@ for(const locale of ["ru","en"])test(`${locale} distribution market value requir
  await evidence.fill("Reviewed total at event time");await value.fill("9007199254740993.123456789012");await check.click();await expect(save).toBeEnabled();
  await value.fill("50");await expect(save).toBeDisabled();await check.click();await expect(save).toBeEnabled();
  await page.setViewportSize({width:375,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- await dialog.screenshot({path:`/private/tmp/budget127-distribution-${locale}.png`});await save.click();await expect(dialog).toHaveCount(0);
+ await dialog.screenshot({path:test.info().outputPath(`budget127-distribution-${locale}.png`)});await save.click();await expect(dialog).toHaveCount(0);
  expect(checks[1].operation.distribution.marketValue).toBe("9007199254740993.123456789012");expect(writes[0].operation.distribution).toMatchObject({marketValue:"50",marketValueEvidence:"Reviewed total at event time"});expect(writes[0].previewHash).toBe("b".repeat(64));
  await edit.click();await expect(value).toHaveValue("50");await expect(evidence).toHaveValue("Reviewed total at event time");
 });

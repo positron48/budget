@@ -152,17 +152,22 @@ func TestAssetsAccounting_PG(t *testing.T) {
 		assertBalance(bank.ID, 100000)
 	})
 	t.Run("transfers valuation exchanges and atomic rollback", func(t *testing.T) {
-		transfer, err := svc.CreateTransfer(ctx, domain.AssetTransfer{TenantID: tenant, UserID: user, FromAccountID: bank.ID, ToAccountID: investment.ID, FromAmount: domain.Money{CurrencyCode: "RUB", MinorUnits: 10000}, ToAmount: domain.Money{CurrencyCode: "RUB", MinorUnits: 10000}, OccurredAt: time.Now().Add(-time.Hour), RequestKey: "transfer-key"})
+		request := domain.AssetTransfer{TenantID: tenant, UserID: user, FromAccountID: bank.ID, ToAccountID: investment.ID, FromAmount: domain.Money{CurrencyCode: "RUB", MinorUnits: 10000}, ToAmount: domain.Money{CurrencyCode: "RUB", MinorUnits: 10000}, OccurredAt: time.Now().Add(-time.Hour).Truncate(time.Second).Add(123456789 * time.Nanosecond), RequestKey: "transfer-key"}
+		transfer, err := svc.CreateTransfer(ctx, request)
 		must(err)
 		assertBalance(bank.ID, 90000)
 		assertBalance(investment.ID, 910000)
-		replay := transfer
-		replay.ID = ""
-		replay.Version = 0
-		replay.CreatedAt = time.Time{}
-		replay.RequestKey = "transfer-key"
-		_, err = svc.CreateTransfer(ctx, replay)
+		if !transfer.OccurredAt.Equal(request.OccurredAt.Truncate(time.Microsecond)) {
+			t.Fatal("stored transfer timestamp must use PostgreSQL microsecond precision")
+		}
+		// A retry repeats the original request, not the rounded database response.
+		_, err = svc.CreateTransfer(ctx, request)
 		must(err)
+		changed := request
+		changed.OccurredAt = changed.OccurredAt.Add(time.Nanosecond)
+		if _, err = svc.CreateTransfer(ctx, changed); !errors.Is(err, domain.ErrIdempotencyConflict) {
+			t.Fatalf("changed request timestamp: %v", err)
+		}
 		assertBalance(bank.ID, 90000)
 		valuation, err := svc.CreateSnapshot(ctx, domain.AssetSnapshot{TenantID: tenant, AccountID: investment.ID, UserID: user, Kind: "valuation", Amount: domain.Money{CurrencyCode: "RUB", MinorUnits: 930000}, AsOf: time.Now().Add(-30 * time.Minute)}, "")
 		must(err)

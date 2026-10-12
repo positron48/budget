@@ -53,5 +53,5 @@ for(const locale of ["ru","en"])test(`${locale} currency and FX retain scope and
  holdVariant=true;const seen=new Promise<void>(resolve=>{variantSeen=resolve});await currency.selectOption("EUR");await apply.click();await seen;
  await page.getByLabel(locale==="ru"?"С даты":"From",{exact:true}).fill("2024-01-01");await expect(page).toHaveURL(/from=2024-01-01/);releaseVariant();await expect(apply).toBeEnabled();await expect(page).toHaveURL(/series=usd-market/);
  expect(calls.filter(c=>c.method==="PrepareInvestmentNAVVariant").length).toBe(readonly?0:1);
- await page.setViewportSize({width:375,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await section.screenshot({path:`/private/tmp/budget-variant-${locale}.png`});
+ await page.setViewportSize({width:375,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await section.screenshot({path:test.info().outputPath(`budget-variant-${locale}.png`)});
 });

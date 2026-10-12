@@ -405,7 +405,7 @@ for (const locale of ["en", "ru"]) {
         await expect(page.getByTestId("twr-segment")).toHaveCount(2);
         await expect(page.getByTestId("twr-chart")).toHaveAttribute("aria-label",locale==="ru"?"TWR: индекс с базой 100":"TWR index, base 100");
         await expect(page.getByTestId("twr-chart").locator("circle title").first()).toContainText("100");await checkInvestmentChartKeyboard(page.getByTestId("twr-chart"));
-        await page.getByTestId("twr-chart").screenshot({path:`/private/tmp/budget-twr-index-${locale}.png`});
+        await page.getByTestId("twr-chart").screenshot({path:test.info().outputPath(`budget-twr-index-${locale}.png`)});
         await page.getByText(locale==="ru"?"Дневные расчёты и причины разрывов":"Daily calculations and gap reasons",{exact:true}).first().click();
         await expect(page.getByRole("table",{name:locale==="ru"?"Дневные расчёты и причины разрывов":"Daily calculations and gap reasons",exact:true})).toContainText(locale==="ru"?"Стоимость за этот день неполная":"value on this day is incomplete");
         await expect(page.getByTestId("investment-performance")).not.toContainText("99900");

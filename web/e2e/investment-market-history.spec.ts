@@ -47,5 +47,5 @@ for(const locale of ["ru","en"]){test(`${locale} unowned multi-year history hydr
   await expect(page.getByText(locale==="ru"?`Окна истории: завершено ${count} из ${count} запросов; ошибок: 0.`:`History windows: ${count} of ${count} requests finished; errors: 0.`,{exact:true})).toBeVisible();
  }
  await page.setViewportSize({width:375,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
- await page.screenshot({path:`/private/tmp/budget134-history-${locale}-${readonly?"readonly":"write"}.png`,fullPage:true});
+ await page.screenshot({path:test.info().outputPath(`budget134-history-${locale}-${readonly?"readonly":"write"}.png`),fullPage:true});
 });}

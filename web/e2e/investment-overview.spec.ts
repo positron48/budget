@@ -34,7 +34,7 @@ for(const locale of ["ru","en"])test(`${locale} overview keeps full totals, part
  await selector.selectOption("partial");await expect(page.getByTestId("overview-nav")).toContainText("45.4 USD");await expect(page.getByTestId("overview-nav")).toContainText(locale==="ru"?"Известная часть":"Known subtotal");await expect(page.getByTestId("overview-cash")).toContainText("45.4 USD");await expect(page.getByTestId("overview-profit")).not.toContainText("USD");
  await selector.selectOption("stale");await expect(page.getByTestId("overview-nav")).not.toContainText("USD");await expect(page.getByTestId("overview-nav")).not.toContainText("999");await expect(page.getByTestId("overview-cash")).not.toContainText("USD");
  await selector.selectOption("ready");await expect(page.getByTestId("overview-nav")).toContainText("51.9 USD");
- await page.setViewportSize({width:375,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:`/private/tmp/budget-investment-overview-${locale}.png`,fullPage:true});
+ await page.setViewportSize({width:375,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:test.info().outputPath(`budget-investment-overview-${locale}.png`),fullPage:true});
  const details=page.getByRole("link",{name:locale==="ru"?"Позиции, графики и состав прибыли":"Positions, charts and profit composition",exact:true});
  await expect(details).toHaveAttribute("href",/investments\/value.*group=selected/);
  await details.click();await expect(page).toHaveURL(/investments\/value/);
