@@ -1,0 +1,57 @@
+groups:
+  - name: budget-investment-workers
+    interval: 30s
+    rules:
+      - alert: InvestmentMarketFXDegraded
+        expr: sum by (job, instance, worker) (budget_investment_worker_fx_endpoints{state=~"expired|missing"}) > 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Investment market FX missing or expired"
+          description: "Latest eligible personal retrospective FX is missing or past its validity. Successful worker loops do not prove fresh rates; inspect provider coverage, policy and quota."
+      - alert: InvestmentValuationDegraded
+        expr: sum by (job, instance, worker) (budget_investment_worker_nav_endpoints{state=~"stale|incomplete|unavailable"}) > 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Watched investment valuations incomplete"
+          description: "Expected completed daily points are missing, obsolete or incomplete. Inspect valuation quality and provider coverage; ready jobs alone are insufficient."
+      - alert: InvestmentWorkerUnavailable
+        expr: up{job=~"budget-investment-.*"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Investment worker metrics unavailable"
+          description: "Check the configured worker target, pod and internal scrape network."
+      - alert: InvestmentWorkerStateUnavailable
+        expr: budget_investment_worker_snapshot_success == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Investment worker cannot read persisted state"
+          description: "Backlog is unknown; inspect database connectivity and schema before treating the worker as healthy."
+      - alert: InvestmentWorkerBacklogStalled
+        expr: |
+          (max by (job, instance, worker) (budget_investment_worker_oldest_due_seconds) > 900)
+          unless on (job, instance, worker) (budget_investment_worker_source_enabled == 0)
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Investment work overdue"
+          description: "Due work is over 15 minutes old for 10 minutes. Deliberate backoff and active leases are excluded."
+      - alert: InvestmentWorkerNewFailures
+        expr: |
+          sum by (job, instance, worker) (increase(budget_investment_worker_job_attempts_total{result=~"error|persistence_error"}[15m])) > 0
+          or
+          sum by (job, instance, worker) (increase(budget_investment_worker_iterations_total{result="error"}[15m])) > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Investment worker failures detected"
+          description: "Inspect persisted job status and safe worker logs. Successful iterations do not prove full market or valuation coverage."

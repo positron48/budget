@@ -60,8 +60,15 @@ func withPg(t *testing.T) (*Pool, func()) {
 		t.Skip("set PG_INTEGRATION=1 to run postgres integration tests")
 	}
 	t.Helper()
+	image := os.Getenv("PG_TEST_IMAGE")
+	if image == "" {
+		image = "postgres:16-alpine"
+	}
+	if image != "postgres:15-alpine" && image != "postgres:16-alpine" {
+		t.Fatal("unsupported disposable PostgreSQL test image")
+	}
 	ctx := context.Background()
-	pgC, err := tcpostgres.Run(ctx, "postgres:16-alpine",
+	pgC, err := tcpostgres.Run(ctx, image,
 		tcpostgres.WithInitScripts(),
 		tcpostgres.WithDatabase("budget"),
 		tcpostgres.WithUsername("budget"),

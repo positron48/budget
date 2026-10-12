@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useClients } from "@/app/providers";
@@ -682,6 +683,8 @@ function MovementForm({
       a.kind !== "property" &&
       (!exchanging || a.kind !== "investment"),
   );
+  const ledgerAccount=[fromAccount,toAccount].find(a=>a?.investmentMode==="ledger");
+  if(ledgerAccount)return <div className="space-y-3"><Link className="text-blue-600" href={`/investments/journal?ledger=${encodeURIComponent(ledgerAccount.investmentLedgerId)}&cashTransfer=new`}>{t("investmentCashLink")}</Link><button type="button" className="block" onClick={onClose}>{t("cancel")}</button></div>;
   return (
     <FormShell onSubmit={save} onClose={onClose}>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -818,6 +821,8 @@ export default function AssetDialogs({
     onClose();
   };
   if (!action) return null;
+  const linked=action.transfer&&accounts.find(a=>a.investmentMode==="ledger"&&(a.id===action.transfer!.fromAccountId||a.id===action.transfer!.toAccountId));
+  if(linked&&action.transfer?.investmentCashTransfer)return <Modal open title={t("editTransfer")} onClose={onClose}><Link className="text-blue-600" href={`/investments/journal?ledger=${encodeURIComponent(linked.investmentLedgerId)}&cashTransfer=${encodeURIComponent(action.transfer.id)}`}>{t("investmentCashLink")}</Link></Modal>;
   const title =
     action.mode === "account"
       ? action.account

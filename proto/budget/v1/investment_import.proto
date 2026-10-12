@@ -1,0 +1,191 @@
+syntax = "proto3";
+package budget.v1;
+option go_package = "github.com/positron48/budget/gen/go/budget/v1;budgetv1";
+
+import "google/protobuf/timestamp.proto";
+import "budget/v1/investment.proto";
+
+// Import accounts are proposed ledger accounts, not active AssetService balances.
+message InvestmentImportAccount {
+ string id = 1;
+ string source_key = 2;
+ string name = 3;
+ int32 row_count = 4;
+}
+message InvestmentImportAssignment {
+ int32 record = 1;
+ string account_key = 2;
+ string evidence = 3;
+}
+message InvestmentImport {
+ string id = 1;
+ string filename = 2;
+ string source_sha256 = 3;
+ string state = 4;
+ int32 row_count = 5;
+ int64 version = 6;
+ google.protobuf.Timestamp created_at = 7;
+ repeated InvestmentImportAccount accounts = 8;
+ string preview_hash = 9; // immutable staging preview, paired with current mapping version
+}
+message InvestmentImportRow {
+ int32 record = 1;
+ string source_row_id = 2;
+ string account_id = 3;
+ int64 version = 4;
+ string mapping_evidence = 5;
+ map<string,string> source_fields = 6;
+ map<string,string> decimals = 7;
+ repeated string issues = 8;
+ repeated int32 identical_records = 9;
+ string ledger_id = 10;
+ string operation_id = 11;
+ string operation_status = 12;
+}
+message UploadInvestmentImportRequest {
+ string filename = 1;
+ bytes csv = 2; // max 20 MiB; never posts financial operations
+ string request_key = 3;
+ repeated InvestmentImportAccount accounts = 4;
+ repeated InvestmentImportAssignment assignments = 5;
+ string mapping_source_sha256 = 6;
+}
+message UploadInvestmentImportResponse { InvestmentImport import = 1; }
+message ListInvestmentImportsRequest { int32 limit = 1; int32 offset = 2; }
+message ListInvestmentImportsResponse { repeated InvestmentImport imports = 1; }
+message GetInvestmentImportRequest { string id = 1; }
+message GetInvestmentImportResponse { InvestmentImport import = 1; }
+message ListInvestmentImportRowsRequest { string import_id = 1; int32 limit = 2; int32 offset = 3; }
+message ListInvestmentImportRowsResponse { repeated InvestmentImportRow rows = 1; }
+message ReassignInvestmentImportRowRequest {
+ string import_id = 1;
+ int32 record = 2;
+ string account_id = 3;
+ int64 expected_version = 4;
+ string reason = 5;
+}
+message ReassignInvestmentImportRowResponse { InvestmentImportRow row = 1; }
+message PreviewInvestmentFinancialMappingRequest {
+ string import_id = 1;
+ int64 expected_import_version = 2;
+ bytes mapping_json = 3; // strict FinancialMapping config, max 2 MiB
+ string request_key = 4; // stable future batch request key
+ int32 offset = 5;
+ int32 limit = 6; // default 200; maximum 5000
+}
+message InvestmentFinancialCandidate {
+ int32 record = 1;
+ string source_row_id = 2;
+ InvestmentOperation operation = 3;
+ string review_reason = 4;
+ repeated string issues = 5;
+}
+message PreviewInvestmentFinancialMappingResponse {
+ string hash = 1;
+ int32 ready = 2; // full source, not only this page
+ int32 unresolved = 3;
+ int32 total = 4;
+ repeated InvestmentFinancialCandidate rows = 5;
+ InvestmentImportBatch batch = 6; // ready candidates on this page; still requires saving and journal preview
+}
+service InvestmentImportService {
+ rpc PostBrokerTrade(PostBrokerTradeRequest) returns (PostBrokerTradeResponse);
+ rpc LinkBrokerTrade(LinkBrokerTradeRequest) returns (LinkBrokerTradeResponse);
+ rpc PreviewBrokerTrade(PreviewBrokerTradeRequest) returns (PreviewBrokerTradeResponse);
+ rpc ListBrokerSnapshotRows(ListBrokerSnapshotRowsRequest) returns (ListBrokerSnapshotRowsResponse);
+ rpc ListBrokerSnapshots(ListBrokerSnapshotsRequest) returns (ListBrokerSnapshotsResponse);
+ rpc UploadBrokerSnapshot(UploadBrokerSnapshotRequest) returns (UploadBrokerSnapshotResponse);
+ rpc GetBrokerSnapshot(GetBrokerSnapshotRequest) returns (GetBrokerSnapshotResponse);
+ rpc PreviewInvestmentFinancialMapping(PreviewInvestmentFinancialMappingRequest) returns (PreviewInvestmentFinancialMappingResponse);
+ rpc UploadInvestmentImport(UploadInvestmentImportRequest) returns (UploadInvestmentImportResponse);
+ rpc ListInvestmentImports(ListInvestmentImportsRequest) returns (ListInvestmentImportsResponse);
+ rpc GetInvestmentImport(GetInvestmentImportRequest) returns (GetInvestmentImportResponse);
+ rpc ListInvestmentImportRows(ListInvestmentImportRowsRequest) returns (ListInvestmentImportRowsResponse);
+ rpc ReassignInvestmentImportRow(ReassignInvestmentImportRowRequest) returns (ReassignInvestmentImportRowResponse);
+}
+
+// Separate immutable broker source; upload does not post financial operations.
+message UploadBrokerSnapshotRequest { bytes original_json = 1; }
+message UploadBrokerSnapshotResponse { string id = 1; }
+message GetBrokerSnapshotRequest { string id = 1; }
+message GetBrokerSnapshotResponse { bytes original_json = 1; }
+
+message BrokerSnapshotInfo {
+ string id = 1;
+ string account_id = 2;
+ string source_sha256 = 3;
+ int32 row_count = 4;
+ google.protobuf.Timestamp created_at = 5;
+}
+message ListBrokerSnapshotsRequest { int32 limit = 1; int32 offset = 2; }
+message ListBrokerSnapshotsResponse { repeated BrokerSnapshotInfo snapshots = 1; }
+
+message BrokerSnapshotRow {
+ int32 ordinal = 1;
+ string observation_id = 2;
+ string account_id = 3;
+ string operation_id = 4;
+ string content_sha256 = 5;
+ bytes original_json = 6;
+ bool has_other_versions = 7;
+ string link_id = 8;
+ string linked_ledger_id = 9;
+ string linked_operation_id = 10;
+ string linked_status = 11;
+ int64 linked_version = 12;
+ int64 current_version = 13;
+ bool claimed_different_content = 14;
+}
+message ListBrokerSnapshotRowsRequest { string id = 1; int32 limit = 2; int32 offset = 3; }
+message ListBrokerSnapshotRowsResponse { repeated BrokerSnapshotRow rows = 1; }
+
+// Facts-only preview. Does not reserve sources or authorize journal posting.
+message PreviewBrokerTradeRequest {
+ string snapshot_id = 1;
+ string operation_id = 2;
+ string ledger_id = 3;
+}
+message PreviewBrokerTradeResponse {
+ InvestmentOperation operation = 1;
+ repeated string source_identities = 2;
+ repeated string source_hashes = 3;
+ string snapshot_sha256 = 4;
+ bool posting_allowed = 5; // preview eligibility only; posting rechecks all facts atomically
+ repeated BrokerJournalMatch journal_matches = 6;
+ int64 replay_ledger_version = 7;
+ bool replay_valid = 8;
+ string replay_issue = 9;
+}
+
+message BrokerJournalMatch {
+ string operation_id = 1;
+ string ledger_id = 2;
+ string instrument_key = 3;
+ bool same_instrument = 4;
+ bool same_ledger = 5;
+ bool exact_time = 6;
+ bool snowball_source = 7;
+ int64 operation_version = 8;
+}
+
+// Attaches evidence to an existing exact trade; creates no financial operation.
+message LinkBrokerTradeRequest {
+ string snapshot_id = 1;
+ string broker_operation_id = 2;
+ string ledger_id = 3;
+ string operation_id = 4;
+ int64 expected_operation_version = 5;
+ string reason = 6;
+}
+message LinkBrokerTradeResponse { string link_id = 1; }
+
+message PostBrokerTradeRequest {
+ string snapshot_id = 1;
+ string broker_operation_id = 2;
+ string ledger_id = 3;
+ int64 expected_ledger_version = 4;
+ string request_key = 5;
+ string reason = 6;
+ bool reconciliation_confirmed = 7;
+}
+message PostBrokerTradeResponse { string operation_id = 1; string link_id = 2; }

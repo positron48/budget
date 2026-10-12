@@ -2,6 +2,7 @@
 package cbr
 
 import (
+	"bytes"
 	"context"
 	"encoding/xml"
 	"fmt"
@@ -65,10 +66,26 @@ func (c *Client) get(ctx context.Context, path string, params url.Values, out an
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("CBR %s: HTTP %d", path, resp.StatusCode)
 	}
-	decoder := xml.NewDecoder(io.LimitReader(resp.Body, 8<<20))
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, (8<<20)+1))
+	if err != nil || len(raw) > 8<<20 {
+		return fmt.Errorf("CBR %s: invalid response size or read failure", path)
+	}
+	decoder := xml.NewDecoder(bytes.NewReader(raw))
 	decoder.CharsetReader = charset.NewReaderLabel
 	if err := decoder.Decode(out); err != nil {
 		return fmt.Errorf("CBR %s XML: %w", path, err)
+	}
+	for {
+		token, err := decoder.Token()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("CBR %s XML trailer: %w", path, err)
+		}
+		if whitespace, ok := token.(xml.CharData); !ok || strings.TrimSpace(string(whitespace)) != "" {
+			return fmt.Errorf("CBR %s: trailing XML content", path)
+		}
 	}
 	return nil
 }

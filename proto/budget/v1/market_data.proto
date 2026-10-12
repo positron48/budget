@@ -1,0 +1,195 @@
+syntax = "proto3";
+package budget.v1;
+option go_package = "github.com/positron48/budget/gen/go/budget/v1;budgetv1";
+import "google/protobuf/timestamp.proto";
+message MarketSourceKey { string provider = 1; string access_scope = 2; }
+message MarketSource { MarketSourceKey source = 1; string title = 2; }
+message ListMarketSourcesRequest {}
+message ListMarketSourcesResponse { repeated MarketSource sources = 1; }
+message MarketObservation {
+ string id = 1;
+ string instrument_id = 2;
+ string kind = 3;
+ google.protobuf.Timestamp observed_at = 4;
+ string source_kind = 5;
+ string currency = 6;
+ string price_unit = 7;
+ string adjustment = 8;
+ string price = 9;
+ string open = 10;
+ string high = 11;
+ string low = 12;
+ string volume = 13;
+ bool complete = 14; // candle completeness only, not historical coverage
+ int64 revision = 15;
+ google.protobuf.Timestamp received_at = 16;
+}
+message GetMarketHistoryRequest {
+ MarketSourceKey source = 1;
+ string instrument_id = 2;
+ string kind = 3;
+ google.protobuf.Timestamp from = 4;
+ google.protobuf.Timestamp to = 5;
+}
+message GetMarketHistoryResponse {
+ repeated MarketObservation observations = 1;
+ string coverage_state = 2; // observations_only or unavailable; never full
+}
+message RequestMarketRefreshRequest {
+ string search_query = 6; // catalog_search only
+ string instrument_kind = 7; // share, bond, etf or currency for catalog_search
+ MarketSourceKey source = 1;
+ string instrument_id = 2;
+ string kind = 3;
+ google.protobuf.Timestamp from = 4; // required for daily_candle and bond_facts
+ google.protobuf.Timestamp to = 5;
+}
+message MarketDataJob {
+ string search_query = 13;
+ string instrument_kind = 14;
+ int32 instrument_count = 15;
+ string id = 1;
+ MarketSourceKey source = 2;
+ string instrument_id = 3;
+ string kind = 4;
+ google.protobuf.Timestamp from = 5;
+ google.protobuf.Timestamp to = 6;
+ string status = 7;
+ int32 attempts = 8;
+ string error_code = 9;
+ google.protobuf.Timestamp available_at = 10;
+ string coverage_state = 11;
+ int32 observation_count = 12;
+}
+message RequestMarketRefreshResponse { MarketDataJob job = 1; }
+message RequestMarketHistoryRequest {
+ MarketSourceKey source = 1;
+ string instrument_id = 2;
+ google.protobuf.Timestamp from = 3;
+ google.protobuf.Timestamp to = 4;
+}
+message RequestMarketHistoryResponse {
+ repeated MarketDataJob jobs = 1; // entire atomic batch, each window <=365 days
+ string coverage_state = 2; // requests_only; ready jobs do not prove full coverage
+}
+message GetMarketDataJobRequest { string id = 1; }
+message GetMarketDataJobResponse { MarketDataJob job = 1; }
+message MarketInstrument {
+ bool detailed = 11;
+ string instrument_id = 1;
+ string figi = 2;
+ string isin = 3;
+ string ticker = 4;
+ string class_code = 5;
+ string name = 6;
+ string kind = 7;
+ string currency = 8;
+ int64 revision = 9;
+ google.protobuf.Timestamp received_at = 10;
+}
+message SearchMarketInstrumentsRequest {
+ MarketSourceKey source = 1;
+ string query = 2;
+ int32 limit = 3;
+ int32 offset = 4;
+}
+message SearchMarketInstrumentsResponse {
+ repeated MarketInstrument instruments = 1;
+ string catalog_state = 2; // cached_only; no claim that provider search is exhausted
+}
+message InvestmentMarketPeriod {
+ MarketSourceKey source = 1;
+ string instrument_id = 2;
+ string kind = 3;
+ string currency = 4;
+ string unit = 5;
+ string nominal = 6;
+ string nominal_currency = 7;
+ string lot_size = 8;
+ google.protobuf.Timestamp from = 9;
+ google.protobuf.Timestamp to = 10; // exclusive; omitted means open-ended
+ string evidence = 11;
+}
+message InvestmentMarketMapping {
+ string instrument_key = 1;
+ int64 version = 2;
+ repeated InvestmentMarketPeriod periods = 3;
+ string actor_id = 4;
+ string reason = 5;
+ google.protobuf.Timestamp recorded_at = 6;
+}
+message GetInvestmentMarketMappingRequest { string instrument_key = 1; }
+message GetInvestmentMarketMappingResponse { InvestmentMarketMapping mapping = 1; }
+message SaveInvestmentMarketMappingRequest {
+ string instrument_key = 1;
+ int64 expected_version = 2; // 0 creates; nonzero replaces the entire schedule
+ string request_key = 3;
+ string reason = 4;
+ repeated InvestmentMarketPeriod periods = 5; // empty revokes while retaining history
+}
+message SaveInvestmentMarketMappingResponse { InvestmentMarketMapping mapping = 1; }
+message GetMarketBondFactsRequest {
+ MarketSourceKey source = 1; string instrument_id = 2;
+ google.protobuf.Timestamp from = 3; google.protobuf.Timestamp to = 4;
+}
+message MarketBondAmount { string amount = 1; string currency = 2; }
+message MarketBondTerms {
+ MarketBondAmount nominal = 1; MarketBondAmount initial_nominal = 2; MarketBondAmount current_accrued = 3;
+ google.protobuf.Timestamp maturity = 4; google.protobuf.Timestamp call_date = 5; google.protobuf.Timestamp placement = 6;
+ optional bool floating = 7; optional bool perpetual = 8; optional bool amortizing = 9; optional int32 coupon_frequency = 10;
+}
+message MarketBondCoupon {
+ int64 number = 1; google.protobuf.Timestamp date = 2; google.protobuf.Timestamp fix_date = 3;
+ google.protobuf.Timestamp start = 4; google.protobuf.Timestamp end = 5;
+ string kind = 6; MarketBondAmount pay = 7; int32 period_days = 8;
+}
+message MarketBondEvent {
+ int32 number = 1; string kind = 2; google.protobuf.Timestamp date = 3; google.protobuf.Timestamp fix_date = 4;
+ google.protobuf.Timestamp pay_date = 5; google.protobuf.Timestamp actual_pay_date = 6;
+ google.protobuf.Timestamp start = 7; google.protobuf.Timestamp end = 8; MarketBondAmount pay = 9;
+ optional string value = 10; optional string annual_rate = 11;
+ string execution = 12; string operation_type = 13; string note = 14; string convert_to = 15;
+}
+message MarketBondAccrued {
+ google.protobuf.Timestamp date = 1; optional string value = 2; optional string percent = 3; optional string nominal = 4;
+}
+message GetMarketBondFactsResponse {
+ string snapshot_id = 1; string payload_hash = 2; google.protobuf.Timestamp recorded_at = 3;
+ google.protobuf.Timestamp as_of = 4; google.protobuf.Timestamp from = 5; google.protobuf.Timestamp to = 6;
+ string instrument_id = 7; MarketSourceKey source = 8; MarketBondTerms terms = 9;
+ repeated MarketBondCoupon coupons = 10; repeated MarketBondEvent events = 11; repeated MarketBondAccrued accrued = 12;
+ // Provider evidence only; neither schedule completeness nor owner entitlement is asserted.
+ string coverage_state = 13;
+}
+message GetMarketDividendFactsRequest {
+ MarketSourceKey source = 1; string instrument_id = 2;
+ // Inclusive range of provider record dates, not payment dates.
+ google.protobuf.Timestamp from = 3; google.protobuf.Timestamp to = 4;
+}
+message MarketDividend {
+ // Provider field name; not a reviewed personal gross or net cash fact.
+ MarketBondAmount dividend_net = 1; MarketBondAmount close_price = 2;
+ google.protobuf.Timestamp payment_date = 3; google.protobuf.Timestamp declared_date = 4;
+ google.protobuf.Timestamp last_buy_date = 5; google.protobuf.Timestamp record_date = 6;
+ google.protobuf.Timestamp created_at = 7;
+ string dividend_type = 8; string regularity = 9; optional string yield_value = 10;
+}
+message GetMarketDividendFactsResponse {
+ string snapshot_id = 1; string payload_hash = 2; google.protobuf.Timestamp recorded_at = 3;
+ google.protobuf.Timestamp as_of = 4; google.protobuf.Timestamp from = 5; google.protobuf.Timestamp to = 6;
+ MarketInstrument instrument = 7; MarketSourceKey source = 8;
+ repeated MarketDividend dividends = 9;
+ string coverage_state = 10; // unavailable or observations_only, never full
+}
+service MarketDataService {
+ rpc GetMarketDividendFacts(GetMarketDividendFactsRequest) returns (GetMarketDividendFactsResponse);
+ rpc RequestMarketHistory(RequestMarketHistoryRequest) returns (RequestMarketHistoryResponse);
+ rpc GetMarketBondFacts(GetMarketBondFactsRequest) returns (GetMarketBondFactsResponse);
+ rpc GetInvestmentMarketMapping(GetInvestmentMarketMappingRequest) returns (GetInvestmentMarketMappingResponse);
+ rpc SaveInvestmentMarketMapping(SaveInvestmentMarketMappingRequest) returns (SaveInvestmentMarketMappingResponse);
+ rpc SearchMarketInstruments(SearchMarketInstrumentsRequest) returns (SearchMarketInstrumentsResponse);
+ rpc ListMarketSources(ListMarketSourcesRequest) returns (ListMarketSourcesResponse);
+ rpc GetMarketHistory(GetMarketHistoryRequest) returns (GetMarketHistoryResponse);
+ rpc RequestMarketRefresh(RequestMarketRefreshRequest) returns (RequestMarketRefreshResponse);
+ rpc GetMarketDataJob(GetMarketDataJobRequest) returns (GetMarketDataJobResponse);
+}

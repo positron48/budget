@@ -154,6 +154,7 @@ export function valueAssetAccounts(
   let total = 0n;
   let incomplete = false;
   for (const account of accounts) {
+    if(account.valuationIncomplete)incomplete=true;
     for (const { amount } of account.balances) {
       if (!amount || amount.minorUnits === 0n) continue;
       if (amount.currencyCode === currency) total += amount.minorUnits;

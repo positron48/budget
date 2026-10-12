@@ -17,6 +17,10 @@ func mapError(err error) error {
 	if err == nil {
 		return nil
 	}
+	// Investment-derived asset valuations retain the same typed error contract.
+	if errors.Is(err, domain.ErrInvestmentInvalid) || errors.Is(err, domain.ErrInvestmentPrecondition) || errors.Is(err, domain.ErrInvestmentConflict) || errors.Is(err, domain.ErrInvestmentForbidden) || errors.Is(err, domain.ErrInvestmentNotFound) || errors.Is(err, domain.ErrInvestmentLimit) {
+		return investmentRPCError(err)
+	}
 	// domain/usecase errors
 	switch {
 	case errors.Is(err, domain.ErrAssetInvalid):

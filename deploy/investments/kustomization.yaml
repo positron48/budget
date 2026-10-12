@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - workers.yaml
+configMapGenerator:
+  - name: budget-investment-worker-config
+    literals:
+      - INVESTMENT_TENANT_ID=
+      - INVESTMENT_ACCESS_SCOPE=personal
+      - INVESTMENT_CBR_POLICY=cbr
+      - INVESTMENT_ALPHA_POLICY=alpha-retrospective

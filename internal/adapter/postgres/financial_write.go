@@ -86,6 +86,9 @@ func financialWrite[T any](ctx context.Context, pool *Pool, tenant, operation, k
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	ctx = context.WithValue(ctx, financialTxKey{}, tx)
+	if err = lockInvestment(ctx, tx, tenant); err != nil {
+		return zero, err
+	}
 	var hash string
 	if key != "" {
 		encoded, e := json.Marshal(payload)
@@ -138,9 +141,16 @@ func financialWrite[T any](ctx context.Context, pool *Pool, tenant, operation, k
 
 // Account locks coordinate movements, archive and reconciliations. Call in sorted ID order.
 func validateAssetLeg(ctx context.Context, pool *Pool, tenant, id, currency string, monetary bool) (string, error) {
+	return validateAssetLegWithLock(ctx, pool, tenant, id, currency, monetary, true)
+}
+func validateAssetLegWithLock(ctx context.Context, pool *Pool, tenant, id, currency string, monetary, lock bool) (string, error) {
 	var kind, fixed string
 	var archived bool
-	err := pool.query(ctx).QueryRow(ctx, `SELECT kind, COALESCE(fixed_currency_code,''), archived FROM asset_accounts WHERE tenant_id=$1 AND id=$2 FOR UPDATE`, tenant, id).Scan(&kind, &fixed, &archived)
+	query := `SELECT kind, COALESCE(fixed_currency_code,''), archived FROM asset_accounts WHERE tenant_id=$1 AND id=$2`
+	if lock {
+		query += ` FOR UPDATE`
+	}
+	err := pool.query(ctx).QueryRow(ctx, query, tenant, id).Scan(&kind, &fixed, &archived)
 	if err != nil {
 		return "", err
 	}

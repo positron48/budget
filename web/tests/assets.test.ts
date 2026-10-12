@@ -48,6 +48,7 @@ describe("savings conversion", () => {
     const { valueAssetAccounts } = await import("@/lib/assets");
     const account = (minorUnits: bigint, currencyCode = "USD") => ({ balances: [{ amount: { minorUnits, currencyCode } }] }) as any;
     expect(valueAssetAccounts([account(1n), account(1n), account(0n, "XYZ")], new Map([["USD", "0.5"]]), "EUR")).toEqual({ total: 2n, incomplete: false });
+    expect(valueAssetAccounts([{...account(0n,"EUR"),valuationIncomplete:true}],new Map(),"EUR")).toEqual({total:0n,incomplete:true});
     expect(valueAssetAccounts([account(10n), account(1n, "XYZ")], new Map([["USD", "2"]]), "EUR")).toEqual({ total: 20n, incomplete: true });
   });
 });

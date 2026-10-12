@@ -10,11 +10,19 @@ import { TransactionService } from "../../proto/budget/v1/transaction_pb";
 import { ReportService } from "../../proto/budget/v1/report_pb";
 import { FxService } from "../../proto/budget/v1/fx_pb";
 import { ImportService } from "../../proto/budget/v1/import_pb";
+import { InvestmentNAVService } from "../../proto/budget/v1/investment_nav_pb";
+import { MarketDataService } from "../../proto/budget/v1/market_data_pb";
+import { InvestmentService } from "../../proto/budget/v1/investment_pb";
+import { InvestmentImportService } from "../../proto/budget/v1/investment_import_pb";
 import { AssetService } from "../../proto/budget/v1/asset_pb";
 import { CurrencyExchangeService } from "../../proto/budget/v1/currency_exchange_pb";
 
 export function createClients(transport: Transport) {
   return {
+    investmentNAV: createClient(InvestmentNAVService as any, transport),
+    marketData: createClient(MarketDataService as any, transport),
+    investment: createClient(InvestmentService as any, transport),
+    investmentImport: createClient(InvestmentImportService as any, transport),
     asset: createClient(AssetService as any, transport),
     auth: createClient(AuthService as any, transport),
     user: createClient(UserService as any, transport),

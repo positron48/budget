@@ -83,23 +83,32 @@ func (x *AssetBalance) GetConfirmedAt() *timestamppb.Timestamp {
 }
 
 type AssetAccount struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Id                 string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	TenantId           string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	Name               string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Kind               string                 `protobuf:"bytes,4,opt,name=kind,proto3" json:"kind,omitempty"` // cash, bank, deposit, investment, property
-	Institution        string                 `protobuf:"bytes,5,opt,name=institution,proto3" json:"institution,omitempty"`
-	Note               string                 `protobuf:"bytes,6,opt,name=note,proto3" json:"note,omitempty"`
-	FixedCurrencyCode  string                 `protobuf:"bytes,7,opt,name=fixed_currency_code,json=fixedCurrencyCode,proto3" json:"fixed_currency_code,omitempty"` // deposit currency or whole portfolio valuation currency
-	DepositRateDecimal string                 `protobuf:"bytes,8,opt,name=deposit_rate_decimal,json=depositRateDecimal,proto3" json:"deposit_rate_decimal,omitempty"`
-	DepositOpenedOn    string                 `protobuf:"bytes,9,opt,name=deposit_opened_on,json=depositOpenedOn,proto3" json:"deposit_opened_on,omitempty"` // YYYY-MM-DD or empty
-	DepositMaturesOn   string                 `protobuf:"bytes,10,opt,name=deposit_matures_on,json=depositMaturesOn,proto3" json:"deposit_matures_on,omitempty"`
-	Archived           bool                   `protobuf:"varint,11,opt,name=archived,proto3" json:"archived,omitempty"`
-	Version            int64                  `protobuf:"varint,12,opt,name=version,proto3" json:"version,omitempty"`
-	CreatedAt          *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	Balances           []*AssetBalance        `protobuf:"bytes,14,rep,name=balances,proto3" json:"balances,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"open.v1"`
+	Id                      string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	TenantId                string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	Name                    string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Kind                    string                 `protobuf:"bytes,4,opt,name=kind,proto3" json:"kind,omitempty"` // cash, bank, deposit, investment, property
+	Institution             string                 `protobuf:"bytes,5,opt,name=institution,proto3" json:"institution,omitempty"`
+	Note                    string                 `protobuf:"bytes,6,opt,name=note,proto3" json:"note,omitempty"`
+	FixedCurrencyCode       string                 `protobuf:"bytes,7,opt,name=fixed_currency_code,json=fixedCurrencyCode,proto3" json:"fixed_currency_code,omitempty"` // deposit currency or whole portfolio valuation currency
+	DepositRateDecimal      string                 `protobuf:"bytes,8,opt,name=deposit_rate_decimal,json=depositRateDecimal,proto3" json:"deposit_rate_decimal,omitempty"`
+	DepositOpenedOn         string                 `protobuf:"bytes,9,opt,name=deposit_opened_on,json=depositOpenedOn,proto3" json:"deposit_opened_on,omitempty"` // YYYY-MM-DD or empty
+	DepositMaturesOn        string                 `protobuf:"bytes,10,opt,name=deposit_matures_on,json=depositMaturesOn,proto3" json:"deposit_matures_on,omitempty"`
+	Archived                bool                   `protobuf:"varint,11,opt,name=archived,proto3" json:"archived,omitempty"`
+	Version                 int64                  `protobuf:"varint,12,opt,name=version,proto3" json:"version,omitempty"`
+	CreatedAt               *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Balances                []*AssetBalance        `protobuf:"bytes,14,rep,name=balances,proto3" json:"balances,omitempty"`
+	InvestmentMode          string                 `protobuf:"bytes,15,opt,name=investment_mode,json=investmentMode,proto3" json:"investment_mode,omitempty"`
+	InvestmentLedgerId      string                 `protobuf:"bytes,16,opt,name=investment_ledger_id,json=investmentLedgerId,proto3" json:"investment_ledger_id,omitempty"`
+	LedgerStartedAt         *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=ledger_started_at,json=ledgerStartedAt,proto3" json:"ledger_started_at,omitempty"`
+	LedgerValuationFrom     *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=ledger_valuation_from,json=ledgerValuationFrom,proto3" json:"ledger_valuation_from,omitempty"`
+	ValuationStatus         string                 `protobuf:"bytes,19,opt,name=valuation_status,json=valuationStatus,proto3" json:"valuation_status,omitempty"`
+	ValuationAsOf           *timestamppb.Timestamp `protobuf:"bytes,20,opt,name=valuation_as_of,json=valuationAsOf,proto3" json:"valuation_as_of,omitempty"`
+	ValuationIssues         []string               `protobuf:"bytes,21,rep,name=valuation_issues,json=valuationIssues,proto3" json:"valuation_issues,omitempty"`
+	ValuationIncomplete     bool                   `protobuf:"varint,22,opt,name=valuation_incomplete,json=valuationIncomplete,proto3" json:"valuation_incomplete,omitempty"`
+	InvestmentConventionKey string                 `protobuf:"bytes,23,opt,name=investment_convention_key,json=investmentConventionKey,proto3" json:"investment_convention_key,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *AssetAccount) Reset() {
@@ -230,6 +239,69 @@ func (x *AssetAccount) GetBalances() []*AssetBalance {
 	return nil
 }
 
+func (x *AssetAccount) GetInvestmentMode() string {
+	if x != nil {
+		return x.InvestmentMode
+	}
+	return ""
+}
+
+func (x *AssetAccount) GetInvestmentLedgerId() string {
+	if x != nil {
+		return x.InvestmentLedgerId
+	}
+	return ""
+}
+
+func (x *AssetAccount) GetLedgerStartedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LedgerStartedAt
+	}
+	return nil
+}
+
+func (x *AssetAccount) GetLedgerValuationFrom() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LedgerValuationFrom
+	}
+	return nil
+}
+
+func (x *AssetAccount) GetValuationStatus() string {
+	if x != nil {
+		return x.ValuationStatus
+	}
+	return ""
+}
+
+func (x *AssetAccount) GetValuationAsOf() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ValuationAsOf
+	}
+	return nil
+}
+
+func (x *AssetAccount) GetValuationIssues() []string {
+	if x != nil {
+		return x.ValuationIssues
+	}
+	return nil
+}
+
+func (x *AssetAccount) GetValuationIncomplete() bool {
+	if x != nil {
+		return x.ValuationIncomplete
+	}
+	return false
+}
+
+func (x *AssetAccount) GetInvestmentConventionKey() string {
+	if x != nil {
+		return x.InvestmentConventionKey
+	}
+	return ""
+}
+
 type AssetSnapshot struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -339,19 +411,20 @@ func (x *AssetSnapshot) GetUserId() string {
 }
 
 type AssetTransfer struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	FromAccountId string                 `protobuf:"bytes,2,opt,name=from_account_id,json=fromAccountId,proto3" json:"from_account_id,omitempty"` // empty means outside tracked accounts
-	ToAccountId   string                 `protobuf:"bytes,3,opt,name=to_account_id,json=toAccountId,proto3" json:"to_account_id,omitempty"`
-	FromAmount    *Money                 `protobuf:"bytes,4,opt,name=from_amount,json=fromAmount,proto3" json:"from_amount,omitempty"`
-	ToAmount      *Money                 `protobuf:"bytes,5,opt,name=to_amount,json=toAmount,proto3" json:"to_amount,omitempty"`
-	OccurredAt    *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=occurred_at,json=occurredAt,proto3" json:"occurred_at,omitempty"`
-	Note          string                 `protobuf:"bytes,7,opt,name=note,proto3" json:"note,omitempty"`
-	Version       int64                  `protobuf:"varint,8,opt,name=version,proto3" json:"version,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UserId        string                 `protobuf:"bytes,10,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	InvestmentCashTransfer bool                   `protobuf:"varint,11,opt,name=investment_cash_transfer,json=investmentCashTransfer,proto3" json:"investment_cash_transfer,omitempty"` // joint document; edited through InvestmentService
+	Id                     string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	FromAccountId          string                 `protobuf:"bytes,2,opt,name=from_account_id,json=fromAccountId,proto3" json:"from_account_id,omitempty"` // empty means outside tracked accounts
+	ToAccountId            string                 `protobuf:"bytes,3,opt,name=to_account_id,json=toAccountId,proto3" json:"to_account_id,omitempty"`
+	FromAmount             *Money                 `protobuf:"bytes,4,opt,name=from_amount,json=fromAmount,proto3" json:"from_amount,omitempty"`
+	ToAmount               *Money                 `protobuf:"bytes,5,opt,name=to_amount,json=toAmount,proto3" json:"to_amount,omitempty"`
+	OccurredAt             *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=occurred_at,json=occurredAt,proto3" json:"occurred_at,omitempty"`
+	Note                   string                 `protobuf:"bytes,7,opt,name=note,proto3" json:"note,omitempty"`
+	Version                int64                  `protobuf:"varint,8,opt,name=version,proto3" json:"version,omitempty"`
+	CreatedAt              *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UserId                 string                 `protobuf:"bytes,10,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *AssetTransfer) Reset() {
@@ -382,6 +455,13 @@ func (x *AssetTransfer) ProtoReflect() protoreflect.Message {
 // Deprecated: Use AssetTransfer.ProtoReflect.Descriptor instead.
 func (*AssetTransfer) Descriptor() ([]byte, []int) {
 	return file_budget_v1_asset_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *AssetTransfer) GetInvestmentCashTransfer() bool {
+	if x != nil {
+		return x.InvestmentCashTransfer
+	}
+	return false
 }
 
 func (x *AssetTransfer) GetId() string {
@@ -2018,7 +2098,7 @@ const file_budget_v1_asset_proto_rawDesc = "" +
 	"\fAssetBalance\x12(\n" +
 	"\x06amount\x18\x01 \x01(\v2\x10.budget.v1.MoneyR\x06amount\x12;\n" +
 	"\x10confirmed_amount\x18\x02 \x01(\v2\x10.budget.v1.MoneyR\x0fconfirmedAmount\x12=\n" +
-	"\fconfirmed_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\vconfirmedAt\"\xfb\x03\n" +
+	"\fconfirmed_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\vconfirmedAt\"\xf7\a\n" +
 	"\fAssetAccount\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x12\x12\n" +
@@ -2035,7 +2115,16 @@ const file_budget_v1_asset_proto_rawDesc = "" +
 	"\aversion\x18\f \x01(\x03R\aversion\x129\n" +
 	"\n" +
 	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x123\n" +
-	"\bbalances\x18\x0e \x03(\v2\x17.budget.v1.AssetBalanceR\bbalances\"\xaf\x02\n" +
+	"\bbalances\x18\x0e \x03(\v2\x17.budget.v1.AssetBalanceR\bbalances\x12'\n" +
+	"\x0finvestment_mode\x18\x0f \x01(\tR\x0einvestmentMode\x120\n" +
+	"\x14investment_ledger_id\x18\x10 \x01(\tR\x12investmentLedgerId\x12F\n" +
+	"\x11ledger_started_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\x0fledgerStartedAt\x12N\n" +
+	"\x15ledger_valuation_from\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\x13ledgerValuationFrom\x12)\n" +
+	"\x10valuation_status\x18\x13 \x01(\tR\x0fvaluationStatus\x12B\n" +
+	"\x0fvaluation_as_of\x18\x14 \x01(\v2\x1a.google.protobuf.TimestampR\rvaluationAsOf\x12)\n" +
+	"\x10valuation_issues\x18\x15 \x03(\tR\x0fvaluationIssues\x121\n" +
+	"\x14valuation_incomplete\x18\x16 \x01(\bR\x13valuationIncomplete\x12:\n" +
+	"\x19investment_convention_key\x18\x17 \x01(\tR\x17investmentConventionKey\"\xaf\x02\n" +
 	"\rAssetSnapshot\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -2047,8 +2136,9 @@ const file_budget_v1_asset_proto_rawDesc = "" +
 	"\aversion\x18\a \x01(\x03R\aversion\x129\n" +
 	"\n" +
 	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x17\n" +
-	"\auser_id\x18\t \x01(\tR\x06userId\"\x8c\x03\n" +
-	"\rAssetTransfer\x12\x0e\n" +
+	"\auser_id\x18\t \x01(\tR\x06userId\"\xc6\x03\n" +
+	"\rAssetTransfer\x128\n" +
+	"\x18investment_cash_transfer\x18\v \x01(\bR\x16investmentCashTransfer\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12&\n" +
 	"\x0ffrom_account_id\x18\x02 \x01(\tR\rfromAccountId\x12\"\n" +
 	"\rto_account_id\x18\x03 \x01(\tR\vtoAccountId\x121\n" +
@@ -2237,78 +2327,81 @@ var file_budget_v1_asset_proto_depIdxs = []int32{
 	36, // 2: budget.v1.AssetBalance.confirmed_at:type_name -> google.protobuf.Timestamp
 	36, // 3: budget.v1.AssetAccount.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 4: budget.v1.AssetAccount.balances:type_name -> budget.v1.AssetBalance
-	35, // 5: budget.v1.AssetSnapshot.amount:type_name -> budget.v1.Money
-	36, // 6: budget.v1.AssetSnapshot.as_of:type_name -> google.protobuf.Timestamp
-	36, // 7: budget.v1.AssetSnapshot.created_at:type_name -> google.protobuf.Timestamp
-	35, // 8: budget.v1.AssetTransfer.from_amount:type_name -> budget.v1.Money
-	35, // 9: budget.v1.AssetTransfer.to_amount:type_name -> budget.v1.Money
-	36, // 10: budget.v1.AssetTransfer.occurred_at:type_name -> google.protobuf.Timestamp
-	36, // 11: budget.v1.AssetTransfer.created_at:type_name -> google.protobuf.Timestamp
-	35, // 12: budget.v1.AssetHistoryItem.amount:type_name -> budget.v1.Money
-	36, // 13: budget.v1.AssetHistoryItem.occurred_at:type_name -> google.protobuf.Timestamp
-	2,  // 14: budget.v1.AssetHistoryItem.snapshot:type_name -> budget.v1.AssetSnapshot
-	3,  // 15: budget.v1.AssetHistoryItem.transfer:type_name -> budget.v1.AssetTransfer
-	35, // 16: budget.v1.AssetHistoryItem.calculated_amount:type_name -> budget.v1.Money
-	1,  // 17: budget.v1.CreateAccountRequest.account:type_name -> budget.v1.AssetAccount
-	2,  // 18: budget.v1.CreateAccountRequest.opening_balances:type_name -> budget.v1.AssetSnapshot
-	1,  // 19: budget.v1.CreateAccountResponse.account:type_name -> budget.v1.AssetAccount
-	1,  // 20: budget.v1.UpdateAccountRequest.account:type_name -> budget.v1.AssetAccount
-	1,  // 21: budget.v1.UpdateAccountResponse.account:type_name -> budget.v1.AssetAccount
-	1,  // 22: budget.v1.GetAccountResponse.account:type_name -> budget.v1.AssetAccount
-	1,  // 23: budget.v1.ListAccountsResponse.accounts:type_name -> budget.v1.AssetAccount
-	1,  // 24: budget.v1.ArchiveAccountResponse.account:type_name -> budget.v1.AssetAccount
-	1,  // 25: budget.v1.RestoreAccountResponse.account:type_name -> budget.v1.AssetAccount
-	2,  // 26: budget.v1.CreateSnapshotRequest.snapshot:type_name -> budget.v1.AssetSnapshot
-	2,  // 27: budget.v1.CreateSnapshotResponse.snapshot:type_name -> budget.v1.AssetSnapshot
-	2,  // 28: budget.v1.UpdateSnapshotRequest.snapshot:type_name -> budget.v1.AssetSnapshot
-	2,  // 29: budget.v1.UpdateSnapshotResponse.snapshot:type_name -> budget.v1.AssetSnapshot
-	3,  // 30: budget.v1.CreateTransferRequest.transfer:type_name -> budget.v1.AssetTransfer
-	3,  // 31: budget.v1.CreateTransferResponse.transfer:type_name -> budget.v1.AssetTransfer
-	3,  // 32: budget.v1.UpdateTransferRequest.transfer:type_name -> budget.v1.AssetTransfer
-	3,  // 33: budget.v1.UpdateTransferResponse.transfer:type_name -> budget.v1.AssetTransfer
-	36, // 34: budget.v1.GetOverviewRequest.as_of:type_name -> google.protobuf.Timestamp
-	1,  // 35: budget.v1.GetOverviewResponse.accounts:type_name -> budget.v1.AssetAccount
-	35, // 36: budget.v1.GetOverviewResponse.total:type_name -> budget.v1.Money
-	37, // 37: budget.v1.GetOverviewResponse.rates:type_name -> budget.v1.FxRate
-	36, // 38: budget.v1.GetOverviewResponse.as_of:type_name -> google.protobuf.Timestamp
-	38, // 39: budget.v1.ListAccountHistoryRequest.page:type_name -> budget.v1.PageRequest
-	4,  // 40: budget.v1.ListAccountHistoryResponse.items:type_name -> budget.v1.AssetHistoryItem
-	39, // 41: budget.v1.ListAccountHistoryResponse.page:type_name -> budget.v1.PageResponse
-	5,  // 42: budget.v1.AssetService.CreateAccount:input_type -> budget.v1.CreateAccountRequest
-	7,  // 43: budget.v1.AssetService.UpdateAccount:input_type -> budget.v1.UpdateAccountRequest
-	9,  // 44: budget.v1.AssetService.GetAccount:input_type -> budget.v1.GetAccountRequest
-	11, // 45: budget.v1.AssetService.ListAccounts:input_type -> budget.v1.ListAccountsRequest
-	13, // 46: budget.v1.AssetService.ArchiveAccount:input_type -> budget.v1.ArchiveAccountRequest
-	15, // 47: budget.v1.AssetService.RestoreAccount:input_type -> budget.v1.RestoreAccountRequest
-	17, // 48: budget.v1.AssetService.DeleteEmptyAccount:input_type -> budget.v1.DeleteEmptyAccountRequest
-	19, // 49: budget.v1.AssetService.CreateSnapshot:input_type -> budget.v1.CreateSnapshotRequest
-	21, // 50: budget.v1.AssetService.UpdateSnapshot:input_type -> budget.v1.UpdateSnapshotRequest
-	23, // 51: budget.v1.AssetService.DeleteSnapshot:input_type -> budget.v1.DeleteSnapshotRequest
-	25, // 52: budget.v1.AssetService.CreateTransfer:input_type -> budget.v1.CreateTransferRequest
-	27, // 53: budget.v1.AssetService.UpdateTransfer:input_type -> budget.v1.UpdateTransferRequest
-	29, // 54: budget.v1.AssetService.DeleteTransfer:input_type -> budget.v1.DeleteTransferRequest
-	31, // 55: budget.v1.AssetService.GetOverview:input_type -> budget.v1.GetOverviewRequest
-	33, // 56: budget.v1.AssetService.ListAccountHistory:input_type -> budget.v1.ListAccountHistoryRequest
-	6,  // 57: budget.v1.AssetService.CreateAccount:output_type -> budget.v1.CreateAccountResponse
-	8,  // 58: budget.v1.AssetService.UpdateAccount:output_type -> budget.v1.UpdateAccountResponse
-	10, // 59: budget.v1.AssetService.GetAccount:output_type -> budget.v1.GetAccountResponse
-	12, // 60: budget.v1.AssetService.ListAccounts:output_type -> budget.v1.ListAccountsResponse
-	14, // 61: budget.v1.AssetService.ArchiveAccount:output_type -> budget.v1.ArchiveAccountResponse
-	16, // 62: budget.v1.AssetService.RestoreAccount:output_type -> budget.v1.RestoreAccountResponse
-	18, // 63: budget.v1.AssetService.DeleteEmptyAccount:output_type -> budget.v1.DeleteEmptyAccountResponse
-	20, // 64: budget.v1.AssetService.CreateSnapshot:output_type -> budget.v1.CreateSnapshotResponse
-	22, // 65: budget.v1.AssetService.UpdateSnapshot:output_type -> budget.v1.UpdateSnapshotResponse
-	24, // 66: budget.v1.AssetService.DeleteSnapshot:output_type -> budget.v1.DeleteSnapshotResponse
-	26, // 67: budget.v1.AssetService.CreateTransfer:output_type -> budget.v1.CreateTransferResponse
-	28, // 68: budget.v1.AssetService.UpdateTransfer:output_type -> budget.v1.UpdateTransferResponse
-	30, // 69: budget.v1.AssetService.DeleteTransfer:output_type -> budget.v1.DeleteTransferResponse
-	32, // 70: budget.v1.AssetService.GetOverview:output_type -> budget.v1.GetOverviewResponse
-	34, // 71: budget.v1.AssetService.ListAccountHistory:output_type -> budget.v1.ListAccountHistoryResponse
-	57, // [57:72] is the sub-list for method output_type
-	42, // [42:57] is the sub-list for method input_type
-	42, // [42:42] is the sub-list for extension type_name
-	42, // [42:42] is the sub-list for extension extendee
-	0,  // [0:42] is the sub-list for field type_name
+	36, // 5: budget.v1.AssetAccount.ledger_started_at:type_name -> google.protobuf.Timestamp
+	36, // 6: budget.v1.AssetAccount.ledger_valuation_from:type_name -> google.protobuf.Timestamp
+	36, // 7: budget.v1.AssetAccount.valuation_as_of:type_name -> google.protobuf.Timestamp
+	35, // 8: budget.v1.AssetSnapshot.amount:type_name -> budget.v1.Money
+	36, // 9: budget.v1.AssetSnapshot.as_of:type_name -> google.protobuf.Timestamp
+	36, // 10: budget.v1.AssetSnapshot.created_at:type_name -> google.protobuf.Timestamp
+	35, // 11: budget.v1.AssetTransfer.from_amount:type_name -> budget.v1.Money
+	35, // 12: budget.v1.AssetTransfer.to_amount:type_name -> budget.v1.Money
+	36, // 13: budget.v1.AssetTransfer.occurred_at:type_name -> google.protobuf.Timestamp
+	36, // 14: budget.v1.AssetTransfer.created_at:type_name -> google.protobuf.Timestamp
+	35, // 15: budget.v1.AssetHistoryItem.amount:type_name -> budget.v1.Money
+	36, // 16: budget.v1.AssetHistoryItem.occurred_at:type_name -> google.protobuf.Timestamp
+	2,  // 17: budget.v1.AssetHistoryItem.snapshot:type_name -> budget.v1.AssetSnapshot
+	3,  // 18: budget.v1.AssetHistoryItem.transfer:type_name -> budget.v1.AssetTransfer
+	35, // 19: budget.v1.AssetHistoryItem.calculated_amount:type_name -> budget.v1.Money
+	1,  // 20: budget.v1.CreateAccountRequest.account:type_name -> budget.v1.AssetAccount
+	2,  // 21: budget.v1.CreateAccountRequest.opening_balances:type_name -> budget.v1.AssetSnapshot
+	1,  // 22: budget.v1.CreateAccountResponse.account:type_name -> budget.v1.AssetAccount
+	1,  // 23: budget.v1.UpdateAccountRequest.account:type_name -> budget.v1.AssetAccount
+	1,  // 24: budget.v1.UpdateAccountResponse.account:type_name -> budget.v1.AssetAccount
+	1,  // 25: budget.v1.GetAccountResponse.account:type_name -> budget.v1.AssetAccount
+	1,  // 26: budget.v1.ListAccountsResponse.accounts:type_name -> budget.v1.AssetAccount
+	1,  // 27: budget.v1.ArchiveAccountResponse.account:type_name -> budget.v1.AssetAccount
+	1,  // 28: budget.v1.RestoreAccountResponse.account:type_name -> budget.v1.AssetAccount
+	2,  // 29: budget.v1.CreateSnapshotRequest.snapshot:type_name -> budget.v1.AssetSnapshot
+	2,  // 30: budget.v1.CreateSnapshotResponse.snapshot:type_name -> budget.v1.AssetSnapshot
+	2,  // 31: budget.v1.UpdateSnapshotRequest.snapshot:type_name -> budget.v1.AssetSnapshot
+	2,  // 32: budget.v1.UpdateSnapshotResponse.snapshot:type_name -> budget.v1.AssetSnapshot
+	3,  // 33: budget.v1.CreateTransferRequest.transfer:type_name -> budget.v1.AssetTransfer
+	3,  // 34: budget.v1.CreateTransferResponse.transfer:type_name -> budget.v1.AssetTransfer
+	3,  // 35: budget.v1.UpdateTransferRequest.transfer:type_name -> budget.v1.AssetTransfer
+	3,  // 36: budget.v1.UpdateTransferResponse.transfer:type_name -> budget.v1.AssetTransfer
+	36, // 37: budget.v1.GetOverviewRequest.as_of:type_name -> google.protobuf.Timestamp
+	1,  // 38: budget.v1.GetOverviewResponse.accounts:type_name -> budget.v1.AssetAccount
+	35, // 39: budget.v1.GetOverviewResponse.total:type_name -> budget.v1.Money
+	37, // 40: budget.v1.GetOverviewResponse.rates:type_name -> budget.v1.FxRate
+	36, // 41: budget.v1.GetOverviewResponse.as_of:type_name -> google.protobuf.Timestamp
+	38, // 42: budget.v1.ListAccountHistoryRequest.page:type_name -> budget.v1.PageRequest
+	4,  // 43: budget.v1.ListAccountHistoryResponse.items:type_name -> budget.v1.AssetHistoryItem
+	39, // 44: budget.v1.ListAccountHistoryResponse.page:type_name -> budget.v1.PageResponse
+	5,  // 45: budget.v1.AssetService.CreateAccount:input_type -> budget.v1.CreateAccountRequest
+	7,  // 46: budget.v1.AssetService.UpdateAccount:input_type -> budget.v1.UpdateAccountRequest
+	9,  // 47: budget.v1.AssetService.GetAccount:input_type -> budget.v1.GetAccountRequest
+	11, // 48: budget.v1.AssetService.ListAccounts:input_type -> budget.v1.ListAccountsRequest
+	13, // 49: budget.v1.AssetService.ArchiveAccount:input_type -> budget.v1.ArchiveAccountRequest
+	15, // 50: budget.v1.AssetService.RestoreAccount:input_type -> budget.v1.RestoreAccountRequest
+	17, // 51: budget.v1.AssetService.DeleteEmptyAccount:input_type -> budget.v1.DeleteEmptyAccountRequest
+	19, // 52: budget.v1.AssetService.CreateSnapshot:input_type -> budget.v1.CreateSnapshotRequest
+	21, // 53: budget.v1.AssetService.UpdateSnapshot:input_type -> budget.v1.UpdateSnapshotRequest
+	23, // 54: budget.v1.AssetService.DeleteSnapshot:input_type -> budget.v1.DeleteSnapshotRequest
+	25, // 55: budget.v1.AssetService.CreateTransfer:input_type -> budget.v1.CreateTransferRequest
+	27, // 56: budget.v1.AssetService.UpdateTransfer:input_type -> budget.v1.UpdateTransferRequest
+	29, // 57: budget.v1.AssetService.DeleteTransfer:input_type -> budget.v1.DeleteTransferRequest
+	31, // 58: budget.v1.AssetService.GetOverview:input_type -> budget.v1.GetOverviewRequest
+	33, // 59: budget.v1.AssetService.ListAccountHistory:input_type -> budget.v1.ListAccountHistoryRequest
+	6,  // 60: budget.v1.AssetService.CreateAccount:output_type -> budget.v1.CreateAccountResponse
+	8,  // 61: budget.v1.AssetService.UpdateAccount:output_type -> budget.v1.UpdateAccountResponse
+	10, // 62: budget.v1.AssetService.GetAccount:output_type -> budget.v1.GetAccountResponse
+	12, // 63: budget.v1.AssetService.ListAccounts:output_type -> budget.v1.ListAccountsResponse
+	14, // 64: budget.v1.AssetService.ArchiveAccount:output_type -> budget.v1.ArchiveAccountResponse
+	16, // 65: budget.v1.AssetService.RestoreAccount:output_type -> budget.v1.RestoreAccountResponse
+	18, // 66: budget.v1.AssetService.DeleteEmptyAccount:output_type -> budget.v1.DeleteEmptyAccountResponse
+	20, // 67: budget.v1.AssetService.CreateSnapshot:output_type -> budget.v1.CreateSnapshotResponse
+	22, // 68: budget.v1.AssetService.UpdateSnapshot:output_type -> budget.v1.UpdateSnapshotResponse
+	24, // 69: budget.v1.AssetService.DeleteSnapshot:output_type -> budget.v1.DeleteSnapshotResponse
+	26, // 70: budget.v1.AssetService.CreateTransfer:output_type -> budget.v1.CreateTransferResponse
+	28, // 71: budget.v1.AssetService.UpdateTransfer:output_type -> budget.v1.UpdateTransferResponse
+	30, // 72: budget.v1.AssetService.DeleteTransfer:output_type -> budget.v1.DeleteTransferResponse
+	32, // 73: budget.v1.AssetService.GetOverview:output_type -> budget.v1.GetOverviewResponse
+	34, // 74: budget.v1.AssetService.ListAccountHistory:output_type -> budget.v1.ListAccountHistoryResponse
+	60, // [60:75] is the sub-list for method output_type
+	45, // [45:60] is the sub-list for method input_type
+	45, // [45:45] is the sub-list for extension type_name
+	45, // [45:45] is the sub-list for extension extendee
+	0,  // [0:45] is the sub-list for field type_name
 }
 
 func init() { file_budget_v1_asset_proto_init() }

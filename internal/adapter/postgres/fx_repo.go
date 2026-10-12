@@ -100,7 +100,7 @@ func (r *FxRepo) BatchGetRates(ctx context.Context, fromCurrencies []string, to 
 	Provider string
 }, error,
 ) {
-	rows, err := r.pool.DB.Query(ctx,
+	rows, err := r.pool.query(ctx).Query(ctx,
 		`WITH bases AS (
  SELECT DISTINCT ON (from_currency_code) from_currency_code AS code, rate, as_of
  FROM fx_rates WHERE provider='cbr' AND to_currency_code='RUB' AND as_of <= $3::date

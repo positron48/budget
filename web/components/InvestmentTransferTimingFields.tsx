@@ -1,0 +1,6 @@
+"use client";
+import {useTranslations} from "next-intl";
+export default function InvestmentTransferTimingFields({at,dateOnly,timezone,onChange}:{at:string;dateOnly:boolean;timezone:string;onChange:(v:{at:string;dateOnly:boolean;timezone:string})=>void}){
+ const t=useTranslations("investmentTiming"),field="w-full rounded-lg border border-gray-300 bg-white p-2 text-sm dark:border-gray-700 dark:bg-gray-900";
+ return <fieldset className="space-y-2"><legend>{t("precision")}</legend><label className="block text-sm">{t("transferAt")}<input className={field} type={dateOnly?"date":"datetime-local"} step="1" required value={at} onChange={e=>onChange({at:e.target.value,dateOnly,timezone})}/></label><label className="block text-sm"><input type="checkbox" checked={dateOnly} onChange={e=>onChange({at:e.target.checked?at.slice(0,10):at+"T00:00:00",dateOnly:e.target.checked,timezone})}/> {t("occurredDateOnly")}</label>{dateOnly&&<><label className="block text-sm">{t("timezone")}<input className={field} required maxLength={100} value={timezone} onChange={e=>onChange({at,dateOnly,timezone:e.target.value})}/></label><p className="text-xs text-amber-700 dark:text-amber-400">{t("transferPolicy")}</p></>}</fieldset>
+}

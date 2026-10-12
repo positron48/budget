@@ -111,7 +111,7 @@ function AssetAccountDetail() {
         <div className="h-52 animate-pulse rounded-2xl bg-[hsl(var(--secondary))]" />
       </main>
     );
-  const actionsDisabled = a.archived;
+  const actionsDisabled = a.archived || a.investmentMode==="ledger";
   return (
     <main className="asset-page container mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
       <Link
@@ -176,7 +176,9 @@ function AssetAccountDetail() {
                 </p>
                 <p className="mt-2 text-xs text-[hsl(var(--muted-foreground))]">
                   {t(
-                    a.kind === "property"
+                    a.investmentMode==="ledger"
+                      ? "ledgerValuedAt"
+                      : a.kind === "property"
                       ? "propertyLastValued"
                       : "lastConfirmed",
                     {
@@ -185,7 +187,7 @@ function AssetAccountDetail() {
                         b.amount?.currencyCode,
                         locale,
                       ),
-                      date: assetDate(b.confirmedAt, locale, true),
+                      date: assetDate(a.investmentMode==="ledger"?a.valuationAsOf:b.confirmedAt, locale, true),
                     },
                   )}
                 </p>
@@ -197,7 +199,9 @@ function AssetAccountDetail() {
         </div>
         {a.kind === "investment" && (
           <p className="mt-4 text-sm text-[hsl(var(--muted-foreground))]">
-            {t("investmentHint")}
+            {t(a.investmentMode==="ledger"?"ledgerValuation":"investmentHint")}
+            {a.investmentMode==="ledger"&&<Link className="ml-2 underline" href="/investments/journal">{t("ledgerJournal")}</Link>}
+            {a.valuationIncomplete&&<span role="status" className="mt-2 block text-amber-700 dark:text-amber-400">{t("ledgerIncomplete")}</span>}
           </p>
         )}
         {a.kind === "property" && (
@@ -453,7 +457,7 @@ function AssetAccountDetail() {
                             >
                               <Icon name="edit" size={14} />
                             </button>
-                            <button
+                            {!item.transfer.investmentCashTransfer&&<button
                               className="asset-history-action"
                               aria-label={t("deleteTransfer")}
                               onClick={() =>
@@ -465,7 +469,7 @@ function AssetAccountDetail() {
                               }
                             >
                               <Icon name="trash" size={14} />
-                            </button>
+                            </button>}
                           </>
                         )}
                         {!item.snapshot && !item.transfer && (

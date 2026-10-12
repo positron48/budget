@@ -161,6 +161,7 @@ function AssetsOverview() {
           </Button>
         </div>
       )}
+      {overview.data?.accounts.some(a=>a.valuationIncomplete)&&<p role="status" className="mb-4 text-sm text-amber-700 dark:text-amber-400">{t("ledgerIncomplete")}</p>}
       <section className="asset-total-panel" aria-label={t("total")}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -224,7 +225,7 @@ function AssetsOverview() {
             </div>
           </details>
         )}
-        {displayedTotal.incomplete && (
+        {displayedTotal.incomplete && displayedTotal.missingCurrencies.length>0 && (
           <p className="mt-4 flex items-start gap-2 rounded-lg bg-[hsl(var(--warning)/0.1)] p-3 text-sm">
             <Icon name="info" size={17} className="mt-0.5 shrink-0" />
             {t("missingRates", {

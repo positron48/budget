@@ -1,0 +1,24 @@
+# Merge into the existing Prometheus configuration after enabling workers.
+# The Prometheus service account needs pod discovery in the chosen namespace.
+scrape_configs:
+  - job_name: budget-investment-workers
+    scrape_interval: 30s
+    scrape_timeout: 5s
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_part_of]
+        action: keep
+        regex: budget-investment-workers
+      - source_labels: [__meta_kubernetes_pod_phase]
+        action: keep
+        regex: Running
+      - source_labels: [__meta_kubernetes_pod_container_port_name]
+        action: keep
+        regex: metrics
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        target_label: job
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+rule_files:
+  - /etc/prometheus/investment-worker-alerts.yml

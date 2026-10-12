@@ -13,6 +13,11 @@ var (
 )
 
 type AssetAccount struct {
+	InvestmentMode, InvestmentLedgerID, InvestmentConventionKey    string
+	LedgerStartedAt, LedgerValuationFrom, ValuationAsOf            time.Time
+	ValuationStatus                                                string
+	ValuationIssues                                                []string
+	ValuationIncomplete                                            bool
 	ID, TenantID, Name, Kind, Institution, Note, FixedCurrencyCode string
 	DepositRateDecimal, DepositOpenedOn, DepositMaturesOn          string
 	Archived                                                       bool
@@ -35,6 +40,7 @@ type AssetSnapshot struct {
 }
 
 type AssetTransfer struct {
+	InvestmentCashTransfer                                             bool `json:",omitempty"`
 	ID, TenantID, UserID, FromAccountID, ToAccountID, Note, RequestKey string
 	FromAmount, ToAmount                                               Money
 	OccurredAt, CreatedAt                                              time.Time
@@ -63,4 +69,22 @@ type AssetOverview struct {
 	MissingCurrencies []string
 	Rates             []AssetFxRate
 	AsOf              time.Time
+}
+
+// Activation is a one-way, explicitly reconciled change of the valuation source.
+type InvestmentAssetActivation struct {
+	AccountID, LedgerID, ConventionKey, Evidence, PreviewHash, RequestKey string
+	ValuationFrom                                                         time.Time
+	ExpectedAccountVersion, ExpectedLedgerVersion                         int64
+}
+type InvestmentAssetActivationPreview struct {
+	EvidenceJSON                  []byte `json:"-"` // immutable internal comparison evidence; not an API field
+	Account                       AssetAccount
+	Ledger                        InvestmentLedger
+	ValuationFrom                 time.Time
+	ManualValue, LedgerKnownValue Money
+	Complete, Matches             bool
+	Issues                        []string
+	InventoryCount                int64
+	PreviewHash                   string
 }

@@ -34,6 +34,14 @@ func NewTenantGuardUnaryInterceptor(validate func(ctx context.Context, userID, t
 
 func isTenantScopedMethod(fullMethod string) bool {
 	switch {
+	case hasPrefix(fullMethod, "/budget.v1.InvestmentNAVService/"):
+		return true
+	case hasPrefix(fullMethod, "/budget.v1.MarketDataService/"):
+		return true
+	case hasPrefix(fullMethod, "/budget.v1.InvestmentService/"):
+		return true
+	case hasPrefix(fullMethod, "/budget.v1.InvestmentImportService/"):
+		return true
 	case hasPrefix(fullMethod, "/budget.v1.AssetService/"):
 		return true
 	case hasPrefix(fullMethod, "/budget.v1.CategoryService/"):

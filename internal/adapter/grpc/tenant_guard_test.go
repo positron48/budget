@@ -78,3 +78,59 @@ func TestTenantGuard_AllAssetRPCs(t *testing.T) {
 		})
 	}
 }
+
+func TestTenantGuard_AllInvestmentImportRPCs(t *testing.T) {
+	for _, method := range budgetv1.InvestmentImportService_ServiceDesc.Methods {
+		guard := NewTenantGuardUnaryInterceptor(func(context.Context, string, string) (bool, error) { return false, nil })
+		called := false
+		handler := func(context.Context, interface{}) (interface{}, error) { called = true; return nil, nil }
+		info := &grpc.UnaryServerInfo{FullMethod: "/budget.v1.InvestmentImportService/" + method.MethodName}
+		ctx := ctxutil.WithUserID(ctxutil.WithTenantID(context.Background(), "t1"), "u1")
+		_, err := guard(ctx, nil, info, handler)
+		if status.Code(err) != codes.PermissionDenied || called {
+			t.Fatal(method.MethodName, err)
+		}
+	}
+}
+
+func TestTenantGuard_AllInvestmentRPCs(t *testing.T) {
+	for _, method := range budgetv1.InvestmentService_ServiceDesc.Methods {
+		guard := NewTenantGuardUnaryInterceptor(func(context.Context, string, string) (bool, error) { return false, nil })
+		called := false
+		handler := func(context.Context, interface{}) (interface{}, error) { called = true; return nil, nil }
+		info := &grpc.UnaryServerInfo{FullMethod: "/budget.v1.InvestmentService/" + method.MethodName}
+		ctx := ctxutil.WithUserID(ctxutil.WithTenantID(context.Background(), "t1"), "u1")
+		_, err := guard(ctx, nil, info, handler)
+		if status.Code(err) != codes.PermissionDenied || called {
+			t.Fatal(method.MethodName, err)
+		}
+	}
+}
+
+func TestTenantGuard_AllMarketDataRPCs(t *testing.T) {
+	for _, method := range budgetv1.MarketDataService_ServiceDesc.Methods {
+		guard := NewTenantGuardUnaryInterceptor(func(context.Context, string, string) (bool, error) { return false, nil })
+		called := false
+		handler := func(context.Context, interface{}) (interface{}, error) { called = true; return nil, nil }
+		info := &grpc.UnaryServerInfo{FullMethod: "/budget.v1.MarketDataService/" + method.MethodName}
+		ctx := ctxutil.WithUserID(ctxutil.WithTenantID(context.Background(), "t1"), "u1")
+		_, err := guard(ctx, nil, info, handler)
+		if status.Code(err) != codes.PermissionDenied || called {
+			t.Fatal(method.MethodName, err)
+		}
+	}
+}
+
+func TestTenantGuard_AllInvestmentNAVRPCs(t *testing.T) {
+	for _, method := range budgetv1.InvestmentNAVService_ServiceDesc.Methods {
+		guard := NewTenantGuardUnaryInterceptor(func(context.Context, string, string) (bool, error) { return false, nil })
+		called := false
+		handler := func(context.Context, interface{}) (interface{}, error) { called = true; return nil, nil }
+		info := &grpc.UnaryServerInfo{FullMethod: "/budget.v1.InvestmentNAVService/" + method.MethodName}
+		ctx := ctxutil.WithUserID(ctxutil.WithTenantID(context.Background(), "t1"), "u1")
+		_, err := guard(ctx, nil, info, handler)
+		if status.Code(err) != codes.PermissionDenied || called {
+			t.Fatal(method.MethodName, err)
+		}
+	}
+}

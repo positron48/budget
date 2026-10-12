@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -25,6 +26,10 @@ import (
 	useauth "github.com/positron48/budget/internal/usecase/auth"
 	"github.com/positron48/budget/internal/usecase/category"
 	currencyexchange "github.com/positron48/budget/internal/usecase/currencyexchange"
+	"github.com/positron48/budget/internal/usecase/investment"
+	"github.com/positron48/budget/internal/usecase/investmentexport"
+	"github.com/positron48/budget/internal/usecase/investmentimport"
+	"github.com/positron48/budget/internal/usecase/marketdata"
 	useoauth "github.com/positron48/budget/internal/usecase/oauth"
 	reportuse "github.com/positron48/budget/internal/usecase/report"
 	"github.com/positron48/budget/internal/usecase/tenant"
@@ -108,10 +113,18 @@ func main() {
 		return handler(ctx, req)
 	}
 
+	investmentRollout, err := grpcadapter.InvestmentTenantRolloutUnaryInterceptor(os.Getenv("INVESTMENTS_TENANT_ALLOWLIST"))
+	if err != nil {
+		sug.Fatalw("invalid investment rollout configuration", "error", err)
+	}
 	server := grpc.NewServer(
+		grpc.MaxRecvMsgSize(32<<20), // CSV (20 MiB) plus bounded import mapping.
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.ChainUnaryInterceptor(
 			grpcadapter.NewAuthUnaryInterceptor(cfg.JWTSignKey),
+			grpcadapter.InvestmentFeatureUnaryInterceptor(os.Getenv("INVESTMENTS_ENABLED") == "true"),
+			investmentRollout,
+			grpcadapter.InvestmentReadOnlyUnaryInterceptor(os.Getenv("INVESTMENTS_READ_ONLY") == "true"),
 			grpcadapter.MetricsUnaryInterceptor(),
 			grpcadapter.LoggingUnaryInterceptor(sug),
 			grpcadapter.RecoveryUnaryInterceptor(sug),
@@ -220,6 +233,32 @@ func main() {
 		}
 
 		// Assets
+		marketRepo := postgres.NewMarketDataRepo(db)
+		budgetv1.RegisterInvestmentNAVServiceServer(server, grpcadapter.NewInvestmentNAVServer(marketRepo))
+		marketSvc := marketdata.NewService(marketRepo, tenantRepo)
+		budgetv1.RegisterMarketDataServiceServer(server, grpcadapter.NewMarketDataServer(marketSvc, marketdata.NewMappingService(marketRepo, tenantRepo)))
+		investmentRepo := postgres.NewInvestmentRepo(db)
+		investmentSvc := investment.NewService(investmentRepo, tenantRepo)
+		budgetv1.RegisterInvestmentServiceServer(server, grpcadapter.NewInvestmentServerWithExport(investmentSvc, investmentRepo))
+		if os.Getenv("INVESTMENTS_ENABLED") == "true" {
+			exportTenants := []string{}
+			if configuration := strings.TrimSpace(os.Getenv("INVESTMENTS_TENANT_ALLOWLIST")); configuration != "" {
+				for _, id := range strings.Split(configuration, ",") {
+					exportTenants = append(exportTenants, strings.TrimSpace(id))
+				}
+			}
+			exportWorker := postgres.NewInvestmentExportWorker(db, exportTenants)
+			exportDone := make(chan struct{})
+			defer func() { cancel(); <-exportDone }()
+			go func() {
+				defer close(exportDone)
+				investmentexport.Run(ctx, exportWorker, func() { sug.Error("investment export worker storage failure") })
+			}()
+		}
+		investmentImportRepo := postgres.NewInvestmentImportRepo(db)
+		investmentImportSvc := investmentimport.NewImportService(investmentImportRepo, tenantRepo)
+		budgetv1.RegisterInvestmentImportServiceServer(server, grpcadapter.NewInvestmentImportServer(investmentImportSvc))
+
 		assetRepo := postgres.NewAssetRepo(db)
 		assetSvc := asset.NewService(assetRepo, fxRepo, tenantRepo)
 		budgetv1.RegisterAssetServiceServer(server, grpcadapter.NewAssetServer(assetSvc))

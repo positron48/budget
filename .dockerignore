@@ -2,6 +2,12 @@
 .data
 .git
 bin
+.env
+.env.*
+**/.env
+**/.env.*
+.codex
+.agents
 
 # Frontend caches and deps
 web/node_modules
@@ -17,3 +23,9 @@ web/.vercel
 *.swp
 *.log
 
+
+# Local agent metadata and test outputs are not runtime sources.
+.claude
+**/__pycache__
+web/test-results
+web/playwright-report

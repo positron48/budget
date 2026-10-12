@@ -1,0 +1,4 @@
+# Preserve the downloaded public CA bytes; CRLF is valid PEM formatting.
+internal/adapter/tinvest/certs/*.pem -text whitespace=cr-at-eol
+# protoc-gen-es owns the generated trailing blank line.
+web/proto/** whitespace=-blank-at-eof

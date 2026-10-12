@@ -9,13 +9,15 @@ import (
 	"github.com/positron48/budget/internal/pkg/ctxutil"
 	"github.com/positron48/budget/internal/usecase/asset"
 	"github.com/positron48/budget/migrations"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 )
 
 func TestAssetsAccounting_PG(t *testing.T) {
-	pool, _ := withPg(t)
+	pool, cleanup := withPg(t)
+	defer cleanup()
 	ctx := context.Background()
 	repo := NewAssetRepo(pool)
 	txRepo := NewTransactionRepo(pool)
@@ -364,8 +366,28 @@ func TestAssetsAccounting_PG(t *testing.T) {
 }
 
 func TestAssetsMigrationPreservesLegacy_PG(t *testing.T) {
-	pool, _ := withPg(t)
+	pool, cleanup := withPg(t)
+	defer cleanup()
 	ctx := context.Background()
+	// The legacy fixture predates investments. Unwind empty dependent schemas
+	// before rolling back assets; never cascade away a data-preservation guard.
+	entries, e := migrations.FS.ReadDir(".")
+	if e != nil {
+		t.Fatal(e)
+	}
+	for i := len(entries) - 1; i >= 0; i-- {
+		name := entries[i].Name()
+		if name >= "0012" && strings.HasSuffix(name, ".down.sql") {
+			sql, e := migrations.FS.ReadFile(name)
+			if e != nil {
+				t.Fatal(e)
+			}
+			if _, e = pool.DB.Exec(ctx, string(sql)); e != nil {
+				t.Fatal(name, e)
+			}
+		}
+	}
+
 	down, err := migrations.FS.ReadFile("0010_assets.down.sql")
 	if err != nil {
 		t.Fatal(err)

@@ -52,7 +52,7 @@ func fromProtoAssetAccount(p *budgetv1.AssetAccount, tenant string) domain.Asset
 	return domain.AssetAccount{ID: p.GetId(), TenantID: tenant, Name: p.GetName(), Kind: p.GetKind(), Institution: p.GetInstitution(), Note: p.GetNote(), FixedCurrencyCode: p.GetFixedCurrencyCode(), DepositRateDecimal: p.GetDepositRateDecimal(), DepositOpenedOn: p.GetDepositOpenedOn(), DepositMaturesOn: p.GetDepositMaturesOn(), Version: p.GetVersion()}
 }
 func toProtoAssetAccount(a domain.AssetAccount) *budgetv1.AssetAccount {
-	out := &budgetv1.AssetAccount{Id: a.ID, TenantId: a.TenantID, Name: a.Name, Kind: a.Kind, Institution: a.Institution, Note: a.Note, FixedCurrencyCode: a.FixedCurrencyCode, DepositRateDecimal: a.DepositRateDecimal, DepositOpenedOn: a.DepositOpenedOn, DepositMaturesOn: a.DepositMaturesOn, Archived: a.Archived, Version: a.Version, CreatedAt: timestamppb.New(a.CreatedAt)}
+	out := &budgetv1.AssetAccount{InvestmentMode: a.InvestmentMode, InvestmentLedgerId: a.InvestmentLedgerID, InvestmentConventionKey: a.InvestmentConventionKey, LedgerStartedAt: optionalInvestmentTimestamp(a.LedgerStartedAt), LedgerValuationFrom: optionalInvestmentTimestamp(a.LedgerValuationFrom), ValuationStatus: a.ValuationStatus, ValuationAsOf: optionalInvestmentTimestamp(a.ValuationAsOf), ValuationIssues: a.ValuationIssues, ValuationIncomplete: a.ValuationIncomplete, Id: a.ID, TenantId: a.TenantID, Name: a.Name, Kind: a.Kind, Institution: a.Institution, Note: a.Note, FixedCurrencyCode: a.FixedCurrencyCode, DepositRateDecimal: a.DepositRateDecimal, DepositOpenedOn: a.DepositOpenedOn, DepositMaturesOn: a.DepositMaturesOn, Archived: a.Archived, Version: a.Version, CreatedAt: timestamppb.New(a.CreatedAt)}
 	for _, b := range a.Balances {
 		out.Balances = append(out.Balances, &budgetv1.AssetBalance{Amount: protoAssetMoney(b.Amount), ConfirmedAmount: protoAssetMoney(b.ConfirmedAmount), ConfirmedAt: timestamppb.New(b.ConfirmedAt)})
 	}
@@ -83,7 +83,7 @@ func fromProtoAssetTransfer(p *budgetv1.AssetTransfer, tenant, user string) (dom
 	return domain.AssetTransfer{ID: p.GetId(), TenantID: tenant, UserID: user, FromAccountID: p.GetFromAccountId(), ToAccountID: p.GetToAccountId(), FromAmount: assetMoney(p.GetFromAmount()), ToAmount: assetMoney(p.GetToAmount()), OccurredAt: at, Note: p.GetNote(), Version: p.GetVersion()}, nil
 }
 func toProtoAssetTransfer(t domain.AssetTransfer) *budgetv1.AssetTransfer {
-	return &budgetv1.AssetTransfer{Id: t.ID, FromAccountId: t.FromAccountID, ToAccountId: t.ToAccountID, FromAmount: protoAssetMoney(t.FromAmount), ToAmount: protoAssetMoney(t.ToAmount), OccurredAt: timestamppb.New(t.OccurredAt), Note: t.Note, Version: t.Version, CreatedAt: timestamppb.New(t.CreatedAt), UserId: t.UserID}
+	return &budgetv1.AssetTransfer{InvestmentCashTransfer: t.InvestmentCashTransfer, Id: t.ID, FromAccountId: t.FromAccountID, ToAccountId: t.ToAccountID, FromAmount: protoAssetMoney(t.FromAmount), ToAmount: protoAssetMoney(t.ToAmount), OccurredAt: timestamppb.New(t.OccurredAt), Note: t.Note, Version: t.Version, CreatedAt: timestamppb.New(t.CreatedAt), UserId: t.UserID}
 }
 
 func (s *AssetServer) CreateAccount(ctx context.Context, req *budgetv1.CreateAccountRequest) (*budgetv1.CreateAccountResponse, error) {

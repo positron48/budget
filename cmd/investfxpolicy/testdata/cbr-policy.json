@@ -1,0 +1,17 @@
+{
+  "ExpectedVersion": 0,
+  "Policy": {
+    "Key": "cbr",
+    "Mode": "cbr",
+    "Source": "cbr",
+    "AccessScope": "public",
+    "SourceReference": "https://www.cbr.ru/currency_base/",
+    "TimeConvention": "effective_moscow_date_v1: XML Date is effective calendar date; usable from 00:00 Europe/Moscow, not from request date",
+    "ValueConvention": "RUB per one USD/EUR; divide the original official amount by the historical record nominal exactly",
+    "ValidityConvention": "One calendar day within the successfully verified range; weekends use the last effective official record confirmed by the closing snapshot",
+    "Official": {
+      "From": "2020-01-01T00:00:00Z",
+      "Convention": "effective_moscow_date_v1"
+    }
+  }
+}

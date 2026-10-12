@@ -1,0 +1,505 @@
+syntax = "proto3";
+package budget.v1;
+option go_package = "github.com/positron48/budget/gen/go/budget/v1;budgetv1";
+import "google/protobuf/timestamp.proto";
+import "budget/v1/investment.proto";
+import "budget/v1/market_data.proto";
+
+message InvestmentNAVSeries {
+ bool extension_limited = 7;
+ string key = 1;
+ repeated string ledger_ids = 2;
+ string currency = 3;
+ string fx_policy_key = 4;
+ string from_date = 5;
+ string to_date = 6;
+}
+message InvestmentNAVIssue { string component_id = 1; string code = 2; }
+message InvestmentNAVAmount {
+ string numerator = 1;
+ string denominator = 2;
+ string decimal = 3; // display value rounded to 12 fractional digits; exact fraction above
+}
+message InvestmentNAVPoint {
+ string date = 1; // Europe/Moscow reporting date
+ string state = 2; // ready, incomplete, stale, unavailable
+ int64 generation = 3;
+ google.protobuf.Timestamp computed_at = 4;
+ InvestmentNAVAmount known_value = 5; // incomplete is a subtotal, never full NAV; absent when stale/unavailable
+ repeated InvestmentNAVIssue issues = 6;
+ repeated InvestmentNAVIssue warnings = 7;
+ string currency = 8;
+ string fx_policy = 9;
+ google.protobuf.Timestamp as_of = 10;
+}
+message ListInvestmentNAVSeriesRequest { string after_key = 1; }
+message ListInvestmentNAVSeriesResponse {
+ repeated InvestmentNAVSeries series = 1;
+ string next_after_key = 2; // up to 100 per page
+}
+message GetInvestmentNAVHistoryRequest { string series_key = 1; string from_date = 2; string to_date = 3; }
+message GetInvestmentNAVHistoryResponse { repeated InvestmentNAVPoint points = 1; string reporting_timezone = 2; }
+message RequestInvestmentNAVRefreshRequest { string series_key = 1; }
+message RequestInvestmentNAVRefreshResponse { string state = 1; } // requested, not calculated
+service InvestmentNAVService {
+ rpc GetInvestmentLots(GetInvestmentLotsRequest) returns (GetInvestmentLotsResponse);
+ rpc GetInvestmentCurrentNAV(GetInvestmentCurrentNAVRequest) returns (GetInvestmentCurrentNAVResponse);
+ rpc GetInvestmentNAVVariant(GetInvestmentNAVVariantRequest) returns (GetInvestmentNAVVariantResponse);
+ rpc PrepareInvestmentNAVVariant(PrepareInvestmentNAVVariantRequest) returns (PrepareInvestmentNAVVariantResponse);
+ rpc ExportInvestmentSeries(ExportInvestmentSeriesRequest) returns (ExportInvestmentSeriesResponse);
+ rpc GetInvestmentOverview(GetInvestmentOverviewRequest) returns (GetInvestmentOverviewResponse);
+ rpc GetInvestmentProfit(GetInvestmentProfitRequest) returns (GetInvestmentProfitResponse);
+ rpc ListInvestmentBenchmarks(ListInvestmentBenchmarksRequest) returns (ListInvestmentBenchmarksResponse);
+ rpc GetInvestmentBenchmarkComparison(GetInvestmentBenchmarkComparisonRequest) returns (GetInvestmentBenchmarkComparisonResponse);
+ rpc GetInvestmentPerformance(GetInvestmentPerformanceRequest) returns (GetInvestmentPerformanceResponse);
+ rpc GetInvestmentNAVSeries(GetInvestmentNAVSeriesRequest) returns (GetInvestmentNAVSeriesResponse);
+ rpc GetInvestmentInstrumentPrices(GetInvestmentInstrumentPricesRequest) returns (GetInvestmentInstrumentPricesResponse);
+ rpc GetInvestmentPositions(GetInvestmentPositionsRequest) returns (GetInvestmentPositionsResponse);
+ rpc GetInvestmentInstrument(GetInvestmentInstrumentRequest) returns (GetInvestmentInstrumentResponse);
+ rpc GetInvestmentCompositionHistory(GetInvestmentCompositionHistoryRequest) returns (GetInvestmentCompositionHistoryResponse);
+ rpc GetInvestmentGroups(GetInvestmentGroupsRequest) returns (GetInvestmentGroupsResponse);
+ rpc SaveInvestmentGroups(SaveInvestmentGroupsRequest) returns (SaveInvestmentGroupsResponse);
+ rpc SaveInvestmentPortfolio(SaveInvestmentPortfolioRequest) returns (SaveInvestmentPortfolioResponse);
+ rpc ListInvestmentPortfolios(ListInvestmentPortfoliosRequest) returns (ListInvestmentPortfoliosResponse);
+ rpc ListInvestmentValuationProfiles(ListInvestmentValuationProfilesRequest) returns (ListInvestmentValuationProfilesResponse);
+ rpc ListInvestmentNAVSeries(ListInvestmentNAVSeriesRequest) returns (ListInvestmentNAVSeriesResponse);
+ rpc GetInvestmentNAVHistory(GetInvestmentNAVHistoryRequest) returns (GetInvestmentNAVHistoryResponse);
+ rpc RequestInvestmentNAVRefresh(RequestInvestmentNAVRefreshRequest) returns (RequestInvestmentNAVRefreshResponse);
+}
+
+message InvestmentPortfolio {
+ bool auto_extend = 13;
+ bool archived = 12;
+ string id = 1;
+ string name = 2;
+ repeated string ledger_ids = 3;
+ string currency = 4;
+ string fx_policy_key = 5;
+ string convention_key = 6;
+ string from_date = 7;
+ string to_date = 8;
+ string series_key = 9;
+ int64 version = 10;
+ google.protobuf.Timestamp updated_at = 11;
+}
+message SaveInvestmentPortfolioRequest {
+ bool auto_extend = 12;
+ bool archived = 11;
+ string id = 1;
+ string name = 2;
+ repeated string ledger_ids = 3;
+ string currency = 4;
+ string fx_policy_key = 5;
+ string convention_key = 6;
+ string from_date = 7;
+ string to_date = 8;
+ int64 expected_version = 9;
+ string request_key = 10;
+}
+message SaveInvestmentPortfolioResponse { InvestmentPortfolio portfolio = 1; }
+message ListInvestmentPortfoliosRequest { string after_id = 1; }
+message ListInvestmentPortfoliosResponse { repeated InvestmentPortfolio portfolios = 1; string next_after_id = 2; }
+message InvestmentValuationProfileOption { string key = 1; string title = 2; string mode = 3; int64 version = 4; }
+message ListInvestmentValuationProfilesRequest { string after_price_key = 1; string after_fx_key = 2; }
+message ListInvestmentValuationProfilesResponse {
+ repeated InvestmentValuationProfileOption price_profiles = 1;
+ repeated InvestmentValuationProfileOption fx_profiles = 2;
+ string next_price_key = 3;
+ string next_fx_key = 4;
+}
+message GetInvestmentNAVSeriesRequest { string series_key = 1; }
+message GetInvestmentNAVSeriesResponse { InvestmentNAVSeries series = 1; }
+
+message GetInvestmentPerformanceRequest { string series_key = 1; string from_date = 2; string to_date = 3; }
+message InvestmentTWRPoint {
+ string date = 1;
+ string state = 2;
+ string reason = 3;
+ int32 segment = 4;
+ InvestmentNAVAmount daily_return = 5; // fraction: 0.02 means 2%
+ InvestmentNAVAmount segment_return = 6;
+ InvestmentNAVAmount index = 7; // 100 at each independent segment baseline
+}
+message GetInvestmentPerformanceResponse {
+ string from_date = 1;
+ string to_date = 2;
+ string currency = 3;
+ string fx_policy_key = 4;
+ int64 generation = 5;
+ InvestmentNAVAmount profit = 6;
+ InvestmentNAVAmount net_contributions = 7;
+ string reason = 8;
+ InvestmentNAVAmount twr = 9;
+ string twr_reason = 10;
+ repeated InvestmentTWRPoint twr_points = 11;
+ optional double xirr = 12; // annual fraction; absent means undefined, not zero
+ string xirr_reason = 13;
+ int32 xirr_days = 14;
+ bool xirr_annualized = 15;
+ string twr_convention = 16;
+ string reporting_timezone = 17;
+ string net_contributions_reason = 19;
+ string history_scope = 18; // recorded_journal, not broker reconciliation certification
+}
+
+message InvestmentBenchmark {
+ string key = 1;
+ string title = 2;
+ string kind = 3; // price_index or etf_price_proxy
+ string native_currency = 4;
+ int64 version = 5;
+}
+message ListInvestmentBenchmarksRequest { string after_key = 1; }
+message ListInvestmentBenchmarksResponse { repeated InvestmentBenchmark benchmarks = 1; string next_after_key = 2; }
+message GetInvestmentBenchmarkComparisonRequest {
+ string series_key = 1; string benchmark_key = 2; string from_date = 3; string to_date = 4;
+}
+message InvestmentBenchmarkPoint {
+ InvestmentNAVAmount portfolio_index = 15; // initial uninterrupted TWR segment, base 100
+ string date = 1;
+ string state = 2;
+ string reason = 3;
+ InvestmentNAVAmount index = 4;
+ InvestmentNAVAmount value = 5;
+ InvestmentNAVAmount units = 6;
+ InvestmentNAVAmount cash = 7;
+ InvestmentNAVAmount pending_withdrawal = 8;
+ InvestmentNAVAmount portfolio_value = 9; // complete current NAV only
+ repeated string issues = 10;
+ string observation_id = 11;
+ int64 observation_revision = 12;
+ string calendar_id = 13;
+ int64 calendar_revision = 14;
+}
+message GetInvestmentBenchmarkComparisonResponse {
+ InvestmentBenchmark benchmark = 1;
+ string currency = 2;
+ string fx_policy_key = 3;
+ int64 generation = 4;
+ int64 price_profile_version = 5;
+ string reason = 6;
+ repeated InvestmentBenchmarkPoint points = 7;
+ string method = 8;
+ string reporting_timezone = 9;
+}
+
+message InvestmentGroup { string id = 1; string name = 2; }
+message InvestmentGroupMembership { string ledger_id = 1; string instrument_key = 2; string group_id = 3; }
+message InvestmentGroups { int64 version = 1; repeated InvestmentGroup groups = 2; repeated InvestmentGroupMembership memberships = 3; }
+message InvestmentGroupPosition { string ledger_id = 1; string ledger_name = 2; string instrument_key = 3; }
+message GetInvestmentGroupsRequest {}
+message GetInvestmentGroupsResponse { InvestmentGroups classification = 1; repeated InvestmentGroupPosition positions = 2; }
+message SaveInvestmentGroupsRequest { InvestmentGroups classification = 1; string request_key = 2; string reason = 3; }
+message SaveInvestmentGroupsResponse { InvestmentGroups classification = 1; }
+
+// Classification is the current tenant structure for every requested date.
+message GetInvestmentCompositionHistoryRequest {
+ string series_key = 1; string from_date = 2; string to_date = 3;
+ repeated string group_ids = 4; // empty list = all securities; empty ID = ungrouped
+ string breakdown_by = 5; // group (default), account, currency, type
+}
+message InvestmentCompositionPoint {
+ string date = 1; string state = 2;
+ InvestmentNAVAmount securities_known = 3;
+ bool securities_complete = 4;
+ InvestmentNAVAmount cash_known = 5;
+ bool cash_complete = 6;
+ repeated InvestmentNAVIssue issues = 7;
+}
+message InvestmentCompositionSegment {
+ string category_key = 6;
+ string group_id = 1; string kind = 2;
+ InvestmentNAVAmount known_value = 3;
+ bool complete = 4;
+ InvestmentNAVAmount weight = 5; // absent for incomplete, nonpositive, or negative composition
+}
+message GetInvestmentCompositionHistoryResponse {
+ int64 classification_version = 1;
+ string breakdown_by = 9;
+ string currency = 2; string fx_policy_key = 3;
+ repeated InvestmentCompositionPoint points = 4;
+ repeated InvestmentCompositionSegment segments = 5; // last requested date only
+ bool complete = 6;
+ string reporting_timezone = 7;
+ repeated InvestmentGroup groups = 8; // names from the same classification snapshot
+}
+
+message GetInvestmentPositionsRequest {
+ string series_key = 1; string date = 2; repeated string group_ids = 3;
+}
+message InvestmentPositionPayment {
+ string currency = 1;
+ InvestmentNAVAmount gross = 2; InvestmentNAVAmount tax = 3; InvestmentNAVAmount net = 4;
+}
+message InvestmentPositionDetail {
+ string ledger_id = 1; string ledger_name = 2; string instrument_key = 3; string group_id = 4;
+ string quantity = 5; string book_currency = 6;
+ string clean_cost = 7; string acquired_accrued = 8; // empty = unknown, zero is explicit
+ string realized_clean = 9; string realized_accrued = 10;
+ InvestmentNAVAmount value = 11; InvestmentNAVAmount weight = 12;
+ InvestmentNAVAmount unrealized_clean = 13; InvestmentNAVAmount unrealized_dirty = 14;
+ string price_currency = 15;
+ InvestmentNAVAmount clean_price_per_security = 16;
+ InvestmentNAVAmount accrued_per_security = 17;
+ InvestmentNAVAmount dirty_price_per_security = 18;
+ string provider_price = 19; string price_unit = 20;
+ google.protobuf.Timestamp price_at = 21;
+ string price_source = 22;
+ string nominal = 23; string nominal_currency = 24;
+ string lot_size = 25; string instrument_type = 26;
+ repeated InvestmentPositionPayment payments = 27;
+ repeated InvestmentNAVIssue issues = 28;
+ MarketInstrument metadata = 29; // current descriptive catalog, not historical terms
+ InvestmentNAVAmount historical_clean_cost = 30;
+ InvestmentNAVAmount historical_acquired_accrued = 31;
+ bool historical_clean_complete = 32;
+ bool historical_accrued_complete = 33;
+ repeated string historical_cost_reasons = 34;
+}
+message GetInvestmentPositionsResponse {
+ string date = 1; string currency = 2; string fx_policy_key = 3;
+ string valuation_state = 4;
+ int64 classification_version = 5;
+ repeated InvestmentPositionDetail positions = 6;
+}
+message GetInvestmentInstrumentRequest {
+ string series_key = 1; string date = 2; string instrument_key = 3;
+ string cursor = 4; repeated string group_ids = 5;
+}
+message GetInvestmentInstrumentResponse {
+ google.protobuf.Timestamp as_of = 6;
+ GetInvestmentPositionsResponse holdings = 1;
+ MarketInstrument metadata = 2;
+ repeated InvestmentOperation operations = 3;
+ string next_cursor = 4;
+ string instrument_key = 5;
+}
+
+message GetInvestmentInstrumentPricesRequest { string series_key = 1; string instrument_key = 2; string from_date = 3; string to_date = 4; repeated string group_ids = 5; }
+message InvestmentAccruedEvidence {
+ string source_id = 1; string instrument_id = 2; string currency = 3; string amount_per_unit = 4;
+ google.protobuf.Timestamp from = 5; google.protobuf.Timestamp to = 6;
+}
+message InvestmentPriceAdjustmentEvidence {
+ string source_price = 1; string multiplier = 2; string divisor = 3; string resolved_price = 4;
+ string source_reference = 5; string evidence_sha256 = 6; string observation_hash = 7;
+ string profile_key = 8; int64 profile_version = 9;
+ string observation_id = 10; int64 observation_revision = 11;
+ string basis = 12; string nominal = 13; string nominal_currency = 14;
+}
+message InvestmentInstrumentPricePoint {
+ InvestmentPriceAdjustmentEvidence adjustment_evidence = 14;
+ InvestmentAccruedEvidence accrued_evidence = 13;
+ string date = 1; string state = 2; string native_currency = 3;
+ InvestmentNAVAmount percent = 4;
+ InvestmentNAVAmount native_clean = 5; InvestmentNAVAmount native_dirty = 6;
+ InvestmentNAVAmount target_clean = 7; InvestmentNAVAmount target_dirty = 8;
+ google.protobuf.Timestamp price_at = 9;
+ string price_source = 10; string adjustment = 11;
+ repeated InvestmentNAVIssue issues = 12;
+}
+message GetInvestmentInstrumentPricesResponse {
+ repeated InvestmentOperation markers = 6;
+ string instrument_key = 1; string currency = 2; string fx_policy_key = 3;
+ int64 price_profile_version = 4;
+ repeated InvestmentInstrumentPricePoint points = 5;
+}
+
+message InvestmentProfitPoint {
+ string date=1;
+ InvestmentNAVAmount daily=2;
+ InvestmentNAVAmount cumulative=3;
+ string daily_reason=4;
+ string cumulative_reason=5;
+}
+message InvestmentProfitBucket {
+ string period=1;
+ string from_date=2;
+ string to_date=3;
+ InvestmentNAVAmount profit=4;
+ InvestmentNAVAmount net_contributions=5;
+ string reason=6;
+}
+message InvestmentProfitComponent {
+ string kind=1;
+ InvestmentNAVAmount known=2;
+ bool complete=3;
+ string reason=4;
+ bool informational=5;
+}
+message InvestmentInstrumentContribution {
+ string instrument_key=1;
+ repeated string ledger_ids=2;
+ bool closed=3;
+ InvestmentNAVAmount known=4;
+ bool complete=5;
+ InvestmentNAVAmount share=6; // signed contribution / net portfolio profit; not portfolio weight or return
+ repeated InvestmentProfitComponent components=7;
+ MarketInstrument metadata=8;
+}
+message GetInvestmentProfitResponse {
+ string series_key=1;
+ string from_date=2;
+ string to_date=3;
+ string currency=4;
+ string fx_policy_key=5;
+ int64 generation=6;
+ InvestmentNAVAmount profit=7;
+ string reason=8;
+ repeated InvestmentProfitPoint points=9;
+ repeated InvestmentProfitBucket months=10;
+ repeated InvestmentProfitBucket years=11;
+ repeated InvestmentProfitComponent components=12;
+ bool attribution_complete=13;
+ string attribution_reason=14;
+ string convention=15;
+ repeated InvestmentInstrumentContribution instruments=16;
+ bool instruments_complete=17;
+ InvestmentProfitComponent instrument_remainder=18;
+ string instrument_convention=19;
+ InvestmentNAVAmount instrument_remainder_share=20;
+}
+
+message InvestmentOverviewFX {
+ string from_currency = 1; string to_currency = 2;
+ string policy_key = 3; int64 policy_version = 4;
+ string source = 5; string mode = 6; string state = 7;
+ InvestmentNAVAmount rate = 8; InvestmentNAVAmount change = 9;
+ google.protobuf.Timestamp as_of = 10; google.protobuf.Timestamp available_at = 11;
+ google.protobuf.Timestamp valid_until = 12; int64 revision = 13;
+}
+message GetInvestmentOverviewResponse {
+ string series_key = 1;
+ GetInvestmentPerformanceResponse performance = 2;
+ InvestmentNAVPoint nav = 3;
+ InvestmentNAVAmount securities_known = 4; bool securities_complete = 5;
+ InvestmentNAVAmount cash_known = 6; bool cash_complete = 7;
+ InvestmentNAVAmount daily_profit = 8; string daily_reason = 9;
+ repeated InvestmentOverviewFX fx = 10;
+ google.protobuf.Timestamp read_at = 11;
+ string scope = 12; // full_registered_accounts, independent of group filters
+ repeated InvestmentNAVIssue breakdown_issues = 13;
+}
+
+message ExportInvestmentSeriesResponse {
+ string filename = 1;
+ bytes data = 2; // gzip-compressed UTF-8 CSV, no partial exports
+ string encoding = 3; // gzip
+ string sha256 = 4; // uncompressed CSV
+ int32 row_count = 5; // selected dates, excludes baseline row
+ int64 uncompressed_size = 6;
+ int64 generation = 7;
+}
+
+message InvestmentNAVVariantRequest {
+ string source_series_key=1;
+ string currency=2;
+ string fx_policy_key=3;
+}
+message InvestmentNAVVariantResponse {
+ InvestmentNAVSeries series=1;
+ bool registered=2; // enabled target watch covers the entire source range
+ int32 queued_days=3; // newly created jobs, not completed calculations
+}
+
+// Transient current snapshot; never a closed daily point or a return input.
+message GetInvestmentCurrentNAVResponse {
+ bool provisional=1;
+ string series_key=2;
+ string currency=3;
+ repeated string ledger_ids=4;
+ google.protobuf.Timestamp as_of=5;
+ string last_completed_date=6;
+ bool complete=7;
+ InvestmentNAVAmount known_value=8;
+ repeated InvestmentNAVIssue issues=9;
+ repeated InvestmentNAVIssue warnings=10;
+ int64 generation=11;
+ string price_profile_key=12;
+ int64 price_profile_version=13;
+ string fx_policy=14;
+ repeated InvestmentCurrentQuote quotes=15;
+ repeated InvestmentCurrentFXLeg fx_legs=16;
+}
+message InvestmentCurrentQuote {
+ string instrument_key=1;
+ string state=2;
+ string provider=3;
+ string access_scope=4;
+ string source_kind=5;
+ string adjustment=6;
+ string currency=7;
+ string unit=8;
+ InvestmentNAVAmount candidate_price=9; // may be expired; not used in NAV unless fresh
+ google.protobuf.Timestamp price_at=10;
+ google.protobuf.Timestamp received_at=11;
+ google.protobuf.Timestamp valid_until=12;
+ string observation_id=13;
+ int64 revision=14;
+ repeated string issues=15;
+}
+message InvestmentCurrentFXLeg {
+ InvestmentNAVAmount observed_rate=11; // original from/to pair; inverse is explicit
+ string native_currency=1;
+ string id=2;
+ int64 revision=3;
+ string from_currency=4;
+ string to_currency=5;
+ string policy=6;
+ bool inverse=7;
+ google.protobuf.Timestamp as_of=8;
+ google.protobuf.Timestamp available_at=9;
+ google.protobuf.Timestamp valid_until=10;
+}
+
+message GetInvestmentLotsRequest {
+ string series_key=1; string date=2; string instrument_key=3; string cursor=4; repeated string group_ids=5;
+}
+message InvestmentExactLot {
+ string lot_id=6; string origin_ledger_id=7; int64 origin_sequence=8;
+ string origin_id=1; google.protobuf.Timestamp acquired_at=2;
+ InvestmentNAVAmount quantity=3; InvestmentNAVAmount clean_cost=4; InvestmentNAVAmount acquired_accrued=5;
+}
+message InvestmentLotChange {
+ string ledger_id=7; int64 sequence=8; string ledger_name=9;
+ string operation_id=1; string kind=2; string instrument_key=3; google.protobuf.Timestamp at=4;
+ InvestmentExactLot before=5; InvestmentExactLot after=6;
+}
+message InvestmentLotDetail {
+ string ledger_id=1; string ledger_name=2; string book_currency=3; InvestmentExactLot lot=4;
+ InvestmentOperation origin=5;
+ InvestmentNAVAmount historical_clean_cost=6; InvestmentNAVAmount historical_acquired_accrued=7;
+ bool historical_clean_complete=8; bool historical_accrued_complete=9; repeated string reasons=10;
+ InvestmentNAVAmount acquisition_fx_rate=11; google.protobuf.Timestamp acquisition_fx_cutoff=12;
+ repeated InvestmentCurrentFXLeg fx_legs=13; repeated InvestmentLotChange changes=14;
+}
+message GetInvestmentLotsResponse {
+ string date=1; string currency=2; string fx_policy_key=3; int32 total=4;
+ repeated InvestmentLotDetail lots=5; string next_cursor=6;
+}
+
+// Dedicated RPC envelopes preserve the existing field numbers and wire payloads.
+message GetInvestmentCurrentNAVRequest { string series_key = 1; }
+message ExportInvestmentSeriesRequest { string series_key = 1; string from_date = 2; string to_date = 3; }
+message GetInvestmentOverviewRequest { string series_key = 1; string from_date = 2; string to_date = 3; }
+message GetInvestmentProfitRequest { string series_key = 1; string from_date = 2; string to_date = 3; }
+message GetInvestmentNAVVariantRequest {
+ string source_series_key=1;
+ string currency=2;
+ string fx_policy_key=3;
+}
+message PrepareInvestmentNAVVariantRequest {
+ string source_series_key=1;
+ string currency=2;
+ string fx_policy_key=3;
+}
+message GetInvestmentNAVVariantResponse {
+ InvestmentNAVSeries series=1;
+ bool registered=2; // enabled target watch covers the entire source range
+ int32 queued_days=3; // newly created jobs, not completed calculations
+}
+message PrepareInvestmentNAVVariantResponse {
+ InvestmentNAVSeries series=1;
+ bool registered=2; // enabled target watch covers the entire source range
+ int32 queued_days=3; // newly created jobs, not completed calculations
+}

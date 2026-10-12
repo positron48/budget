@@ -57,7 +57,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <ClientsProvider>
             <ToastProvider>
               <div className="min-h-screen flex flex-col">
-                <HeaderNav />
+                <HeaderNav investmentsEnabled={process.env.INVESTMENTS_ENABLED === "true"} />
                 <main className="flex-1">
                   <Protected>{children}</Protected>
                 </main>

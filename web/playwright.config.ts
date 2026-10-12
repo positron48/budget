@@ -10,6 +10,6 @@ export default defineConfig({
     url: "http://127.0.0.1:3030",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
-    env: { NEXT_PUBLIC_GRPC_BASE_URL: "http://127.0.0.1:3030/grpc" },
+    env: { INVESTMENTS_READ_ONLY: process.env.E2E_INVESTMENTS_READ_ONLY || "false", INVESTMENTS_ENABLED: process.env.E2E_INVESTMENTS_ENABLED || "true", NEXT_PUBLIC_GRPC_BASE_URL: "http://127.0.0.1:3030/grpc" },
   },
 });

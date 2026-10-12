@@ -1,0 +1,291 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: budget-investment-marketdata
+spec:
+  # Operator enables only after schema, backup, policies and scope review.
+  replicas: 0
+  selector:
+    matchLabels:
+      app: budget-investment-marketdata
+  template:
+    metadata:
+      labels:
+        app: budget-investment-marketdata
+        app.kubernetes.io/part-of: budget-investment-workers
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9091"
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          # Replace with the CI-produced image digest before activation.
+          image: budget-app:investment-candidate
+          command: ["/app/marketdata"]
+          args: ["-tenant", "$(INVESTMENT_TENANT_ID)", "-access-scope", "$(INVESTMENT_ACCESS_SCOPE)"]
+          envFrom:
+            - configMapRef:
+                name: budget-investment-worker-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: budget-investment-db
+                  key: DATABASE_URL
+            - name: INVESTMENT_METRICS_ADDR
+              value: 0.0.0.0:9091
+            - name: TINVEST_TOKEN_FILE
+              value: /var/run/tinvest/token
+          ports:
+            - name: metrics
+              containerPort: 9091
+          readinessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tinvest
+              mountPath: /var/run/tinvest
+              readOnly: true
+      volumes:
+        - name: tinvest
+          secret:
+            secretName: budget-tinvest-readonly
+            defaultMode: 0440
+            items:
+              - key: token
+                path: token
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: budget-investment-investmentnav
+spec:
+  # Operator enables only after schema, backup, policies and scope review.
+  replicas: 0
+  selector:
+    matchLabels:
+      app: budget-investment-investmentnav
+  template:
+    metadata:
+      labels:
+        app: budget-investment-investmentnav
+        app.kubernetes.io/part-of: budget-investment-workers
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9091"
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          # Replace with the CI-produced image digest before activation.
+          image: budget-app:investment-candidate
+          command: ["/app/investmentnav"]
+          args: ["-tenant", "$(INVESTMENT_TENANT_ID)"]
+          envFrom:
+            - configMapRef:
+                name: budget-investment-worker-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: budget-investment-db
+                  key: DATABASE_URL
+            - name: INVESTMENT_METRICS_ADDR
+              value: 0.0.0.0:9091
+          ports:
+            - name: metrics
+              containerPort: 9091
+          readinessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: budget-investment-investcbr
+spec:
+  # Operator enables only after schema, backup, policies and scope review.
+  replicas: 0
+  selector:
+    matchLabels:
+      app: budget-investment-investcbr
+  template:
+    metadata:
+      labels:
+        app: budget-investment-investcbr
+        app.kubernetes.io/part-of: budget-investment-workers
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9091"
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          # Replace with the CI-produced image digest before activation.
+          image: budget-app:investment-candidate
+          command: ["/app/investcbr"]
+          args: ["-tenant", "$(INVESTMENT_TENANT_ID)", "-policy", "$(INVESTMENT_CBR_POLICY)"]
+          envFrom:
+            - configMapRef:
+                name: budget-investment-worker-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: budget-investment-db
+                  key: DATABASE_URL
+            - name: INVESTMENT_METRICS_ADDR
+              value: 0.0.0.0:9091
+          ports:
+            - name: metrics
+              containerPort: 9091
+          readinessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: budget-investment-alphafx
+spec:
+  # Operator enables only after schema, backup, policies and scope review.
+  replicas: 0
+  selector:
+    matchLabels:
+      app: budget-investment-alphafx
+  template:
+    metadata:
+      labels:
+        app: budget-investment-alphafx
+        app.kubernetes.io/part-of: budget-investment-workers
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9091"
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          # Replace with the CI-produced image digest before activation.
+          image: budget-app:investment-candidate
+          command: ["/app/alphafx"]
+          args: ["-tenant", "$(INVESTMENT_TENANT_ID)", "-policy", "$(INVESTMENT_ALPHA_POLICY)"]
+          envFrom:
+            - configMapRef:
+                name: budget-investment-worker-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: budget-investment-db
+                  key: DATABASE_URL
+            - name: ALPHA_FX_TOKEN_FILE
+              value: /var/run/alphafx/token
+            - name: INVESTMENT_METRICS_ADDR
+              value: 0.0.0.0:9091
+          ports:
+            - name: metrics
+              containerPort: 9091
+          readinessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: alphafx
+              mountPath: /var/run/alphafx
+              readOnly: true
+      volumes:
+        - name: alphafx
+          secret:
+            secretName: budget-alphavantage-readonly
+            defaultMode: 0440
+            items:
+              - key: token
+                path: token

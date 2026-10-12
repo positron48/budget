@@ -4,15 +4,17 @@ FROM node:20-alpine
 RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
+RUN chown node:node /app
+USER node
 
 # Copy package files
-COPY package.json package-lock.json* ./
+COPY --chown=node:node package.json package-lock.json* ./
 
 # Install dependencies
 RUN npm ci
 
 # Copy source code
-COPY . .
+COPY --chown=node:node . .
 
 # Accept build arguments for environment variables
 ARG NEXT_PUBLIC_GRPC_BASE_URL
@@ -23,6 +25,8 @@ ARG ENVOY_URL
 ENV NEXT_PUBLIC_GRPC_BASE_URL=$NEXT_PUBLIC_GRPC_BASE_URL
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 ENV ENVOY_URL=$ENVOY_URL
+
+RUN mkdir -p /app/.next
 
 # Expose port
 EXPOSE 3000

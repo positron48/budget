@@ -63,7 +63,7 @@ export default function AssetAccountCard({
             <p className="mt-1 break-words text-2xl font-semibold tabular-nums">
               {assetMoney(valuation.total, valuation.currency, locale)}
             </p>
-            <p className="mt-2 text-xs text-[hsl(var(--muted-foreground))]">{t(account.kind === "property" ? "estimatedValue" : "originalBalances")}</p>
+            <p className="mt-2 text-xs text-[hsl(var(--muted-foreground))]">{t(account.kind === "property" ? "estimatedValue" : account.investmentMode==="ledger"?"ledgerValueLabel":"originalBalances")}</p>
           </div>
         )}
         {account.balances.length ? (
@@ -93,7 +93,8 @@ export default function AssetAccountCard({
         )}
         {account.kind === "investment" && (
           <p className="pt-1 text-xs text-[hsl(var(--muted-foreground))]">
-            {t("wholeAccount")}
+            {t(account.investmentMode==="ledger"?"ledgerValuation":"wholeAccount")}
+            {account.valuationIncomplete&&<span role="status" className="block text-amber-700 dark:text-amber-400">{t("ledgerIncomplete")}</span>}
           </p>
         )}
         {account.kind === "property" && !valuation && (
@@ -129,11 +130,11 @@ export default function AssetAccountCard({
       )}
       <div className="mt-auto flex items-center justify-between gap-2 border-t border-[hsl(var(--border))] pt-3">
         <p className="text-xs text-[hsl(var(--muted-foreground))]">
-          {latest > 0n
+          {account.investmentMode==="ledger" ? t("ledgerValuedAt",{date:assetDate(account.valuationAsOf,locale,true)}) : latest > 0n
             ? t(account.kind === "property" ? "valuedOn" : "checked", { date: assetDate({ seconds: latest }, locale) })
             : t("notChecked")}
         </p>
-        {!account.archived ? (
+        {!account.archived && account.investmentMode!=="ledger" ? (
           <Button
             size="sm"
             variant="ghost"

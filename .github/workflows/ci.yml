@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ '**' ]
     tags: [ '*' ]
   pull_request:
     branches: [ main, master ]
@@ -13,9 +13,40 @@ on:
 permissions:
   actions: read
   contents: read
-  packages: write
 
 jobs:
+  investment-operations:
+    name: Investment worker rollout and alerts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Render inactive worker rollout
+        run: kubectl kustomize deploy/investments > /tmp/investment-workers.yaml
+      - name: Validate worker alert expressions and behavior
+        run: |
+          docker run --rm --entrypoint /bin/promtool -v "$PWD/deploy/investments:/rules:ro" -w /rules prom/prometheus:v2.51.2 check rules worker-alerts.yml
+          docker run --rm --entrypoint /bin/promtool -v "$PWD/deploy/investments:/rules:ro" -w /rules prom/prometheus:v2.51.2 test rules worker-alerts.test.yml
+          docker run --rm --entrypoint /bin/promtool -v "$PWD/deploy/investments:/rules:ro" -w /rules prom/prometheus:v2.51.2 check config --syntax-only prometheus-workers.yml
+  proto:
+    name: Protobuf and workflow contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.9'
+          cache: true
+      - name: Install pinned Buf
+        run: go install github.com/bufbuild/buf/cmd/buf@v1.47.2
+      - name: Lint all protobuf contracts
+        working-directory: proto
+        run: buf lint
+      - name: Validate all GitHub Actions workflows
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+          actionlint -shellcheck='' -pyflakes=''
+      - name: Verify release source inventory boundaries
+        run: python3 -m unittest discover -s scripts/investments -p test_source_manifest.py -v
   go:
     runs-on: ubuntu-latest
     env:
@@ -24,7 +55,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
-          go-version: '1.25.13'
+          go-version: '1.26.9'
           cache: true
       - name: Install gofumpt
         run: go install mvdan.cc/gofumpt@v0.11.0
@@ -36,12 +67,58 @@ jobs:
           version: v2.11.4
           args: --timeout=5m
       - name: Test
-        run: go test ./... -race -coverprofile=coverage.out -covermode=atomic
+        run: WORKER_METRICS_HTTP_TEST=1 go test ./... -race -coverprofile=coverage.out -covermode=atomic
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v6
         with:
           name: coverage.out
           path: coverage.out
+  postgres:
+    name: PostgreSQL ${{ matrix.pg }} financial integration and full restore
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: [15, 16]
+    env:
+      GOTOOLCHAIN: local
+      PG_INTEGRATION: '1'
+      PG_TEST_IMAGE: postgres:${{ matrix.pg }}-alpine
+      BUDGET_BACKUP_TEST_IMAGE: postgres:${{ matrix.pg }}-alpine
+      BUDGET_BACKUP_TEST_REPORT: ${{ github.workspace }}/full-backup-fixture-report.json
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.9'
+          cache: true
+      - name: Test financial persistence and real pg_dump/pg_restore
+        run: go test -race ./internal/adapter/postgres ./internal/adapter/pgbackup -run '^(TestInvestment|TestBroker|TestMarket|TestAssets|TestBudgetFullBackup|TestMigrationUpgrade|TestUpgradeRehearsal)' -count=1
+      - name: Test operator backup and restore through pod tools
+        if: matrix.pg == 15
+        env:
+          BUDGET_OPERATOR_INTEGRATION: '1'
+          BUDGET_BACKUP_BINARY: ${{ github.workspace }}/budgetbackup-operator-test
+        run: |
+          go build -o "$BUDGET_BACKUP_BINARY" ./cmd/budgetbackup
+          python3 -m unittest discover -s scripts/investments -p test_production_backup.py -v 2>&1 | tee operator-backup-test.log
+      - name: Check warm financial reads at planned scale
+        if: matrix.pg == 15
+        env:
+          INVESTMENT_READ_LOAD: '1'
+        run: go test ./internal/adapter/postgres -run '^TestInvestmentWarmReadScale$' -count=1 -v | tee warm-financial-read-load.log
+      - name: Save synthetic restore evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: full-backup-fixture-report-pg${{ matrix.pg }}
+          path: |
+            full-backup-fixture-report.json
+            warm-financial-read-load.log
+            operator-backup-test.log
+          if-no-files-found: warn
+
   web:
     runs-on: ubuntu-latest
     steps:
@@ -54,10 +131,13 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - name: Install deps
         working-directory: web
-        run: npm ci || npm install
+        run: npm ci
       - name: Lint
         working-directory: web
-        run: npm run lint || echo "eslint not configured, skipping"
+        run: npm run lint
+      - name: Typecheck all web sources and tests
+        working-directory: web
+        run: npm run typecheck
       - name: Build
         working-directory: web
         env:
@@ -72,6 +152,16 @@ jobs:
       - name: Browser integration tests
         working-directory: web
         run: npm run test:e2e
+      - name: Read-only investment browser tests
+        working-directory: web
+        env:
+          E2E_INVESTMENTS_READ_ONLY: "true"
+        run: npx playwright test e2e/investment-readonly.spec.ts e2e/investment-accounts.spec.ts e2e/investment-preview.spec.ts e2e/investment-reconciliation.spec.ts e2e/investment-date-only.spec.ts e2e/investment-lot-input.spec.ts e2e/investment-trade-financials.spec.ts e2e/investment-cash-deficit.spec.ts e2e/investment-transfers.spec.ts e2e/investment-cash-transfer.spec.ts e2e/investment-transfer-dates.spec.ts e2e/investment-operations.spec.ts e2e/investment-payouts.spec.ts e2e/investment-lots.spec.ts
+      - name: Disabled investment browser tests
+        working-directory: web
+        env:
+          E2E_INVESTMENTS_ENABLED: "false"
+        run: npx playwright test e2e/investment-disabled.spec.ts
       - name: Upload browser traces
         if: failure()
         uses: actions/upload-artifact@v6
@@ -89,10 +179,81 @@ jobs:
       #     echo "Total coverage: ${total}%"
       #     if [ "$total" -lt 80 ]; then echo "coverage below 80%" && exit 1; fi
 
-  docker:
+  fullstack:
+    name: Authenticated local investment full stack
     runs-on: ubuntu-latest
-    needs: [go, web]
-    if: github.event_name == 'push'
+    timeout-minutes: 15
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.9'
+          cache: true
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+      - name: Install web dependencies and browser
+        working-directory: web
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Real authenticated browser, restart and feature controls
+        run: python3 scripts/investments/fullstack_smoke.py --out /tmp/budget-fullstack-evidence
+      - name: Save synthetic fullstack evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: investment-fullstack-evidence
+          path: |
+            /tmp/budget-fullstack-evidence/*.log
+            /tmp/budget-fullstack-evidence/report.json
+          if-no-files-found: warn
+
+  container-fullstack:
+    name: Authenticated investment release containers (${{ matrix.arch }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+      - name: Install browser test dependencies
+        working-directory: web
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Build actual Dockerfiles and exercise financial persistence
+        run: python3 scripts/investments/container_smoke.py --backend-platform linux/${{ matrix.arch }} --out /tmp/budget-container-evidence
+      - name: Save synthetic container evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: investment-container-evidence-${{ matrix.arch }}
+          path: |
+            /tmp/budget-container-evidence/*.log
+            /tmp/budget-container-evidence/report.json
+          if-no-files-found: warn
+
+  docker:
+    permissions:
+      contents: read
+      packages: write
+    runs-on: ubuntu-latest
+    needs: [go, web, postgres, proto, investment-operations, fullstack, container-fullstack, go-security, node-security, container-security]
+    if: github.event_name == 'push' && (github.ref_name == github.event.repository.default_branch || github.ref_type == 'tag')
     strategy:
       fail-fast: false
       matrix:
@@ -138,7 +299,7 @@ jobs:
   release:
     name: Build and Release
     runs-on: ubuntu-latest
-    needs: [go, web]
+    needs: [go, web, postgres, proto, investment-operations, fullstack, container-fullstack, go-security, node-security, container-security]
     if: github.event_name == 'push' && github.ref_type == 'tag'
     permissions:
       contents: write
@@ -146,7 +307,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
-          go-version: '1.25.13'
+          go-version: '1.26.9'
           cache: true
       - name: Download dependencies
         run: go mod download
@@ -155,7 +316,13 @@ jobs:
           mkdir -p dist
           GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.commit=${{ github.sha }}" -o dist/budgetd-linux-amd64 ./cmd/budgetd
           GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.commit=${{ github.sha }}" -o dist/budgetd-linux-arm64 ./cmd/budgetd
-          chmod +x dist/budgetd-*
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o dist/budgetbackup-linux-amd64 ./cmd/budgetbackup
+          GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w" -o dist/budgetbackup-linux-arm64 ./cmd/budgetbackup
+          for command in investfxpolicy investcbr marketdata investmentnav; do
+            GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o dist/$command-linux-amd64 ./cmd/$command
+            GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w" -o dist/$command-linux-arm64 ./cmd/$command
+          done
+          chmod +x dist/budgetd-* dist/budgetbackup-* dist/investfxpolicy-* dist/investcbr-* dist/marketdata-* dist/investmentnav-*
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
@@ -164,7 +331,7 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - name: Install frontend dependencies
         working-directory: web
-        run: npm ci || npm install
+        run: npm ci
       - name: Build frontend
         working-directory: web
         env:
@@ -207,7 +374,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
-          go-version: '1.25.13'
+          go-version: '1.26.9'
           cache: true
       - name: Install Go dependencies
         run: |
@@ -240,18 +407,19 @@ jobs:
   container-security:
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       security-events: write
       actions: read
-      contents: read
     steps:
       - uses: actions/checkout@v5
-      - name: Run Trivy config scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'config'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-config-results.sarif'
+      - name: Install verified Trivy 0.75.0
+        run: |
+          curl --fail --location --retry 3 --output /tmp/trivy.tar.gz https://github.com/aquasecurity/trivy/releases/download/v0.75.0/trivy_0.75.0_Linux-64bit.tar.gz
+          echo "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f  /tmp/trivy.tar.gz" | sha256sum --check --strict
+          mkdir -p /tmp/trivy-bin
+          tar -xzf /tmp/trivy.tar.gz -C /tmp/trivy-bin trivy
+      - name: Require clean high and critical configuration scan
+        run: /tmp/trivy-bin/trivy config --skip-check-update --severity HIGH,CRITICAL --exit-code 1 --format sarif --output trivy-config-results.sarif .
       - name: Upload Trivy config scan results
         uses: github/codeql-action/upload-sarif@v4
         if: always()

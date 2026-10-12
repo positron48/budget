@@ -1,5 +1,6 @@
 "use client";
 
+import {useInvestmentAccess} from "@/lib/investment-access";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { authStore, AUTH_CHANGED_EVENT, TENANT_CHANGED_EVENT } from "@/lib/auth/store";
@@ -9,7 +10,8 @@ import { Icon, Button, ThemeToggle } from "@/components";
 import { useClients } from "@/app/providers";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-export default function HeaderNav() {
+export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled?:boolean}) {
+  const investmentAccess=useInvestmentAccess(investmentsEnabled);
   const router = useRouter();
   const pathname = usePathname();
   const t = useTranslations("nav");
@@ -93,6 +95,7 @@ export default function HeaderNav() {
     { href: "/", label: t("home"), icon: "home" },
     { href: "/transactions", label: t("transactions"), icon: "transactions" },
     { href: "/assets", label: t("assets"), icon: "wallet" },
+    ...(investmentsEnabled && investmentAccess.isSuccess ? [{ href: "/investments", label: t("investments"), icon: "reports" }] : []),
     { href: "/currency-exchanges", label: t("currencyExchanges"), icon: "fx" },
     { href: "/categories", label: t("categories"), icon: "categories" },
     { href: "/reports", label: t("reports"), icon: "reports" },

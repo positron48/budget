@@ -14,11 +14,18 @@ type AssetRepo struct{ pool *Pool }
 
 func NewAssetRepo(pool *Pool) *AssetRepo { return &AssetRepo{pool} }
 
-const accountColumns = `id, tenant_id, name, kind, institution, note, COALESCE(fixed_currency_code,''), COALESCE(deposit_rate::text,''), COALESCE(deposit_opened_on::text,''), COALESCE(deposit_matures_on::text,''), archived, version, created_at`
+const accountColumns = `id, tenant_id, name, kind, institution, note, COALESCE(fixed_currency_code,''), COALESCE(deposit_rate::text,''), COALESCE(deposit_opened_on::text,''), COALESCE(deposit_matures_on::text,''), archived, version, created_at, investment_mode, COALESCE(investment_ledger_id::text,''), ledger_started_at, ledger_valuation_from, COALESCE(investment_convention_key,'')`
 
 func scanAccount(row interface{ Scan(...any) error }) (domain.AssetAccount, error) {
 	var a domain.AssetAccount
-	err := row.Scan(&a.ID, &a.TenantID, &a.Name, &a.Kind, &a.Institution, &a.Note, &a.FixedCurrencyCode, &a.DepositRateDecimal, &a.DepositOpenedOn, &a.DepositMaturesOn, &a.Archived, &a.Version, &a.CreatedAt)
+	var started, cutover *time.Time
+	err := row.Scan(&a.ID, &a.TenantID, &a.Name, &a.Kind, &a.Institution, &a.Note, &a.FixedCurrencyCode, &a.DepositRateDecimal, &a.DepositOpenedOn, &a.DepositMaturesOn, &a.Archived, &a.Version, &a.CreatedAt, &a.InvestmentMode, &a.InvestmentLedgerID, &started, &cutover, &a.InvestmentConventionKey)
+	if started != nil {
+		a.LedgerStartedAt = *started
+	}
+	if cutover != nil {
+		a.LedgerValuationFrom = *cutover
+	}
 	a.Balances = []domain.AssetBalance{}
 	return a, err
 }
@@ -62,6 +69,9 @@ func (r *AssetRepo) balances(ctx context.Context, tenant, id string, at time.Tim
 	return out, rows.Err()
 }
 func (r *AssetRepo) GetAccount(ctx context.Context, tenant, id string, at time.Time) (domain.AssetAccount, error) {
+	return withAssetRead(ctx, r.pool, func(ctx context.Context) (domain.AssetAccount, error) { return r.getAccountAt(ctx, tenant, id, at) })
+}
+func (r *AssetRepo) getAccountAt(ctx context.Context, tenant, id string, at time.Time) (domain.AssetAccount, error) {
 	a, err := r.getAccountRow(ctx, tenant, id, false)
 	if err != nil {
 		return a, err
@@ -73,9 +83,14 @@ func (r *AssetRepo) GetAccount(ctx context.Context, tenant, id string, at time.T
 	if b := balances[id]; b != nil {
 		a.Balances = b
 	}
-	return a, nil
+	return r.resolveInvestmentAccount(ctx, a, at)
 }
 func (r *AssetRepo) ListAccounts(ctx context.Context, tenant string, archived bool, at time.Time) ([]domain.AssetAccount, error) {
+	return withAssetRead(ctx, r.pool, func(ctx context.Context) ([]domain.AssetAccount, error) {
+		return r.listAccountsAt(ctx, tenant, archived, at)
+	})
+}
+func (r *AssetRepo) listAccountsAt(ctx context.Context, tenant string, archived bool, at time.Time) ([]domain.AssetAccount, error) {
 	rows, err := r.pool.query(ctx).Query(ctx, `SELECT `+accountColumns+` FROM asset_accounts WHERE tenant_id=$1 AND ($2 OR NOT archived) ORDER BY archived,kind,institution,name,id`, tenant, archived)
 	if err != nil {
 		return nil, err
@@ -101,6 +116,10 @@ func (r *AssetRepo) ListAccounts(ctx context.Context, tenant string, archived bo
 	for i := range out {
 		if b := balances[out[i].ID]; b != nil {
 			out[i].Balances = b
+		}
+		out[i], err = r.resolveInvestmentAccount(ctx, out[i], at)
+		if err != nil {
+			return nil, err
 		}
 	}
 	return out, nil
@@ -155,6 +174,9 @@ func (r *AssetRepo) SetArchived(ctx context.Context, tenant, id string, version 
 		}
 		if a.Version != version {
 			return a, domain.ErrAssetConflict
+		}
+		if a.InvestmentMode == "ledger" {
+			return a, domain.ErrAssetPrecondition
 		}
 		if value {
 			b, e := r.balances(ctx, tenant, id, time.Now())
@@ -217,6 +239,9 @@ func (r *AssetRepo) insertSnapshot(ctx context.Context, s domain.AssetSnapshot) 
         VALUES($1,$2,NULLIF($3,'')::uuid,$4,$5,$6,$7,$8) RETURNING `+snapshotColumns, s.TenantID, s.AccountID, s.UserID, s.Amount.CurrencyCode, s.Amount.MinorUnits, s.AsOf, s.Kind, s.Note))
 }
 func checkSnapshotAccount(a domain.AssetAccount, s domain.AssetSnapshot) error {
+	if a.InvestmentMode == "ledger" && !s.AsOf.Before(a.LedgerValuationFrom) {
+		return domain.ErrAssetPrecondition
+	}
 	if a.Archived {
 		return domain.ErrAssetPrecondition
 	}
@@ -277,6 +302,9 @@ func (r *AssetRepo) UpdateSnapshot(ctx context.Context, s domain.AssetSnapshot) 
 		if old.Version != s.Version {
 			return s, domain.ErrAssetConflict
 		}
+		if a.InvestmentMode == "ledger" && !old.AsOf.Before(a.LedgerValuationFrom) {
+			return s, domain.ErrAssetPrecondition
+		}
 		if old.AccountID != s.AccountID || old.Amount.CurrencyCode != s.Amount.CurrencyCode || old.Kind != s.Kind {
 			return s, domain.ErrAssetInvalid
 		}
@@ -296,7 +324,7 @@ func (r *AssetRepo) DeleteSnapshot(ctx context.Context, tenant, id string, versi
 		if e != nil {
 			return false, e
 		}
-		if a.Archived {
+		if a.Archived || a.InvestmentMode == "ledger" && !s.AsOf.Before(a.LedgerValuationFrom) {
 			return false, domain.ErrAssetPrecondition
 		}
 		s, e = r.getSnapshot(ctx, tenant, id)
@@ -333,7 +361,12 @@ func (r *AssetRepo) getTransfer(ctx context.Context, tenant, id string, lock boo
 	if lock {
 		sql += ` FOR UPDATE`
 	}
-	return scanTransfer(r.pool.query(ctx).QueryRow(ctx, sql, tenant, id))
+	v, e := scanTransfer(r.pool.query(ctx).QueryRow(ctx, sql, tenant, id))
+	if e != nil {
+		return v, e
+	}
+	e = r.pool.query(ctx).QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM investment_cash_links WHERE tenant_id=$1 AND transfer_id=$2)`, tenant, id).Scan(&v.InvestmentCashTransfer)
+	return v, e
 }
 func (r *AssetRepo) validateTransferAccounts(ctx context.Context, t domain.AssetTransfer) error {
 	type leg struct{ id, currency string }
@@ -347,6 +380,13 @@ func (r *AssetRepo) validateTransferAccounts(ctx context.Context, t domain.Asset
 	sort.Slice(legs, func(i, j int) bool { return legs[i].id < legs[j].id })
 	investment := false
 	for _, l := range legs {
+		a, e := r.getAccountRow(ctx, t.TenantID, l.id, false)
+		if e != nil {
+			return e
+		}
+		if a.InvestmentMode == "ledger" {
+			return domain.ErrAssetPrecondition
+		}
 		kind, err := validateAssetLeg(ctx, r.pool, t.TenantID, l.id, l.currency, false)
 		if err != nil {
 			return err
@@ -421,7 +461,7 @@ func (r *AssetRepo) UpdateTransfer(ctx context.Context, t domain.AssetTransfer) 
 			if e != nil {
 				return t, e
 			}
-			if a.Archived {
+			if a.Archived || a.InvestmentMode == "ledger" {
 				return t, domain.ErrAssetPrecondition
 			}
 		}
@@ -457,7 +497,7 @@ func (r *AssetRepo) DeleteTransfer(ctx context.Context, tenant, id string, versi
 			if err != nil {
 				return false, err
 			}
-			if a.Archived {
+			if a.Archived || a.InvestmentMode == "ledger" {
 				return false, domain.ErrAssetPrecondition
 			}
 		}

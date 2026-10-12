@@ -26,6 +26,15 @@ message AssetAccount {
   int64 version = 12;
   google.protobuf.Timestamp created_at = 13;
   repeated AssetBalance balances = 14;
+  string investment_mode = 15;
+  string investment_ledger_id = 16;
+  google.protobuf.Timestamp ledger_started_at = 17;
+  google.protobuf.Timestamp ledger_valuation_from = 18;
+  string valuation_status = 19;
+  google.protobuf.Timestamp valuation_as_of = 20;
+  repeated string valuation_issues = 21;
+  bool valuation_incomplete = 22;
+  string investment_convention_key = 23;
 }
 message AssetSnapshot {
   string id = 1;
@@ -39,6 +48,7 @@ message AssetSnapshot {
   string user_id = 9;
 }
 message AssetTransfer {
+ bool investment_cash_transfer = 11; // joint document; edited through InvestmentService
   string id = 1;
   string from_account_id = 2; // empty means outside tracked accounts
   string to_account_id = 3;

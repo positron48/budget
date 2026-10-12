@@ -1,0 +1,3 @@
+ALTER TABLE investment_operations DROP CONSTRAINT IF EXISTS investment_operations_kind_check;
+ALTER TABLE investment_operations ADD CONSTRAINT investment_operations_kind_check CHECK(kind IN ('deposit','withdrawal','buy','sell','dividend','coupon','fee','tax','split','amortization','redemption','fx','transfer_out','transfer_in','opening_cash','opening_position','cash_interest','repo_income','distribution','security_transfer_out','security_transfer_in'));
+CREATE INDEX IF NOT EXISTS investment_security_transfer_counterparty ON investment_operations(tenant_id,(data->>'CounterpartyLedgerID')) WHERE kind IN ('security_transfer_in','security_transfer_out');

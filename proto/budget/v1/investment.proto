@@ -1,0 +1,527 @@
+syntax = "proto3";
+package budget.v1;
+option go_package = "github.com/positron48/budget/gen/go/budget/v1;budgetv1";
+import "google/protobuf/timestamp.proto";
+import "budget/v1/asset.proto";
+import "budget/v1/common.proto";
+
+message InvestmentLedger {
+ string id = 1;
+ string name = 2;
+ google.protobuf.Timestamp started_at = 3;
+ int64 version = 4;
+ google.protobuf.Timestamp created_at = 5;
+ string broker=6; string account_type=7; string comment=8; string default_currency=9; bool archived=10; int64 metadata_version=11;
+}
+message InvestmentCashReconciliation { string expected_settled=1; string observed_settled=2; }
+message InvestmentOperationTiming { string timezone=1; string occurred_date=2; string settlement_date=3; string source_date=4; }
+message InvestmentLotConversion {
+ string lots=1; string lot_size=2; string terms_id=3; int64 mapping_version=4; string provider=5; string access_scope=6; string instrument_id=7; string evidence=8; google.protobuf.Timestamp from=9; google.protobuf.Timestamp to=10;
+}
+message PreviewInvestmentLotQuantityRequest { string instrument_key=1; string lots=2; google.protobuf.Timestamp occurred_at=3; InvestmentOperationTiming timing=4; }
+message PreviewInvestmentLotQuantityResponse { string quantity=1; InvestmentLotConversion conversion=2; google.protobuf.Timestamp effective_at=3; }
+message InvestmentTradeMoney {
+ string amount=1; string currency=2; google.protobuf.Timestamp at=3;
+ string fx_numerator=4; string fx_denominator=5; string fx_source=6; string fx_evidence=7; google.protobuf.Timestamp fx_at=8;
+}
+message InvestmentTradeFinancials {
+ string price=1; string price_unit=2; string nominal=3; string actual_settlement=4; string difference_reason=5;
+ InvestmentTradeMoney principal=6; InvestmentTradeMoney accrued=7; InvestmentTradeMoney fee=8; InvestmentTradeMoney tax=9;
+ string calculated_settlement=10; string settlement_difference=11; string principal_difference_numerator=12; string principal_difference_denominator=13;
+ string price_currency=14; string price_fx_numerator=15; string price_fx_denominator=16; string price_fx_source=17; string price_fx_evidence=18; google.protobuf.Timestamp price_fx_at=19; bool actual_settlement_includes_expenses=20;
+}
+message InvestmentOperation {
+ string imported_cash_deficit_reason=39; // explicit source-linked exception; never enables margin
+
+ InvestmentTradeFinancials trade_financials=38;
+
+ InvestmentLotConversion lot_conversion=37;
+ InvestmentOperationTiming timing=36;
+ InvestmentCashReconciliation cash_reconciliation=35;
+ string budget_transfer_id = 34; // cash bridge; edited only as a joint Budget document
+ string id = 1;
+ string ledger_id = 2;
+ string kind = 3; // deposit, withdrawal, buy, sell, dividend, coupon, fee, tax, split
+ string instrument_key = 4; // confirmed listing identity; no automatic alias merging
+ string currency = 5;
+ string quantity = 6;
+ string amount = 7; // actual clean principal / gross income / cash amount
+ string accrued = 8; // total acquired/received accrued interest, not per unit
+ string fee = 9; // in currency; actual trade fee, included exactly once
+ string tax = 10; // in currency, income operations only
+ string split_new = 11;
+ string split_old = 12;
+ google.protobuf.Timestamp occurred_at = 13;
+ google.protobuf.Timestamp settlement_at = 14;
+ int64 sequence = 15;
+ int64 version = 16;
+ string status = 17;
+ string note = 18;
+ bool settlement_assumed = 19;
+ bool opening_cost_known = 29;
+ bool opening_accrued_known = 30;
+ google.protobuf.Timestamp acquired_at = 31; // original acquisition date for an opening lot; absent = unknown
+ string transfer_id = 27; // linked legs are edited only through MutateInvestmentTransfer
+ string counterparty_ledger_id = 28;
+ string to_currency = 25; // FX target settlement currency
+ string to_amount = 26; // actual target amount, not derived from analytical FX
+ InvestmentDistribution distribution = 33;
+ bool tax_review_required = 32; // observed payment is known; tax reconciliation is incomplete
+ bool coupon_allocation_confirmed = 23;
+ repeated InvestmentAccruedRecovery accrued_recoveries = 24;
+ string nominal_before = 21; // per-unit outstanding nominal immediately before event
+ string nominal_after = 22; // zero for full redemption
+ InvestmentOperationSource source = 20; // immutable, server-verified provenance
+}
+message InvestmentOperationSource {
+ string import_id = 1;
+ int32 record = 2;
+ int64 expected_version = 3;
+ string review_reason = 4; // explicit financial interpretation, not automatic mapping
+}
+message InvestmentCashBalance {
+ string currency = 1;
+ string settled = 2;
+ string receivable = 3;
+ string payable = 4;
+ string economic = 5;
+}
+message InvestmentAccruedRecovery { string origin_id = 1; string amount = 2; bool all_remaining = 3; }
+message InvestmentLot { string acquisition_operation_id=6; string origin_ledger_id=7; int64 origin_sequence=8; string origin_id = 1; string quantity = 2; string clean_cost = 3; string acquired_accrued = 4; google.protobuf.Timestamp acquired_at = 5; }
+message InvestmentPosition {
+ repeated InvestmentLot lots = 9;
+ string coupon_gross = 10;
+ string coupon_tax = 11;
+ string coupon_recovered = 12;
+ string coupon_earned = 13; // empty when allocation is unknown; gross less recovered, before tax
+ string outstanding_nominal = 8; // empty = unknown, not zero
+ string instrument_key = 1;
+ string currency = 2;
+ string quantity = 3;
+ string clean_cost = 4;
+ string acquired_accrued = 5;
+ string realized_clean = 6;
+ string realized_accrued = 7;
+}
+message InvestmentSnapshot {
+ InvestmentLedger ledger = 1;
+ google.protobuf.Timestamp as_of = 2;
+ repeated InvestmentCashBalance cash = 3;
+ repeated InvestmentPosition positions = 4;
+ string valuation_status = 5; // market_data_required; no implied NAV
+ repeated string issues = 6;
+}
+message CreateInvestmentLedgerRequest { string name = 1; google.protobuf.Timestamp started_at = 2; string request_key = 3; string broker=4; string account_type=5; string comment=6; string default_currency=7; }
+message CreateInvestmentLedgerResponse { InvestmentLedger ledger = 1; }
+message ListInvestmentLedgersRequest { int32 limit = 1; int32 offset = 2; bool include_archived=3; }
+message ListInvestmentLedgersResponse { repeated InvestmentLedger ledgers = 1; }
+message GetInvestmentSnapshotRequest { string ledger_id = 1; google.protobuf.Timestamp as_of = 2; }
+message GetInvestmentSnapshotResponse { InvestmentSnapshot snapshot = 1; }
+message ListInvestmentOperationsRequest { string ledger_id = 1; int32 limit = 2; int32 offset = 3; }
+message ListInvestmentOperationsResponse { repeated InvestmentOperation operations = 1; }
+message SaveInvestmentOperationRequest {
+ InvestmentOperation operation = 1; // empty id creates; existing id amends
+ int64 expected_ledger_version = 2;
+ int64 expected_operation_version = 3;
+ string request_key = 4;
+ string reason = 5; // required for amendments
+ string preview_hash=7; // optional for compatibility; validates reviewed journal context when supplied
+ InvestmentOperationSource source = 6; // create only; owner/admin; consumes source row once
+}
+message SaveInvestmentOperationResponse { InvestmentOperation operation = 1; }
+message VoidInvestmentOperationRequest {
+ string preview_hash=7;
+ string ledger_id = 1;
+ string operation_id = 2;
+ int64 expected_ledger_version = 3;
+ int64 expected_operation_version = 4;
+ string request_key = 5;
+ string reason = 6;
+}
+message VoidInvestmentOperationResponse { InvestmentOperation operation = 1; }
+message InvestmentTransfer {
+ InvestmentOperationTiming timing=14;
+ string instrument_key=12; string quantity=13;
+ string id = 1;
+ string from_ledger_id = 2;
+ string to_ledger_id = 3;
+ string from_operation_id = 4;
+ string to_operation_id = 5;
+ string currency = 6;
+ string amount = 7;
+ google.protobuf.Timestamp occurred_at = 8;
+ string note = 9;
+ string status = 10;
+ int64 version = 11;
+}
+message MutateInvestmentTransferRequest {
+ string preview_hash=8;
+ string action = 1; // create, amend, void
+ InvestmentTransfer transfer = 2;
+ int64 expected_version = 3;
+ int64 expected_from_version = 4;
+ int64 expected_to_version = 5;
+ string request_key = 6;
+ string reason = 7;
+}
+message MutateInvestmentTransferResponse { InvestmentTransfer transfer = 1; }
+message GetInvestmentTransferRequest { string id = 1; }
+message GetInvestmentTransferResponse { InvestmentTransfer transfer = 1; }
+message InvestmentImportBatchEntry {
+ int32 record = 1;
+ int64 expected_row_version = 2;
+ string review_reason = 3;
+ InvestmentOperation operation = 4;
+}
+message InvestmentImportBatch {
+ string import_id = 1;
+ string preview_hash = 2; // immutable staging preview hash
+ string request_key = 3;
+ int64 expected_import_version = 4;
+ map<string,int64> expected_ledger_versions = 5;
+ repeated InvestmentImportBatchEntry entries = 6;
+ string preparation_evidence_json = 7; // original preparation rules, not proof that later edits match them
+}
+message InvestmentImportBatchResult {
+ string hash = 1; // normalized reviewed input, actor and expected versions
+ bool committed = 2;
+ repeated InvestmentOperation operations = 3;
+ repeated InvestmentSnapshot snapshots = 4;
+}
+message PreviewInvestmentImportBatchRequest { InvestmentImportBatch batch = 1; }
+message PreviewInvestmentImportBatchResponse { InvestmentImportBatchResult result = 1; }
+message CommitInvestmentImportBatchRequest { InvestmentImportBatch batch = 1; string expected_hash = 2; }
+message CommitInvestmentImportBatchResponse { InvestmentImportBatchResult result = 1; }
+message InvestmentBatchCancellation {
+ string draft_id = 1;
+ int64 expected_draft_version = 2;
+ string request_key = 3;
+ string reason = 4;
+}
+message InvestmentBatchCancellationResult {
+ string hash = 1;
+ string reason = 2;
+ bool cancelled = 3;
+ google.protobuf.Timestamp cancelled_at = 4;
+ repeated InvestmentOperation operations = 5;
+ repeated string already_voided = 6;
+ repeated InvestmentSnapshot snapshots = 7;
+}
+message PreviewInvestmentBatchCancellationRequest { InvestmentBatchCancellation cancellation = 1; }
+message PreviewInvestmentBatchCancellationResponse { InvestmentBatchCancellationResult result = 1; }
+message CommitInvestmentBatchCancellationRequest { InvestmentBatchCancellation cancellation = 1; string expected_hash = 2; }
+message CommitInvestmentBatchCancellationResponse { InvestmentBatchCancellationResult result = 1; }
+message InvestmentImportDraft {
+ string id = 1;
+ int64 version = 2;
+ InvestmentImportBatch batch = 3;
+ InvestmentImportBatchResult preview = 4;
+ google.protobuf.Timestamp updated_at = 5;
+ InvestmentBatchCancellationResult cancellation = 6;
+}
+message InvestmentImportDraftSummary {
+ string id = 1;
+ string import_id = 2;
+ int64 version = 3;
+ int32 row_count = 4;
+ bool committed = 5;
+ google.protobuf.Timestamp updated_at = 6;
+ bool cancelled = 7;
+}
+message SaveInvestmentImportDraftRequest { string id = 1; int64 expected_version = 2; InvestmentImportBatch batch = 3; }
+message SaveInvestmentImportDraftResponse { InvestmentImportDraft draft = 1; }
+message GetInvestmentImportDraftRequest { string id = 1; }
+message GetInvestmentImportDraftResponse { InvestmentImportDraft draft = 1; }
+message ListInvestmentImportDraftsRequest { string after_id = 1; }
+message ListInvestmentImportDraftsResponse { repeated InvestmentImportDraftSummary drafts = 1; }
+message PreviewInvestmentImportDraftRequest { string id = 1; int64 expected_version = 2; }
+message PreviewInvestmentImportDraftResponse { InvestmentImportDraft draft = 1; }
+message CommitInvestmentImportDraftRequest { string id = 1; int64 expected_version = 2; string expected_hash = 3; }
+message CommitInvestmentImportDraftResponse { InvestmentImportDraft draft = 1; }
+message DeleteInvestmentImportDraftRequest { string id = 1; int64 expected_version = 2; }
+message DeleteInvestmentImportDraftResponse {}
+message InvestmentCashTransfer {
+ InvestmentOperationTiming timing=5;
+ AssetTransfer transfer = 1;
+ string ledger_id = 2;
+ string operation_id = 3;
+ string status = 4;
+}
+message MutateInvestmentCashTransferRequest {
+ InvestmentOperationTiming timing=9;
+ string preview_hash=10;
+ string action = 1; // create, amend, void; account endpoints are immutable
+ AssetTransfer transfer = 2;
+ int64 expected_version = 3;
+ int64 expected_ledger_version = 4;
+ int64 expected_from_account_version = 5;
+ int64 expected_to_account_version = 6;
+ string reason = 7;
+ string request_key = 8;
+}
+message MutateInvestmentCashTransferResponse { InvestmentCashTransfer transfer = 1; }
+message GetInvestmentCashTransferRequest { string id = 1; }
+message GetInvestmentCashTransferResponse { InvestmentCashTransfer transfer = 1; }
+message UpdateInvestmentLedgerRequest {
+ string id=1; string action=2; string name=3; string broker=4; string account_type=5; string comment=6; string default_currency=7;
+ int64 expected_metadata_version=8; int64 expected_ledger_version=9; string request_key=10; string reason=11;
+}
+message UpdateInvestmentLedgerResponse { InvestmentLedger ledger=1; }
+message InvestmentLedgerRevision { int64 version=1; string action=2; string actor_id=3; string reason=4; google.protobuf.Timestamp recorded_at=5; InvestmentLedger before=6; InvestmentLedger after=7; }
+message GetInvestmentLedgerHistoryRequest { string id=1; int64 after_version=2; int64 expected_metadata_version=3; int32 limit=4; }
+message GetInvestmentLedgerHistoryResponse { InvestmentLedger ledger=1; repeated InvestmentLedgerRevision revisions=2; int64 next_after_version=3; }
+message PreviewInvestmentOperationRequest {
+ string action=1; InvestmentOperation operation=2; int64 expected_ledger_version=3; int64 expected_operation_version=4;
+ string request_key=5; string reason=6; InvestmentOperationSource source=7;
+}
+message InvestmentPreviewIssue { string code=1; string operation_id=2; string instrument_key=3; google.protobuf.Timestamp at=4; InvestmentCashBalance cash=5; }
+message InvestmentPreviewComparison { string stage=1; google.protobuf.Timestamp as_of=2; InvestmentSnapshot before=3; InvestmentSnapshot after=4; repeated InvestmentCashBalance cash_change=5; repeated InvestmentPosition position_change=6; }
+message PreviewInvestmentOperationResponse {
+ bool valid=1; string preview_hash=2; google.protobuf.Timestamp checked_at=3; google.protobuf.Timestamp dirty_from=4;
+ repeated InvestmentPreviewIssue issues=5; repeated InvestmentPreviewComparison comparisons=6; repeated string affected_ledger_ids=7;
+ InvestmentOperation proposed=8;
+}
+message InvestmentExportJob {
+ string id=1; string state=2; string sha256=3; int64 byte_size=4; string error_code=5;
+ google.protobuf.Timestamp created_at=6; google.protobuf.Timestamp completed_at=7; google.protobuf.Timestamp expires_at=8;
+}
+message StartInvestmentExportRequest { string request_key=1; }
+message StartInvestmentExportResponse { InvestmentExportJob job=1; }
+message GetInvestmentExportRequest { string job_id=1; }
+message GetInvestmentExportResponse { InvestmentExportJob job=1; }
+message DownloadInvestmentExportRequest { string job_id=1; int64 offset=2; }
+message DownloadInvestmentExportResponse { bytes data=1; int64 offset=2; int64 total_bytes=3; string sha256=4; }
+
+service InvestmentService {
+ rpc StartInvestmentExport(StartInvestmentExportRequest) returns (StartInvestmentExportResponse);
+ rpc GetInvestmentExport(GetInvestmentExportRequest) returns (GetInvestmentExportResponse);
+ rpc DownloadInvestmentExport(DownloadInvestmentExportRequest) returns (DownloadInvestmentExportResponse);
+ rpc GetInvestmentDividendGrowth(GetInvestmentDividendGrowthRequest) returns(GetInvestmentDividendGrowthResponse);
+ rpc SaveInvestmentDividendHistory(SaveInvestmentDividendHistoryRequest) returns(SaveInvestmentDividendHistoryResponse);
+ rpc GetInvestmentForecast(GetInvestmentForecastRequest) returns(GetInvestmentForecastResponse);
+ rpc SaveInvestmentForecastEvent(SaveInvestmentForecastEventRequest) returns(SaveInvestmentForecastEventResponse);
+ rpc SaveInvestmentForecastLink(SaveInvestmentForecastLinkRequest) returns(SaveInvestmentForecastLinkResponse);
+ rpc PreviewInvestmentLotQuantity(PreviewInvestmentLotQuantityRequest) returns (PreviewInvestmentLotQuantityResponse);
+ rpc PreviewInvestmentOperation(PreviewInvestmentOperationRequest) returns(PreviewInvestmentOperationResponse);
+ rpc UpdateInvestmentLedger(UpdateInvestmentLedgerRequest) returns(UpdateInvestmentLedgerResponse);
+ rpc GetInvestmentLedgerHistory(GetInvestmentLedgerHistoryRequest) returns(GetInvestmentLedgerHistoryResponse);
+ rpc QueryInvestmentOperations(QueryInvestmentOperationsRequest) returns (QueryInvestmentOperationsResponse);
+ rpc GetInvestmentOperationHistory(GetInvestmentOperationHistoryRequest) returns (GetInvestmentOperationHistoryResponse);
+ rpc GetInvestmentPayouts(GetInvestmentPayoutsRequest) returns (GetInvestmentPayoutsResponse);
+ rpc MutateInvestmentCashTransfer(MutateInvestmentCashTransferRequest) returns (MutateInvestmentCashTransferResponse);
+ rpc GetInvestmentCashTransfer(GetInvestmentCashTransferRequest) returns (GetInvestmentCashTransferResponse);
+ rpc PrepareInvestmentAssetActivation(PrepareInvestmentAssetActivationRequest) returns (PrepareInvestmentAssetActivationResponse);
+ rpc ActivateInvestmentAsset(ActivateInvestmentAssetRequest) returns (ActivateInvestmentAssetResponse);
+ rpc PreviewInvestmentBatchCancellation(PreviewInvestmentBatchCancellationRequest) returns (PreviewInvestmentBatchCancellationResponse);
+ rpc CommitInvestmentBatchCancellation(CommitInvestmentBatchCancellationRequest) returns (CommitInvestmentBatchCancellationResponse);
+ rpc SaveInvestmentImportDraft(SaveInvestmentImportDraftRequest) returns (SaveInvestmentImportDraftResponse);
+ rpc GetInvestmentImportDraft(GetInvestmentImportDraftRequest) returns (GetInvestmentImportDraftResponse);
+ rpc ListInvestmentImportDrafts(ListInvestmentImportDraftsRequest) returns (ListInvestmentImportDraftsResponse);
+ rpc PreviewInvestmentImportDraft(PreviewInvestmentImportDraftRequest) returns (PreviewInvestmentImportDraftResponse);
+ rpc CommitInvestmentImportDraft(CommitInvestmentImportDraftRequest) returns (CommitInvestmentImportDraftResponse);
+ rpc DeleteInvestmentImportDraft(DeleteInvestmentImportDraftRequest) returns (DeleteInvestmentImportDraftResponse);
+ rpc PreviewInvestmentImportBatch(PreviewInvestmentImportBatchRequest) returns (PreviewInvestmentImportBatchResponse);
+ rpc CommitInvestmentImportBatch(CommitInvestmentImportBatchRequest) returns (CommitInvestmentImportBatchResponse);
+ rpc PreviewInvestmentTransfer(PreviewInvestmentTransferRequest) returns (PreviewInvestmentTransferResponse);
+ rpc PreviewInvestmentCashTransfer(PreviewInvestmentCashTransferRequest) returns (PreviewInvestmentCashTransferResponse);
+ rpc MutateInvestmentTransfer(MutateInvestmentTransferRequest) returns (MutateInvestmentTransferResponse);
+ rpc GetInvestmentTransfer(GetInvestmentTransferRequest) returns (GetInvestmentTransferResponse);
+ rpc CreateInvestmentLedger(CreateInvestmentLedgerRequest) returns (CreateInvestmentLedgerResponse);
+ rpc ListInvestmentLedgers(ListInvestmentLedgersRequest) returns (ListInvestmentLedgersResponse);
+ rpc GetInvestmentSnapshot(GetInvestmentSnapshotRequest) returns (GetInvestmentSnapshotResponse);
+ rpc ListInvestmentOperations(ListInvestmentOperationsRequest) returns (ListInvestmentOperationsResponse);
+ rpc SaveInvestmentOperation(SaveInvestmentOperationRequest) returns (SaveInvestmentOperationResponse);
+ rpc VoidInvestmentOperation(VoidInvestmentOperationRequest) returns (VoidInvestmentOperationResponse);
+}
+
+message InvestmentDistribution {
+ string event_key = 1;
+ string target_instrument_key = 2;
+ string new_units = 3;
+ string old_units = 4;
+ string cost_numerator = 5;
+ string cost_denominator = 6;
+ bool consume_source = 7;
+ // Reviewed total fair value received, in operation currency at event time.
+ // Empty means unknown. Does not change cash or FIFO cost allocation.
+ string market_value = 8;
+ string market_value_evidence = 9;
+}
+
+message InvestmentAssetActivation {
+ string account_id=1; string ledger_id=2; string convention_key=3;
+ google.protobuf.Timestamp valuation_from=4;
+ string preview_hash=5; int64 expected_account_version=6; int64 expected_ledger_version=7;
+ string evidence=8; string request_key=9;
+}
+message InvestmentAssetActivationPreview {
+ AssetAccount account=1; InvestmentLedger ledger=2; google.protobuf.Timestamp valuation_from=3;
+ Money manual_value=4; Money ledger_known_value=5; bool complete=6; bool matches=7;
+ repeated string issues=8; int64 inventory_count=9; string preview_hash=10;
+}
+message PrepareInvestmentAssetActivationRequest { InvestmentAssetActivation activation=1; }
+message PrepareInvestmentAssetActivationResponse { InvestmentAssetActivationPreview preview=1; }
+message ActivateInvestmentAssetRequest { InvestmentAssetActivation activation=1; }
+message ActivateInvestmentAssetResponse { AssetAccount account=1; }
+
+// Exact native-currency cash facts; absent amounts mean unknown, never zero.
+message InvestmentPayoutAmount { string numerator=1; string denominator=2; string decimal=3; }
+message InvestmentPayoutEntry {
+ string id=1; string operation_id=2; string ledger_id=3; string ledger_name=4;
+ string instrument_key=5; string kind=6; string currency=7; string note=8;
+ google.protobuf.Timestamp at=9; int64 operation_version=10;
+ InvestmentPayoutAmount gross=11; InvestmentPayoutAmount tax=12; InvestmentPayoutAmount net=13;
+ bool tax_review_required=14; bool settlement_assumed=15;
+}
+message InvestmentPayoutTotals {
+ string month=1; string currency=2;
+ InvestmentPayoutAmount gross=3; InvestmentPayoutAmount tax=4; InvestmentPayoutAmount income_net=5;
+ InvestmentPayoutAmount fees=6; InvestmentPayoutAmount standalone_tax=7; InvestmentPayoutAmount tax_refund=8;
+ InvestmentPayoutAmount principal_return=9; InvestmentPayoutAmount net_cash=10;
+}
+// Cash receipts growth by identical completed civil months, never per-share growth.
+message InvestmentPayoutGrowth {
+ string month=1; string previous_month=2; string currency=3;
+ InvestmentPayoutAmount income_net=4; InvestmentPayoutAmount previous_income_net=5;
+ InvestmentPayoutAmount change=6; InvestmentPayoutAmount percent_change=7;
+ // available, partial_interval, incomplete_history or zero_baseline.
+ string status=8;
+}
+message GetInvestmentPayoutsRequest {
+ repeated string ledger_ids=1; string from_date=2; string to_date=3; string instrument_key=4;
+ repeated string kinds=5; string cursor=6; int32 limit=7;
+}
+message GetInvestmentPayoutsResponse {
+ repeated InvestmentPayoutEntry entries=1; repeated InvestmentPayoutTotals totals=2;
+ repeated InvestmentPayoutTotals months=3; repeated InvestmentLedger ledgers=4;
+ int64 total_count=5; string next_cursor=6; google.protobuf.Timestamp as_of=7; repeated string warnings=8;
+ repeated InvestmentPayoutGrowth growth=9;
+}
+
+message InvestmentOperationCash { string currency=1; InvestmentPayoutAmount amount=2; }
+message InvestmentOperationRow {
+ InvestmentOperation operation=1; string ledger_name=2; repeated string origins=3;
+ InvestmentPayoutAmount unit_clean_price=4; // derived clean amount per unit, never a market quote
+ int64 broker_evidence_version=6; // historical link; current terms are unconfirmed when versions differ
+ repeated InvestmentOperationCash cash=5; // formula-derived settlement legs, not broker reconciliation proof
+}
+message QueryInvestmentOperationsRequest {
+ repeated string ledger_ids=1; string from_date=2; string to_date=3;
+ string instrument_key=4; string kind=5; string status=6; string origin=7;
+ string import_id=8; string cursor=9; int32 limit=10;
+}
+message QueryInvestmentOperationsResponse {
+ repeated InvestmentOperationRow entries=1; repeated InvestmentLedger ledgers=2;
+ int64 total_count=3; string next_cursor=4;
+}
+message InvestmentOperationRevision {
+ int64 version=1; string action=2; string actor_id=3; string reason=4;
+ google.protobuf.Timestamp recorded_at=5; InvestmentOperation before=6; InvestmentOperation after=7;
+}
+message GetInvestmentOperationHistoryRequest {
+ string ledger_id=1; string operation_id=2; int64 after_version=3;
+ int64 expected_version=4; int32 limit=5;
+}
+message GetInvestmentOperationHistoryResponse {
+ InvestmentLedger ledger=1; InvestmentOperation current=2;
+ repeated InvestmentOperationRevision revisions=3; int64 next_after_version=4;
+}
+
+message PreviewInvestmentTransferResponse { InvestmentTransfer transfer=1; PreviewInvestmentOperationResponse preview=2; }
+message InvestmentTransferAssetComparison {
+ string stage=1; google.protobuf.Timestamp as_of=2; string account_id=3; string currency=4;
+ bool before_known=5; int64 before_minor=6; bool after_known=7; int64 after_minor=8;
+}
+message PreviewInvestmentCashTransferResponse { InvestmentCashTransfer transfer=1; PreviewInvestmentOperationResponse preview=2; repeated InvestmentTransferAssetComparison accounts=3; }
+
+// Dedicated RPC envelopes preserve the existing field numbers and wire payloads.
+message PreviewInvestmentTransferRequest {
+ string preview_hash=8;
+ string action = 1; // create, amend, void
+ InvestmentTransfer transfer = 2;
+ int64 expected_version = 3;
+ int64 expected_from_version = 4;
+ int64 expected_to_version = 5;
+ string request_key = 6;
+ string reason = 7;
+}
+message PreviewInvestmentCashTransferRequest {
+ InvestmentOperationTiming timing=9;
+ string preview_hash=10;
+ string action = 1; // create, amend, void; account endpoints are immutable
+ AssetTransfer transfer = 2;
+ int64 expected_version = 3;
+ int64 expected_ledger_version = 4;
+ int64 expected_from_account_version = 5;
+ int64 expected_to_account_version = 6;
+ string reason = 7;
+ string request_key = 8;
+}
+
+// Forecast evidence never creates a journal credit.
+message InvestmentForecastEvent {
+ string id=1; int64 version=2; string instrument_key=3; string kind=4; string nature=5;
+ string currency=6; string per_share=7; string ex_date=8; string record_date=9;
+ string payment_date=10; string timezone=11; string entitlement_rule=12;
+ google.protobuf.Timestamp entitlement_at=13; string source_reference=14; string evidence=15;
+ string reason=16; bool cancelled=17;
+}
+message InvestmentForecastLink {
+ string event_id=1; int64 event_version=2; string ledger_id=3; string operation_id=4;
+ int64 operation_version=5; int64 version=6; bool complete=7; bool cancelled=8; string reason=9;
+}
+message InvestmentForecastFXLeg {
+ string id=1; int64 revision=2; string from_currency=3; string to_currency=4; string policy=5;
+ bool inverse=6; google.protobuf.Timestamp as_of=7; google.protobuf.Timestamp available_at=8;
+ google.protobuf.Timestamp valid_until=9;
+}
+message InvestmentForecastRow {
+ string event_id=1; int64 event_version=2; string ledger_id=3; string instrument_key=4;
+ string kind=5; string nature=6; string payment_date=7; string currency=8;
+ InvestmentPayoutAmount quantity=9; InvestmentPayoutAmount gross=10;
+ InvestmentPayoutAmount estimated_tax=11; InvestmentPayoutAmount estimated_net=12;
+ InvestmentPayoutAmount converted_gross=13; InvestmentPayoutAmount converted_net=14;
+ string entitlement=15; string status=16; InvestmentPayoutAmount actual_net=17;
+ repeated string actual_operation_ids=18; repeated InvestmentForecastFXLeg fx_legs=19; repeated string issues=20;
+}
+message InvestmentForecastMonth {
+ string month=1; InvestmentPayoutAmount known_gross=2; InvestmentPayoutAmount known_estimated_net=3;
+ InvestmentPayoutAmount gross=4; InvestmentPayoutAmount estimated_net=5;
+ int32 announced=6; int32 projected=7; int32 unknown=8; int32 paid=9;
+}
+message GetInvestmentForecastRequest {
+ repeated string ledger_ids=1; string from_month=2; string currency=3; string tax_rate=4; string fx_policy_key=5;
+}
+message GetInvestmentForecastResponse {
+ string from_month=1; string to_month=2; string currency=3; string fx_policy=4; string tax_rate=5;
+ google.protobuf.Timestamp as_of=6; repeated InvestmentForecastRow rows=7; repeated InvestmentForecastMonth months=8;
+ InvestmentPayoutAmount gross=9; InvestmentPayoutAmount estimated_net=10;
+ InvestmentPayoutAmount monthly_average_gross=11; InvestmentPayoutAmount monthly_average_net=12;
+ int32 announced=13; int32 projected=14; int32 unknown=15; int32 paid=16; repeated string warnings=17;
+ // Definitions, links and account metadata share the calculation snapshot.
+ repeated InvestmentForecastEvent events=18; repeated InvestmentForecastLink links=19; repeated InvestmentLedger ledgers=20;
+}
+message SaveInvestmentForecastEventRequest { InvestmentForecastEvent event=1; int64 expected_version=2; }
+message SaveInvestmentForecastEventResponse { InvestmentForecastEvent event=1; }
+message SaveInvestmentForecastLinkRequest { InvestmentForecastLink link=1; int64 expected_version=2; }
+message SaveInvestmentForecastLinkResponse { InvestmentForecastLink link=1; }
+
+message InvestmentDividendYearReview { int32 year=1; bool complete=2; string source_reference=3; string evidence=4; }
+message InvestmentDividendDeclaration {
+ string id=1; string payment_date=2; string amount=3; string class=4; google.protobuf.Timestamp unit_basis_at=5; string source_reference=6; string evidence=7; string status=8;
+}
+message InvestmentDividendUnitSplit {
+ string id=1; string new_units=2; string old_units=3; google.protobuf.Timestamp effective_at=4; string source_reference=5; string evidence=6;
+}
+message InvestmentDividendHistory {
+ string id=1; string instrument_key=2; string currency=3; string timezone=4; google.protobuf.Timestamp basis_at=5; google.protobuf.Timestamp reviewed_from=6;
+ string source_reference=7; string evidence=8; string reason=9; repeated InvestmentDividendYearReview years=10; repeated InvestmentDividendDeclaration dividends=11; repeated InvestmentDividendUnitSplit splits=12; int64 version=13; bool cancelled=14;
+}
+message InvestmentDividendYearGrowth {
+ int32 year=1; InvestmentPayoutAmount regular=2; InvestmentPayoutAmount special=3; InvestmentPayoutAmount total=4; InvestmentPayoutAmount known_total=5; InvestmentPayoutAmount previous_regular=6; InvestmentPayoutAmount change=7; InvestmentPayoutAmount percent_change=8; int32 special_count=9; int32 unknown_class_count=10; string status=11;
+}
+message InvestmentDividendHistoryReport { InvestmentDividendHistory history=1; repeated InvestmentDividendYearGrowth years=2; }
+message GetInvestmentDividendGrowthRequest {}
+message GetInvestmentDividendGrowthResponse { google.protobuf.Timestamp as_of=1; repeated InvestmentDividendHistoryReport histories=2; }
+message SaveInvestmentDividendHistoryRequest { InvestmentDividendHistory history=1; int64 expected_version=2; }
+message SaveInvestmentDividendHistoryResponse { InvestmentDividendHistory history=1; }

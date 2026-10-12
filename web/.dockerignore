@@ -1,0 +1,21 @@
+# This Dockerfile uses ./web as its context; root .dockerignore does not apply.
+node_modules
+.next
+.turbo
+coverage
+dist
+out
+.vercel
+test-results
+playwright-report
+.env
+.env.*
+**/.env
+**/.env.*
+.git
+.codex
+.agents
+.claude
+**/__pycache__
+.DS_Store
+*.log

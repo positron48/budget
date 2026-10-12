@@ -1,0 +1,133 @@
+rule_files:
+  - worker-alerts.yml
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'budget_investment_worker_nav_endpoints{job="budget-investment-nav",instance="nav:9091",worker="investmentnav",state="incomplete"}'
+        values: '2+0x34 0+0x15'
+    alert_rule_test:
+      - eval_time: 29m
+        alertname: InvestmentValuationDegraded
+        exp_alerts: []
+      - eval_time: 31m
+        alertname: InvestmentValuationDegraded
+        exp_alerts:
+          - exp_labels:
+              job: budget-investment-nav
+              instance: nav:9091
+              worker: investmentnav
+              severity: warning
+            exp_annotations:
+              summary: "Watched investment valuations incomplete"
+              description: "Expected completed daily points are missing, obsolete or incomplete. Inspect valuation quality and provider coverage; ready jobs alone are insufficient."
+      - eval_time: 40m
+        alertname: InvestmentValuationDegraded
+        exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'budget_investment_worker_job_attempts_total{job="budget-investment-nav",instance="nav:9091",worker="investmentnav",kind="daily_nav",result="error"}'
+        values: '0+0x5 1+0x34'
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: InvestmentWorkerNewFailures
+        exp_alerts:
+          - exp_labels:
+              job: budget-investment-nav
+              instance: nav:9091
+              worker: investmentnav
+              severity: warning
+            exp_annotations:
+              summary: "Investment worker failures detected"
+              description: "Inspect persisted job status and safe worker logs. Successful iterations do not prove full market or valuation coverage."
+      - eval_time: 30m
+        alertname: InvestmentWorkerNewFailures
+        exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'up{job="budget-investment-marketdata",instance="worker:9091"}'
+        values: '0+0x20'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: InvestmentWorkerUnavailable
+        exp_alerts:
+          - exp_labels:
+              job: budget-investment-marketdata
+              instance: worker:9091
+              severity: warning
+            exp_annotations:
+              summary: "Investment worker metrics unavailable"
+              description: "Check the configured worker target, pod and internal scrape network."
+  - interval: 1m
+    input_series:
+      - series: 'budget_investment_worker_oldest_due_seconds{job="budget-investment-marketdata",instance="worker:9091",worker="marketdata",kind="last_price",status="pending"}'
+        values: '1200+0x40'
+      - series: 'budget_investment_worker_source_enabled{job="budget-investment-marketdata",instance="worker:9091",worker="marketdata"}'
+        values: '1+0x40'
+      - series: 'budget_investment_worker_oldest_due_seconds{job="budget-investment-nav",instance="nav:9091",worker="investmentnav",kind="daily_nav",status="pending"}'
+        values: '0+0x40'
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: InvestmentWorkerBacklogStalled
+        exp_alerts: []
+      - eval_time: 11m
+        alertname: InvestmentWorkerBacklogStalled
+        exp_alerts:
+          - exp_labels:
+              job: budget-investment-marketdata
+              instance: worker:9091
+              worker: marketdata
+              severity: warning
+            exp_annotations:
+              summary: "Investment work overdue"
+              description: "Due work is over 15 minutes old for 10 minutes. Deliberate backoff and active leases are excluded."
+  - interval: 1m
+    input_series:
+      - series: 'budget_investment_worker_oldest_due_seconds{job="budget-investment-marketdata",instance="worker:9091",worker="marketdata",kind="last_price",status="pending"}'
+        values: '1200+0x40'
+      - series: 'budget_investment_worker_source_enabled{job="budget-investment-marketdata",instance="worker:9091",worker="marketdata"}'
+        values: '0+0x40'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: InvestmentWorkerBacklogStalled
+        exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'budget_investment_worker_snapshot_success{job="budget-investment-nav",instance="nav:9091",worker="investmentnav"}'
+        values: '0+0x20'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: InvestmentWorkerStateUnavailable
+        exp_alerts:
+          - exp_labels:
+              job: budget-investment-nav
+              instance: nav:9091
+              worker: investmentnav
+              severity: warning
+            exp_annotations:
+              summary: "Investment worker cannot read persisted state"
+              description: "Backlog is unknown; inspect database connectivity and schema before treating the worker as healthy."
+  - interval: 1m
+    input_series:
+      - series: 'budget_investment_worker_fx_endpoints{job="budget-investment-alphafx",instance="fx:9091",worker="alphafx",state="expired"}'
+        values: '1+0x34 0+0x15'
+      - series: 'budget_investment_worker_last_loop_success_timestamp_seconds{job="budget-investment-alphafx",instance="fx:9091",worker="alphafx"}'
+        values: '0+60x50'
+    alert_rule_test:
+      - eval_time: 29m
+        alertname: InvestmentMarketFXDegraded
+        exp_alerts: []
+      - eval_time: 31m
+        alertname: InvestmentMarketFXDegraded
+        exp_alerts:
+          - exp_labels:
+              job: budget-investment-alphafx
+              instance: fx:9091
+              worker: alphafx
+              severity: warning
+            exp_annotations:
+              summary: "Investment market FX missing or expired"
+              description: "Latest eligible personal retrospective FX is missing or past its validity. Successful worker loops do not prove fresh rates; inspect provider coverage, policy and quota."
+      - eval_time: 40m
+        alertname: InvestmentMarketFXDegraded
+        exp_alerts: []

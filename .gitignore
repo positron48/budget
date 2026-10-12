@@ -31,7 +31,11 @@ vendor/
 .data/
 doc/
 
-deploy/
+# Keep local deployment files private, publish the reviewed worker template.
+deploy/*
+!deploy/investments/
+
+__pycache__/
 DEPLOYMENT_GUIDE.md
 OAUTH_CLI_COMMANDS.md
 
@@ -41,3 +45,11 @@ budgetd
 nginx-budget.conf
 QUICK_DEPLOY.md
 doc/ARTIFACT_DEPLOYMENT.md
+# Local assistant plans are not release sources.
+.claude/
+
+# Personal investment research and acceptance evidence stay local.
+/docs/tasks/investments/
+
+# Local operator acceptance report, excluded from public source.
+/deploy/investments/README.md

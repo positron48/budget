@@ -208,6 +208,14 @@ func (s *Service) ListAccountHistory(ctx context.Context, tenant, id string, pag
 }
 
 func (s *Service) GetOverview(ctx context.Context, tenant, target string, at time.Time) (domain.AssetOverview, error) {
+	if reader, ok := s.repo.(interface {
+		AssetReadSnapshot(context.Context, func(context.Context) (domain.AssetOverview, error)) (domain.AssetOverview, error)
+	}); ok {
+		return reader.AssetReadSnapshot(ctx, func(ctx context.Context) (domain.AssetOverview, error) { return s.getOverview(ctx, tenant, target, at) })
+	}
+	return s.getOverview(ctx, tenant, target, at)
+}
+func (s *Service) getOverview(ctx context.Context, tenant, target string, at time.Time) (domain.AssetOverview, error) {
 	if at.IsZero() {
 		at = time.Now()
 	}
@@ -283,6 +291,11 @@ func Summarize(accounts []domain.AssetAccount, rates []domain.AssetFxRate, targe
 	}
 	sort.Strings(out.MissingCurrencies)
 	out.Incomplete = len(missing) != 0
+	for _, a := range accounts {
+		if a.ValuationIncomplete {
+			out.Incomplete = true
+		}
+	}
 	return out, nil
 }
 
