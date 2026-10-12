@@ -29,3 +29,7 @@ web/.vercel
 **/__pycache__
 web/test-results
 web/playwright-report
+
+# Personal research and operator reports are never build inputs.
+docs/tasks/investments
+deploy/investments/README.md
