@@ -42,7 +42,7 @@ func investmentRPCError(err error) error {
 	}
 }
 func protoLedger(l d.InvestmentLedger) *pb.InvestmentLedger {
-	return &pb.InvestmentLedger{Broker: l.Broker, AccountType: l.AccountType, Comment: l.Comment, DefaultCurrency: l.DefaultCurrency, Archived: l.Archived, MetadataVersion: l.MetadataVersion, Id: l.ID, Name: l.Name, StartedAt: timestamppb.New(l.StartedAt), Version: l.Version, CreatedAt: timestamppb.New(l.CreatedAt)}
+	return &pb.InvestmentLedger{PortfolioTracking: l.PortfolioTracking, Broker: l.Broker, AccountType: l.AccountType, Comment: l.Comment, DefaultCurrency: l.DefaultCurrency, Archived: l.Archived, MetadataVersion: l.MetadataVersion, Id: l.ID, Name: l.Name, StartedAt: timestamppb.New(l.StartedAt), Version: l.Version, CreatedAt: timestamppb.New(l.CreatedAt)}
 }
 func protoInvestmentOperation(o d.InvestmentOperation) *pb.InvestmentOperation {
 	out := &pb.InvestmentOperation{BudgetTransferId: o.BudgetTransferID, Id: o.ID, LedgerId: o.LedgerID, Kind: o.Kind, OpeningCostKnown: o.OpeningCostKnown, OpeningAccruedKnown: o.OpeningAccruedKnown, AcquiredAt: optionalInvestmentTimestamp(o.AcquiredAt), TransferId: o.TransferID, CounterpartyLedgerId: o.CounterpartyLedgerID, ToCurrency: o.ToCurrency, ToAmount: o.ToAmount, NominalBefore: o.NominalBefore, NominalAfter: o.NominalAfter, InstrumentKey: o.InstrumentKey, Currency: o.Currency, Quantity: o.Quantity, Amount: o.Amount, Accrued: o.Accrued, Fee: o.Fee, Tax: o.Tax, SplitNew: o.SplitNew, SplitOld: o.SplitOld, OccurredAt: timestamppb.New(o.OccurredAt), SettlementAt: timestamppb.New(o.SettlementAt), Sequence: o.Sequence, Version: o.Version, Status: o.Status, Note: o.Note, SettlementAssumed: o.SettlementAssumed, Source: protoInvestmentSource(o.Source)}
@@ -124,11 +124,14 @@ func (s *InvestmentServer) CreateInvestmentLedger(ctx context.Context, req *pb.C
 	if err != nil {
 		return nil, err
 	}
-	at, err := assetTimestamp(req.GetStartedAt())
-	if err != nil {
-		return nil, err
+	at := time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC)
+	if req.GetStartedAt() != nil {
+		at, err = assetTimestamp(req.GetStartedAt())
+		if err != nil {
+			return nil, err
+		}
 	}
-	l, err := s.svc.CreateLedgerWithDetails(ctx, t, u, d.InvestmentLedger{Name: req.GetName(), StartedAt: at, Broker: req.GetBroker(), AccountType: req.GetAccountType(), Comment: req.GetComment(), DefaultCurrency: req.GetDefaultCurrency()}, req.GetRequestKey())
+	l, err := s.svc.CreateLedgerWithDetails(ctx, t, u, d.InvestmentLedger{PortfolioTracking: true, Name: req.GetName(), StartedAt: at, Broker: req.GetBroker(), AccountType: req.GetAccountType(), Comment: req.GetComment(), DefaultCurrency: req.GetDefaultCurrency()}, req.GetRequestKey())
 	if err != nil {
 		return nil, investmentRPCError(err)
 	}

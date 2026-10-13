@@ -126,7 +126,7 @@ INSERT INTO asset_snapshots(tenant_id,account_id,currency_code,amount_minor,as_o
 		if err := pool.DB.QueryRow(ctx, `SELECT version,dirty FROM schema_migrations`).Scan(&version, &dirty); err != nil {
 			t.Fatal(err)
 		}
-		if version != 59 || dirty {
+		if version != 60 || dirty {
 			t.Fatalf("migration state: version=%d dirty=%t", version, dirty)
 		}
 	}

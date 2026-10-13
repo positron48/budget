@@ -42,7 +42,7 @@ type FinancialRule struct {
 	AmountFactor                      string // explicit multiplier after AmountBasis, e.g. nominal/100
 	AccruedBasis                      string // zero_only, total, per_source_quantity, per_security_unit
 	FeePolicy                         string // zero_only, same_currency; missing FeeCurrency confirmed by rule
-	IncomeBasis                       string // gross or net (net adds withheld FeeTax to gross)
+	IncomeBasis                       string // received preserves the supplied payout, without tax accounting
 	Reason                            string
 }
 type FinancialCandidate struct {
@@ -255,6 +255,9 @@ func MapSnowballFinancial(input io.Reader, mapping FinancialMapping) (FinancialM
 				return v
 			}
 			for _, key := range []string{"Price", "Quantity", "FeeTax", "NKD"} {
+				if key == "FeeTax" && rule.IncomeBasis == "received" && (rule.Kind == "dividend" || rule.Kind == "coupon" || rule.Kind == "repo_income") {
+					continue
+				}
 				if decimalSign(value(key)) < 0 {
 					issue("negative_" + key)
 				}
@@ -302,15 +305,18 @@ func MapSnowballFinancial(input io.Reader, mapping FinancialMapping) (FinancialM
 					issue("accrued_basis_required")
 				}
 				op.Fee = value("FeeTax")
-			case "dividend", "coupon":
+			case "dividend", "coupon", "repo_income":
 				if rule.AmountBasis == "fee_tax" {
 					issue("income_amount_basis_required")
 				}
-				if rule.Event != "DIVIDEND" {
+				allowedIncome := rule.Event == "DIVIDEND" && rule.Kind != "repo_income" || rule.Event == "CASH_GAIN" && rule.Kind == "repo_income"
+				if !allowedIncome {
 					issue("event_kind_mismatch")
 				}
 				op.Tax = value("FeeTax")
-				if rule.IncomeBasis == "net" {
+				if rule.IncomeBasis == "received" {
+					op.Tax = "0"
+				} else if rule.IncomeBasis == "net" {
 					op.Amount = exactSum(op.Amount, op.Tax)
 				} else if rule.IncomeBasis != "gross" {
 					issue("income_basis_required")
@@ -318,6 +324,11 @@ func MapSnowballFinancial(input io.Reader, mapping FinancialMapping) (FinancialM
 				if decimalSign(value("NKD")) != 0 {
 					issue("unexpected_accrued_interest")
 				}
+			case "split":
+				if rule.Event != "SPLIT" || decimalSign(value("Quantity")) != 0 || decimalSign(value("FeeTax")) != 0 || decimalSign(value("NKD")) != 0 {
+					issue("event_kind_mismatch")
+				}
+				op.Currency, op.Amount, op.SplitNew, op.SplitOld = "", "0", value("Price"), "1"
 			case "deposit", "withdrawal", "fee", "tax", "cash_interest":
 				allowed := rule.Event == "CASH_GAIN" && rule.Kind == "cash_interest" || rule.Event == "CASH_IN" && rule.Kind == "deposit" || rule.Event == "FEE" && rule.Kind == "fee" || rule.Event == "TAX" && rule.Kind == "tax"
 				if !allowed {
@@ -341,7 +352,8 @@ func MapSnowballFinancial(input io.Reader, mapping FinancialMapping) (FinancialM
 			if rule.FeePolicy != "same_currency" && rule.FeePolicy != "zero_only" {
 				issue("fee_policy_required")
 			}
-			if decimalSign(value("FeeTax")) != 0 {
+			receivedPayout := rule.IncomeBasis == "received" && (rule.Kind == "dividend" || rule.Kind == "coupon" || rule.Kind == "repo_income")
+			if decimalSign(value("FeeTax")) != 0 && !receivedPayout {
 				if rule.FeePolicy == "zero_only" {
 					issue("unexpected_fee_or_tax")
 				}

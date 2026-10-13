@@ -114,7 +114,7 @@ func replay(ledger d.InvestmentLedger, input []d.InvestmentOperation, asOf time.
 	if asOf.IsZero() || ledger.StartedAt.IsZero() {
 		return result, invalid("ledger start and cutoff required")
 	}
-	if asOf.Before(ledger.StartedAt) {
+	if !ledger.PortfolioTracking && asOf.Before(ledger.StartedAt) {
 		return result, inconsistent("requested cutoff precedes ledger opening")
 	}
 	if len(input) > MaxOperations {
@@ -254,6 +254,9 @@ func replay(ledger d.InvestmentLedger, input []d.InvestmentOperation, asOf time.
 		if err := ValidateOperation(&o); err != nil {
 			return result, err
 		}
+		if ledger.PortfolioTracking && (o.Kind == "transfer_in" || o.Kind == "transfer_out" || o.BudgetTransferID != "") {
+			return result, inconsistent("cash transfers require an account with cash tracking")
+		}
 		if o.ImportedCashDeficitReason != "" {
 			if err := validateCashDeficitSource(o); err != nil {
 				return result, err
@@ -270,10 +273,10 @@ func replay(ledger d.InvestmentLedger, input []d.InvestmentOperation, asOf time.
 		if o.TradeFinancials != nil && strings.TrimSpace(o.TradeFinancials.DifferenceReason) != "" && !o.OccurredAt.After(asOf) && !slices.Contains(result.Snapshot.Issues, "trade_settlement_difference_reviewed") {
 			result.Snapshot.Issues = append(result.Snapshot.Issues, "trade_settlement_difference_reviewed")
 		}
-		if o.TaxReviewRequired && !o.OccurredAt.After(asOf) && !slices.Contains(result.Snapshot.Issues, "tax_review_required") {
+		if !ledger.PortfolioTracking && o.TaxReviewRequired && !o.OccurredAt.After(asOf) && !slices.Contains(result.Snapshot.Issues, "tax_review_required") {
 			result.Snapshot.Issues = append(result.Snapshot.Issues, "tax_review_required")
 		}
-		if o.OccurredAt.Before(ledger.StartedAt) {
+		if !ledger.PortfolioTracking && o.OccurredAt.Before(ledger.StartedAt) {
 			return result, inconsistent("operation precedes ledger opening")
 		}
 		if o.Kind == "opening_cash" || o.Kind == "opening_position" {
@@ -434,7 +437,9 @@ func replay(ledger d.InvestmentLedger, input []d.InvestmentOperation, asOf time.
 				}
 			case "coupon":
 				var earned *big.Rat
-				if !o.CouponAllocationConfirmed {
+				if ledger.PortfolioTracking {
+					earned = rational(o.Amount)
+				} else if !o.CouponAllocationConfirmed {
 					p.couponUnknown = true
 				} else {
 					allocations := map[string]string{}
@@ -678,7 +683,7 @@ func replay(ledger d.InvestmentLedger, input []d.InvestmentOperation, asOf time.
 			economic := new(big.Rat).Sub(new(big.Rat).Add(v["settled"], v["receivable"]), v["payable"])
 			allowance := cashDeficitAllowance(result.CashLegs[i:j], c, deficitReviewed)
 			prior := priorDeficits[c]
-			if deficitExceeds(v["settled"], prior.settled, allowance.settled) || deficitExceeds(economic, prior.economic, allowance.economic) || v["receivable"].Sign() < 0 || v["payable"].Sign() < 0 {
+			if !ledger.PortfolioTracking && (deficitExceeds(v["settled"], prior.settled, allowance.settled) || deficitExceeds(economic, prior.economic, allowance.economic) || v["receivable"].Sign() < 0 || v["payable"].Sign() < 0) {
 				ids := []string{}
 				for _, leg := range result.CashLegs[i:j] {
 					if leg.Currency == c && !slices.Contains(ids, leg.OperationID) {
@@ -689,7 +694,7 @@ func replay(ledger d.InvestmentLedger, input []d.InvestmentOperation, asOf time.
 				return result, &ReplayCashError{At: at, Balance: d.InvestmentCash{Currency: c, Settled: decimalString(v["settled"]), Receivable: decimalString(v["receivable"]), Payable: decimalString(v["payable"]), Economic: decimalString(economic)}, OperationIDs: ids, Cause: inconsistent("negative cash; confirm opening balance or missing funding")}
 			}
 			if !at.After(asOf) {
-				if economic.Sign() < 0 || v["settled"].Sign() < 0 {
+				if !ledger.PortfolioTracking && (economic.Sign() < 0 || v["settled"].Sign() < 0) {
 					addSnapshotIssue(&result.Snapshot, "imported_cash_history_incomplete")
 				}
 				visible[c] = d.InvestmentCash{Currency: c, Settled: decimalString(v["settled"]), Receivable: decimalString(v["receivable"]), Payable: decimalString(v["payable"]), Economic: decimalString(economic)}
@@ -698,6 +703,9 @@ func replay(ledger d.InvestmentLedger, input []d.InvestmentOperation, asOf time.
 		i = j
 	}
 	for _, v := range visible {
+		if ledger.PortfolioTracking {
+			continue
+		}
 		if rational(v.Settled).Sign() < 0 || rational(v.Economic).Sign() < 0 {
 			addSnapshotIssue(&result.Snapshot, "negative_imported_cash")
 		}

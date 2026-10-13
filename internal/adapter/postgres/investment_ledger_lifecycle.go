@@ -30,30 +30,31 @@ func recordLedgerRevision(ctx context.Context, tx pgx.Tx, l d.InvestmentLedger, 
 	return e
 }
 func ledgerRevisionJSON(l d.InvestmentLedger) map[string]any {
-	return map[string]any{"id": l.ID, "tenant_id": l.TenantID, "name": l.Name, "started_at": l.StartedAt, "version": l.Version, "created_at": l.CreatedAt, "broker": l.Broker, "account_type": l.AccountType, "comment": l.Comment, "default_currency": l.DefaultCurrency, "archived": l.Archived, "metadata_version": l.MetadataVersion}
+	return map[string]any{"id": l.ID, "tenant_id": l.TenantID, "name": l.Name, "started_at": l.StartedAt, "version": l.Version, "created_at": l.CreatedAt, "broker": l.Broker, "account_type": l.AccountType, "comment": l.Comment, "default_currency": l.DefaultCurrency, "archived": l.Archived, "metadata_version": l.MetadataVersion, "portfolio_tracking": l.PortfolioTracking}
 }
 func parseLedgerRevision(raw []byte) (*d.InvestmentLedger, error) {
 	if len(raw) == 0 || string(raw) == "null" {
 		return nil, nil
 	}
 	var v struct {
-		ID              string    `json:"id"`
-		Tenant          string    `json:"tenant_id"`
-		Name            string    `json:"name"`
-		Started         time.Time `json:"started_at"`
-		Version         int64     `json:"version"`
-		Created         time.Time `json:"created_at"`
-		Broker          string    `json:"broker"`
-		AccountType     string    `json:"account_type"`
-		Comment         string    `json:"comment"`
-		DefaultCurrency string    `json:"default_currency"`
-		Archived        bool      `json:"archived"`
-		MetadataVersion int64     `json:"metadata_version"`
+		ID                string    `json:"id"`
+		Tenant            string    `json:"tenant_id"`
+		Name              string    `json:"name"`
+		Started           time.Time `json:"started_at"`
+		Version           int64     `json:"version"`
+		Created           time.Time `json:"created_at"`
+		Broker            string    `json:"broker"`
+		AccountType       string    `json:"account_type"`
+		Comment           string    `json:"comment"`
+		DefaultCurrency   string    `json:"default_currency"`
+		Archived          bool      `json:"archived"`
+		MetadataVersion   int64     `json:"metadata_version"`
+		PortfolioTracking bool      `json:"portfolio_tracking"`
 	}
 	if e := json.Unmarshal(raw, &v); e != nil {
 		return nil, e
 	}
-	return &d.InvestmentLedger{ID: v.ID, TenantID: v.Tenant, Name: v.Name, StartedAt: v.Started, Version: v.Version, CreatedAt: v.Created, Broker: v.Broker, AccountType: v.AccountType, Comment: v.Comment, DefaultCurrency: v.DefaultCurrency, Archived: v.Archived, MetadataVersion: v.MetadataVersion}, nil
+	return &d.InvestmentLedger{ID: v.ID, TenantID: v.Tenant, Name: v.Name, StartedAt: v.Started, Version: v.Version, CreatedAt: v.Created, Broker: v.Broker, AccountType: v.AccountType, Comment: v.Comment, DefaultCurrency: v.DefaultCurrency, Archived: v.Archived, MetadataVersion: v.MetadataVersion, PortfolioTracking: v.PortfolioTracking}, nil
 }
 func (r *InvestmentRepo) ListLedgersWithArchive(ctx context.Context, t string, limit, offset int, include bool) ([]d.InvestmentLedger, error) {
 	rows, e := r.pool.DB.Query(ctx, `SELECT `+ledgerColumns+` FROM investment_ledgers WHERE tenant_id=$1 AND ($4 OR NOT archived) ORDER BY created_at,id LIMIT $2 OFFSET $3`, t, limit, offset, include)

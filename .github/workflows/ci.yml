@@ -171,7 +171,7 @@ jobs:
         working-directory: web
         env:
           E2E_INVESTMENTS_READ_ONLY: "true"
-        run: npx playwright test e2e/investment-readonly.spec.ts e2e/investment-accounts.spec.ts e2e/investment-preview.spec.ts e2e/investment-reconciliation.spec.ts e2e/investment-date-only.spec.ts e2e/investment-lot-input.spec.ts e2e/investment-trade-financials.spec.ts e2e/investment-cash-deficit.spec.ts e2e/investment-transfers.spec.ts e2e/investment-cash-transfer.spec.ts e2e/investment-transfer-dates.spec.ts e2e/investment-operations.spec.ts e2e/investment-payouts.spec.ts e2e/investment-lots.spec.ts
+        run: npx playwright test e2e/portfolio-tracker.spec.ts e2e/portfolio-accounts.spec.ts
       - name: Disabled investment browser tests
         working-directory: web
         env:

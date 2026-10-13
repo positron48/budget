@@ -17,6 +17,9 @@ var (
 // Ledger is a working book. Linking it to AssetService requires a separate
 // reconciled activation; it must not replace a manual valuation implicitly.
 type InvestmentLedger struct {
+	// PortfolioTracking tracks securities and payouts without a broker cash book.
+	// False retains the interpretation of legacy accounting archives.
+	PortfolioTracking                             bool `json:",omitempty"`
 	ID, TenantID, Name                            string
 	Broker, AccountType, Comment, DefaultCurrency string
 	Archived                                      bool

@@ -1,0 +1,117 @@
+import {test, expect} from "@playwright/test";
+import {create, fromBinary, toBinary} from "@bufbuild/protobuf";
+import {InvestmentService} from "../proto/budget/v1/investment_pb";
+import {InvestmentImportService} from "../proto/budget/v1/investment_import_pb";
+import {TimestampSchema} from "@bufbuild/protobuf/wkt";
+import {TenantService} from "../proto/budget/v1/tenant_pb";
+
+for (const locale of ["ru", "en"]) {
+  test(`${locale} simple portfolio shows holdings and payouts and saves a purchase in one step`, async ({page, context}) => {
+    const ru = locale === "ru", readOnly = process.env.E2E_INVESTMENTS_READ_ONLY === "true";
+    const calls: {method: string; input: any}[] = [], errors: string[] = [];
+    page.on("pageerror", e => errors.push(e.message));
+    await context.addCookies([{name: "NEXT_LOCALE", value: locale, url: test.info().project.use.baseURL as string}]);
+    await page.addInitScript(() => {localStorage.setItem("budget/access", "synthetic-session"); localStorage.setItem("budget/tenant", "tenant");});
+    const key = "tinvest:11111111-1111-4111-8111-111111111111";
+    const ledger = {id: "account", name: "Broker", version: 1n, portfolioTracking: true, startedAt: {seconds: 1704067200n}};
+    const position = {instrumentKey: key, currency: "RUB", quantity: "10", cleanCost: "1000", acquiredAccrued: "0", realizedClean: "0", realizedAccrued: "0"};
+    const operations: any[] = [{id: "buy", ledgerId: ledger.id, status: "posted", instrumentKey: key, currency: "RUB", kind: "buy", quantity: "10", amount: "1000", occurredAt: {seconds: 1704153600n}}, {id: "payout", ledgerId: ledger.id, status: "posted", instrumentKey: key, currency: "RUB", kind: "dividend", quantity: "0", amount: "100", tax: "20", taxReviewRequired: true, occurredAt: {seconds: 1704240000n}}];
+    await page.route("**/budget.v1.*/*", async route => {
+      const path = new URL(route.request().url()).pathname;
+      const service = [InvestmentService, InvestmentImportService, TenantService].find(s => path.includes(s.typeName + "/"));
+      const method = service?.methods.find(m => path.endsWith("/" + m.name));
+      const bytes = route.request().postDataBuffer()!;
+      const input = method ? fromBinary(method.input, bytes.subarray(5, 5 + bytes.readUInt32BE(1))) as any : {};
+      if (method) calls.push({method: method.name, input});
+      let data: any = {};
+      if (method?.name === "ListMyTenants") data = {memberships: [{tenant: {id: "tenant", name: "Synthetic"}, role: 1}]};
+      if (method?.name === "ListInvestmentLedgers") data = {ledgers: [ledger]};
+      if (method?.name === "GetInvestmentSnapshot") data = {snapshot: {ledger, positions: [position], cash: [{currency: "RUB", economic: "999999"}]}};
+      if (method?.name === "ListInvestmentOperations") data = {operations};
+      if (method?.name === "ListBrokerSnapshots") data = {snapshots: [{id: "snapshot", accountId: "broker", createdAt: {seconds: BigInt(Math.floor(Date.now() / 1000))}}]};
+      if (method?.name === "GetBrokerSnapshot") data = {originalJson: new TextEncoder().encode(JSON.stringify({fetched_at: new Date().toISOString(), operations: [{ticker: "ABC", instrumentUid: key.slice(8), name: "Example security"}], portfolio: {positions: [{instrumentUid: key.slice(8), ticker: "ABC", instrumentType: "share", currentPrice: {currency: "rub", units: "120", nano: 0}}]}}))};
+      if (method?.name === "PreviewInvestmentOperation") data = {valid: true, previewHash: "reviewed"};
+      if (method?.name === "SaveInvestmentOperation") {
+        expect(input.previewHash).toBe("reviewed"); expect(input.operation.kind).toBe("buy"); expect(input.operation.amount).toBe("100"); expect(input.operation.tax).toBe("0");
+        ledger.version++; position.quantity = "11"; position.cleanCost = "1100";
+        operations.push({...input.operation, id: "new-purchase", status: "posted", occurredAt: create(TimestampSchema, {seconds: 1704326400n})});
+        data = {operation: operations.at(-1)};
+      }
+      const body = method ? Buffer.from(toBinary(method.output, create(method.output, data))) : Buffer.alloc(0);
+      const header = Buffer.alloc(5); header.writeUInt32BE(body.length, 1);
+      const trailer = Buffer.from("grpc-status: 0\r\n"), end = Buffer.alloc(5); end[0] = 128; end.writeUInt32BE(trailer.length, 1);
+      await route.fulfill({status: 200, contentType: "application/grpc-web+proto", body: Buffer.concat([header, body, end, trailer])});
+    });
+    await page.goto("/investments");
+    await expect(page.getByRole("heading", {name: ru ? "Мой портфель" : "My portfolio", exact: true})).toBeVisible();
+    const value = page.locator("section").filter({has: page.getByRole("heading", {name: ru ? "Стоимость портфеля" : "Portfolio value", exact: true})});
+    await expect(value).toContainText(/1[\s,.]?200/);
+    await expect(page.getByRole("table")).toContainText("ABC");
+    await expect(page.locator("main")).not.toContainText("999999");
+    await expect(page.getByRole("button", {name: ru ? "Дивиденды и купоны" : "Dividends and coupons", exact: true})).toBeVisible();
+    await page.screenshot({path: test.info().outputPath(`portfolio-tracker-${locale}-desktop.png`), fullPage: true});
+    if (!readOnly) {
+      await page.getByRole("button", {name: ru ? "Добавить операцию" : "Add operation", exact: true}).click();
+      const dialog = page.getByRole("dialog");
+      await dialog.getByRole("combobox", {name: ru ? "Бумага" : "Security", exact: true}).fill("ABC");
+      await dialog.getByRole("textbox", {name: ru ? "Цена за штуку" : "Price per unit", exact: true}).fill("100");
+      await dialog.getByRole("button", {name: ru ? "Сохранить" : "Save", exact: true}).click();
+      await expect(dialog).toHaveCount(0); await expect(page.getByRole("table")).toContainText("11");
+      expect(calls.filter(c => c.method === "SaveInvestmentOperation")).toHaveLength(1);
+      expect(calls.filter(c => c.method === "SaveInvestmentOperation").every(c => c.input.operation.kind !== "deposit")).toBe(true);
+    } else await expect(page.getByRole("button", {name: ru ? "Добавить операцию" : "Add operation", exact: true})).toHaveCount(0);
+    await page.getByRole("button", {name: ru ? "Дивиденды и купоны" : "Dividends and coupons", exact: true}).click();
+    await expect(page.getByRole("table")).toContainText("100"); await expect(page.getByRole("table")).not.toContainText(ru ? "Налог" : "Tax");
+    await page.setViewportSize({width: 390, height: 844});
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({path: test.info().outputPath(`portfolio-tracker-${locale}-mobile.png`), fullPage: true});
+    expect(errors).toEqual([]);
+    if (readOnly) expect(calls.filter(c => !/^(Get|List)/.test(c.method))).toEqual([]);
+  });
+
+  test(`${locale} simple import keeps one incomplete security from blocking another and deduplicates retry`, async ({page, context}) => {
+    test.skip(process.env.E2E_INVESTMENTS_READ_ONLY === "true", "Write runtime required");
+    const ru = locale === "ru"; let committed = 0;
+    await context.addCookies([{name: "NEXT_LOCALE", value: locale, url: test.info().project.use.baseURL as string}]);
+    await page.addInitScript(() => {localStorage.setItem("budget/access", "synthetic-session"); localStorage.setItem("budget/tenant", "tenant");});
+    const source = {id: "source", filename: "operations.csv", sourceSha256: "a".repeat(64), rowCount: 2, version: 1n, accounts: [{id: "source-account", name: "Broker", rowCount: 2}]};
+    await page.route("**/budget.v1.*/*", async route => {
+      const path = new URL(route.request().url()).pathname, service = [InvestmentService, InvestmentImportService, TenantService].find(s => path.includes(s.typeName + "/")), method = service?.methods.find(m => path.endsWith("/" + m.name));
+      const bytes = route.request().postDataBuffer()!, input = method ? fromBinary(method.input, bytes.subarray(5, 5 + bytes.readUInt32BE(1))) as any : {};
+      let data: any = {}, code = 0, message = "";
+      if (method?.name === "ListMyTenants") data = {memberships: [{tenant: {id: "tenant", name: "Synthetic"}, role: 1}]};
+      if (method?.name === "ListInvestmentLedgers") data = {ledgers: [{id: "account", name: "Broker", version: 1n}]};
+      if (method?.name === "ListInvestmentImports") data = {imports: [source]};
+      if (method?.name === "GetInvestmentImport") data = {import: source};
+      if (method?.name === "UploadInvestmentImport") {expect(input.filename).toBe("operations.csv"); expect(input.accounts[0].name).toBe("Broker"); data = {import: source};}
+      if (method?.name === "ListInvestmentImportRows") data = {rows: ["BAD", "GOOD"].map((symbol, i) => ({record: i + 1, accountId: "source-account", sourceFields: {Event: "BUY", Symbol: symbol, Exchange: "MCX", Currency: "RUB"}, operationId: committed && i === 1 ? "posted" : ""}))};
+      if (method?.name === "PreviewInvestmentFinancialMapping") {
+        const entries = ["BAD", "GOOD"].flatMap((symbol, i) => committed && i === 1 ? [] : [{record: i + 1, expectedRowVersion: 1n, operation: {ledgerId: "account", instrumentKey: `${symbol}@MCX`, currency: "RUB", quantity: "1", amount: "10", kind: "buy"}}]);
+        data = {ready: entries.length, total: 2, batch: {importId: source.id, expectedImportVersion: 1n, expectedLedgerVersions: {account: 1n}, entries}, rows: entries.map(e => ({record: e.record, operation: e.operation}))};
+      }
+      if (method?.name === "PreviewInvestmentImportBatch") {if (input.batch.entries[0].record === 1) {code = 9; message = "investment history is inconsistent: short sale is not supported";} else data = {result: {hash: "reviewed"}};}
+      if (method?.name === "CommitInvestmentImportBatch") {expect(input.batch.entries[0].record).toBe(2); committed++; data = {result: {committed: true, operations: [{id: "posted"}], snapshots: [{ledger: {id: "account", version: 2n}}]}};}
+      const body = method ? Buffer.from(toBinary(method.output, create(method.output, data))) : Buffer.alloc(0), header = Buffer.alloc(5); header.writeUInt32BE(body.length, 1);
+      const trailer = Buffer.from(`grpc-status: ${code}\r\ngrpc-message: ${message}\r\n`), end = Buffer.alloc(5); end[0] = 128; end.writeUInt32BE(trailer.length, 1);
+      await route.fulfill({status: 200, contentType: "application/grpc-web+proto", body: Buffer.concat([header, body, end, trailer])});
+    });
+    await page.goto("/investments/import");
+    if (ru) {
+      await page.getByRole("button", {name: /operations.csv/}).click();
+      await page.getByRole("button", {name: "Предпросмотр", exact: true}).click();
+    } else {
+      await page.getByLabel("Snowball export").setInputFiles({name:"operations.csv",mimeType:"text/csv",buffer:Buffer.from("synthetic CSV")});
+      await page.getByRole("combobox",{name:"Account for operations",exact:true}).selectOption("account");
+      await page.getByRole("button",{name:"Preview",exact:true}).click();
+    }
+    await page.getByRole("button", {name: ru ? "Импортировать (2)" : "Import 2 operations", exact: true}).click();
+    await expect(page.getByRole("status")).toContainText(ru ? "Добавлено операций: 1" : "1 operation imported");
+    await page.getByText(ru ? "Строк для уточнения: 1" : "Rows needing clarification: 1", {exact: true}).click();
+    await expect(page.locator("details")).toContainText("BAD@MCX");
+    await expect(page.locator("details")).toContainText(ru ? "Не хватает истории покупок" : "Purchase history is incomplete");
+    await page.getByRole("button", {name: ru ? "Предпросмотр" : "Preview", exact: true}).click();
+    await expect(page.locator("main")).toContainText(ru ? "Уже добавлено: 1" : "Already imported: 1");
+    expect(committed).toBe(1);
+    await page.screenshot({path: test.info().outputPath(`portfolio-import-${locale}.png`), fullPage: true});
+  });
+}

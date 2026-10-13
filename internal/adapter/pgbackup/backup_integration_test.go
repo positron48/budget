@@ -255,7 +255,7 @@ func TestBudgetFullBackupRestoresJointDocumentsAndSnapshot(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if manifest.State.Migration.Version != 59 || manifest.State.Migration.Dirty || len(manifest.State.Tables) < 50 {
+	if manifest.State.Migration.Version != 60 || manifest.State.Migration.Dirty || len(manifest.State.Tables) < 50 {
 		t.Fatal("missing full schema evidence")
 	}
 	for _, file := range []string{"manifest.json", "database.dump"} {

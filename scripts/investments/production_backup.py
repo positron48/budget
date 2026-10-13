@@ -288,7 +288,8 @@ def run(args):
                                                   "UpgradeRehearsal": args.rehearse_upgrade})
         mode = "rehearse-upgrade" if args.rehearse_upgrade else "restore"
         command([*common, "-mode", mode, "-expected-manifest-sha", manifest_sha,
-                 "-target-name", target, "-report", str(out / "restore-report.json")],
+                 "-target-name", target, "-report", str(out / "restore-report.json"),
+                 *(["-upgrade-from", str(args.expected_schema)] if args.rehearse_upgrade else [])],
                 env={**env, "TARGET_ADMIN_DATABASE_URL": dsn}, timeout=1900,
                 stage="isolated upgrade rehearsal" if args.rehearse_upgrade else "isolated restore", safe_errors=True)
         del dsn

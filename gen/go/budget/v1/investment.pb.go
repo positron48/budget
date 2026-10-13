@@ -23,20 +23,21 @@ const (
 )
 
 type InvestmentLedger struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name            string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	StartedAt       *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
-	Version         int64                  `protobuf:"varint,4,opt,name=version,proto3" json:"version,omitempty"`
-	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	Broker          string                 `protobuf:"bytes,6,opt,name=broker,proto3" json:"broker,omitempty"`
-	AccountType     string                 `protobuf:"bytes,7,opt,name=account_type,json=accountType,proto3" json:"account_type,omitempty"`
-	Comment         string                 `protobuf:"bytes,8,opt,name=comment,proto3" json:"comment,omitempty"`
-	DefaultCurrency string                 `protobuf:"bytes,9,opt,name=default_currency,json=defaultCurrency,proto3" json:"default_currency,omitempty"`
-	Archived        bool                   `protobuf:"varint,10,opt,name=archived,proto3" json:"archived,omitempty"`
-	MetadataVersion int64                  `protobuf:"varint,11,opt,name=metadata_version,json=metadataVersion,proto3" json:"metadata_version,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	PortfolioTracking bool                   `protobuf:"varint,12,opt,name=portfolio_tracking,json=portfolioTracking,proto3" json:"portfolio_tracking,omitempty"`
+	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name              string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	StartedAt         *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	Version           int64                  `protobuf:"varint,4,opt,name=version,proto3" json:"version,omitempty"`
+	CreatedAt         *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Broker            string                 `protobuf:"bytes,6,opt,name=broker,proto3" json:"broker,omitempty"`
+	AccountType       string                 `protobuf:"bytes,7,opt,name=account_type,json=accountType,proto3" json:"account_type,omitempty"`
+	Comment           string                 `protobuf:"bytes,8,opt,name=comment,proto3" json:"comment,omitempty"`
+	DefaultCurrency   string                 `protobuf:"bytes,9,opt,name=default_currency,json=defaultCurrency,proto3" json:"default_currency,omitempty"`
+	Archived          bool                   `protobuf:"varint,10,opt,name=archived,proto3" json:"archived,omitempty"`
+	MetadataVersion   int64                  `protobuf:"varint,11,opt,name=metadata_version,json=metadataVersion,proto3" json:"metadata_version,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *InvestmentLedger) Reset() {
@@ -67,6 +68,13 @@ func (x *InvestmentLedger) ProtoReflect() protoreflect.Message {
 // Deprecated: Use InvestmentLedger.ProtoReflect.Descriptor instead.
 func (*InvestmentLedger) Descriptor() ([]byte, []int) {
 	return file_budget_v1_investment_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *InvestmentLedger) GetPortfolioTracking() bool {
+	if x != nil {
+		return x.PortfolioTracking
+	}
+	return false
 }
 
 func (x *InvestmentLedger) GetId() string {
@@ -9786,8 +9794,9 @@ var File_budget_v1_investment_proto protoreflect.FileDescriptor
 
 const file_budget_v1_investment_proto_rawDesc = "" +
 	"\n" +
-	"\x1abudget/v1/investment.proto\x12\tbudget.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x15budget/v1/asset.proto\x1a\x16budget/v1/common.proto\"\x8d\x03\n" +
-	"\x10InvestmentLedger\x12\x0e\n" +
+	"\x1abudget/v1/investment.proto\x12\tbudget.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x15budget/v1/asset.proto\x1a\x16budget/v1/common.proto\"\xbc\x03\n" +
+	"\x10InvestmentLedger\x12-\n" +
+	"\x12portfolio_tracking\x18\f \x01(\bR\x11portfolioTracking\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x129\n" +
 	"\n" +
@@ -9964,7 +9973,7 @@ const file_budget_v1_investment_proto_rawDesc = "" +
 	"\x04cash\x18\x03 \x03(\v2 .budget.v1.InvestmentCashBalanceR\x04cash\x12;\n" +
 	"\tpositions\x18\x04 \x03(\v2\x1d.budget.v1.InvestmentPositionR\tpositions\x12)\n" +
 	"\x10valuation_status\x18\x05 \x01(\tR\x0fvaluationStatus\x12\x16\n" +
-	"\x06issues\x18\x06 \x03(\tR\x06issues\"\x8f\x02\n" +
+	"\x06issues\x18\x06 \x03(\tR\x06issues\"\x95\x02\n" +
 	"\x1dCreateInvestmentLedgerRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x129\n" +
 	"\n" +
@@ -9974,7 +9983,7 @@ const file_budget_v1_investment_proto_rawDesc = "" +
 	"\x06broker\x18\x04 \x01(\tR\x06broker\x12!\n" +
 	"\faccount_type\x18\x05 \x01(\tR\vaccountType\x12\x18\n" +
 	"\acomment\x18\x06 \x01(\tR\acomment\x12)\n" +
-	"\x10default_currency\x18\a \x01(\tR\x0fdefaultCurrency\"U\n" +
+	"\x10default_currency\x18\a \x01(\tR\x0fdefaultCurrencyJ\x04\b\b\x10\t\"U\n" +
 	"\x1eCreateInvestmentLedgerResponse\x123\n" +
 	"\x06ledger\x18\x01 \x01(\v2\x1b.budget.v1.InvestmentLedgerR\x06ledger\"w\n" +
 	"\x1cListInvestmentLedgersRequest\x12\x14\n" +

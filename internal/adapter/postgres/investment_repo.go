@@ -55,11 +55,11 @@ func saveInvestmentRequest(ctx context.Context, tx pgx.Tx, t, namespace, key, ha
 	return err
 }
 
-const ledgerColumns = `id,tenant_id,name,started_at,version,created_at,broker,account_type,comment,default_currency,archived,metadata_version`
+const ledgerColumns = `id,tenant_id,name,started_at,version,created_at,broker,account_type,comment,default_currency,archived,metadata_version,portfolio_tracking`
 
 func scanLedger(row pgx.Row) (d.InvestmentLedger, error) {
 	var l d.InvestmentLedger
-	err := row.Scan(&l.ID, &l.TenantID, &l.Name, &l.StartedAt, &l.Version, &l.CreatedAt, &l.Broker, &l.AccountType, &l.Comment, &l.DefaultCurrency, &l.Archived, &l.MetadataVersion)
+	err := row.Scan(&l.ID, &l.TenantID, &l.Name, &l.StartedAt, &l.Version, &l.CreatedAt, &l.Broker, &l.AccountType, &l.Comment, &l.DefaultCurrency, &l.Archived, &l.MetadataVersion, &l.PortfolioTracking)
 	return l, investmentError(err)
 }
 func (r *InvestmentRepo) CreateLedger(ctx context.Context, l d.InvestmentLedger, user, key string) (d.InvestmentLedger, error) {
@@ -85,7 +85,7 @@ func (r *InvestmentRepo) CreateLedger(ctx context.Context, l d.InvestmentLedger,
 	if id != "" {
 		return scanLedger(tx.QueryRow(ctx, `SELECT `+ledgerColumns+` FROM investment_ledgers WHERE tenant_id=$1 AND id=$2`, l.TenantID, id))
 	}
-	result, err := scanLedger(tx.QueryRow(ctx, `INSERT INTO investment_ledgers(tenant_id,name,started_at,created_by,broker,account_type,comment,default_currency) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING `+ledgerColumns, l.TenantID, l.Name, l.StartedAt, user, l.Broker, l.AccountType, l.Comment, l.DefaultCurrency))
+	result, err := scanLedger(tx.QueryRow(ctx, `INSERT INTO investment_ledgers(tenant_id,name,started_at,created_by,broker,account_type,comment,default_currency,portfolio_tracking) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING `+ledgerColumns, l.TenantID, l.Name, l.StartedAt, user, l.Broker, l.AccountType, l.Comment, l.DefaultCurrency, l.PortfolioTracking))
 	if err != nil {
 		return l, err
 	}

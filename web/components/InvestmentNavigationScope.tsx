@@ -17,11 +17,11 @@ export default function InvestmentNavigationScope({children}:{children:React.Rea
    setSwitching(true);
    const filters={predicate:(query:{queryKey:readonly unknown[]})=>/^(investment|market|instrumentPrices|broker-)/.test(String(query.queryKey[0]))};
    void qc.cancelQueries(filters).then(()=>qc.removeQueries(filters));
-   router.replace("/investments/value",{scroll:false});
+   router.replace("/investments",{scroll:false});
   };
   window.addEventListener(TENANT_CHANGED_EVENT,change);
   return ()=>window.removeEventListener(TENANT_CHANGED_EVENT,change);
  },[router,qc]);
- useEffect(()=>{if(switching&&pathname==="/investments/value"&&!params.toString())setSwitching(false);},[switching,pathname,params]);
+ useEffect(()=>{if(switching&&pathname==="/investments"&&!params.toString())setSwitching(false);},[switching,pathname,params]);
  return switching?<p role="status" className="m-6">{t("loading")}</p>:children;
 }

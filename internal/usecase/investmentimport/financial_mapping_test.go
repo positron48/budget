@@ -115,6 +115,19 @@ func TestFinancialMappingIncomeAndDST(t *testing.T) {
 	}
 }
 
+func TestReceivedPayoutDoesNotCalculateOrRequireTax(t *testing.T) {
+	csv := financialHeader + "DIVIDEND,2024-01-01 12:00:00,TEST,0,87,RUB,13,X,0,,False,\n"
+	rule := FinancialRule{Event: "DIVIDEND", Symbol: "TEST", Exchange: "X", Currency: "RUB", InstrumentKey: "TEST@X", Kind: "dividend", AmountBasis: "quantity", AmountFactor: "1", FeePolicy: "same_currency", IncomeBasis: "received", Reason: "Payout as supplied in the import"}
+	report, err := MapSnowballFinancial(strings.NewReader(csv), financialConfig(t, csv, rule))
+	if err != nil || report.Ready != 1 {
+		t.Fatal(report, err)
+	}
+	op := report.Rows[0].Operation
+	if op.Amount != "87" || op.Tax != "0" || op.TaxReviewRequired {
+		t.Fatal(op)
+	}
+}
+
 func TestFinancialMappingAccruedUnits(t *testing.T) {
 	csv := financialHeader + "BUY,2024-01-01 12:00:00,TEST,10,2,RUB,0,X,1,,False,\n"
 	for basis, want := range map[string]string{"total": "1", "per_source_quantity": "2", "per_security_unit": "20"} {
@@ -225,5 +238,28 @@ func TestFinancialMappingExplicitDatePrecision(t *testing.T) {
 	report, e = MapSnowballFinancial(strings.NewReader(csv), m)
 	if e != nil || report.Ready != 1 || report.Rows[0].Operation.Timing.OccurredDate != "" {
 		t.Fatal(report, e)
+	}
+}
+
+func TestTrackerMappingSplitAndRepoPayout(t *testing.T) {
+	for _, tc := range []struct{ event, kind, price, quantity string }{
+		{"SPLIT", "split", "4", "0"},
+		{"CASH_GAIN", "repo_income", "0", "17.25"},
+	} {
+		t.Run(tc.kind, func(t *testing.T) {
+			csv := financialHeader + tc.event + ",2024-01-01 12:00:00,TEST," + tc.price + "," + tc.quantity + ",RUB,0,X,0,,False,\n"
+			rule := FinancialRule{Event: tc.event, Symbol: "TEST", Exchange: "X", Currency: "RUB", InstrumentKey: "TEST@X", Kind: tc.kind, AmountBasis: "quantity", AmountFactor: "1", FeePolicy: "zero_only", IncomeBasis: "received", Reason: "Source supplied portfolio fact"}
+			report, err := MapSnowballFinancial(strings.NewReader(csv), financialConfig(t, csv, rule))
+			if err != nil || report.Ready != 1 || report.Rows[0].Operation == nil {
+				t.Fatal(report, err)
+			}
+			op := report.Rows[0].Operation
+			if tc.kind == "split" && (op.SplitNew != "4" || op.SplitOld != "1" || op.Currency != "" || op.Amount != "0") {
+				t.Fatal(op)
+			}
+			if tc.kind == "repo_income" && (op.Amount != "17.25" || op.Tax != "0") {
+				t.Fatal(op)
+			}
+		})
 	}
 }

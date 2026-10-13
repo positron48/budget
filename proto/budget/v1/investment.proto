@@ -6,6 +6,7 @@ import "budget/v1/asset.proto";
 import "budget/v1/common.proto";
 
 message InvestmentLedger {
+ bool portfolio_tracking = 12;
  string id = 1;
  string name = 2;
  google.protobuf.Timestamp started_at = 3;
@@ -111,7 +112,7 @@ message InvestmentSnapshot {
  string valuation_status = 5; // market_data_required; no implied NAV
  repeated string issues = 6;
 }
-message CreateInvestmentLedgerRequest { string name = 1; google.protobuf.Timestamp started_at = 2; string request_key = 3; string broker=4; string account_type=5; string comment=6; string default_currency=7; }
+message CreateInvestmentLedgerRequest { string name = 1; google.protobuf.Timestamp started_at = 2; string request_key = 3; string broker=4; string account_type=5; string comment=6; string default_currency=7; reserved 8; }
 message CreateInvestmentLedgerResponse { InvestmentLedger ledger = 1; }
 message ListInvestmentLedgersRequest { int32 limit = 1; int32 offset = 2; bool include_archived=3; }
 message ListInvestmentLedgersResponse { repeated InvestmentLedger ledgers = 1; }
