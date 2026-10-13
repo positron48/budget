@@ -78,7 +78,7 @@ export type SimpleImportPlan = {
   source: InvestmentImport; batch?: InvestmentImportBatch; ready: number; alreadyImported: number;
   ignored: number; problems: ImportProblem[]; bindings: Record<string, string>;
 };
-export async function prepareSimpleImport(api: ImportAPI, source: InvestmentImport, ledgers: InvestmentLedger[], bindings: Record<string, string>, catalog: BrokerCatalog, ru: boolean): Promise<SimpleImportPlan> {
+export async function prepareSimpleImport(api: ImportAPI, source: InvestmentImport, ledgers: InvestmentLedger[], bindings: Record<string, string>, catalog: BrokerCatalog, ru: boolean, preserveIdenticalRows = true): Promise<SimpleImportPlan> {
   const rows = await importRows(api, source), ledgerByRecord: Record<string, string> = {}, rules = new Map<string, object>();
   let alreadyImported = 0, ignored = 0;
   const problems: ImportProblem[] = [];
@@ -98,11 +98,12 @@ export async function prepareSimpleImport(api: ImportAPI, source: InvestmentImpo
       Event: f.Event, Symbol: f.Symbol, Exchange: f.Exchange, Currency: f.Currency, InstrumentKey: instrumentKey,
       Kind: f.Event === "CASH_GAIN" ? "repo_income" : income ? catalog.names.get(instrumentKey)?.instrumentType === "bond" ? "coupon" : "dividend" : f.Event.toLowerCase(),
       AmountBasis: income ? "quantity" : "quantity_price", QuantityFactor: "1", AmountFactor: "1",
-      AccruedBasis: "total", FeePolicy: "same_currency", IncomeBasis: "received",
-      Reason: "Snowball import: security units, per-security price, total accrued interest; payouts as supplied.",
+      MoneyRounding: "12dp_half_away", AccruedBasis: "total", FeePolicy: "same_currency", IncomeBasis: "received",
+      Reason: "Snowball import: security units, per-security price, total accrued interest; payouts as supplied; monetary totals rounded half away from zero to 12 decimal places.",
     });
   }
-  const mapping = {source_sha256: source.sourceSha256, timezone: "Europe/Moscow", settlement_policy: "assume_trade_time", ledger_by_record: ledgerByRecord, rules: [...rules.values()]};
+  const duplicateReview = preserveIdenticalRows ? Object.fromEntries(rows.filter(row => ledgerByRecord[row.record]).map(row => [row.record, "Preserve each CSV row as supplied; identical values alone do not establish duplicate transactions. This is a source import policy, not independent execution verification."])) : {};
+  const mapping = {duplicate_review: duplicateReview, source_sha256: source.sourceSha256, timezone: "Europe/Moscow", settlement_policy: "assume_trade_time", ledger_by_record: ledgerByRecord, rules: [...rules.values()]};
   let batch: InvestmentImportBatch | undefined;
   const reported = new Set(problems.map(p => p.record));
   // The API pages candidates at 5000 rows; never silently truncate larger CSVs.

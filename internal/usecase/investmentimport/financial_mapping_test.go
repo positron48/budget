@@ -263,3 +263,30 @@ func TestTrackerMappingSplitAndRepoPayout(t *testing.T) {
 		})
 	}
 }
+
+func TestTrackerImportRoundsMoneyAfterArithmeticAndKeepsQuantityExact(t *testing.T) {
+	csv := financialHeader + "BUY,2024-01-01 12:00:00,TEST,10.00000000000025,2,RUB,0,X,4.1614599393756935,,False,\n"
+	rule := tradeRule()
+	rule.QuantityFactor, rule.MoneyRounding = "1", "12dp_half_away"
+	mapping := financialConfig(t, csv, rule)
+	report, err := MapSnowballFinancial(strings.NewReader(csv), mapping)
+	if err != nil || report.Ready != 1 {
+		t.Fatal(report, err)
+	}
+	op := report.Rows[0].Operation
+	if op.Amount != "20.000000000001" || op.Accrued != "4.161459939376" || op.Quantity != "2" {
+		t.Fatal(op)
+	}
+	// The policy must be explicit and cannot make unsupported quantities valid.
+	mapping.Rules[0].MoneyRounding = ""
+	strict, err := MapSnowballFinancial(strings.NewReader(csv), mapping)
+	if err != nil || strict.Ready != 0 || strict.Hash == report.Hash {
+		t.Fatal(strict, err)
+	}
+	csv = strings.Replace(csv, ",2,RUB,", ",0.00000000001,RUB,", 1)
+	mapping = financialConfig(t, csv, rule)
+	invalid, err := MapSnowballFinancial(strings.NewReader(csv), mapping)
+	if err != nil || invalid.Ready != 0 {
+		t.Fatal(invalid, err)
+	}
+}

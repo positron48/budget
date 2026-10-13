@@ -81,11 +81,15 @@ for (const locale of ["ru", "en"]) {
       let data: any = {}, code = 0, message = "";
       if (method?.name === "ListMyTenants") data = {memberships: [{tenant: {id: "tenant", name: "Synthetic"}, role: 1}]};
       if (method?.name === "ListInvestmentLedgers") data = {ledgers: [{id: "account", name: "Broker", version: 1n}]};
-      if (method?.name === "ListInvestmentImports") data = {imports: [source]};
+      if (method?.name === "ListInvestmentImports") data = {imports: [{...source, accounts: []}]};
       if (method?.name === "GetInvestmentImport") data = {import: source};
       if (method?.name === "UploadInvestmentImport") {expect(input.filename).toBe("operations.csv"); expect(input.accounts[0].name).toBe("Broker"); data = {import: source};}
       if (method?.name === "ListInvestmentImportRows") data = {rows: ["BAD", "GOOD"].map((symbol, i) => ({record: i + 1, accountId: "source-account", sourceFields: {Event: "BUY", Symbol: symbol, Exchange: "MCX", Currency: "RUB"}, operationId: committed && i === 1 ? "posted" : ""}))};
       if (method?.name === "PreviewInvestmentFinancialMapping") {
+        const mapping = JSON.parse(new TextDecoder().decode(input.mappingJson));
+        expect(mapping.ledger_by_record).toEqual(committed ? {1: "account"} : {1: "account", 2: "account"});
+        expect(Object.keys(mapping.duplicate_review)).toHaveLength(committed ? 1 : 2);
+        expect(mapping.rules.every((rule: {MoneyRounding: string}) => rule.MoneyRounding === "12dp_half_away")).toBe(true);
         const entries = ["BAD", "GOOD"].flatMap((symbol, i) => committed && i === 1 ? [] : [{record: i + 1, expectedRowVersion: 1n, operation: {ledgerId: "account", instrumentKey: `${symbol}@MCX`, currency: "RUB", quantity: "1", amount: "10", kind: "buy"}}]);
         data = {ready: entries.length, total: 2, batch: {importId: source.id, expectedImportVersion: 1n, expectedLedgerVersions: {account: 1n}, entries}, rows: entries.map(e => ({record: e.record, operation: e.operation}))};
       }
@@ -98,6 +102,7 @@ for (const locale of ["ru", "en"]) {
     await page.goto("/investments/import");
     if (ru) {
       await page.getByRole("button", {name: /operations.csv/}).click();
+      await expect(page.getByRole("combobox", {name: /Broker/})).toHaveValue("account");
       await page.getByRole("button", {name: "Предпросмотр", exact: true}).click();
     } else {
       await page.getByLabel("Snowball export").setInputFiles({name:"operations.csv",mimeType:"text/csv",buffer:Buffer.from("synthetic CSV")});

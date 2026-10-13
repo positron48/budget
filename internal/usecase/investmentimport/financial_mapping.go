@@ -43,6 +43,7 @@ type FinancialRule struct {
 	AccruedBasis                      string // zero_only, total, per_source_quantity, per_security_unit
 	FeePolicy                         string // zero_only, same_currency; missing FeeCurrency confirmed by rule
 	IncomeBasis                       string // received preserves the supplied payout, without tax accounting
+	MoneyRounding                     string // empty: exact; 12dp_half_away: explicit tracker import policy
 	Reason                            string
 }
 type FinancialCandidate struct {
@@ -152,6 +153,9 @@ func MapSnowballFinancial(input io.Reader, mapping FinancialMapping) (FinancialM
 		seenEvidence[identity] = true
 	}
 	for _, rule := range mapping.Rules {
+		if rule.MoneyRounding != "" && rule.MoneyRounding != "12dp_half_away" {
+			return out, fmt.Errorf("unsupported money rounding policy")
+		}
 		if strings.TrimSpace(rule.Reason) == "" || len(rule.Reason) > 2000 {
 			return out, fmt.Errorf("every financial rule requires a review reason")
 		}
@@ -359,6 +363,15 @@ func MapSnowballFinancial(input io.Reader, mapping FinancialMapping) (FinancialM
 				}
 				if row.FeeCurrency != "" && row.FeeCurrency != row.Currency {
 					issue("cross_currency_fee_requires_manual_operation")
+				}
+			}
+			if rule.MoneyRounding == "12dp_half_away" {
+				// Quantities and split ratios remain exact. Round monetary totals
+				// only after arithmetic; the immutable CSV retains every digit.
+				for _, value := range []*string{&op.Amount, &op.Accrued, &op.Fee, &op.Tax} {
+					if number, ok := new(big.Rat).SetString(*value); ok {
+						*value, _ = NormalizeSourceDecimal(number.FloatString(12))
+					}
 				}
 			}
 			applyMappedDateOnly(&op, row)
