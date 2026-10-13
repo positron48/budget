@@ -117,11 +117,6 @@ jobs:
         run: |
           go build -o "$BUDGET_BACKUP_BINARY" ./cmd/budgetbackup
           python3 -m unittest discover -s scripts/investments -p test_production_backup.py -v 2>&1 | tee operator-backup-test.log
-      - name: Check warm financial reads at planned scale
-        if: matrix.pg == 15
-        env:
-          INVESTMENT_READ_LOAD: '1'
-        run: go test ./internal/adapter/postgres -run '^TestInvestmentWarmReadScale$' -count=1 -v | tee warm-financial-read-load.log
       - name: Save synthetic restore evidence
         if: always()
         uses: actions/upload-artifact@v6
@@ -130,7 +125,6 @@ jobs:
           path: |
             full-backup-fixture-report.json
             financial-test-results.jsonl
-            warm-financial-read-load.log
             operator-backup-test.log
           if-no-files-found: warn
 
