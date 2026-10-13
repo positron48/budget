@@ -370,7 +370,7 @@ func MapSnowballFinancial(input io.Reader, mapping FinancialMapping) (FinancialM
 				// only after arithmetic; the immutable CSV retains every digit.
 				for _, value := range []*string{&op.Amount, &op.Accrued, &op.Fee, &op.Tax} {
 					if number, ok := new(big.Rat).SetString(*value); ok {
-						*value, _ = NormalizeSourceDecimal(number.FloatString(12))
+						*value = strings.TrimRight(strings.TrimRight(number.FloatString(12), "0"), ".")
 					}
 				}
 			}

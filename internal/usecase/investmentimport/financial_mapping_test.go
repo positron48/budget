@@ -290,3 +290,13 @@ func TestTrackerImportRoundsMoneyAfterArithmeticAndKeepsQuantityExact(t *testing
 		t.Fatal(invalid, err)
 	}
 }
+
+func TestTrackerImportRoundingDoesNotDiscardOversizedFees(t *testing.T) {
+	csv := financialHeader + "BUY,2024-01-01 12:00:00,TEST,10,2,RUB,1e100,X,0,,False,\n"
+	rule := tradeRule()
+	rule.MoneyRounding = "12dp_half_away"
+	report, err := MapSnowballFinancial(strings.NewReader(csv), financialConfig(t, csv, rule))
+	if err != nil || report.Ready != 0 {
+		t.Fatal(report, err)
+	}
+}
