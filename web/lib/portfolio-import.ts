@@ -47,6 +47,15 @@ export function brokerCatalog(snapshots: BrokerSnapshot[], now = Date.now()): Br
   return {quotes, symbols, names};
 }
 
+// A Moscow ticker can coincide with a different NYSE/NASDAQ security.
+// A ticker match alone cannot carry a Moscow identity to a foreign exchange.
+export function portfolioInstrumentKey(catalog: BrokerCatalog | undefined, symbol: string, exchange: string): string {
+  if (symbol.includes(":") || symbol.includes("@")) return symbol;
+  const brokerKey = catalog?.symbols.get(symbol);
+  const moscow = /^TQ/.test(catalog?.names.get(brokerKey || "")?.classCode || "");
+  return brokerKey && (!moscow || exchange === "MCX") ? brokerKey : `${symbol}@${exchange || "UNKNOWN"}`;
+}
+
 export async function loadBrokerCatalog(api: ImportAPI): Promise<BrokerCatalog> {
   const latest = new Map<string, {id: string; at: bigint}>();
   for (let offset = 0; ; offset += 200) {
@@ -91,11 +100,7 @@ export async function prepareSimpleImport(api: ImportAPI, source: InvestmentImpo
     const ledger = row.ledgerId || bindings[row.accountId];
     if (!ledgers.some(item => item.id === ledger && !item.archived)) { problems.push({record: row.record, symbol: f.Symbol || "", message: ru ? "Выберите счёт." : "Select an account."}); continue; }
     ledgerByRecord[row.record] = ledger;
-    const brokerKey = catalog.symbols.get(f.Symbol);
-    // A Moscow ticker can coincide with a different NYSE/NASDAQ security.
-    // Broker identity is not portable across those exchanges based on ticker alone.
-    const moscow = /^TQ/.test(catalog.names.get(brokerKey || "")?.classCode || "");
-    const instrumentKey = brokerKey && (!moscow || f.Exchange === "MCX") ? brokerKey : `${f.Symbol}@${f.Exchange || "UNKNOWN"}`;
+    const instrumentKey = portfolioInstrumentKey(catalog, f.Symbol, f.Exchange);
     const income = f.Event === "DIVIDEND" || f.Event === "CASH_GAIN";
     const key = JSON.stringify([f.Event, f.Symbol, f.Exchange, f.Currency]);
     rules.set(key, {

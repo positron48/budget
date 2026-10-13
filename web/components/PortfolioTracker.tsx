@@ -10,7 +10,7 @@ import {useClients} from "@/app/providers";
 import {useAssetTenant} from "@/lib/assets";
 import {useInvestmentReadOnly} from "@/components/InvestmentMode";
 import Modal from "@/components/Modal";
-import {allOperations, loadBrokerCatalog} from "@/lib/portfolio-import";
+import {allOperations, loadBrokerCatalog, portfolioInstrumentKey} from "@/lib/portfolio-import";
 import {add, decimal, divide, negate, payoutKinds, payoutMonths, trackerError, trackerKinds, trackerPositions, tradeAmount, zero} from "@/lib/portfolio-tracker";
 import {positionDecimal, type Fraction} from "@/lib/investment-positions";
 import type {InvestmentLedger, InvestmentOperation, InvestmentSnapshot} from "@/proto/budget/v1/investment_pb";
@@ -90,7 +90,7 @@ function Tracker({tenantId}: {tenantId: string}) {
         if (!snapshot?.ledger) throw new Error("snapshot_missing");
         const trade = ["buy", "sell"].includes(draft.kind), normalized = draft.instrument.trim();
         const originalLabel = editing ? catalog.data?.names.get(editing.instrumentKey)?.ticker || editing.instrumentKey : "";
-        const instrumentKey = editing && normalized === originalLabel ? editing.instrumentKey : catalog.data?.symbols.get(normalized) || (normalized.includes(":") || normalized.includes("@") ? normalized : `${normalized}@${draft.exchange}`);
+        const instrumentKey = editing && normalized === originalLabel ? editing.instrumentKey : portfolioInstrumentKey(catalog.data, normalized, draft.exchange);
         const originalPrice = editing && trade ? positionDecimal(divide(decimal(editing.amount) || zero, decimal(editing.quantity) || zero), 28) : "";
         const amount = trade ? editing && draft.quantity === editing.quantity && draft.price === originalPrice ? editing.amount : tradeAmount(draft.quantity, draft.price) : draft.amount.replace(",", ".");
         const sameDate = !!editing?.occurredAt && draft.date === new Date(Number(editing.occurredAt.seconds) * 1000).toLocaleDateString("en-CA", {timeZone: "Europe/Moscow"});
