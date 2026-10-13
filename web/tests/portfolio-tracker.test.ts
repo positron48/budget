@@ -101,3 +101,17 @@ it("keeps coincident Moscow and NYSE tickers separate during import", async () =
   await prepareSimpleImport(api as never, create(InvestmentImportSchema, {id: "source", rowCount: 2}), [create(InvestmentLedgerSchema, {id: "account"})], {"source-account": "account"}, catalog, true);
   expect(preview).toHaveBeenCalledOnce();
 });
+
+
+it("applies a repeated corporate split once per combined account, including on retry", async () => {
+  for (const posted of [false, true]) {
+    const rows = [1, 2, 3].map(record => create(InvestmentImportRowSchema, {record, accountId: record === 3 ? "other" : "source-account", operationId: posted && record === 2 ? "posted" : "", ledgerId: posted && record === 2 ? "account" : "", sourceFields: {Event: "SPLIT", Symbol: "ABC", Exchange: "MCX", Currency: "RUB", Date: "2024-01-01 00:00:00", Price: "100"}}));
+    const preview = vi.fn(async (request: {mappingJson: Uint8Array}) => {
+      const mapping = JSON.parse(new TextDecoder().decode(request.mappingJson));
+      expect(mapping.ledger_by_record).toEqual(posted ? {3: "second"} : {1: "account", 3: "second"});
+      return {rows: []};
+    });
+    const result = await prepareSimpleImport({listInvestmentImportRows: async () => ({rows}), previewInvestmentFinancialMapping: preview} as never, create(InvestmentImportSchema, {id: "source", rowCount: 3}), ["account", "second"].map(id => create(InvestmentLedgerSchema, {id})), {"source-account": "account", other: "second"}, brokerCatalog([]), true, false);
+    expect(result.ignored).toBe(1); expect(result.alreadyImported).toBe(posted ? 1 : 0); expect(result.problems).toEqual([]);
+  }
+});

@@ -92,8 +92,21 @@ export async function prepareSimpleImport(api: ImportAPI, source: InvestmentImpo
   let alreadyImported = 0, ignored = 0;
   const problems: ImportProblem[] = [];
   const supported = new Set(["BUY", "SELL", "DIVIDEND", "SPLIT", "CASH_GAIN"]);
+  // A combined export repeats one corporate split for each original portfolio.
+  // Once accounts are combined, that event changes the whole holding only once.
+  const splitRecords = new Map<string, number>(), redundantSplits = new Set<number>();
+  for (const row of rows) {
+    const f = row.sourceFields;
+    if (f.Event !== "SPLIT") continue;
+    const key = JSON.stringify([row.ledgerId || bindings[row.accountId], portfolioInstrumentKey(catalog, f.Symbol, f.Exchange), f.Date, f.Price]);
+    const first = splitRecords.get(key);
+    if (first === undefined) splitRecords.set(key, row.record);
+    else if (row.operationId && !rows[first - 1].operationId) {redundantSplits.add(first); splitRecords.set(key, row.record);}
+    else redundantSplits.add(row.record);
+  }
   for (const row of rows) {
     if (row.operationId) { alreadyImported++; continue; }
+    if (redundantSplits.has(row.record)) { ignored++; continue; }
     const f = row.sourceFields;
     if (["CASH_IN", "CASH_OUT", "TAX", "FEE"].includes(f.Event)) { ignored++; continue; }
     if (!supported.has(f.Event)) { problems.push({record: row.record, symbol: f.Symbol || "", message: f.Event === "REPAYMENT" ? ru ? "Погашение облигации: уточните, списывается ли количество бумаг." : "Bond repayment: clarify whether security units were redeemed." : ru ? "Этот тип операции требует уточнения." : "This operation type needs clarification."}); continue; }
@@ -111,7 +124,7 @@ export async function prepareSimpleImport(api: ImportAPI, source: InvestmentImpo
       Reason: "Snowball import: security units, per-security price, total accrued interest; payouts as supplied; monetary totals rounded half away from zero to 12 decimal places.",
     });
   }
-  const duplicateReview = preserveIdenticalRows ? Object.fromEntries(rows.filter(row => ledgerByRecord[row.record]).map(row => [row.record, "Preserve each CSV row as supplied; identical values alone do not establish duplicate transactions. This is a source import policy, not independent execution verification."])) : {};
+  const duplicateReview = Object.fromEntries(rows.filter(row => ledgerByRecord[row.record] && (preserveIdenticalRows || row.sourceFields.Event === "SPLIT")).map(row => [row.record, row.sourceFields.Event === "SPLIT" ? "Apply one identical corporate split per combined account; retain repeated source rows without applying the ratio again." : "Preserve each CSV row as supplied; identical values alone do not establish duplicate transactions. This is a source import policy, not independent execution verification."]));
   const mapping = {duplicate_review: duplicateReview, source_sha256: source.sourceSha256, timezone: "Europe/Moscow", settlement_policy: "assume_trade_time", ledger_by_record: ledgerByRecord, rules: [...rules.values()]};
   let batch: InvestmentImportBatch | undefined;
   const reported = new Set(problems.map(p => p.record));
@@ -125,7 +138,7 @@ export async function prepareSimpleImport(api: ImportAPI, source: InvestmentImpo
     }
     for (const candidate of response.rows) {
       const row = rows[candidate.record - 1];
-      if (!row || row.operationId || !supported.has(row.sourceFields.Event) || reported.has(row.record) || candidate.operation) continue;
+      if (!row || row.operationId || !supported.has(row.sourceFields.Event) || redundantSplits.has(row.record) || reported.has(row.record) || candidate.operation) continue;
       reported.add(row.record);
       problems.push({record: row.record, symbol: row.sourceFields.Symbol || "", message: candidate.issues.includes("identical_rows_require_review") ? ru ? "Повторяющаяся строка: проверьте, не дубликат ли это." : "Repeated row: check whether this is a duplicate." : ru ? "Проверьте количество, цену, валюту и комиссию этой строки." : "Check this row's quantity, price, currency and fee."});
     }
