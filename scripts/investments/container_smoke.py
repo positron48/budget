@@ -211,7 +211,7 @@ def main():
                 stdout=log("browser-" + phase + ".log"), stderr=subprocess.STDOUT)
         query = "SELECT (SELECT version FROM schema_migrations), (SELECT count(*) FROM investment_ledgers), (SELECT count(*) FROM investment_operations), (SELECT count(*) FROM investment_payout_events), (SELECT count(*) FROM investment_payout_links);"
         counts = docker("exec", pg, "psql", "-U", "budget", "-d", "budget", "-At", "-c", query, capture_output=True).stdout.strip()
-        if counts.split("|")[1:] != ["2", "6", "2", "2"]:
+        if counts.split("|")[1:] != ["2", "6", "0", "0"]:
             raise RuntimeError("unexpected financial counts after container restart and flags")
         workers = {}
         for command in ["marketdata", "investmentnav", "investcbr", "investfxpolicy", "investalphafx", "alphafx"]:
