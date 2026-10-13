@@ -7,10 +7,10 @@ import type {Fraction} from "./investment-positions";
 type ImportAPI = Client<typeof InvestmentImportService>;
 type InvestmentAPI = Client<typeof InvestmentService>;
 type Money = {units?: string | number; nano?: number; currency?: string};
-type BrokerPosition = {instrumentUid?: string; instrumentType?: string; ticker?: string; currentPrice?: Money; currentNkd?: Money};
-type BrokerOperation = {instrumentUid?: string; ticker?: string; name?: string; instrumentType?: string};
+type BrokerPosition = {instrumentUid?: string; instrumentType?: string; classCode?: string; ticker?: string; currentPrice?: Money; currentNkd?: Money};
+type BrokerOperation = {instrumentUid?: string; classCode?: string; ticker?: string; name?: string; instrumentType?: string};
 type BrokerSnapshot = {fetched_at?: string; operations?: BrokerOperation[]; portfolio?: {positions?: BrokerPosition[]}};
-export type BrokerCatalog = {quotes: Map<string, TrackerQuote>; symbols: Map<string, string>; names: Map<string, {ticker: string; name: string; instrumentType?: string}>};
+export type BrokerCatalog = {quotes: Map<string, TrackerQuote>; symbols: Map<string, string>; names: Map<string, {ticker: string; name: string; instrumentType?: string; classCode?: string}>};
 
 function money(value?: Money): Fraction | undefined {
   if (!value || !/^-?\d{1,19}$/.test(String(value.units ?? 0)) || !Number.isInteger(value.nano ?? 0) || Math.abs(value.nano ?? 0) > 999999999) return;
@@ -19,20 +19,20 @@ function money(value?: Money): Fraction | undefined {
 // GetPortfolio.currentPrice is MoneyValue per security, unlike last-price/candle
 // quotations in bond points. Never apply the candle nominal conversion here.
 export function brokerCatalog(snapshots: BrokerSnapshot[], now = Date.now()): BrokerCatalog {
-  const quotes = new Map<string, TrackerQuote>(), names = new Map<string, {ticker: string; name: string; instrumentType?: string}>();
+  const quotes = new Map<string, TrackerQuote>(), names = new Map<string, {ticker: string; name: string; instrumentType?: string; classCode?: string}>();
   const candidates = new Map<string, Set<string>>();
-  const identify = (ticker?: string, uid?: string, name?: string, instrumentType?: string) => {
+  const identify = (ticker?: string, uid?: string, name?: string, instrumentType?: string, classCode?: string) => {
     if (!ticker || !uid) return;
     const key = `tinvest:${uid}`;
     const set = candidates.get(ticker) || new Set<string>(); set.add(key); candidates.set(ticker, set);
-    if (!names.has(key)) names.set(key, {ticker, name: name || ticker, instrumentType});
-    else if (instrumentType) names.set(key, {...names.get(key)!, instrumentType});
+    if (!names.has(key)) names.set(key, {ticker, name: name || ticker, instrumentType, classCode});
+    else names.set(key, {...names.get(key)!, ...(instrumentType ? {instrumentType} : {}), ...(classCode ? {classCode} : {})});
   };
   for (const snapshot of snapshots) {
     const at = Date.parse(snapshot.fetched_at || "");
-    for (const op of snapshot.operations || []) identify(op.ticker, op.instrumentUid, op.name, op.instrumentType);
+    for (const op of snapshot.operations || []) identify(op.ticker, op.instrumentUid, op.name, op.instrumentType, op.classCode);
     for (const p of snapshot.portfolio?.positions || []) {
-      identify(p.ticker, p.instrumentUid, undefined, p.instrumentType);
+      identify(p.ticker, p.instrumentUid, undefined, p.instrumentType, p.classCode);
       if (!p.instrumentUid || !["share", "bond", "etf"].includes(p.instrumentType || "")) continue;
       const currency = p.currentPrice?.currency?.toUpperCase(), price = money(p.currentPrice);
       if (!currency || !price || BigInt(price.numerator) <= 0n || !Number.isFinite(at) || at > now || now - at > 7 * 86400000) continue;
@@ -91,7 +91,11 @@ export async function prepareSimpleImport(api: ImportAPI, source: InvestmentImpo
     const ledger = row.ledgerId || bindings[row.accountId];
     if (!ledgers.some(item => item.id === ledger && !item.archived)) { problems.push({record: row.record, symbol: f.Symbol || "", message: ru ? "Выберите счёт." : "Select an account."}); continue; }
     ledgerByRecord[row.record] = ledger;
-    const instrumentKey = catalog.symbols.get(f.Symbol) || `${f.Symbol}@${f.Exchange || "UNKNOWN"}`;
+    const brokerKey = catalog.symbols.get(f.Symbol);
+    // A Moscow ticker can coincide with a different NYSE/NASDAQ security.
+    // Broker identity is not portable across those exchanges based on ticker alone.
+    const moscow = /^TQ/.test(catalog.names.get(brokerKey || "")?.classCode || "");
+    const instrumentKey = brokerKey && (!moscow || f.Exchange === "MCX") ? brokerKey : `${f.Symbol}@${f.Exchange || "UNKNOWN"}`;
     const income = f.Event === "DIVIDEND" || f.Event === "CASH_GAIN";
     const key = JSON.stringify([f.Event, f.Symbol, f.Exchange, f.Currency]);
     rules.set(key, {

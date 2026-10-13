@@ -3,7 +3,9 @@ import {create} from "@bufbuild/protobuf";
 import {InvestmentOperationSchema, InvestmentSnapshotSchema, InvestmentImportBatchSchema} from "@/proto/budget/v1/investment_pb";
 import {add, decimal, trackerPositions, tradeAmount} from "@/lib/portfolio-tracker";
 import {positionDecimal} from "@/lib/investment-positions";
-import {brokerCatalog, commitSimpleImport, type SimpleImportPlan} from "@/lib/portfolio-import";
+import {brokerCatalog, prepareSimpleImport, commitSimpleImport, type SimpleImportPlan} from "@/lib/portfolio-import";
+import {InvestmentImportSchema, InvestmentImportRowSchema} from "@/proto/budget/v1/investment_import_pb";
+import {InvestmentLedgerSchema} from "@/proto/budget/v1/investment_pb";
 import {Code, ConnectError} from "@connectrpc/connect";
 
 describe("portfolio tracker", () => {
@@ -81,4 +83,21 @@ it("imports a split together with the purchases it changes despite its empty cur
   const commit = vi.fn(async () => ({result: {committed: true, operations: [{}, {}, {}], snapshots: [{ledger: {id: "account", version: 2n}}]}}));
   const result = await commitSimpleImport({previewInvestmentImportBatch: preview, commitInvestmentImportBatch: commit} as never, {batch, problems: []} as unknown as SimpleImportPlan, true, () => {});
   expect(result.imported).toBe(3); expect(preview).toHaveBeenCalledOnce();
+});
+
+
+it("keeps coincident Moscow and NYSE tickers separate during import", async () => {
+  const catalog = brokerCatalog([{operations: [{ticker: "T", instrumentUid: "russian", classCode: "TQBR"}]}]);
+  const preview = vi.fn(async (request: {mappingJson: Uint8Array}) => {
+    const mapping = JSON.parse(new TextDecoder().decode(request.mappingJson));
+    expect(mapping.rules.map((rule: {InstrumentKey: string}) => rule.InstrumentKey)).toEqual(["tinvest:russian", "T@NYSE"]);
+    expect(Object.keys(mapping.duplicate_review)).toEqual(["1", "2"]);
+    return {rows: []};
+  });
+  const api = {
+    listInvestmentImportRows: async () => ({rows: ["MCX", "NYSE"].map((exchange, i) => create(InvestmentImportRowSchema, {record: i + 1, accountId: "source-account", sourceFields: {Event: "BUY", Symbol: "T", Exchange: exchange, Currency: exchange === "MCX" ? "RUB" : "USD"}}))}),
+    previewInvestmentFinancialMapping: preview,
+  };
+  await prepareSimpleImport(api as never, create(InvestmentImportSchema, {id: "source", rowCount: 2}), [create(InvestmentLedgerSchema, {id: "account"})], {"source-account": "account"}, catalog, true);
+  expect(preview).toHaveBeenCalledOnce();
 });
