@@ -11,7 +11,7 @@ import (
 	inv "github.com/positron48/budget/internal/usecase/investment"
 )
 
-func TestTrackerAssetBatchIsAtomicRehearsedAndResumable(t *testing.T) {
+func TestInvestmentTrackerAssetBatchIsAtomicRehearsedAndResumable(t *testing.T) {
 	pool, done := withPg(t)
 	defer done()
 	ctx, tenant, actor := acceptanceOwner(t, pool)

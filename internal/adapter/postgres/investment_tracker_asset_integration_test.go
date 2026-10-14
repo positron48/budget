@@ -13,7 +13,7 @@ import (
 	md "github.com/positron48/budget/internal/usecase/marketdata"
 )
 
-func TestTrackerAssetReplacementUsesCleanQuotesWithoutFundingOrDoubleCount(t *testing.T) {
+func TestInvestmentTrackerAssetReplacementUsesCleanQuotesWithoutFundingOrDoubleCount(t *testing.T) {
 	pool, done := withPg(t)
 	defer done()
 	ctx, tenant, actor := acceptanceOwner(t, pool)
