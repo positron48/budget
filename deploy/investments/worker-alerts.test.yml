@@ -4,6 +4,30 @@ evaluation_interval: 1m
 tests:
   - interval: 1m
     input_series:
+      - series: 'budget_investment_worker_mapped_quote_endpoints{job="budget-investment-marketdata",instance="worker:9091",worker="marketdata",state="missing"}'
+        values: '1+0x34 0+0x15'
+      - series: 'budget_investment_worker_job_attempts_total{job="budget-investment-marketdata",instance="worker:9091",worker="marketdata",kind="last_price",result="ready"}'
+        values: '100+1x50'
+    alert_rule_test:
+      - eval_time: 29m
+        alertname: InvestmentMappedQuotesDegraded
+        exp_alerts: []
+      - eval_time: 31m
+        alertname: InvestmentMappedQuotesDegraded
+        exp_alerts:
+          - exp_labels:
+              job: budget-investment-marketdata
+              instance: worker:9091
+              worker: marketdata
+              severity: warning
+            exp_annotations:
+              summary: "Held investment quotes are stale or unusable"
+              description: "Usable prices for held reviewed mappings are missing or expired, including unconfirmed bond nominal. Successful provider jobs do not establish fresh valuation; unmapped securities are reported separately by the portfolio."
+      - eval_time: 40m
+        alertname: InvestmentMappedQuotesDegraded
+        exp_alerts: []
+  - interval: 1m
+    input_series:
       - series: 'budget_investment_worker_nav_endpoints{job="budget-investment-nav",instance="nav:9091",worker="investmentnav",state="incomplete"}'
         values: '2+0x34 0+0x15'
     alert_rule_test:

@@ -13,4 +13,5 @@ type Snapshot struct {
 	SourceEnabled *bool
 	NAVStates     map[string]int64
 	FXStates      map[string]int64
+	QuoteStates   map[string]int64
 }

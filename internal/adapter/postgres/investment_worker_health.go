@@ -57,7 +57,12 @@ func (r *MarketDataRepo) ReadMarketWorkerHealth(ctx context.Context, scope md.Sc
 	if err := md.ValidateScope(scope); err != nil {
 		return workerhealth.Snapshot{}, err
 	}
-	return r.readWorkerHealth(ctx, marketWorkerHealthSQL, scope.TenantID, scope.Provider, scope.AccessScope)
+	state, e := r.readWorkerHealth(ctx, marketWorkerHealthSQL, scope.TenantID, scope.Provider, scope.AccessScope)
+	if e != nil {
+		return state, e
+	}
+	state.QuoteStates, e = r.readMappedQuoteHealth(ctx, scope)
+	return state, e
 }
 
 func (r *MarketDataRepo) ReadNAVWorkerHealth(ctx context.Context, tenant string) (workerhealth.Snapshot, error) {

@@ -18,6 +18,7 @@ import (
 	inv "github.com/positron48/budget/internal/usecase/investment"
 	archive "github.com/positron48/budget/internal/usecase/investmentarchive"
 	imp "github.com/positron48/budget/internal/usecase/investmentimport"
+	md "github.com/positron48/budget/internal/usecase/marketdata"
 )
 
 // Optional private fixtures are exercised only in disposable testcontainers.
@@ -277,6 +278,10 @@ func TestInvestmentPrivatePortfolioImportRehearsal(t *testing.T) {
 		coverage, e := NewInvestmentRepo(candidatePool).VerifyPortfolioMarketCoverage(ctx, tenant, actor, *marketInput)
 		if e != nil || coverage.RequiredCurrencyDates == 0 || coverage.FreshQuotes != len(marketInput.Quotes) {
 			t.Fatal("actual source FX/quote coverage", e)
+		}
+		health, e := marketRepo.ReadMarketWorkerHealth(ctx, md.Scope{TenantID: tenant, Provider: "tinvest", AccessScope: "personal"})
+		if e != nil || health.QuoteStates["fresh"] != int64(coverage.FreshQuotes) || health.QuoteStates["missing"] != 0 || health.QuoteStates["expired"] != 0 {
+			t.Fatal("actual held quote demand differs from verified coverage", health, e)
 		}
 		coverageJSON, e := json.Marshal(coverage)
 		if e != nil {

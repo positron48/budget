@@ -37,6 +37,9 @@ func TestInvestmentQuotesOutsideBrokerHoldingsAndSourceBoundaries(t *testing.T) 
 			t.Fatal(e)
 		}
 		change := md.MappingChange{InstrumentKey: key, RequestKey: key, Reason: "Synthetic current price terms", Periods: []md.MappingPeriod{{Provider: scope.Provider, AccessScope: scope.AccessScope, InstrumentID: item.ID, Kind: kind, Currency: "USD", Unit: unit, Nominal: nominal, NominalCurrency: "USD", LotSize: "100", From: at.Add(-10 * 24 * time.Hour), Evidence: "Synthetic metadata"}}}
+		if kind == "bond" {
+			change.Periods[0].From = at.UTC().Truncate(24 * time.Hour)
+		}
 		if _, e = repo.SaveMapping(ctx, tenant, actor, change); e != nil {
 			t.Fatal(e)
 		}

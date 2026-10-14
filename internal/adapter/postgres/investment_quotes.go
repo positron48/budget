@@ -27,6 +27,15 @@ func (r *MarketDataRepo) InvestmentQuotes(ctx context.Context, tenant, actor str
 	if e = groupAccess(ctx, tx, tenant, actor, false); e != nil {
 		return out, e
 	}
+	out, e = readPortfolioQuotes(ctx, tx, tenant, keys, out.ReadAt)
+	if e != nil {
+		return out, e
+	}
+	return out, tx.Commit(ctx)
+}
+
+func readPortfolioQuotes(ctx context.Context, tx pgx.Tx, tenant string, keys []string, at time.Time) (nav.PortfolioQuotes, error) {
+	out := nav.PortfolioQuotes{ReadAt: at}
 	rows, e := tx.Query(ctx, `SELECT instrument_key,data FROM investment_market_mappings WHERE tenant_id=$1 AND instrument_key=ANY($2::text[])`, tenant, keys)
 	if e != nil {
 		return out, e
@@ -85,11 +94,18 @@ func (r *MarketDataRepo) InvestmentQuotes(ctx context.Context, tenant, actor str
 		if e != nil {
 			return out, e
 		}
-		quote, e := nav.NormalizePortfolioQuote(mapping, price, out.ReadAt)
+		var bond *md.SavedBondFacts
+		if terms.Kind == "bond" && terms.Unit == "percent_of_nominal" && price.State == "fresh" && price.Fact != nil {
+			bond, e = readPortfolioBondFacts(ctx, tx, selection.Scope, terms.InstrumentID, price.Fact.EffectiveAt, out.ReadAt)
+			if e != nil {
+				return out, e
+			}
+		}
+		quote, e := nav.NormalizePortfolioQuoteWithBondFacts(mapping, price, out.ReadAt, bond)
 		if e != nil {
 			return out, e
 		}
 		out.Quotes = append(out.Quotes, quote)
 	}
-	return out, tx.Commit(ctx)
+	return out, nil
 }

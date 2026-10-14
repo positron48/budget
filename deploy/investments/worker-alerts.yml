@@ -2,6 +2,14 @@ groups:
   - name: budget-investment-workers
     interval: 30s
     rules:
+      - alert: InvestmentMappedQuotesDegraded
+        expr: sum by (job, instance, worker) (budget_investment_worker_mapped_quote_endpoints{state=~"expired|missing"}) > 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Held investment quotes are stale or unusable"
+          description: "Usable prices for held reviewed mappings are missing or expired, including unconfirmed bond nominal. Successful provider jobs do not establish fresh valuation; unmapped securities are reported separately by the portfolio."
       - alert: InvestmentMarketFXDegraded
         expr: sum by (job, instance, worker) (budget_investment_worker_fx_endpoints{state=~"expired|missing"}) > 0
         for: 30m

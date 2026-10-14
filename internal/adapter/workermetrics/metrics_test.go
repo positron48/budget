@@ -26,7 +26,7 @@ func TestMetricsPersistedStateFailureRedactionAndRecovery(t *testing.T) {
 		if fail {
 			return workerhealth.Snapshot{}, errors.New("secret-account SQL password")
 		}
-		return workerhealth.Snapshot{SourceEnabled: &enabled, NAVStates: map[string]int64{"incomplete": 2, "private-instrument": 9}, Queues: []workerhealth.Queue{
+		return workerhealth.Snapshot{SourceEnabled: &enabled, QuoteStates: map[string]int64{"fresh": 7, "missing": 1, "private-instrument": 9}, NAVStates: map[string]int64{"incomplete": 2, "private-instrument": 9}, Queues: []workerhealth.Queue{
 			{Kind: "daily_candle", Status: "pending", Count: 4, Due: 2, OldestDueSeconds: 120},
 			{Kind: "dividend_facts", Status: "pending", Count: 1, Due: 1},
 			{Kind: "private-instrument-id", Status: "error", Count: 17},
@@ -51,6 +51,8 @@ func TestMetricsPersistedStateFailureRedactionAndRecovery(t *testing.T) {
 	body := scrape()
 	for _, want := range []string{
 		`budget_investment_worker_snapshot_success{worker="marketdata"} 1`,
+		`budget_investment_worker_mapped_quote_endpoints{state="fresh",worker="marketdata"} 7`,
+		`budget_investment_worker_mapped_quote_endpoints{state="missing",worker="marketdata"} 1`,
 		`budget_investment_worker_due_jobs{kind="daily_candle",status="pending",worker="marketdata"} 2`,
 		`budget_investment_worker_due_jobs{kind="dividend_facts",status="pending",worker="marketdata"} 1`,
 		`budget_investment_worker_job_attempts_total{kind="dividend_facts",result="ready",worker="marketdata"} 1`,

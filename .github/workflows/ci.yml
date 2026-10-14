@@ -49,6 +49,7 @@ jobs:
         run: |
           python3 -m unittest discover -s scripts/investments -p test_source_manifest.py -v
           python3 -m unittest discover -s scripts/investments -p test_ci_go_summary.py -v
+          python3 -m unittest discover -s scripts/investments -p test_provision_refresh.py -v
   go:
     runs-on: ubuntu-latest
     env:

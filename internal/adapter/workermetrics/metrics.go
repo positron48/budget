@@ -22,6 +22,7 @@ type Monitor struct {
 	scrape, count, due, age, expired, enabled *prometheus.Desc
 	navStates                                 *prometheus.Desc
 	fxStates                                  *prometheus.Desc
+	quoteStates                               *prometheus.Desc
 	iterations                                *prometheus.CounterVec
 	jobs                                      *prometheus.CounterVec
 	lastSuccess                               prometheus.Gauge
@@ -43,6 +44,7 @@ func New(ctx context.Context, worker string, read ReadSnapshot) (*Monitor, error
 		expired:     desc("expired_leases", "Running jobs whose lease expired.", []string{"kind", "status"}),
 		enabled:     desc("source_enabled", "Whether the explicitly bound provider scope is enabled.", nil),
 		fxStates:    desc("fx_endpoints", "Freshness of the latest eligible USD/RUB and EUR/RUB retrospective fixings, independent of loop success.", []string{"state"}),
+		quoteStates: desc("mapped_quote_endpoints", "Usable exchange quotes for held reviewed mappings; missing mappings are not included. Independent of successful jobs.", []string{"state"}),
 		navStates:   desc("nav_endpoints", "Quality of expected last completed daily points for enabled authorized watches, including auto extension.", []string{"state"}),
 		iterations:  prometheus.NewCounterVec(prometheus.CounterOpts{Name: "budget_investment_worker_iterations_total", Help: "Loop iterations by transport outcome; success does not imply ready or complete data.", ConstLabels: labels}, []string{"result"}),
 		jobs:        prometheus.NewCounterVec(prometheus.CounterOpts{Name: "budget_investment_worker_job_attempts_total", Help: "Job attempts by bounded outcome; ready can still contain valuation gaps.", ConstLabels: labels}, []string{"kind", "result"}),
@@ -71,7 +73,7 @@ func (m *Monitor) Observe(err error) {
 }
 
 func (m *Monitor) Describe(ch chan<- *prometheus.Desc) {
-	for _, d := range []*prometheus.Desc{m.scrape, m.count, m.due, m.age, m.expired, m.enabled, m.navStates, m.fxStates} {
+	for _, d := range []*prometheus.Desc{m.scrape, m.count, m.due, m.age, m.expired, m.enabled, m.navStates, m.fxStates, m.quoteStates} {
 		ch <- d
 	}
 	m.iterations.Describe(ch)
@@ -94,6 +96,15 @@ func (m *Monitor) Collect(ch chan<- prometheus.Metric) {
 		return // Never report zero backlog after a failed read or expose its error.
 	}
 	ch <- prometheus.MustNewConstMetric(m.scrape, prometheus.GaugeValue, 1)
+	if s.QuoteStates != nil {
+		for _, state := range []string{"fresh", "expired", "missing"} {
+			n := s.QuoteStates[state]
+			if n < 0 {
+				n = 0
+			}
+			ch <- prometheus.MustNewConstMetric(m.quoteStates, prometheus.GaugeValue, float64(n), state)
+		}
+	}
 	if s.FXStates != nil {
 		for _, state := range []string{"fresh", "expired", "missing"} {
 			n := s.FXStates[state]

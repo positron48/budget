@@ -43,6 +43,13 @@ func NormalizeQuoteKeys(keys []string) ([]string, error) {
 // NormalizePortfolioQuote exposes clean money per security. Missing bond NKD
 // does not block a clean valuation, but missing/contradictory price terms do.
 func NormalizePortfolioQuote(mapping md.Mapping, price md.SelectedPrice, at time.Time) (PortfolioQuote, error) {
+	return NormalizePortfolioQuoteWithBondFacts(mapping, price, at, nil)
+}
+
+// A reviewed nominal captures the mapping's opening UTC day. Later percentage
+// quotes require the provider's nominal for their own day, so amortization cannot
+// silently reuse the original face value. This changes valuation, never the book.
+func NormalizePortfolioQuoteWithBondFacts(mapping md.Mapping, price md.SelectedPrice, at time.Time, facts *md.SavedBondFacts) (PortfolioQuote, error) {
 	out := PortfolioQuote{InstrumentKey: mapping.InstrumentKey, MappingVersion: mapping.Version, State: price.State, Issues: slices.Clone(price.Issues)}
 	terms, ok := mapping.TermsAt(at)
 	if !ok {
@@ -58,6 +65,22 @@ func NormalizePortfolioQuote(mapping md.Mapping, price md.SelectedPrice, at time
 		return out, nil
 	}
 	out.At = price.Fact.EffectiveAt
+	if terms.Kind == "bond" && terms.Unit == "percent_of_nominal" {
+		day := out.At.UTC().Truncate(24 * time.Hour)
+		if facts != nil {
+			nominal, ok := portfolioBondNominal(facts, terms.InstrumentID, terms.Currency, day, at)
+			if !ok {
+				out.State = "unavailable"
+				out.Issues = append(out.Issues, "bond_nominal_unconfirmed")
+				return out, nil
+			}
+			terms.Nominal, terms.NominalCurrency = nominal.Amount, nominal.Currency
+		} else if !day.Equal(terms.From.UTC().Truncate(24 * time.Hour)) {
+			out.State = "unavailable"
+			out.Issues = append(out.Issues, "bond_nominal_unconfirmed")
+			return out, nil
+		}
+	}
 	normalized, e := calc.NormalizePrice(price.Fact, &terms, nil, at)
 	if e != nil {
 		out.State = "unavailable"
@@ -80,4 +103,33 @@ func NormalizePortfolioQuote(mapping md.Mapping, price md.SelectedPrice, at time
 	}
 	out.CleanPrice = normalized.Clean
 	return out, nil
+}
+
+func portfolioBondNominal(f *md.SavedBondFacts, instrument, currency string, day, at time.Time) (md.BondAmount, bool) {
+	if f.Instrument.ID != instrument || f.Instrument.Kind != "bond" || f.ID == "" || f.Hash == "" || f.RecordedAt.IsZero() || f.RecordedAt.After(at) || f.AsOf.IsZero() || f.AsOf.After(at) || day.Before(f.From) || day.After(f.To) || day.After(f.AsOf.UTC().Truncate(24*time.Hour)) || f.Terms.Nominal == nil || f.Terms.Nominal.Currency != currency {
+		return md.BondAmount{}, false
+	}
+	var nominal *big.Rat
+	var nominalText string
+	for _, point := range f.Accrued {
+		if !point.Date.UTC().Truncate(24*time.Hour).Equal(day) || point.Nominal == nil {
+			continue
+		}
+		value, ok := new(big.Rat).SetString(*point.Nominal)
+		if !ok || value.Sign() <= 0 || nominal != nil && nominal.Cmp(value) != 0 {
+			return md.BondAmount{}, false
+		}
+		nominal = value
+		nominalText = *point.Nominal
+	}
+	if nominal == nil {
+		return md.BondAmount{}, false
+	}
+	if f.AsOf.UTC().Truncate(24 * time.Hour).Equal(day) {
+		current, ok := new(big.Rat).SetString(f.Terms.Nominal.Amount)
+		if !ok || current.Cmp(nominal) != 0 {
+			return md.BondAmount{}, false
+		}
+	}
+	return md.BondAmount{Amount: nominalText, Currency: currency}, true
 }

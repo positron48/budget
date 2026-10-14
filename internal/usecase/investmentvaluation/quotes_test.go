@@ -21,10 +21,83 @@ func TestPortfolioQuoteIsPerSecurityAndCleanBondMoneyNeedsNoNKD(t *testing.T) {
 			unit, nominal, want = "percent_of_nominal", "500", "475"
 		}
 		mapping, price, at := quoteFixture(kind, unit, nominal)
+		if kind == "bond" {
+			mapping.Periods[0].From = price.Fact.EffectiveAt.UTC().Truncate(24 * time.Hour)
+		}
 		result, e := NormalizePortfolioQuote(mapping, price, at)
 		if e != nil || result.State != "fresh" || result.CleanPrice == nil || result.CleanPrice.RatString() != want || len(result.Issues) != 0 {
 			t.Fatal(result, e)
 		}
+	}
+}
+
+func portfolioBondFixture() (md.Mapping, md.SelectedPrice, time.Time, md.SavedBondFacts) {
+	mapping, price, at := quoteFixture("bond", "percent_of_nominal", "500")
+	day := at.Truncate(24 * time.Hour)
+	nominal := "300"
+	facts := md.SavedBondFacts{ID: "saved-facts", Hash: "verified-payload", RecordedAt: at.Add(-time.Minute), BondFacts: md.BondFacts{
+		Instrument: md.Instrument{ID: "instrument", Kind: "bond"}, From: day, To: day.Add(24 * time.Hour), AsOf: at.Add(-time.Minute),
+		Terms: md.BondTerms{Nominal: &md.BondAmount{Amount: "300", Currency: "USD"}}, Accrued: []md.BondAccrued{{Date: day, Nominal: &nominal}},
+	}}
+	return mapping, price, at, facts
+}
+
+func TestPortfolioPercentageQuoteUsesNominalForQuoteDayAfterAmortization(t *testing.T) {
+	mapping, price, at, facts := portfolioBondFixture()
+	missing, e := NormalizePortfolioQuote(mapping, price, at)
+	if e != nil || missing.CleanPrice != nil || missing.State != "unavailable" {
+		t.Fatal("old face value reused", missing, e)
+	}
+	actual, e := NormalizePortfolioQuoteWithBondFacts(mapping, price, at, &facts)
+	if e != nil || actual.CleanPrice == nil || actual.CleanPrice.RatString() != "285" {
+		t.Fatal("amortization ignored", actual, e)
+	}
+	if mapping.Periods[0].Nominal != "500" {
+		t.Fatal("valuation rewrote reviewed mapping")
+	}
+	// A weekend read can use Friday's quote and Friday's nominal, never Monday's.
+	later := at.Add(48 * time.Hour)
+	facts.AsOf, facts.RecordedAt = later.Add(-time.Minute), later.Add(-time.Minute)
+	facts.Terms.Nominal.Amount = "200"
+	actual, e = NormalizePortfolioQuoteWithBondFacts(mapping, price, later, &facts)
+	if e != nil || actual.CleanPrice == nil || actual.CleanPrice.RatString() != "285" {
+		t.Fatal("historical nominal replaced by current contract value", actual, e)
+	}
+}
+
+func TestPortfolioBondNominalCannotBeGuessedFromMissingOrContradictoryEvidence(t *testing.T) {
+	for _, change := range []string{"missing_day", "missing_nominal", "wrong_currency", "wrong_instrument", "future_snapshot", "future_provider", "old_provider", "zero", "contradiction", "contract_mismatch"} {
+		t.Run(change, func(t *testing.T) {
+			mapping, price, at, facts := portfolioBondFixture()
+			switch change {
+			case "missing_day":
+				facts.Accrued[0].Date = facts.Accrued[0].Date.Add(-24 * time.Hour)
+			case "missing_nominal":
+				facts.Accrued[0].Nominal = nil
+			case "wrong_currency":
+				facts.Terms.Nominal.Currency = "RUB"
+			case "wrong_instrument":
+				facts.Instrument.ID = "different"
+			case "future_snapshot":
+				facts.RecordedAt = at.Add(time.Hour)
+			case "future_provider":
+				facts.AsOf = at.Add(time.Hour)
+			case "old_provider":
+				facts.AsOf = at.Add(-24 * time.Hour)
+			case "zero":
+				zero := "0"
+				facts.Accrued[0].Nominal = &zero
+			case "contradiction":
+				other := "200"
+				facts.Accrued = append(facts.Accrued, md.BondAccrued{Date: at.Truncate(24 * time.Hour), Nominal: &other})
+			case "contract_mismatch":
+				facts.Terms.Nominal.Amount = "200"
+			}
+			result, e := NormalizePortfolioQuoteWithBondFacts(mapping, price, at, &facts)
+			if e != nil || result.CleanPrice != nil {
+				t.Fatal("unconfirmed nominal became money", result, e)
+			}
+		})
 	}
 }
 func TestPortfolioQuotesNeverPromoteStaleUnknownOrConflictingPriceToValue(t *testing.T) {
