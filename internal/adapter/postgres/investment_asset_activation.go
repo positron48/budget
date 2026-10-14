@@ -262,6 +262,16 @@ func (r *InvestmentRepo) ActivateAsset(ctx context.Context, t, u string, m d.Inv
 		return empty, e
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
+	result, e := activateAssetTx(ctx, tx, r.pool, t, u, m)
+	if e != nil {
+		return empty, e
+	}
+	return result, tx.Commit(ctx)
+}
+
+func activateAssetTx(ctx context.Context, tx pgx.Tx, pool *Pool, t, u string, m d.InvestmentAssetActivation) (d.AssetAccount, error) {
+	var empty d.AssetAccount
+	var e error
 	if e = lockInvestment(ctx, tx, t); e != nil {
 		return empty, e
 	}
@@ -288,9 +298,9 @@ func (r *InvestmentRepo) ActivateAsset(ctx context.Context, t, u string, m d.Inv
 	}
 	ctx = ctxutil.WithUserID(context.WithValue(ctx, financialTxKey{}, tx), u)
 	if retry != "" {
-		return NewAssetRepo(r.pool).GetAccount(ctx, t, retry, time.Now())
+		return NewAssetRepo(pool).GetAccount(ctx, t, retry, time.Now())
 	}
-	out, e := previewAssetActivationTx(ctx, tx, r.pool, t, u, m)
+	out, e := previewAssetActivationTx(ctx, tx, pool, t, u, m)
 	if e != nil {
 		return empty, e
 	}
@@ -320,11 +330,11 @@ func (r *InvestmentRepo) ActivateAsset(ctx context.Context, t, u string, m d.Inv
 	if e = saveInvestmentRequest(ctx, tx, t, "asset.investment.activate", m.RequestKey, hash, m.AccountID); e != nil {
 		return empty, e
 	}
-	result, e := NewAssetRepo(r.pool).GetAccount(ctx, t, m.AccountID, time.Now())
+	result, e := NewAssetRepo(pool).GetAccount(ctx, t, m.AccountID, time.Now())
 	if e != nil {
 		return empty, e
 	}
-	return result, tx.Commit(ctx)
+	return result, nil
 }
 
 // Keep fixed-currency NAV and overview conversion in the same MVCC snapshot,
