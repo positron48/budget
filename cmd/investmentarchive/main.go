@@ -53,7 +53,30 @@ func run() error {
 	checkRestore := flag.String("check-restore", "", "rehearse restore into an empty matching tenant; always rolls back")
 	restore := flag.String("restore", "", "restore into an empty matching tenant")
 	expectedSHA := flag.String("expected-sha", "", "required reviewed checksum for restore")
+	replace := flag.String("replace", "", "atomically replace a matching standalone portfolio archive")
+	checkReplace := flag.String("check-replace", "", "rehearse portfolio replacement; always rolls back")
+	beforeState := flag.String("before-state-sha256", "", "canonical investment state digest from reviewed current export")
+	scopeLedger := flag.String("scope-ledger", "", "inspect portfolio account identities/counters only, using the existing ledger creator")
 	flag.Parse()
+	if *scopeLedger != "" {
+		if *replace != "" || *checkReplace != "" || *beforeState != "" || *restore != "" || *checkRestore != "" || *verify != "" || *output != "" || *tenant != "" || *actor != "" || *expectedSHA != "" || flag.NArg() != 0 {
+			return errors.New("scope-ledger cannot be combined with archive modes")
+		}
+		return inspectScope(*scopeLedger)
+	}
+	if *replace != "" || *checkReplace != "" {
+		if (*replace != "" && *checkReplace != "") || *restore != "" || *checkRestore != "" || *verify != "" || *output != "" || *tenant != "" || *actor == "" || *expectedSHA == "" || *beforeState == "" || flag.NArg() != 0 {
+			return errors.New("replacement requires actor, expected-sha and before-state-sha256, with exactly one replacement mode")
+		}
+		path := *replace
+		if path == "" {
+			path = *checkReplace
+		}
+		return replaceArchive(path, *actor, *expectedSHA, *beforeState, *replace != "")
+	}
+	if *beforeState != "" {
+		return errors.New("before-state-sha256 requires replacement")
+	}
 	if *restore != "" {
 		if *checkRestore != "" || *verify != "" || *output != "" || *tenant != "" || *actor == "" || *expectedSHA == "" {
 			return errors.New("restore requires actor and expected-sha, and cannot be combined with another mode")
@@ -111,7 +134,11 @@ func run() error {
 	if e = writeArchive(*output, bundle); e != nil {
 		return e
 	}
-	fmt.Printf("Archive written: %d tables; SHA256 %s\n", len(bundle.Data.Tables), bundle.SHA256)
+	state, e := postgres.InvestmentArchiveStateSHA256(bundle)
+	if e != nil {
+		return errors.New("cannot fingerprint investment archive")
+	}
+	fmt.Printf("Archive written: %d tables; SHA256 %s; state SHA256 %s\n", len(bundle.Data.Tables), bundle.SHA256, state)
 	return nil
 }
 func restoreArchive(path, actor, expectedSHA string, apply bool) error {
@@ -152,6 +179,44 @@ func restoreArchive(path, actor, expectedSHA string, apply bool) error {
 	fmt.Printf("%s: %d ledgers, %d operations; SHA256 %s\n", status, result.Ledgers, result.Operations, bundle.SHA256)
 	return nil
 }
+func replaceArchive(path, actor, expectedSHA, beforeState string, apply bool) error {
+	file, e := os.Open(path)
+	if e != nil {
+		return errors.New("cannot open replacement archive")
+	}
+	defer func() { _ = file.Close() }()
+	bundle, e := archive.Decode(file)
+	if e != nil {
+		return e
+	}
+	if expectedSHA != bundle.SHA256 {
+		return errors.New("replacement checksum mismatch")
+	}
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		return errors.New("DATABASE_URL required")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+	pool, e := postgres.NewPool(ctx, dsn)
+	if e != nil {
+		return errors.New("database connection failed")
+	}
+	defer pool.Close()
+	result, retry, e := postgres.NewInvestmentRepo(pool).ReplacePortfolioArchive(ctx, actor, bundle, postgres.PortfolioArchiveReplacement{ExpectedStateSHA256: beforeState, ExpectedArchiveSHA256: expectedSHA}, apply)
+	if e != nil {
+		return errors.New("portfolio replacement failed; check current state digest, authorization, matching standalone accounts, archive and constraints")
+	}
+	status := "replacement_rehearsal_rolled_back"
+	if apply {
+		status = "portfolio_replaced"
+	}
+	if retry {
+		status = "replacement_already_applied"
+	}
+	return json.NewEncoder(os.Stdout).Encode(map[string]any{"Status": status, "ArchiveSHA256": bundle.SHA256, "Verification": result, "HouseholdWrites": false})
+}
+
 func main() {
 	if e := run(); e != nil {
 		fmt.Fprintln(os.Stderr, e)

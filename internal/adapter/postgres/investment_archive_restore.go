@@ -29,6 +29,9 @@ func (r *InvestmentRepo) RestoreInvestmentArchive(ctx context.Context, actor str
 	return r.restoreInvestmentArchive(ctx, actor, bundle, true)
 }
 func (r *InvestmentRepo) restoreInvestmentArchive(ctx context.Context, actor string, bundle archive.Bundle, apply bool) (archive.JournalVerification, error) {
+	return r.restoreInvestmentArchiveWithReplacement(ctx, actor, bundle, apply, nil)
+}
+func (r *InvestmentRepo) restoreInvestmentArchiveWithReplacement(ctx context.Context, actor string, bundle archive.Bundle, apply bool, replacement *PortfolioArchiveReplacement) (archive.JournalVerification, error) {
 	var empty archive.JournalVerification
 	sealed, err := archive.Seal(bundle.Data)
 	if err != nil || bundle.Format != archive.Format || sealed.SHA256 != bundle.SHA256 {
@@ -65,7 +68,27 @@ func (r *InvestmentRepo) restoreInvestmentArchive(ctx context.Context, actor str
 	if err = tx.QueryRow(ctx, `SELECT id FROM tenants WHERE id=$1 FOR UPDATE`, tenant).Scan(&locked); err != nil {
 		return empty, err
 	}
-	if apply {
+	if replacement != nil {
+		if err = lockPortfolioArchiveTables(ctx, tx); err != nil {
+			return empty, err
+		}
+	}
+	if replacement != nil && apply {
+		var payload string
+		var raw []byte
+		e := tx.QueryRow(ctx, `SELECT payload_hash,result FROM financial_write_requests WHERE tenant_id=$1 AND operation='investment.archive.replace' AND request_key=$2`, tenant, bundle.SHA256).Scan(&payload, &raw)
+		if e == nil {
+			if payload != investmentHash([]string{actor, replacement.ExpectedStateSHA256, bundle.SHA256}) || json.Unmarshal(raw, &empty) != nil {
+				return empty, d.ErrInvestmentConflict
+			}
+			replacement.AlreadyApplied = true
+			return empty, tx.Commit(ctx)
+		}
+		if e != pgx.ErrNoRows {
+			return empty, e
+		}
+	}
+	if apply && replacement == nil {
 		var raw []byte
 		err = tx.QueryRow(ctx, `SELECT verification FROM investment_archive_restores WHERE tenant_id=$1 AND source_sha256=$2`, tenant, bundle.SHA256).Scan(&raw)
 		if err == nil {
@@ -82,6 +105,25 @@ func (r *InvestmentRepo) restoreInvestmentArchive(ctx context.Context, actor str
 	// The lock also protects the transactional sequence restart below.
 	if _, err = tx.Exec(ctx, `LOCK TABLE investment_import_mapping_revisions IN SHARE ROW EXCLUSIVE MODE`); err != nil {
 		return empty, err
+	}
+	if replacement != nil {
+		before, e := readInvestmentArchive(ctx, tx, tenant, actor)
+		if e != nil {
+			return empty, e
+		}
+		hash, e := InvestmentArchiveStateSHA256(before)
+		if e != nil {
+			return empty, e
+		}
+		if hash != replacement.ExpectedStateSHA256 {
+			return empty, d.ErrInvestmentConflict
+		}
+		if !samePortfolioAccounts(before.Data, bundle.Data) {
+			return empty, d.ErrInvestmentPrecondition
+		}
+		if e = clearPortfolioArchiveTx(ctx, tx, tenant); e != nil {
+			return empty, e
+		}
 	}
 	for name := range archive.Excluded {
 		if name == "investment_valuation_generations" || name == "investment_nav_invalidations" {
@@ -191,6 +233,11 @@ func (r *InvestmentRepo) restoreInvestmentArchive(ctx context.Context, actor str
 	}
 	if _, err = tx.Exec(ctx, `INSERT INTO investment_archive_restores(tenant_id,source_sha256,actor_id,source_created_at,verification) VALUES($1,$2,$3,$4,$5)`, tenant, bundle.SHA256, actor, bundle.Data.CreatedAt, raw); err != nil {
 		return empty, err
+	}
+	if replacement != nil {
+		if _, err = tx.Exec(ctx, `INSERT INTO financial_write_requests(tenant_id,operation,request_key,payload_hash,result) VALUES($1,'investment.archive.replace',$2,$3,$4)`, tenant, bundle.SHA256, investmentHash([]string{actor, replacement.ExpectedStateSHA256, bundle.SHA256}), raw); err != nil {
+			return empty, err
+		}
 	}
 	if apply {
 		return result, tx.Commit(ctx)

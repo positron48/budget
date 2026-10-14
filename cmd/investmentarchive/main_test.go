@@ -36,6 +36,12 @@ func TestRestoreModesRequireExplicitChecksum(t *testing.T) {
 		args []string
 		want string
 	}{
+		{[]string{"-scope-ledger", "not-uuid"}, "canonical scope ledger"},
+		{[]string{"-scope-ledger", "ledger", "-restore", "file"}, "scope-ledger cannot"},
+		{[]string{"-replace", "archive.json", "-actor", "actor", "-expected-sha", "sha"}, "replacement requires"},
+		{[]string{"-check-replace", "archive.json", "-actor", "actor"}, "replacement requires"},
+		{[]string{"-before-state-sha256", "sha"}, "requires replacement"},
+		{[]string{"-replace", "a", "-check-replace", "a"}, "replacement requires"},
 		{[]string{"-restore", "archive.json", "-actor", "actor"}, "restore requires"},
 		{[]string{"-restore", "archive.json", "-actor", "actor", "-expected-sha", "sha", "-verify", "archive.json"}, "restore requires"},
 		{[]string{"-expected-sha", "sha"}, "expected-sha requires"},

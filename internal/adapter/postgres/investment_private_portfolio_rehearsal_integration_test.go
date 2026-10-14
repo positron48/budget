@@ -36,6 +36,9 @@ func TestInvestmentPrivatePortfolioImportRehearsal(t *testing.T) {
 		}
 	}
 	var manifest struct {
+		EmptyAccounts []struct {
+			Name string `json:"name"`
+		} `json:"empty_accounts"`
 		Accounts []struct {
 			Name string `json:"name"`
 			CSV  string `json:"csv"`
@@ -141,6 +144,21 @@ func TestInvestmentPrivatePortfolioImportRehearsal(t *testing.T) {
 		report = append(report, reportAccount{Name: a.Name, Imported: links, Unresolved: len(a.Rows) - links, Snapshot: state})
 		total += links
 	}
+	emptyLedgerIDs := []string{}
+	for i, a := range manifest.EmptyAccounts {
+		ledger, e := svc.CreateLedgerWithDetails(ctx, tenant, actor, d.InvestmentLedger{Name: a.Name, StartedAt: time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC), PortfolioTracking: true}, "empty-"+string(rune('a'+i)))
+		if e != nil {
+			t.Fatal(e)
+		}
+		emptyLedgerIDs = append(emptyLedgerIDs, ledger.ID)
+	}
+	if _, e := pool.DB.Exec(ctx, `CREATE TABLE schema_migrations(version bigint PRIMARY KEY,dirty boolean NOT NULL); INSERT INTO schema_migrations VALUES(61,false)`); e != nil {
+		t.Fatal(e)
+	}
+	scope, e := repo.InspectPortfolioScope(ctx, report[0].Snapshot.Ledger.ID)
+	if e != nil || scope.TenantID != tenant || scope.ActorID != actor || len(scope.Accounts) != len(report)+len(emptyLedgerIDs) || scope.SchemaDirty {
+		t.Fatal("operator scope inspection", e)
+	}
 	bundle, e := repo.ExportInvestmentArchive(ctx, tenant, actor)
 	if e != nil {
 		t.Fatal("portfolio export", e)
@@ -186,6 +204,52 @@ func TestInvestmentPrivatePortfolioImportRehearsal(t *testing.T) {
 		state, e := restoredService.Snapshot(ctx, tenant, actor, a.Snapshot.Ledger.ID, time.Now().UTC())
 		if e != nil || !slices.Equal(state.Issues, a.Snapshot.Issues) || !reflect.DeepEqual(portfolioRehearsalValues(state.Positions), portfolioRehearsalValues(a.Snapshot.Positions)) {
 			t.Fatal("restored private positions", e)
+		}
+	}
+	// Replace genuinely different existing history, preserving every empty account.
+	current, e := restoredService.Snapshot(ctx, tenant, actor, report[0].Snapshot.Ledger.ID, time.Now().UTC())
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, e = restoredService.Mutate(ctx, tenant, actor, inv.Mutation{Action: "create", RequestKey: "obsolete-rehearsal-row", ExpectedLedgerVersion: current.Ledger.Version, Operation: d.InvestmentOperation{LedgerID: current.Ledger.ID, Kind: "buy", InstrumentKey: "SYNTHETIC_OBSOLETE", Currency: "RUB", Quantity: "1", Amount: "1", OccurredAt: current.Ledger.StartedAt.Add(time.Hour)}}); e != nil {
+		t.Fatal(e)
+	}
+	before, e := restoredRepo.ExportInvestmentArchive(ctx, tenant, actor)
+	if e != nil {
+		t.Fatal(e)
+	}
+	beforeHash, e := InvestmentArchiveStateSHA256(before)
+	if e != nil {
+		t.Fatal(e)
+	}
+	options := PortfolioArchiveReplacement{ExpectedStateSHA256: beforeHash, ExpectedArchiveSHA256: bundle.SHA256}
+	if check, retry, e := restoredRepo.ReplacePortfolioArchive(ctx, actor, bundle, options, false); e != nil || retry || check != verified {
+		t.Fatal("private replacement rehearsal", e)
+	}
+	afterCheck, e := restoredRepo.ExportInvestmentArchive(ctx, tenant, actor)
+	if e != nil {
+		t.Fatal(e)
+	}
+	afterCheckHash, e := InvestmentArchiveStateSHA256(afterCheck)
+	if e != nil || afterCheckHash != beforeHash {
+		t.Fatal("private replacement rehearsal changed target", e)
+	}
+	if applied, retry, e := restoredRepo.ReplacePortfolioArchive(ctx, actor, bundle, options, true); e != nil || retry || applied != verified {
+		t.Fatal("private replacement apply", e)
+	}
+	if applied, retry, e := restoredRepo.ReplacePortfolioArchive(ctx, actor, bundle, options, true); e != nil || !retry || applied != verified {
+		t.Fatal("private replacement retry", e)
+	}
+	for _, a := range report {
+		state, e := restoredService.Snapshot(ctx, tenant, actor, a.Snapshot.Ledger.ID, time.Now().UTC())
+		if e != nil || !reflect.DeepEqual(portfolioRehearsalValues(state.Positions), portfolioRehearsalValues(a.Snapshot.Positions)) || !slices.Equal(state.Issues, a.Snapshot.Issues) {
+			t.Fatal("replacement lost actual source positions or pending issues", e)
+		}
+	}
+	for _, id := range emptyLedgerIDs {
+		state, e := restoredService.Snapshot(ctx, tenant, actor, id, time.Now().UTC())
+		if e != nil || len(state.Positions) != 0 {
+			t.Fatal("empty account lost during replacement", e)
 		}
 	}
 	raw, e := json.MarshalIndent(report, "", "  ")
