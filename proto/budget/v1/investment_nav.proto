@@ -66,6 +66,7 @@ service InvestmentNAVService {
  rpc GetInvestmentNAVHistory(GetInvestmentNAVHistoryRequest) returns (GetInvestmentNAVHistoryResponse);
  rpc RequestInvestmentNAVRefresh(RequestInvestmentNAVRefreshRequest) returns (RequestInvestmentNAVRefreshResponse);
  rpc GetInvestmentExchangeRates(GetInvestmentExchangeRatesRequest) returns (GetInvestmentExchangeRatesResponse);
+ rpc GetInvestmentQuotes(GetInvestmentQuotesRequest) returns (GetInvestmentQuotesResponse);
 }
 
 
@@ -518,4 +519,14 @@ message InvestmentExchangeRate {
 message GetInvestmentExchangeRatesResponse {
  string currency=1; string fx_policy_key=2; int64 policy_version=3; string mode=4;
  google.protobuf.Timestamp read_at=5; repeated InvestmentExchangeRate rates=6;
+}
+
+message GetInvestmentQuotesRequest { repeated string instrument_keys=1; }
+message InvestmentQuote {
+ string instrument_key=1; string currency=2; InvestmentNAVAmount clean_price=3;
+ google.protobuf.Timestamp price_at=4; string source=5; string state=6;
+ repeated string issues=7; int64 mapping_version=8;
+}
+message GetInvestmentQuotesResponse {
+ google.protobuf.Timestamp read_at=1; repeated InvestmentQuote quotes=2;
 }

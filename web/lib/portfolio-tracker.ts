@@ -27,11 +27,11 @@ export function tradeAmount(quantity: string, price: string): string {
   return amount;
 }
 
-export type TrackerQuote = {price: Fraction; at: number; name?: string; ticker?: string};
+export type TrackerQuote = {price: Fraction; at: number; name?: string; ticker?: string; source?: "exchange" | "broker_snapshot"};
 export type TrackerPosition = {
   key: string; currency: string; quantity: Fraction; cost?: Fraction; realized?: Fraction;
   income: Fraction; recoveredAccrued: Fraction; value?: Fraction; price?: Fraction; profit?: Fraction;
-  accounts: string[]; name?: string; ticker?: string; quoteAt?: number;
+  accounts: string[]; name?: string; ticker?: string; quoteAt?: number; quoteSource?: "exchange" | "broker_snapshot";
 };
 export function trackerPositions(snapshots: InvestmentSnapshot[], operations: InvestmentOperation[], quotes = new Map<string, TrackerQuote>()): TrackerPosition[] {
   const positions = new Map<string, TrackerPosition>();

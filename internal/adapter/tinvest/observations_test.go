@@ -10,7 +10,7 @@ func TestObservationConversionPreservesUnknownUnits(t *testing.T) {
 	const id = "11111111-1111-4111-8111-111111111111"
 	at := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 	p, err := PriceObservation(LastPrice{InstrumentUID: id, Time: at, Type: "LAST_PRICE_EXCHANGE", Price: Quotation{Units: json.Number("95"), Nano: 1}})
-	if err != nil || p.Price != "95.000000001" || p.PriceUnit != "provider_unspecified" || p.Currency != "" {
+	if err != nil || p.Price != "95.000000001" || p.PriceUnit != "provider_unspecified" || p.Currency != "" || p.Adjustment != "unadjusted" {
 		t.Fatal(p, err)
 	}
 	candle := Candle{Time: at, Source: "CANDLE_SOURCE_EXCHANGE", Open: Quotation{Units: "95"}, High: Quotation{Units: "96"}, Low: Quotation{Units: "94"}, Close: Quotation{Units: "95"}, Complete: false}

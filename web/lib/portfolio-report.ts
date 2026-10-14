@@ -125,7 +125,7 @@ export function portfolioReport(snapshots: InvestmentSnapshot[], operations: Inv
     else if (quote) {
       const nativeCurrency = quote[0].slice(quote[0].lastIndexOf("\0") + 1);
       p.price = convert(quote[1].price, nativeCurrency, "");
-      p.quoteAt = quote[1].at; p.name = quote[1].name; p.ticker = quote[1].ticker;
+      p.quoteAt = quote[1].at; p.quoteSource = quote[1].source; p.name = quote[1].name; p.ticker = quote[1].ticker;
       if (p.price) p.value = multiply(p.quantity, p.price);
     }
     if (!incompleteCash.has(p.key) && p.value) p.profit = add(p.value, cash.get(p.key));

@@ -21,7 +21,11 @@ func PriceObservation(p LastPrice) (md.Observation, error) {
 	case "LAST_PRICE_DEALER":
 		source = "dealer"
 	}
-	return md.Normalize(md.Observation{InstrumentID: p.InstrumentUID, Kind: "last_price", At: p.Time, SourceKind: source, PriceUnit: "provider_unspecified", Adjustment: "provider_unspecified", Price: price, Complete: true})
+	// GetLastPrices describes the last actual transaction at this listing/time,
+	// unlike historical candles that can be adjusted retrospectively. Currency
+	// and monetary/bond-point units still require explicit instrument terms.
+	// https://developer.tbank.ru/invest/services/quotes/marketdata
+	return md.Normalize(md.Observation{InstrumentID: p.InstrumentUID, Kind: "last_price", At: p.Time, SourceKind: source, PriceUnit: "provider_unspecified", Adjustment: "unadjusted", Price: price, Complete: true})
 }
 func CandleObservations(instrumentID string, history DailyHistory) ([]md.Observation, error) {
 	currency := strings.ToUpper(history.PriceCurrency)

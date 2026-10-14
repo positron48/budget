@@ -37,7 +37,7 @@ export function brokerCatalog(snapshots: BrokerSnapshot[], now = Date.now()): Br
       const currency = p.currentPrice?.currency?.toUpperCase(), price = money(p.currentPrice);
       if (!currency || !price || BigInt(price.numerator) <= 0n || !Number.isFinite(at) || at > now || now - at > 7 * 86400000) continue;
       const key = `tinvest:${p.instrumentUid}\0${currency}`;
-      if ((quotes.get(key)?.at || 0) < at) quotes.set(key, {price, at, ticker: p.ticker, name: names.get(`tinvest:${p.instrumentUid}`)?.name});
+      if ((quotes.get(key)?.at || 0) < at) quotes.set(key, {price, at, source: "broker_snapshot", ticker: p.ticker, name: names.get(`tinvest:${p.instrumentUid}`)?.name});
     }
   }
   const symbols = new Map<string, string>();
