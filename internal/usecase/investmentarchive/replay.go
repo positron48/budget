@@ -14,12 +14,13 @@ import (
 
 type JournalVerification struct{ Ledgers, Operations, CashLegs, SecurityLegs int }
 type storedLedger struct {
-	Broker          string `json:"broker"`
-	AccountType     string `json:"account_type"`
-	Comment         string `json:"comment"`
-	DefaultCurrency string `json:"default_currency"`
-	Archived        bool   `json:"archived"`
-	MetadataVersion int64  `json:"metadata_version"`
+	Broker            string `json:"broker"`
+	AccountType       string `json:"account_type"`
+	Comment           string `json:"comment"`
+	DefaultCurrency   string `json:"default_currency"`
+	Archived          bool   `json:"archived"`
+	MetadataVersion   int64  `json:"metadata_version"`
+	PortfolioTracking *bool  `json:"portfolio_tracking,omitempty"`
 
 	ID      string    `json:"id"`
 	Tenant  string    `json:"tenant_id"`
@@ -107,7 +108,7 @@ func VerifyJournal(data Dataset) (JournalVerification, error) {
 				if !id(row.ID) || ledgers[row.ID].ID != "" || row.Tenant != data.TenantID || row.Version < 1 {
 					return out, fmt.Errorf("invalid archived ledger")
 				}
-				ledgers[row.ID] = d.InvestmentLedger{ID: row.ID, TenantID: row.Tenant, Name: row.Name, StartedAt: row.Started, Version: row.Version, CreatedAt: row.Created, Broker: row.Broker, AccountType: row.AccountType, Comment: row.Comment, DefaultCurrency: row.DefaultCurrency, Archived: row.Archived, MetadataVersion: row.MetadataVersion}
+				ledgers[row.ID] = d.InvestmentLedger{ID: row.ID, TenantID: row.Tenant, Name: row.Name, StartedAt: row.Started, Version: row.Version, CreatedAt: row.Created, Broker: row.Broker, AccountType: row.AccountType, Comment: row.Comment, DefaultCurrency: row.DefaultCurrency, Archived: row.Archived, MetadataVersion: row.MetadataVersion, PortfolioTracking: row.PortfolioTracking != nil && *row.PortfolioTracking}
 				out.Ledgers++
 			case "investment_operations":
 				var row storedOperation

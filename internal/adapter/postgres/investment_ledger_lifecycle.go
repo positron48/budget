@@ -30,7 +30,7 @@ func recordLedgerRevision(ctx context.Context, tx pgx.Tx, l d.InvestmentLedger, 
 	return e
 }
 func ledgerRevisionJSON(l d.InvestmentLedger) map[string]any {
-	return map[string]any{"id": l.ID, "tenant_id": l.TenantID, "name": l.Name, "started_at": l.StartedAt, "version": l.Version, "created_at": l.CreatedAt, "broker": l.Broker, "account_type": l.AccountType, "comment": l.Comment, "default_currency": l.DefaultCurrency, "archived": l.Archived, "metadata_version": l.MetadataVersion, "portfolio_tracking": l.PortfolioTracking}
+	return map[string]any{"id": l.ID, "tenant_id": l.TenantID, "name": l.Name, "started_at": l.StartedAt.UTC(), "version": l.Version, "created_at": l.CreatedAt.UTC(), "broker": l.Broker, "account_type": l.AccountType, "comment": l.Comment, "default_currency": l.DefaultCurrency, "archived": l.Archived, "metadata_version": l.MetadataVersion, "portfolio_tracking": l.PortfolioTracking}
 }
 func parseLedgerRevision(raw []byte) (*d.InvestmentLedger, error) {
 	if len(raw) == 0 || string(raw) == "null" {

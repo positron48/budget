@@ -185,6 +185,15 @@ func (r *InvestmentRepo) Snapshot(ctx context.Context, t, id string, at time.Tim
 	if err != nil {
 		return result.Snapshot, err
 	}
+	if l.PortfolioTracking {
+		pending, e := pendingPortfolioTrades(ctx, tx, t, id, at)
+		if e != nil {
+			return result.Snapshot, e
+		}
+		if pending {
+			result.Snapshot.Issues = append(result.Snapshot.Issues, "source_trades_pending")
+		}
+	}
 	return result.Snapshot, tx.Commit(ctx)
 }
 func (r *InvestmentRepo) ListOperations(ctx context.Context, t, id string, limit, offset int) ([]d.InvestmentOperation, error) {

@@ -7,6 +7,7 @@ import (
 
 	d "github.com/positron48/budget/internal/domain"
 	inv "github.com/positron48/budget/internal/usecase/investment"
+	archive "github.com/positron48/budget/internal/usecase/investmentarchive"
 	"github.com/positron48/budget/migrations"
 )
 
@@ -57,6 +58,14 @@ func TestInvestmentNativePortfolioPersistsCurrenciesAndGuardsRollback(t *testing
 	}
 	if !feeCurrencies["USD"] || !feeCurrencies["RUB"] {
 		t.Fatal("native fee currencies lost in JSON storage", ops)
+	}
+	bundle, e := NewInvestmentRepo(pool).ExportInvestmentArchive(ctx, tenant, actor)
+	if e != nil {
+		t.Fatal(e)
+	}
+	verified, e := archive.VerifyJournal(bundle.Data)
+	if e != nil || verified.Operations != 3 || verified.CashLegs != 0 {
+		t.Fatal("native portfolio archive requires funding or loses fee currencies", e)
 	}
 	// Explain the exact migration write and rollback predicate without ANALYZE.
 	up, e := migrations.FS.ReadFile("0061_native_portfolio_lots.up.sql")

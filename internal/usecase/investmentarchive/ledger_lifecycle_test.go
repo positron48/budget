@@ -41,3 +41,23 @@ func TestLedgerMetadataArchiveChainAndTimezone(t *testing.T) {
 		}
 	}
 }
+
+func TestLedgerTrackingModePreservesPreMigrationAuditAndRejectsExplicitMismatch(t *testing.T) {
+	mode := true
+	head := storedLedger{ID: "33333333-3333-4333-8333-333333333333", Tenant: tenant, Name: "Portfolio", Started: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), Created: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), Version: 1, MetadataVersion: 1, PortfolioTracking: &mode}
+	const actor = "22222222-2222-4222-8222-222222222222"
+	raw := func(v any) json.RawMessage { b, _ := json.Marshal(v); return b }
+	for _, explicit := range []*bool{nil, &mode, new(bool)} {
+		historic := head
+		historic.PortfolioTracking = explicit
+		data := Dataset{TenantID: tenant, Actors: []string{actor}, Tables: []Table{{Name: "investment_ledgers", Rows: []json.RawMessage{raw(head)}}, {Name: "investment_ledger_revisions", Rows: []json.RawMessage{raw(map[string]any{"tenant_id": tenant, "ledger_id": head.ID, "version": 1, "action": "create", "actor_id": actor, "after_data": historic})}}}}
+		e := VerifyLedgerLifecycle(data)
+		if explicit != nil && !*explicit {
+			if e == nil {
+				t.Fatal("explicit tracking mode mismatch accepted")
+			}
+		} else if e != nil {
+			t.Fatal("pre-migration or matching tracking mode rejected", e)
+		}
+	}
+}

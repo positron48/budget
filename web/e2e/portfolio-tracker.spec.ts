@@ -9,6 +9,7 @@ import {TenantService} from "../proto/budget/v1/tenant_pb";
 for (const locale of ["ru", "en"]) {
   test(`${locale} simple portfolio shows holdings and payouts and saves a purchase in one step`, async ({page, context}) => {
     const ru = locale === "ru", readOnly = process.env.E2E_INVESTMENTS_READ_ONLY === "true";
+    let pendingHistory = false;
     const calls: {method: string; input: any}[] = [], errors: string[] = [];
     page.on("pageerror", e => errors.push(e.message));
     await context.addCookies([{name: "NEXT_LOCALE", value: locale, url: test.info().project.use.baseURL as string}]);
@@ -29,7 +30,7 @@ for (const locale of ["ru", "en"]) {
       let data: any = {};
       if (method?.name === "ListMyTenants") data = {memberships: [{tenant: {id: "tenant", name: "Synthetic"}, role: 1}]};
       if (method?.name === "ListInvestmentLedgers") data = {ledgers: [ledger]};
-      if (method?.name === "GetInvestmentSnapshot") data = {snapshot: {ledger, positions: [position, foreign], cash: [{currency: "RUB", economic: "999999"}]}};
+      if (method?.name === "GetInvestmentSnapshot") data = {snapshot: {ledger, issues:pendingHistory ? ["source_trades_pending"] : [], positions: [position, foreign], cash: [{currency: "RUB", economic: "999999"}]}};
       if (method?.name === "ListInvestmentOperations") data = {operations};
       if (method?.name === "ListInvestmentValuationProfiles") data = {fxProfiles:[{key:"market", mode:"market", version:1n},{key:"cbr", mode:"cbr", version:1n}]};
       if (method?.name === "GetInvestmentQuotes") data = {quotes:input.instrumentKeys.map((instrumentKey:string) => instrumentKey === foreign.instrumentKey ? {instrumentKey,currency:"USD",state:"fresh",cleanPrice:{numerator:"110",denominator:"1"},priceAt:{seconds:BigInt(Math.floor(Date.now()/1000)-60)},source:"tinvest/personal"} : {instrumentKey,state:"unavailable"})};
@@ -84,6 +85,13 @@ for (const locale of ["ru", "en"]) {
     } else await expect(page.getByRole("button", {name: ru ? "Добавить операцию" : "Add operation", exact: true})).toHaveCount(0);
     await page.getByRole("button", {name: ru ? "Дивиденды и купоны" : "Dividends and coupons", exact: true}).click();
     await expect(page.getByRole("table")).toContainText("100"); await expect(page.getByRole("table")).not.toContainText(ru ? "Налог" : "Tax");
+    pendingHistory = true;
+    await page.reload();
+    await expect(page.getByRole("status").filter({hasText:ru?"непроведённые сделки":"pending trades"})).toBeVisible();
+    await expect(page.getByRole("heading",{name:ru?"Известная прибыль":"Known profit",exact:true})).toBeVisible();
+    await expect(page.getByRole("heading",{name:ru?"Общая прибыль":"Total profit",exact:true})).toHaveCount(0);
+    await page.getByRole("button", {name: ru ? "Дивиденды и купоны" : "Dividends and coupons", exact: true}).click();
+    await expect(page.getByRole("table")).toContainText("100");
     await page.setViewportSize({width: 390, height: 844});
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({path: test.info().outputPath(`portfolio-tracker-${locale}-mobile.png`), fullPage: true});

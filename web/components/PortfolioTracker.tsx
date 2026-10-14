@@ -92,7 +92,8 @@ function Tracker({tenantId}: {tenantId: string}) {
   const report = useMemo(() => portfolioReport(data.data?.snapshots || [], data.data?.operations || [], quotes, currency, rates.data), [data.data, quotes, currency, rates.data]);
   const positions = report.positions;
   const current = positions, held = current.filter(p => BigInt(p.quantity.numerator) !== 0n);
-  const valueKnown = held.every(p => p.value), costKnown = held.every(p => p.cost), profitKnown = current.every(p => p.profit);
+  const sourceHistoryIncomplete = (data.data?.snapshots || []).some(s => s.issues.includes("source_trades_pending"));
+  const valueKnown = held.every(p => p.value), costKnown = held.every(p => p.cost), profitKnown = !sourceHistoryIncomplete && current.every(p => p.profit);
   const hasQuotes = held.some(p => p.value);
   const value = valueKnown || hasQuotes ? add(...held.map(p => p.value)) : undefined, cost = costKnown ? add(...held.map(p => p.cost)) : undefined;
   const income = current.every(p => p.incomeComplete) ? add(...current.map(p => p.income)) : undefined, realized = current.every(p => p.realized) ? add(...current.map(p => p.realized)) : undefined;
@@ -164,10 +165,11 @@ function Tracker({tenantId}: {tenantId: string}) {
         {error && <p role="alert" className="rounded-xl bg-rose-50 p-4 text-sm text-rose-800 dark:bg-rose-950 dark:text-rose-200">{tr("Не удалось загрузить портфель. Попробуйте обновить страницу.", "Could not load the portfolio. Try refreshing the page.")}</p>}
         {data.isPending && <p role="status" className="py-8 text-slate-500">{tr("Загружаем портфель…", "Loading portfolio…")}</p>}
         {data.data && <>
+          {sourceHistoryIncomplete && <p role="status" className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">{tr("В импортированной истории остались непроведённые сделки. Количества и прибыль рассчитаны по обработанным операциям; полученные выплаты сохранены.", "Imported history contains pending trades. Quantities and profit use processed operations; received payouts are retained.")}</p>}
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[
             {title: valueKnown ? tr("Стоимость портфеля", "Portfolio value") : tr("Стоимость известной части", "Known portfolio value"), amount: value, detail: valueKnown ? tr("По последним доступным ценам", "Using latest available prices") : tr(`Нет цены или курса для ${held.filter(p => !p.value).length} бумаг`, `Price or FX unavailable for ${held.filter(p => !p.value).length} securities`), icon: Wallet},
             {title: tr("Вложено в бумаги", "Cost of holdings"), amount: cost, detail: tr("Оставшиеся покупки по историческим курсам, без комиссий и НКД", "Remaining purchases at historical FX, excluding fees and accrued interest"), icon: PieChart},
-            {title: profitKnown ? tr("Общая прибыль", "Total profit") : tr("Известная прибыль", "Known profit"), amount: profit, detail: tr(`От продаж: ${money(realized)}${profitKnown ? "" : "; без неизвестного роста стоимости"}`, `Realized: ${money(realized)}${profitKnown ? "" : "; excludes unknown price gains"}`), icon: ArrowUpRight},
+            {title: profitKnown ? tr("Общая прибыль", "Total profit") : tr("Известная прибыль", "Known profit"), amount: profit, detail: tr(`От продаж: ${money(realized)}${profitKnown ? "" : sourceHistoryIncomplete ? "; неполная история сделок" : "; без неизвестного роста стоимости"}`, `Realized: ${money(realized)}${profitKnown ? "" : sourceHistoryIncomplete ? "; incomplete trade history" : "; excludes unknown price gains"}`), icon: ArrowUpRight},
             {title: tr("Выплаты", "Payouts"), amount: income, detail: tr("Полученные выплаты за всё время", "Payouts received, all time"), icon: Coins},
           ].map(card => <section className={panel + " p-5"} key={card.title}><div className="flex justify-between gap-2 text-sm text-slate-500"><h2>{card.title}</h2><card.icon size={17}/></div><p className="mt-4 text-2xl font-semibold tabular-nums">{money(card.amount)}</p><p className="mt-2 text-xs leading-5 text-slate-400">{card.detail}</p></section>)}</div>
           <p className="text-xs text-slate-500">{tr(`Весь портфель в ${currency}. ${fxMode === "market" ? "Рыночный курс" : "Курс ЦБ"}; исторические суммы пересчитаны на даты операций. Пополнения, снятия и налоги не входят в расчёт.`, `Entire portfolio in ${currency}. ${fxMode === "market" ? "Market FX" : "Central Bank FX"}; historical amounts translated on their operation dates. Deposits, withdrawals and taxes are excluded.`)}</p>

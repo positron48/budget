@@ -15,6 +15,11 @@ func sameStoredMetadata(a, b storedLedger) bool {
 	b.Created = b.Created.UTC()
 	a.Version = 0
 	b.Version = 0
+	// Migration 60 introduced the mode without rewriting historical audit rows.
+	// Compare explicit values strictly; an absent pre-migration field is unknown.
+	if a.PortfolioTracking == nil || b.PortfolioTracking == nil {
+		a.PortfolioTracking, b.PortfolioTracking = nil, nil
+	}
 	return reflect.DeepEqual(a, b)
 }
 func VerifyLedgerLifecycle(data Dataset) error {
