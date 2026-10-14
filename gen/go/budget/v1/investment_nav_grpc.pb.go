@@ -19,6 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	InvestmentNAVService_GetTrackerHistory_FullMethodName                = "/budget.v1.InvestmentNAVService/GetTrackerHistory"
 	InvestmentNAVService_GetInvestmentLots_FullMethodName                = "/budget.v1.InvestmentNAVService/GetInvestmentLots"
 	InvestmentNAVService_GetInvestmentCurrentNAV_FullMethodName          = "/budget.v1.InvestmentNAVService/GetInvestmentCurrentNAV"
 	InvestmentNAVService_GetInvestmentNAVVariant_FullMethodName          = "/budget.v1.InvestmentNAVService/GetInvestmentNAVVariant"
@@ -50,6 +51,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type InvestmentNAVServiceClient interface {
+	GetTrackerHistory(ctx context.Context, in *GetTrackerHistoryRequest, opts ...grpc.CallOption) (*GetTrackerHistoryResponse, error)
 	GetInvestmentLots(ctx context.Context, in *GetInvestmentLotsRequest, opts ...grpc.CallOption) (*GetInvestmentLotsResponse, error)
 	GetInvestmentCurrentNAV(ctx context.Context, in *GetInvestmentCurrentNAVRequest, opts ...grpc.CallOption) (*GetInvestmentCurrentNAVResponse, error)
 	GetInvestmentNAVVariant(ctx context.Context, in *GetInvestmentNAVVariantRequest, opts ...grpc.CallOption) (*GetInvestmentNAVVariantResponse, error)
@@ -83,6 +85,16 @@ type investmentNAVServiceClient struct {
 
 func NewInvestmentNAVServiceClient(cc grpc.ClientConnInterface) InvestmentNAVServiceClient {
 	return &investmentNAVServiceClient{cc}
+}
+
+func (c *investmentNAVServiceClient) GetTrackerHistory(ctx context.Context, in *GetTrackerHistoryRequest, opts ...grpc.CallOption) (*GetTrackerHistoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTrackerHistoryResponse)
+	err := c.cc.Invoke(ctx, InvestmentNAVService_GetTrackerHistory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *investmentNAVServiceClient) GetInvestmentLots(ctx context.Context, in *GetInvestmentLotsRequest, opts ...grpc.CallOption) (*GetInvestmentLotsResponse, error) {
@@ -339,6 +351,7 @@ func (c *investmentNAVServiceClient) GetInvestmentQuotes(ctx context.Context, in
 // All implementations must embed UnimplementedInvestmentNAVServiceServer
 // for forward compatibility.
 type InvestmentNAVServiceServer interface {
+	GetTrackerHistory(context.Context, *GetTrackerHistoryRequest) (*GetTrackerHistoryResponse, error)
 	GetInvestmentLots(context.Context, *GetInvestmentLotsRequest) (*GetInvestmentLotsResponse, error)
 	GetInvestmentCurrentNAV(context.Context, *GetInvestmentCurrentNAVRequest) (*GetInvestmentCurrentNAVResponse, error)
 	GetInvestmentNAVVariant(context.Context, *GetInvestmentNAVVariantRequest) (*GetInvestmentNAVVariantResponse, error)
@@ -374,6 +387,9 @@ type InvestmentNAVServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedInvestmentNAVServiceServer struct{}
 
+func (UnimplementedInvestmentNAVServiceServer) GetTrackerHistory(context.Context, *GetTrackerHistoryRequest) (*GetTrackerHistoryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTrackerHistory not implemented")
+}
 func (UnimplementedInvestmentNAVServiceServer) GetInvestmentLots(context.Context, *GetInvestmentLotsRequest) (*GetInvestmentLotsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetInvestmentLots not implemented")
 }
@@ -468,6 +484,24 @@ func RegisterInvestmentNAVServiceServer(s grpc.ServiceRegistrar, srv InvestmentN
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&InvestmentNAVService_ServiceDesc, srv)
+}
+
+func _InvestmentNAVService_GetTrackerHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTrackerHistoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InvestmentNAVServiceServer).GetTrackerHistory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InvestmentNAVService_GetTrackerHistory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InvestmentNAVServiceServer).GetTrackerHistory(ctx, req.(*GetTrackerHistoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _InvestmentNAVService_GetInvestmentLots_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -927,6 +961,10 @@ var InvestmentNAVService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "budget.v1.InvestmentNAVService",
 	HandlerType: (*InvestmentNAVServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetTrackerHistory",
+			Handler:    _InvestmentNAVService_GetTrackerHistory_Handler,
+		},
 		{
 			MethodName: "GetInvestmentLots",
 			Handler:    _InvestmentNAVService_GetInvestmentLots_Handler,

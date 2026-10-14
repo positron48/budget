@@ -42,6 +42,7 @@ message GetInvestmentNAVHistoryResponse { repeated InvestmentNAVPoint points = 1
 message RequestInvestmentNAVRefreshRequest { string series_key = 1; }
 message RequestInvestmentNAVRefreshResponse { string state = 1; } // requested, not calculated
 service InvestmentNAVService {
+ rpc GetTrackerHistory(GetTrackerHistoryRequest) returns (GetTrackerHistoryResponse);
  rpc GetInvestmentLots(GetInvestmentLotsRequest) returns (GetInvestmentLotsResponse);
  rpc GetInvestmentCurrentNAV(GetInvestmentCurrentNAVRequest) returns (GetInvestmentCurrentNAVResponse);
  rpc GetInvestmentNAVVariant(GetInvestmentNAVVariantRequest) returns (GetInvestmentNAVVariantResponse);
@@ -529,4 +530,34 @@ message InvestmentQuote {
 }
 message GetInvestmentQuotesResponse {
  google.protobuf.Timestamp read_at=1; repeated InvestmentQuote quotes=2;
+}
+
+message GetTrackerHistoryRequest {
+ repeated string ledger_ids=1;
+ string currency=2;
+ string fx_policy_key=3;
+ string from_date=4;
+ string to_date=5;
+}
+message TrackerHistoryPoint {
+ string date=1;
+ string state=2;
+ InvestmentNAVAmount known_value=3;
+ repeated InvestmentNAVIssue issues=4;
+ int32 priced_positions=5;
+ int32 positions=6;
+ string coverage_key=7;
+}
+message GetTrackerHistoryResponse {
+ repeated TrackerHistoryPoint points=1;
+ string next_date=2;
+ int64 generation=3;
+ string currency=4;
+ string fx_policy_key=5;
+ int64 fx_policy_version=6;
+ string fx_mode=7;
+ google.protobuf.Timestamp read_at=8;
+ string price_convention=9;
+ string reporting_timezone=10;
+ string basis_key=11;
 }

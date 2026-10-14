@@ -1,0 +1,56 @@
+"use client";
+import {useState} from "react";
+import {useLocale} from "next-intl";
+import {useQuery} from "@tanstack/react-query";
+import {useClients} from "@/app/providers";
+import {historyPointVisible, lastHistoryDate, loadPortfolioHistory, shiftHistoryDate} from "@/lib/portfolio-history";
+import type {TrackerHistoryPoint} from "@/proto/budget/v1/investment_nav_pb";
+import type {InvestmentLedger} from "@/proto/budget/v1/investment_pb";
+
+export default function PortfolioHistory({tenantId, ledgers, currency, policyKey, policyVersion, fxMode}: {tenantId: string; ledgers: InvestmentLedger[]; currency: string; policyKey: string; policyVersion: bigint; fxMode: string}) {
+  const locale = useLocale(), ru = locale === "ru", tr = (r: string, e: string) => ru ? r : e;
+  const {investmentNAV: api} = useClients();
+  const [from, setFrom] = useState(() => shiftHistoryDate(lastHistoryDate(), -30));
+  const [to, setTo] = useState(lastHistoryDate), [loaded, setLoaded] = useState(0), [gapDate, setGapDate] = useState("");
+  const viewKey = JSON.stringify([tenantId, ledgers.map(l => [l.id, l.version.toString()]), currency, policyKey, policyVersion.toString(), fxMode, from, to]);
+  const [preview, setPreview] = useState<{key: string; points: TrackerHistoryPoint[]}>();
+  const valid = from >= "1900-01-01" && to <= lastHistoryDate() && to >= from && (Date.parse(to) - Date.parse(from)) / 86400000 <= 3660;
+  const history = useQuery({queryKey: ["investment", tenantId, "tracker-history", ledgers.map(l => [l.id, l.version.toString()]), currency, policyKey, policyVersion.toString(), fxMode, from, to], enabled: valid && ledgers.length > 0,
+    queryFn: ({signal}) => {setLoaded(0); setPreview({key: viewKey, points: []}); return loadPortfolioHistory(api, {ledgerIds: ledgers.map(l => l.id), currency, fxPolicyKey: policyKey, fxPolicyVersion: policyVersion, fxMode, fromDate: from, toDate: to}, signal, points => {setLoaded(points.length); setPreview({key: viewKey, points});});}, retry: false, staleTime: 60000});
+  const points = history.isFetching ? preview?.key === viewKey ? preview.points : [] : history.data || [];
+  const number = (i: number) => {const value = points[i].knownValue!; return Number(value.numerator) / Number(value.denominator);};
+  const format = (value: number) => new Intl.NumberFormat(locale, {style: "currency", currency, maximumFractionDigits: 2}).format(value);
+  const visible = points.flatMap((p, i) => historyPointVisible(p) && Number.isFinite(number(i)) ? [i] : []);
+  const min = visible.length ? Math.min(...visible.map(number)) : 0, max = visible.length ? Math.max(...visible.map(number)) : 1;
+  const xy = (i: number) => `${30 + i / Math.max(1, (Date.parse(to) - Date.parse(from)) / 86400000) * 740},${20 + (max - number(i)) / (max - min || 1) * 180}`;
+  const segments: {state: string; indexes: number[]}[] = [];
+  for (const i of visible) {
+    const last = segments[segments.length - 1];
+    if (last && last.state === points[i].state && points[last.indexes[last.indexes.length - 1]].coverageKey === points[i].coverageKey && last.indexes[last.indexes.length - 1] === i - 1) last.indexes.push(i);
+    else segments.push({state: points[i].state, indexes: [i]});
+  }
+  const gaps = points.filter(p => p.state !== "ready"), partial = gaps.length > 0;
+  const gap = gaps.find(p => p.date === gapDate) || gaps[0];
+  const reason = (code: string) => code.includes("adjustment") || code === "unadjusted_price_required" ? tr("Источник не подтвердил корректировку исторической цены", "Historical price adjustment is unconfirmed") : code.includes("fx") ? tr("Не хватает валютного курса", "Exchange rate missing") : code === "source_trades_pending" ? tr("Часть сделок ещё не импортирована", "Some trades are not imported yet") : code === "ledger_history_missing" ? tr("Нет истории счёта на эту дату", "Account history is missing for this date") : code.includes("nominal") ? tr("Нет исторического номинала облигации", "Historical bond nominal missing") : tr("Не хватает исторических цен или данных бумаги", "Historical prices or security data missing");
+  const button = "rounded-lg border border-slate-200 px-3 py-2 text-xs dark:border-slate-700 disabled:opacity-40";
+  const csv = () => {
+    const rows = [["date", "currency", "fx_policy", "fx_mode", "fx_policy_version", "price_convention", "timezone", "state", "known_value_numerator", "known_value_denominator", "priced_positions", "positions", "issues"], ...points.map(p => [p.date, currency, policyKey, fxMode, policyVersion.toString(), "retrospective_close_next_utc_day_v1", "Europe/Moscow", p.state, p.knownValue!.numerator, p.knownValue!.denominator, p.pricedPositions.toString(), p.positions.toString(), p.issues.map(i => `${i.componentId}:${i.code}`).join(";")])];
+    const blob = new Blob([rows.map(row => row.map(cell => `"${(/^[=+@\-\t\r]/.test(cell) ? "'" + cell : cell).replaceAll('"', '""')}"`).join(",")).join("\r\n")], {type: "text/csv;charset=utf-8"});
+    const url = URL.createObjectURL(blob), link = document.createElement("a"); link.href = url; link.download = `portfolio-history-${from}-${to}.csv`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  return <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900" aria-label={tr("История портфеля", "Portfolio history")}>
+    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold">{tr("Стоимость бумаг по дням", "Daily securities value")}</h2><div className="flex flex-wrap gap-2">{[[30, tr("Месяц", "Month")], [365, tr("Год", "Year")]] .map(([days, label]) => <button className={button} key={days} onClick={() => {const end = lastHistoryDate(); setTo(end); setFrom(shiftHistoryDate(end, -Number(days)));}}>{label}</button>)}<button className={button} disabled={history.isFetching || !valid} onClick={() => void history.refetch()}>{tr("Обновить график", "Refresh chart")}</button><button className={button} disabled={!points.length || history.isFetching || !valid} onClick={csv}>CSV</button></div></div>
+    <div className="flex flex-wrap gap-3 text-xs text-slate-500"><label>{tr("История с", "History from")}<input aria-label={tr("История с", "History from")} type="date" className="ml-2 rounded border bg-transparent px-2 py-1 dark:border-slate-700" value={from} max={to} onChange={e => setFrom(e.target.value)}/></label><label>{tr("История по", "History through")}<input aria-label={tr("История по", "History through")} type="date" className="ml-2 rounded border bg-transparent px-2 py-1 dark:border-slate-700" value={to} min={from} max={lastHistoryDate()} onChange={e => setTo(e.target.value)}/></label></div>
+    <p className="text-xs text-slate-500">{tr("Состав по проведённым операциям на конец дня по Москве. Ретроспективная оценка: завершённая UTC-свеча используется со следующего UTC-дня. Выплаты и свободные деньги не входят в стоимость бумаг.", "Holdings from posted operations at Moscow day-end. Retrospective valuation uses a completed UTC candle from the next UTC day. Payouts and uninvested cash are excluded from securities value.")}</p>
+    {history.isFetching && valid && <p role="status">{tr("Загружаем историю", "Loading history")}: {loaded} {tr("дней", "days")}</p>}
+    {!valid ? <p role="alert">{tr("Выберите завершённые даты и период до 10 лет.", "Choose completed dates and a period of up to 10 years.")}</p> : history.error ? <p role="alert">{history.error.message === "history_changed" ? tr("История изменилась во время загрузки. Обновите график.", "History changed during loading. Refresh the chart.") : tr("Не удалось загрузить историю. Остальные данные портфеля доступны; попробуйте обновить график.", "Could not load history. Other portfolio data remains available; try refreshing the chart.")}</p> : !visible.length ? history.isFetching ? null : <p role="status" className="py-12 text-center text-sm text-slate-500">{tr("Для этого периода пока нет оценок. Не хватает исторических цен или курсов.", "No valuations are available for this period yet. Historical prices or exchange rates are missing.")}</p> : <div>
+      <div className="flex justify-between text-xs text-slate-500"><span>{format(min)}</span><span>{format(max)}</span></div>
+      <svg className="h-52 w-full" viewBox="0 0 800 220" preserveAspectRatio="none" role="img" aria-label={partial ? tr("История известной стоимости бумаг", "History of known securities value") : tr("История стоимости бумаг", "Securities value history")}>
+        {segments.map((s, index) => <g key={index}><polyline points={s.indexes.map(xy).join(" ")} fill="none" stroke="currentColor" className="text-emerald-500" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeDasharray={s.state === "ready" ? undefined : "5 4"}/>{s.indexes.map(i => {const [cx, cy] = xy(i).split(","); return <circle key={i} cx={cx} cy={cy} r={s.indexes.length === 1 ? 3 : 2} className="fill-emerald-500"><title>{points[i].date}: {format(number(i))}{points[i].state === "ready" ? "" : tr(" · известная часть", " · known portion")}</title></circle>;})}</g>)}
+      </svg>
+      <div className="flex justify-between text-xs text-slate-500"><span>{from}</span><span>{to}</span></div>
+    </div>}
+    {partial && !history.isFetching && !history.error && valid && <details className="text-sm"><summary className="cursor-pointer">{tr("Дни без полной оценки", "Days with incomplete valuation")}: {gaps.length}</summary><div className="mt-3 space-y-2"><label>{tr("Дата с пробелами", "Date with gaps")}<select aria-label={tr("Дата с пробелами", "Date with gaps")} className="ml-2 rounded border bg-transparent px-2 py-1 dark:border-slate-700" value={gap?.date || ""} onChange={e => setGapDate(e.target.value)}>{gaps.map(p => <option key={p.date}>{p.date}</option>)}</select></label>{gap && <><p>{tr("Оценено позиций", "Positions valued")}: {gap.pricedPositions}/{gap.positions}</p><ul className="list-inside list-disc">{[...new Set(gap.issues.map(i => reason(i.code)))].map(text => <li key={text}>{text}</li>)}</ul></>}</div></details>}
+    {partial && !history.isFetching && !history.error && valid && <p role="status" className="text-xs text-amber-700 dark:text-amber-300">{tr("Оценка неполная: пунктир показывает только известную часть. Пробелы не заменяются нулём или текущей ценой.", "Valuation is partial: dashed lines show the known portion only. Gaps are never replaced by zero or today's price.")}</p>}
+  </section>;
+}

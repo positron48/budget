@@ -125,3 +125,26 @@ func TestPortfolioQuotesNeverPromoteStaleUnknownOrConflictingPriceToValue(t *tes
 		}
 	}
 }
+
+func TestHistoricalBondQuoteUsesRawCandleDayAndCurrentKnowledge(t *testing.T) {
+	mapping, price, original, facts := portfolioBondFixture()
+	rawDay := original.UTC().Truncate(24 * time.Hour)
+	at, readAt := rawDay.Add(36*time.Hour), rawDay.Add(10*24*time.Hour)
+	price.TimeConvention = md.RetrospectiveCloseNextUTCDay
+	price.Fact.EffectiveAt, price.Fact.AvailableAt = rawDay.Add(24*time.Hour), rawDay.Add(24*time.Hour)
+	facts.AsOf, facts.RecordedAt = readAt.Add(-time.Minute), readAt.Add(-time.Minute)
+	facts.Terms.Nominal.Amount = "200"
+	result, e := NormalizeHistoricalPortfolioQuote(mapping, price, at, readAt, &facts)
+	if e != nil || result.CleanPrice == nil || result.CleanPrice.RatString() != "285" {
+		t.Fatal("raw candle nominal ignored", result, e)
+	}
+	current, e := NormalizePortfolioQuoteWithBondFacts(mapping, price, at, &facts)
+	if e != nil || current.CleanPrice != nil {
+		t.Fatal("historical knowledge leaked into current contract", current, e)
+	}
+	facts.Accrued[0].Date = rawDay.Add(24 * time.Hour)
+	result, e = NormalizeHistoricalPortfolioQuote(mapping, price, at, readAt, &facts)
+	if e != nil || result.CleanPrice != nil {
+		t.Fatal("next-day nominal borrowed", result, e)
+	}
+}

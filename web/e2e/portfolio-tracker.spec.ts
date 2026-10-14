@@ -1,3 +1,4 @@
+import {readFile} from "node:fs/promises";
 import {test, expect} from "@playwright/test";
 import {create, fromBinary, toBinary} from "@bufbuild/protobuf";
 import {InvestmentService} from "../proto/budget/v1/investment_pb";
@@ -33,6 +34,16 @@ for (const locale of ["ru", "en"]) {
       if (method?.name === "GetInvestmentSnapshot") data = {snapshot: {ledger, issues:pendingHistory ? ["source_trades_pending"] : [], positions: [position, foreign], cash: [{currency: "RUB", economic: "999999"}]}};
       if (method?.name === "ListInvestmentOperations") data = {operations};
       if (method?.name === "ListInvestmentValuationProfiles") data = {fxProfiles:[{key:"market", mode:"market", version:1n},{key:"cbr", mode:"cbr", version:1n}]};
+      if (method?.name === "GetTrackerHistory") {
+        const points: any[] = []; let date = input.fromDate;
+        const shift = (day: string) => {const d = new Date(day + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10);};
+        while (date <= input.toDate && points.length < 31) {
+          const i = points.length, partial = i >= 1 && i <= 3, missing = i === 2;
+          points.push({date, state: partial ? "incomplete" : "ready", knownValue: {numerator: missing ? "0" : partial ? "75" : "100", denominator: "1"}, positions: 2, pricedPositions: missing ? 0 : partial ? 1 : 2, issues: partial ? [{componentId: "missing", code: "price_missing"}] : [], coverageKey: (missing ? "c" : partial ? "b" : "a").repeat(64)});
+          date = shift(date);
+        }
+        data = {points, nextDate: date <= input.toDate ? date : "", currency: input.currency, fxPolicyKey: input.fxPolicyKey, fxMode: input.fxPolicyKey, fxPolicyVersion: 1n, generation: 1n, basisKey: "d".repeat(64), priceConvention: "retrospective_close_next_utc_day_v1", reportingTimezone: "Europe/Moscow"};
+      }
       if (method?.name === "GetInvestmentQuotes") data = {quotes:input.instrumentKeys.map((instrumentKey:string) => instrumentKey === foreign.instrumentKey ? {instrumentKey,currency:"USD",state:"fresh",cleanPrice:{numerator:"110",denominator:"1"},priceAt:{seconds:BigInt(Math.floor(Date.now()/1000)-60)},source:"tinvest/personal"} : {instrumentKey,state:"unavailable"})};
       if (method?.name === "GetInvestmentExchangeRates") {
         const current = input.fxPolicyKey === "market" ? 100 : 90, historical = input.fxPolicyKey === "market" ? 80 : 70;
@@ -68,6 +79,17 @@ for (const locale of ["ru", "en"]) {
     await expect(page.getByRole("table")).toContainText("ABC");
     await expect(page.locator("main")).not.toContainText("999999");
     await expect(page.getByRole("button", {name: ru ? "Дивиденды и купоны" : "Dividends and coupons", exact: true})).toBeVisible();
+    const history = page.getByRole("region", {name: ru ? "История портфеля" : "Portfolio history", exact: true});
+    await expect(history.getByRole("img")).toBeVisible();
+    await expect(history.locator("polyline[stroke-dasharray]")).toHaveCount(2);
+    await expect(history.getByRole("status")).toContainText(ru ? "Оценка неполная" : "Valuation is partial");
+    const pendingCSV = page.waitForEvent("download"); await history.getByRole("button", {name: "CSV", exact: true}).click();
+    const file = await pendingCSV, csv = await readFile((await file.path())!, "utf8");
+    expect(csv).toContain('"price_convention"'); expect(csv).toContain('"retrospective_close_next_utc_day_v1"'); expect(csv).toContain('"incomplete"');
+    await page.setViewportSize({width: 390, height: 844});
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    if (process.env.E2E_PORTFOLIO_HISTORY_PREVIEW && ru && !readOnly) await history.screenshot({path: process.env.E2E_PORTFOLIO_HISTORY_PREVIEW});
+    await page.setViewportSize({width: 1280, height: 900});
     await page.screenshot({path: test.info().outputPath(`portfolio-tracker-${locale}-desktop.png`), fullPage: true});
     if (!readOnly) {
       await page.getByRole("button", {name: ru ? "Добавить операцию" : "Add operation", exact: true}).click();

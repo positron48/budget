@@ -50,6 +50,19 @@ func NormalizePortfolioQuote(mapping md.Mapping, price md.SelectedPrice, at time
 // quotes require the provider's nominal for their own day, so amortization cannot
 // silently reuse the original face value. This changes valuation, never the book.
 func NormalizePortfolioQuoteWithBondFacts(mapping md.Mapping, price md.SelectedPrice, at time.Time, facts *md.SavedBondFacts) (PortfolioQuote, error) {
+	return normalizePortfolioQuote(mapping, price, at, facts, at, false)
+}
+
+// Corrected retrospective history may use evidence retrieved later. Bond
+// nominal belongs to the raw UTC candle day, not its next-day eligibility time.
+func NormalizeHistoricalPortfolioQuote(mapping md.Mapping, price md.SelectedPrice, at, readAt time.Time, facts *md.SavedBondFacts) (PortfolioQuote, error) {
+	if price.TimeConvention != md.RetrospectiveCloseNextUTCDay || readAt.Before(at) {
+		return PortfolioQuote{}, d.ErrInvestmentInvalid
+	}
+	return normalizePortfolioQuote(mapping, price, at, facts, readAt, true)
+}
+
+func normalizePortfolioQuote(mapping md.Mapping, price md.SelectedPrice, at time.Time, facts *md.SavedBondFacts, knowledge time.Time, retrospective bool) (PortfolioQuote, error) {
 	out := PortfolioQuote{InstrumentKey: mapping.InstrumentKey, MappingVersion: mapping.Version, State: price.State, Issues: slices.Clone(price.Issues)}
 	terms, ok := mapping.TermsAt(at)
 	if !ok {
@@ -67,8 +80,11 @@ func NormalizePortfolioQuoteWithBondFacts(mapping md.Mapping, price md.SelectedP
 	out.At = price.Fact.EffectiveAt
 	if terms.Kind == "bond" && terms.Unit == "percent_of_nominal" {
 		day := out.At.UTC().Truncate(24 * time.Hour)
+		if retrospective {
+			day = day.Add(-24 * time.Hour)
+		}
 		if facts != nil {
-			nominal, ok := portfolioBondNominal(facts, terms.InstrumentID, terms.Currency, day, at)
+			nominal, ok := portfolioBondNominal(facts, terms.InstrumentID, terms.Currency, day, knowledge)
 			if !ok {
 				out.State = "unavailable"
 				out.Issues = append(out.Issues, "bond_nominal_unconfirmed")
