@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -18,12 +19,14 @@ type hasherBad struct{}
 func (hasherBad) Hash(password string) (string, error) { return "hash:" + password, nil }
 func (hasherBad) Verify(hash, password string) bool    { return false }
 
+var issuerTestSequence atomic.Uint64
+
 type issuerStub struct{}
 
 func (issuerStub) Issue(ctx context.Context, userID, tenantID string, accessTTL, refreshTTL time.Duration) (TokenPair, error) {
 	now := time.Now()
-	// add time-based suffix to ensure new refresh token differs from old in tests
-	suffix := now.UnixNano()
+	// Token identity must not depend on the platform clock resolution.
+	suffix := issuerTestSequence.Add(1)
 	return TokenPair{
 		AccessToken:           "access-" + userID,
 		RefreshToken:          "refresh-" + userID + "-" + fmt.Sprintf("%d", suffix),
