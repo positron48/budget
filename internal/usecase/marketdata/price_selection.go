@@ -62,6 +62,10 @@ type SelectedPrice struct {
 // It never mixes exchange/dealer feeds or treats unknown adjustment as raw.
 // Unit/adjustment validation remains in NormalizePrice after this time selection.
 func SelectValuationPrice(q PriceSelectionRequest, input []ScopedObservation) (SelectedPrice, error) {
+	return selectValuationPrice(q, input, false)
+}
+
+func selectValuationPrice(q PriceSelectionRequest, input []ScopedObservation, normalizedInput bool) (SelectedPrice, error) {
 	out := SelectedPrice{State: "unavailable", Issues: []string{}}
 	if (q.Adjustment != "unadjusted" && q.Adjustment != "provider_unspecified") || ValidateScope(q.Scope) != nil || q.At.IsZero() || (q.Kind != "last_price" && q.Kind != "daily_candle") || (q.SourceKind != "exchange" && q.SourceKind != "dealer") {
 		return out, ErrInvalid
@@ -120,11 +124,13 @@ func SelectValuationPrice(q PriceSelectionRequest, input []ScopedObservation) (S
 		if v.ID == "" || v.Revision < 1 || v.ReceivedAt.IsZero() {
 			return out, ErrInvalid
 		}
-		normalized, err := Normalize(v.Observation)
-		if err != nil {
-			return out, err
+		if !normalizedInput {
+			normalized, err := Normalize(v.Observation)
+			if err != nil {
+				return out, err
+			}
+			v.Observation = normalized
 		}
-		v.Observation = normalized
 		if !q.KnowledgeAt.IsZero() && v.ReceivedAt.After(q.KnowledgeAt) {
 			continue
 		}

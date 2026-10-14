@@ -125,7 +125,27 @@ func TestInvestmentTrackerHistoryUsesActualDailyPositionsAndMarketFX(t *testing.
 	if e != nil || r.BasisKey == basis || r.Points[0].KnownValue.RatString() != "1782" {
 		t.Fatal("corrected FX did not fence paging", r, e)
 	}
-	rows, e := pool.DB.Query(ctx, "EXPLAIN "+trackerHistoryBasisSQL, tenant)
+	basis = r.BasisKey
+	// Provider workers may fetch unrelated papers or newer sessions while a
+	// historical chart is paged. Neither changes the requested past horizon.
+	for _, observation := range []md.Observation{
+		{InstrumentID: uuid.NewString(), Kind: "daily_candle", At: day, SourceKind: "exchange", Adjustment: "unadjusted", PriceUnit: "provider_unspecified", Price: "20", Open: "20", High: "20", Low: "20", Volume: "1", Complete: true},
+		{InstrumentID: instrument.ID, Kind: "daily_candle", At: day.AddDate(0, 0, 20), SourceKind: "exchange", Adjustment: "unadjusted", PriceUnit: "provider_unspecified", Price: "20", Open: "20", High: "20", Low: "20", Volume: "1", Complete: true},
+	} {
+		if _, e = repo.SaveObservations(ctx, scope, []md.Observation{observation}); e != nil {
+			t.Fatal(e)
+		}
+	}
+	futureFX := fx[0]
+	futureFX.At, futureFX.AvailableAt, futureFX.ValidUntil = day.AddDate(0, 0, 20), day.AddDate(0, 0, 20), day.AddDate(0, 0, 21)
+	if _, e = repo.SaveFXPoints(ctx, tenant, policy.Key, 1, []md.FXPoint{futureFX}); e != nil {
+		t.Fatal(e)
+	}
+	r, e = repo.TrackerHistory(ctx, tenant, actor, q)
+	if e != nil || r.BasisKey != basis || r.Points[0].KnownValue.RatString() != "1782" {
+		t.Fatal("unrelated or future evidence invalidated past history", r, e)
+	}
+	rows, e := pool.DB.Query(ctx, "EXPLAIN "+trackerHistoryBasisSQL, tenant, []string{"S"}, q.LedgerIDs, func() time.Time { at, _ := nav.DayCutoff(q.To); return at }())
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -144,9 +164,10 @@ func TestInvestmentTrackerHistoryUsesActualDailyPositionsAndMarketFX(t *testing.
 	if e != nil || len(r.Points) != 31 || r.NextDate != "2020-02-01" {
 		t.Fatal("pagination", r.NextDate, e)
 	}
+	basis = r.BasisKey
 	q.From = r.NextDate
 	r, e = repo.TrackerHistory(ctx, tenant, actor, q)
-	if e != nil || r.NextDate != "" || len(r.Points) != 30 {
+	if e != nil || r.NextDate != "" || len(r.Points) != 30 || r.BasisKey != basis {
 		t.Fatal("second page", r, e)
 	}
 	_, other, outsider := acceptanceOwner(t, pool)

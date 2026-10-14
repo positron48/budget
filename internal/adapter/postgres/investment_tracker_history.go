@@ -10,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	d "github.com/positron48/budget/internal/domain"
+	inv "github.com/positron48/budget/internal/usecase/investment"
 	calc "github.com/positron48/budget/internal/usecase/investmentcalc"
 	nav "github.com/positron48/budget/internal/usecase/investmentvaluation"
 	md "github.com/positron48/budget/internal/usecase/marketdata"
@@ -19,6 +20,7 @@ type trackerHistoryMarket struct {
 	mapping      md.Mapping
 	observations map[string][]md.ScopedObservation
 	bonds        map[string][]md.SavedBondFacts
+	series       map[string]*md.PriceSeries
 }
 
 func historyPeriodKey(p md.MappingPeriod) string {
@@ -53,10 +55,21 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 	if out.Generation, e = investmentGenerationTx(ctx, tx, tenant); e != nil {
 		return out, e
 	}
-	policy, points, e := readFXSnapshot(ctx, tx, tenant, q.FXPolicyKey, out.ReadAt, time.Time{})
+	through, e := nav.DayCutoff(q.To)
 	if e != nil {
 		return out, e
 	}
+	policy, points, e := readFXSnapshot(ctx, tx, tenant, q.FXPolicyKey, through, time.Time{})
+	if e != nil {
+		return out, e
+	}
+	eligiblePoints := points[:0]
+	for _, p := range points {
+		if !p.AvailableAt.After(through) {
+			eligiblePoints = append(eligiblePoints, p)
+		}
+	}
+	points = eligiblePoints
 	out.FXPolicyVersion, out.FXMode = policy.Version, policy.Mode
 	fixings := make([]calc.FXFixing, 0, len(points))
 	for _, p := range points {
@@ -93,7 +106,23 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 	// Intraday last-price refreshes must neither mix corrected daily candles nor
 	// continuously invalidate an otherwise unchanged historical chart.
 	var cache json.RawMessage
-	if e = tx.QueryRow(ctx, trackerHistoryBasisSQL, tenant).Scan(&cache); e != nil {
+	basisKeys := map[string]bool{}
+	for _, input := range inputs {
+		for _, op := range input.Operations {
+			if op.InstrumentKey != "" {
+				basisKeys[op.InstrumentKey] = true
+			}
+			if op.Distribution != nil {
+				basisKeys[op.Distribution.TargetInstrumentKey] = true
+			}
+		}
+	}
+	identities := []string{}
+	for key := range basisKeys {
+		identities = append(identities, key)
+	}
+	sort.Strings(identities)
+	if e = tx.QueryRow(ctx, trackerHistoryBasisSQL, tenant, identities, q.LedgerIDs, through).Scan(&cache); e != nil {
 		return out, e
 	}
 	heads := []d.InvestmentLedger{}
@@ -122,22 +151,50 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		if err != nil {
 			return out, err
 		}
-		replay, e := readConnectedInvestmentReplay(ctx, tx, tenant, q.LedgerIDs, inputs, at, nil)
-		if e != nil {
-			return out, e
+		days = append(days, at)
+	}
+	unitHistory := map[string][]d.InvestmentSnapshot{}
+	needsReplay := false
+	for _, id := range q.LedgerIDs {
+		input := inputs[id]
+		history, supported, err := inv.TrackerUnitHistory(input.Ledger, input.Operations, days)
+		if err != nil {
+			return out, err
 		}
-		snapshots := []d.InvestmentSnapshot{}
-		for _, id := range q.LedgerIDs {
-			s := replay.Ledgers[id].Snapshot
-			// The chart retains units, not 31 copies of every FIFO lot.
-			for j := range s.Positions {
-				s.Positions[j].Lots = nil
-			}
-			pending, e := pendingPortfolioTrades(ctx, tx, tenant, id, at)
+		if supported {
+			unitHistory[id] = history
+		} else {
+			needsReplay = true
+		}
+	}
+	pendingFrom, e := readPendingTrackerTradeDates(ctx, tx, tenant, q.LedgerIDs)
+	if e != nil {
+		return out, e
+	}
+	moscow, e := time.LoadLocation("Europe/Moscow")
+	if e != nil {
+		return out, e
+	}
+	for i, at := range days {
+		var replay inv.PortfolioReplay
+		if needsReplay {
+			replay, e = readConnectedInvestmentReplay(ctx, tx, tenant, q.LedgerIDs, inputs, at, nil)
 			if e != nil {
 				return out, e
 			}
-			if pending {
+		}
+		snapshots := []d.InvestmentSnapshot{}
+		for _, id := range q.LedgerIDs {
+			var s d.InvestmentSnapshot
+			if history, ok := unitHistory[id]; ok {
+				s = history[i]
+			} else {
+				s = replay.Ledgers[id].Snapshot
+			}
+			for j := range s.Positions {
+				s.Positions[j].Lots = nil
+			}
+			if pending, ok := pendingFrom[id]; ok && pending <= at.In(moscow).Format("2006-01-02 15:04:05") {
 				s.Issues = append(s.Issues, "source_trades_pending")
 			}
 			snapshots = append(snapshots, s)
@@ -151,7 +208,6 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 				}
 			}
 		}
-		days = append(days, at)
 		states = append(states, snapshots)
 	}
 	if len(allKeys) > 500 {
@@ -170,6 +226,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		components := []calc.ExactComponent{}
 		required, priced := map[string]int{}, map[string]int{}
 		amounts := map[string]calc.ExactComponent{}
+		quotes := map[string]nav.PortfolioQuote{}
 		for _, s := range states[i] {
 			if at.Before(s.Ledger.StartedAt) {
 				row.Issues = append(row.Issues, calc.QualityIssue{ComponentID: s.Ledger.ID, Code: "ledger_history_missing"})
@@ -187,9 +244,13 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 					continue
 				}
 				required[p.InstrumentKey]++
-				quote, e := trackerHistoricalQuote(tenant, p.InstrumentKey, market[p.InstrumentKey], at, out.ReadAt)
-				if e != nil {
-					return out, e
+				quote, ok := quotes[p.InstrumentKey]
+				if !ok {
+					quote, e = trackerHistoricalQuote(tenant, p.InstrumentKey, market[p.InstrumentKey], at, out.ReadAt)
+					if e != nil {
+						return out, e
+					}
+					quotes[p.InstrumentKey] = quote
 				}
 				id := s.Ledger.ID + ":" + p.InstrumentKey
 				if quote.CleanPrice == nil || quote.State != "fresh" {
@@ -272,64 +333,9 @@ func readTrackerHistoryMarket(ctx context.Context, tx pgx.Tx, tenant string, key
 	if e != nil {
 		return nil, e
 	}
-	// Each listing is loaded once for the page, not once per historical day.
-	for key, entry := range result {
-		for _, p := range entry.mapping.HistoryPeriods() {
-			if p.From.After(to) || !p.To.IsZero() && !p.To.After(from) {
-				continue
-			}
-			cache := historyPeriodKey(p)
-			if _, ok := entry.observations[cache]; ok {
-				continue
-			}
-			selection := historyPriceSelection(tenant, p, to)
-			observations, e := readPriceEvidenceMode(ctx, tx, selection, from.UTC().Truncate(24*time.Hour).Add(-5*24*time.Hour), false)
-			if e != nil {
-				return nil, e
-			}
-			entry.observations[cache] = observations
-			selection.Adjustment = "provider_unspecified"
-			unknown, e := readPriceEvidenceMode(ctx, tx, selection, from.UTC().Truncate(24*time.Hour).Add(-5*24*time.Hour), false)
-			if e != nil {
-				return nil, e
-			}
-			entry.observations[cache+"/unknown"] = unknown
-			if p.Kind != "bond" || p.Unit != "percent_of_nominal" {
-				continue
-			}
-			rows, e := tx.Query(ctx, `SELECT b.job_id,b.data,b.payload_hash,b.recorded_at FROM market_bond_snapshots b JOIN market_data_sources s USING(tenant_id,provider,access_scope) WHERE b.tenant_id=$1 AND b.provider=$2 AND b.access_scope=$3 AND b.instrument_id=$4 AND s.enabled AND b.from_at<=$5 AND b.to_at>=$6 AND b.recorded_at<=$7 ORDER BY b.recorded_at DESC,b.job_id DESC LIMIT 1001`, tenant, p.Provider, p.AccessScope, p.InstrumentID, to, from.Add(-5*24*time.Hour), readAt)
-			if e != nil {
-				return nil, e
-			}
-			for rows.Next() {
-				var f md.SavedBondFacts
-				var raw []byte
-				if e = rows.Scan(&f.ID, &raw, &f.Hash, &f.RecordedAt); e != nil {
-					rows.Close()
-					return nil, e
-				}
-				if json.Unmarshal(raw, &f.BondFacts) != nil || f.Hash != investmentHash(f.BondFacts) {
-					rows.Close()
-					return nil, d.ErrInvestmentPrecondition
-				}
-				if _, e = md.NormalizeBondFacts(f.BondFacts); e != nil {
-					rows.Close()
-					return nil, e
-				}
-				entry.bonds[cache] = append(entry.bonds[cache], f)
-			}
-			e = rows.Err()
-			rows.Close()
-			if e != nil {
-				return nil, e
-			}
-			if len(entry.bonds[cache]) > 1000 {
-				return nil, d.ErrInvestmentLimit
-			}
-		}
-		result[key] = entry
-	}
-	return result, nil
+	// Fetch the mapped series in one bounded statement. The transaction already
+	// selects latest corrected history; no historical knowledge cutoff is used.
+	return readTrackerHistorySeries(ctx, tx, tenant, result, from, to, readAt)
 }
 func historyPriceSelection(tenant string, p md.MappingPeriod, at time.Time) md.PriceSelectionRequest {
 	return md.PriceSelectionRequest{Scope: md.Scope{TenantID: tenant, Provider: p.Provider, AccessScope: p.AccessScope}, InstrumentID: p.InstrumentID, Kind: "daily_candle", SourceKind: "exchange", Adjustment: "unadjusted", At: at, Retrospective: &md.RetrospectiveDailyPolicy{Convention: md.RetrospectiveCloseNextUTCDay, MaxAge: nav.PortfolioQuoteMaxAge}}
@@ -344,14 +350,14 @@ func trackerHistoricalQuote(tenant, key string, entry trackerHistoryMarket, at, 
 	for _, p := range entry.mapping.HistoryPeriods() {
 		if !at.Before(p.From) && (p.To.IsZero() || at.Before(p.To)) {
 			cache := historyPeriodKey(p)
-			price, e := md.SelectValuationPrice(historyPriceSelection(tenant, p, at), entry.observations[cache])
+			price, e := entry.selectPrice(historyPriceSelection(tenant, p, at), cache)
 			if e != nil {
 				return nav.PortfolioQuote{}, e
 			}
 			if price.Fact == nil && len(entry.observations[cache+"/unknown"]) > 0 {
 				selection := historyPriceSelection(tenant, p, at)
 				selection.Adjustment = "provider_unspecified"
-				price, e = md.SelectValuationPrice(selection, entry.observations[cache+"/unknown"])
+				price, e = entry.selectPrice(selection, cache+"/unknown")
 				if e != nil {
 					return nav.PortfolioQuote{}, e
 				}
@@ -386,11 +392,39 @@ func trackerHistoricalQuote(tenant, key string, entry trackerHistoryMarket, at, 
 	return missing("terms_missing"), nil
 }
 
-const trackerHistoryBasisSQL = `SELECT jsonb_build_array(
- (SELECT jsonb_build_array(count(*),COALESCE(sum(revision),0),max(received_at)) FROM market_provider_observations WHERE tenant_id=$1 AND kind='daily_candle'),
- (SELECT jsonb_build_array(count(*),max(recorded_at)) FROM market_bond_snapshots WHERE tenant_id=$1),
- (SELECT jsonb_agg(data ORDER BY instrument_key) FROM investment_market_mappings WHERE tenant_id=$1),
- (SELECT jsonb_agg(jsonb_build_array(provider,access_scope,enabled) ORDER BY provider,access_scope) FROM market_data_sources WHERE tenant_id=$1),
- (SELECT jsonb_build_array(count(*),COALESCE(sum(version),0)) FROM investment_import_rows WHERE tenant_id=$1),
- (SELECT jsonb_agg(to_jsonb(b) ORDER BY import_id,account_id) FROM investment_import_ledger_bindings b WHERE tenant_id=$1)
+// All pages share the requested upper bound and ten-year horizon. Neither a
+// newly fetched unrelated paper nor today's close can invalidate yesterday's
+// chart. Corrections inside that horizon and pending-source changes still do.
+const trackerHistoryBasisSQL = `WITH mappings AS (
+ SELECT instrument_key,data FROM investment_market_mappings WHERE tenant_id=$1 AND instrument_key=ANY($2::text[])
+), listings AS (
+ SELECT DISTINCT p->>'Provider' provider,p->>'AccessScope' access_scope,(p->>'InstrumentID')::uuid instrument_id
+ FROM mappings CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_array_length(COALESCE(data->'HistoricalPeriods','[]'::jsonb))>0 THEN data->'HistoricalPeriods' ELSE data->'Periods' END) p
+), bindings AS (
+ SELECT * FROM investment_import_ledger_bindings WHERE tenant_id=$1 AND ledger_id=ANY($3::uuid[])
+), source_rows AS (
+ SELECT r.* FROM investment_import_rows r JOIN bindings b USING(tenant_id,import_id,account_id)
+)
+SELECT jsonb_build_array(
+ (SELECT jsonb_build_array(count(*),COALESCE(sum(o.revision),0),max(o.received_at))
+ FROM market_provider_observations o JOIN listings l USING(provider,access_scope,instrument_id)
+ WHERE o.tenant_id=$1 AND o.kind='daily_candle' AND o.source_kind='exchange'
+ AND o.observed_at<date_trunc('day',$4::timestamptz AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'
+ AND o.observed_at>=$4::timestamptz-interval '3666 days'),
+ (SELECT jsonb_build_array(count(*),max(b.recorded_at)) FROM market_bond_snapshots b JOIN listings l USING(provider,access_scope,instrument_id)
+ WHERE b.tenant_id=$1 AND b.from_at<=$4 AND b.to_at>=$4::timestamptz-interval '3666 days'),
+ (SELECT jsonb_agg(data ORDER BY instrument_key) FROM mappings),
+ (SELECT jsonb_agg(to_jsonb(s) ORDER BY s.provider,s.access_scope) FROM market_data_sources s
+ WHERE s.tenant_id=$1 AND EXISTS(SELECT 1 FROM listings l WHERE l.provider=s.provider AND l.access_scope=s.access_scope)),
+ (SELECT jsonb_agg(jsonb_build_array(import_id,record,version) ORDER BY import_id,record) FROM source_rows),
+ (SELECT jsonb_agg(to_jsonb(b) ORDER BY import_id,account_id) FROM bindings b),
+ (SELECT jsonb_agg(to_jsonb(l) ORDER BY l.import_id,l.record) FROM investment_source_links l
+ WHERE l.tenant_id=$1 AND EXISTS(SELECT 1 FROM source_rows r WHERE r.import_id=l.import_id AND r.record=l.record))
  )`
+
+func (entry trackerHistoryMarket) selectPrice(q md.PriceSelectionRequest, key string) (md.SelectedPrice, error) {
+	if series := entry.series[key]; series != nil {
+		return series.Select(q)
+	}
+	return md.SelectValuationPrice(q, entry.observations[key])
+}
