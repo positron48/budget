@@ -59,3 +59,17 @@ func TestAcquisitionFXEvidenceMatchesExactCostAndUnknowns(t *testing.T) {
 		}
 	}
 }
+
+func TestHistoricalCostTranslatesEachNativeLotCurrency(t *testing.T) {
+	day := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	c := LotCostConverter{Policy: "market", Fixings: []calc.FXFixing{{ID: "usd", Revision: 1, From: "USD", To: "RUB", Rate: "90", Policy: "market", At: day, AvailableAt: day, ValidUntil: day.Add(24 * time.Hour)}}}
+	lots := []inv.RemainingLot{{Currency: "RUB", AcquiredAt: day, CleanCost: big.NewRat(50, 1), AcquiredAccrued: big.NewRat(0, 1)}, {Currency: "USD", AcquiredAt: day, CleanCost: big.NewRat(30, 1), AcquiredAccrued: big.NewRat(0, 1)}}
+	value, e := c.Convert(lots, "RUB", "RUB")
+	if e != nil || !value.CleanComplete || value.Clean.RatString() != "2750" {
+		t.Fatal(value, e)
+	}
+	rate, _, e := c.AcquisitionFX(lots[1], "RUB", "RUB")
+	if e != nil || rate == nil || rate.Rate.RatString() != "90" {
+		t.Fatal(rate, e)
+	}
+}

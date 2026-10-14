@@ -32,7 +32,8 @@ type InvestmentLedger struct {
 // InvestmentOperation stores confirmed facts. Amount is clean principal for
 // trades, gross for income, and positive cash for cash operations. Accrued is
 // separate from clean cost. Price is not inferred from these actual amounts.
-// Fees and tax currently must be in Currency, no implicit FX conversion.
+// Simple portfolios may keep commissions in FeeCurrency. Cash books require
+// explicit native conversions; recording a commission never implies a cash FX trade.
 // InvestmentDistribution records explicit, reviewed corporate-action terms.
 // EventKey identifies the event within a ledger independently of operation IDs.
 type InvestmentDistribution struct {
@@ -77,6 +78,8 @@ type InvestmentTradeFinancials struct {
 }
 
 type InvestmentOperation struct {
+	// Optional native commission currency for a simple portfolio. No cash FX is implied.
+	FeeCurrency string `json:",omitempty"`
 	// Reviewed import exception, scoped to this operation and its native cash legs.
 	ImportedCashDeficitReason string `json:",omitempty"`
 
@@ -127,6 +130,7 @@ type InvestmentAccruedRecovery struct {
 	AllRemaining     bool
 }
 type InvestmentLot struct {
+	Currency                                       string `json:",omitempty"`
 	AcquisitionOperationID                         string `json:",omitempty"`
 	OriginLedgerID                                 string `json:",omitempty"`
 	OriginSequence                                 int64  `json:",omitempty"`
@@ -134,6 +138,7 @@ type InvestmentLot struct {
 	AcquiredAt                                     time.Time
 }
 type InvestmentPosition struct {
+	CostBasis                                             string `json:",omitempty"` // principal for native portfolio lots; empty retains legacy capitalized fees
 	Lots                                                  []InvestmentLot
 	CouponGross, CouponTax, CouponRecovered, CouponEarned string
 

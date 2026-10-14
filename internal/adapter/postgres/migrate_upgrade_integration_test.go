@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"github.com/golang-migrate/migrate/v4"
 	migratepgx "github.com/golang-migrate/migrate/v4/database/pgx/v5"
@@ -126,9 +128,54 @@ INSERT INTO asset_snapshots(tenant_id,account_id,currency_code,amount_minor,as_o
 		if err := pool.DB.QueryRow(ctx, `SELECT version,dirty FROM schema_migrations`).Scan(&version, &dirty); err != nil {
 			t.Fatal(err)
 		}
-		if version != 60 || dirty {
+		if version != 61 || dirty {
 			t.Fatalf("migration state: version=%d dirty=%t", version, dirty)
 		}
 	}
-	t.Logf("tracked upgrade 11 -> 59 and restart preserved %d legacy tables", len(before))
+	// Reproduce the previous binary's actual migration startup against schema 61.
+	oldFS := fstest.MapFS{}
+	files, e := migrations.FS.ReadDir(".")
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, file := range files {
+		if file.IsDir() || len(file.Name()) < 4 {
+			continue
+		}
+		version, e := strconv.Atoi(file.Name()[:4])
+		if e != nil || version > 60 {
+			continue
+		}
+		raw, e := migrations.FS.ReadFile(file.Name())
+		if e != nil {
+			t.Fatal(e)
+		}
+		oldFS[file.Name()] = &fstest.MapFile{Data: raw}
+	}
+	oldSource, e := iofs.New(oldFS, ".")
+	if e != nil {
+		t.Fatal(e)
+	}
+	oldDB, e := sql.Open("pgx", dsn)
+	if e != nil {
+		t.Fatal(e)
+	}
+	oldDriver, e := migratepgx.WithInstance(oldDB, &migratepgx.Config{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	oldMigrate, e := migrate.NewWithInstance("iofs", oldSource, "pgx5", oldDriver)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if e = oldMigrate.Up(); e == nil || !strings.Contains(e.Error(), "61") {
+		t.Fatal("old binary accepted native schema", e)
+	}
+	_, _ = oldMigrate.Close()
+	var current int
+	var dirty bool
+	if e = pool.DB.QueryRow(ctx, `SELECT version,dirty FROM schema_migrations`).Scan(&current, &dirty); e != nil || current != 61 || dirty {
+		t.Fatal("old startup altered current schema", current, dirty, e)
+	}
+	t.Logf("tracked upgrade 11 -> 61 and restart preserved %d legacy tables", len(before))
 }

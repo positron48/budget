@@ -94,7 +94,7 @@ func Value(tenant string, snapshots []d.InvestmentSnapshot, evidence map[string]
 		for _, code := range s.Issues {
 			issue := calc.QualityIssue{ComponentID: l.ID, Code: code}
 			switch code {
-			case "imported_cash_deficit_reviewed", "unknown_acquisition_cost", "unknown_acquired_interest", "historical_acquisition_date_unknown", "coupon_allocation_required", "history_before_opening_unknown", "settlement_assumed_trade_time":
+			case "mixed_native_cost_currencies", "imported_cash_deficit_reviewed", "unknown_acquisition_cost", "unknown_acquired_interest", "historical_acquisition_date_unknown", "coupon_allocation_required", "history_before_opening_unknown", "settlement_assumed_trade_time":
 				out.Warnings = append(out.Warnings, issue)
 			default:
 				issues = append(issues, issue)

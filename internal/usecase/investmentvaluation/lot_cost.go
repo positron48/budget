@@ -36,13 +36,17 @@ func (c *LotCostConverter) Convert(lots []inv.RemainingLot, from, to string) (Lo
 	}
 	loc, _ := time.LoadLocation("Europe/Moscow")
 	for _, lot := range lots {
+		native := from
+		if lot.Currency != "" {
+			native = lot.Currency
+		}
 		for i, amount := range []*big.Rat{lot.CleanCost, lot.AcquiredAccrued} {
 			var converted *big.Rat
 			reason := ""
 			switch {
 			case amount == nil:
 				reason = "book_value_unknown"
-			case amount.Sign() == 0 || from == to:
+			case amount.Sign() == 0 || native == to:
 				converted = new(big.Rat).Set(amount)
 			case lot.AcquiredAt.IsZero():
 				reason = "acquisition_date_missing"
@@ -56,7 +60,7 @@ func (c *LotCostConverter) Convert(lots []inv.RemainingLot, from, to string) (Lo
 				if err != nil {
 					return out, err
 				}
-				rate, ok := resolver.Resolve(from, to)
+				rate, ok := resolver.Resolve(native, to)
 				if !ok {
 					reason = "fx_missing"
 				} else {

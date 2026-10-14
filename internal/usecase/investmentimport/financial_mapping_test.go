@@ -312,3 +312,29 @@ func TestSnowballBondAccruedIsPerUnitAndRepaymentClosesUnits(t *testing.T) {
 		t.Fatal(report, err)
 	}
 }
+
+func TestPortfolioImportPreservesCrossCurrencyFeeWithoutInventingFX(t *testing.T) {
+	input := financialHeader + "BUY,2024-01-01 12:00:00,TEST,10,3,USD,123.45,X,2,RUB,False,\n"
+	rule := tradeRule()
+	rule.Currency, rule.QuantityFactor, rule.AccruedBasis, rule.FeePolicy = "USD", "1", "per_security_unit", "native_currency"
+	mapping := financialConfig(t, input, rule)
+	report, e := MapSnowballFinancial(strings.NewReader(input), mapping)
+	if e != nil || report.Ready != 1 {
+		t.Fatal(report, e)
+	}
+	op := report.Rows[0].Operation
+	if op.Currency != "USD" || op.FeeCurrency != "RUB" || op.Amount != "30" || op.Fee != "123.45" || op.Accrued != "6" || op.TradeFinancials != nil {
+		t.Fatal(op)
+	}
+	op.ID, op.TenantID, op.Status, op.Sequence = "imported", "tenant", "posted", 1
+	ledger := d.InvestmentLedger{ID: op.LedgerID, TenantID: op.TenantID, PortfolioTracking: true, StartedAt: op.OccurredAt}
+	result, e := inv.Replay(ledger, []d.InvestmentOperation{*op}, op.OccurredAt)
+	if e != nil || result.Snapshot.Positions[0].CleanCost != "30" || result.ProfitEvents[0].Currency != "RUB" || result.ProfitEvents[0].Amount.RatString() != "-2469/20" || len(result.CashLegs) != 0 {
+		t.Fatal(result, e)
+	}
+	rule.FeePolicy = "same_currency"
+	report, e = MapSnowballFinancial(strings.NewReader(input), financialConfig(t, input, rule))
+	if e != nil || report.Ready != 0 {
+		t.Fatal("legacy cash mapping silently accepted native fee", report, e)
+	}
+}

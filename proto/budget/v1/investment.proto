@@ -73,6 +73,7 @@ message InvestmentOperation {
  string nominal_before = 21; // per-unit outstanding nominal immediately before event
  string nominal_after = 22; // zero for full redemption
  InvestmentOperationSource source = 20; // immutable, server-verified provenance
+ string fee_currency = 40; // simple portfolio commission; empty means currency, no cash FX
 }
 message InvestmentOperationSource {
  string import_id = 1;
@@ -88,8 +89,9 @@ message InvestmentCashBalance {
  string economic = 5;
 }
 message InvestmentAccruedRecovery { string origin_id = 1; string amount = 2; bool all_remaining = 3; }
-message InvestmentLot { string acquisition_operation_id=6; string origin_ledger_id=7; int64 origin_sequence=8; string origin_id = 1; string quantity = 2; string clean_cost = 3; string acquired_accrued = 4; google.protobuf.Timestamp acquired_at = 5; }
+message InvestmentLot { string acquisition_operation_id=6; string origin_ledger_id=7; int64 origin_sequence=8; string origin_id = 1; string quantity = 2; string clean_cost = 3; string acquired_accrued = 4; google.protobuf.Timestamp acquired_at = 5; string currency=9; }
 message InvestmentPosition {
+ string cost_basis=14; // principal for native portfolio lots; empty means legacy capitalized fees
  repeated InvestmentLot lots = 9;
  string coupon_gross = 10;
  string coupon_tax = 11;

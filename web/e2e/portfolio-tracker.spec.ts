@@ -15,7 +15,7 @@ for (const locale of ["ru", "en"]) {
     await page.addInitScript(() => {localStorage.setItem("budget/access", "synthetic-session"); localStorage.setItem("budget/tenant", "tenant");});
     const key = "tinvest:11111111-1111-4111-8111-111111111111";
     const ledger = {id: "account", name: "Broker", version: 1n, portfolioTracking: true, startedAt: {seconds: 1704067200n}};
-    const position = {instrumentKey: key, currency: "RUB", quantity: "10", cleanCost: "1000", acquiredAccrued: "0", realizedClean: "0", realizedAccrued: "0", lots: [{originId: "buy", quantity: "10", cleanCost: "1000", acquiredAccrued: "0", acquiredAt: {seconds: 1704153600n}}]};
+    const position = {costBasis:"principal", instrumentKey: key, currency: "RUB", quantity: "10", cleanCost: "1000", acquiredAccrued: "0", realizedClean: "0", realizedAccrued: "0", lots: [{originId: "buy", quantity: "10", cleanCost: "1000", acquiredAccrued: "0", acquiredAt: {seconds: 1704153600n}}]};
     const operations: any[] = [{id: "buy", ledgerId: ledger.id, status: "posted", instrumentKey: key, currency: "RUB", kind: "buy", quantity: "10", amount: "1000", fee: "0", accrued: "0", occurredAt: {seconds: 1704153600n}}, {id: "payout", ledgerId: ledger.id, status: "posted", instrumentKey: key, currency: "RUB", kind: "dividend", quantity: "0", amount: "100", tax: "20", taxReviewRequired: true, occurredAt: {seconds: 1704240000n}}];
     const foreign = {instrumentKey: "tinvest:foreign", currency: "USD", quantity: "2", cleanCost: "200", acquiredAccrued: "0", lots:[{originId:"foreign-buy", quantity:"2", cleanCost:"200", acquiredAccrued:"0", acquiredAt:{seconds:1704153600n}}]};
     operations.push({id:"foreign-buy", ledgerId:ledger.id, status:"posted", instrumentKey:foreign.instrumentKey, currency:"USD", kind:"buy", quantity:"2", amount:"200", fee:"0", accrued:"0", occurredAt:{seconds:1704153600n}});
@@ -40,7 +40,7 @@ for (const locale of ["ru", "en"]) {
       if (method?.name === "GetBrokerSnapshot") data = {originalJson: new TextEncoder().encode(JSON.stringify({fetched_at: new Date().toISOString(), operations: [{ticker: "ABC", instrumentUid: key.slice(8), name: "Example security"}], portfolio: {positions: [{instrumentUid:"foreign", ticker:"US", instrumentType:"share", currentPrice:{currency:"usd",units:"110",nano:0}}, {instrumentUid: key.slice(8), ticker: "ABC", instrumentType: "share", currentPrice: {currency: "rub", units: "120", nano: 0}}]}}))};
       if (method?.name === "PreviewInvestmentOperation") data = {valid: true, previewHash: "reviewed"};
       if (method?.name === "SaveInvestmentOperation") {
-        expect(input.previewHash).toBe("reviewed"); expect(input.operation.kind).toBe("buy"); expect(input.operation.amount).toBe("100"); expect(input.operation.tax).toBe("0");
+        expect(input.previewHash).toBe("reviewed"); expect(input.operation.kind).toBe("buy"); expect(input.operation.amount).toBe("100"); expect(input.operation.tax).toBe("0"); expect(input.operation.feeCurrency).toBe("USD"); expect(input.operation.fee).toBe("1");
         ledger.version++; position.quantity = "11"; position.cleanCost = "1100"; position.lots.push({originId:"new-purchase",quantity:"1",cleanCost:"100",acquiredAccrued:"0",acquiredAt:{seconds:1704326400n}});
         operations.push({...input.operation, id: "new-purchase", status: "posted", occurredAt: create(TimestampSchema, {seconds: 1704326400n})});
         data = {operation: operations.at(-1)};
@@ -72,8 +72,12 @@ for (const locale of ["ru", "en"]) {
       const dialog = page.getByRole("dialog");
       await dialog.getByRole("combobox", {name: ru ? "Бумага" : "Security", exact: true}).fill("ABC");
       await dialog.getByRole("textbox", {name: ru ? "Цена за штуку" : "Price per unit", exact: true}).fill("100");
+      await dialog.getByRole("textbox", {name: ru ? "Комиссия" : "Fee", exact: true}).fill("1");
+      await dialog.getByRole("combobox", {name: ru ? "Валюта комиссии" : "Fee currency", exact: true}).selectOption("USD");
       await dialog.getByRole("button", {name: ru ? "Сохранить" : "Save", exact: true}).click();
       await expect(dialog).toHaveCount(0); await expect(page.getByRole("table")).toContainText("11");
+      await expect(page.locator("section").filter({has:page.getByRole("heading",{name:ru?"Вложено в бумаги":"Cost of holdings",exact:true})})).toContainText(/17[\s,.]?100/);
+      await expect(page.locator("section").filter({has:page.getByRole("heading",{name:ru?"Общая прибыль":"Total profit",exact:true})})).toContainText(/6[\s,.]?240/);
       expect(calls.filter(c => c.method === "SaveInvestmentOperation")).toHaveLength(1);
       expect(calls.filter(c => c.method === "SaveInvestmentOperation").every(c => c.input.operation.kind !== "deposit")).toBe(true);
     } else await expect(page.getByRole("button", {name: ru ? "Добавить операцию" : "Add operation", exact: true})).toHaveCount(0);

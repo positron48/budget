@@ -27,6 +27,9 @@ type LotDetails struct {
 // AcquisitionFX returns the same resolver evidence used by Convert. Identity
 // and known-zero costs need no market observation; unknown costs remain unknown.
 func (c *LotCostConverter) AcquisitionFX(lot inv.RemainingLot, from, to string) (*calc.ResolvedFX, time.Time, error) {
+	if lot.Currency != "" {
+		from = lot.Currency
+	}
 	if from == to || lot.AcquiredAt.IsZero() || (lot.CleanCost == nil || lot.CleanCost.Sign() == 0) && (lot.AcquiredAccrued == nil || lot.AcquiredAccrued.Sign() == 0) {
 		return nil, time.Time{}, nil
 	}

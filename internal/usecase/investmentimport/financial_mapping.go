@@ -41,7 +41,7 @@ type FinancialRule struct {
 	QuantityFactor                    string // required for trades; source lots to security units
 	AmountFactor                      string // explicit multiplier after AmountBasis, e.g. nominal/100
 	AccruedBasis                      string // zero_only, total, per_source_quantity, per_security_unit
-	FeePolicy                         string // zero_only, same_currency; missing FeeCurrency confirmed by rule
+	FeePolicy                         string // zero_only, same_currency, native_currency; missing FeeCurrency follows trade currency
 	IncomeBasis                       string // received preserves the supplied payout, without tax accounting
 	MoneyRounding                     string // empty: exact; 12dp_half_away: explicit tracker import policy
 	Reason                            string
@@ -353,7 +353,7 @@ func MapSnowballFinancial(input io.Reader, mapping FinancialMapping) (FinancialM
 			default:
 				issue("event_kind_requires_manual_review")
 			}
-			if rule.FeePolicy != "same_currency" && rule.FeePolicy != "zero_only" {
+			if rule.FeePolicy != "same_currency" && rule.FeePolicy != "native_currency" && rule.FeePolicy != "zero_only" {
 				issue("fee_policy_required")
 			}
 			receivedPayout := rule.IncomeBasis == "received" && (rule.Kind == "dividend" || rule.Kind == "coupon" || rule.Kind == "repo_income")
@@ -362,7 +362,11 @@ func MapSnowballFinancial(input io.Reader, mapping FinancialMapping) (FinancialM
 					issue("unexpected_fee_or_tax")
 				}
 				if row.FeeCurrency != "" && row.FeeCurrency != row.Currency {
-					issue("cross_currency_fee_requires_manual_operation")
+					if rule.FeePolicy == "native_currency" && (rule.Kind == "buy" || rule.Kind == "sell") {
+						op.FeeCurrency = row.FeeCurrency
+					} else {
+						issue("cross_currency_fee_requires_manual_operation")
+					}
 				}
 			}
 			if rule.MoneyRounding == "12dp_half_away" {

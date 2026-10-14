@@ -59,15 +59,15 @@ export function portfolioReport(snapshots: InvestmentSnapshot[], operations: Inv
       // FIFO clean book cost includes acquisition fees. Recover pure principal
       // by its fraction of original capitalized cost, independent of later splits.
       const principal = origin && decimal(origin.amount), fee = origin && decimal(origin.fee);
-      const remaining = principal && fee && clean && divide(clean, add(principal, fee));
+      const remaining = principal && fee && clean && divide(clean, holding.costBasis === "principal" ? principal : add(principal, fee));
       const source = origin && reportPrincipal(origin);
       const pure = source?.amount && remaining ? convert(multiply(source.amount, remaining), source.currency, lot.acquiredAt ? reportingDate(lot.acquiredAt.seconds) : source.date) : undefined;
       const f = origin?.tradeFinancials;
       const date = origin?.occurredAt ? reportingDate(origin.occurredAt.seconds) : undefined;
-      const feeCost = fee && remaining ? convert(multiply(decimal(f?.fee?.amount || origin?.fee || "" ) || zero, remaining), f?.fee?.currency || holding.currency, f?.fee?.at ? reportingDate(f.fee.at.seconds) : date) : undefined;
+      const feeCost = fee && remaining ? convert(multiply(decimal(f?.fee?.amount || origin?.fee || "" ) || zero, remaining), f?.fee?.currency || origin?.feeCurrency || origin?.currency || lot.currency || holding.currency, f?.fee?.at ? reportingDate(f.fee.at.seconds) : date) : undefined;
       const originalAccrued = origin && decimal(origin.accrued);
       const accruedShare = accrued && originalAccrued ? BigInt(originalAccrued.numerator) === 0n ? zero : divide(accrued, originalAccrued) : undefined;
-      const interestCost = accruedShare ? convert(multiply(decimal(f?.accrued?.amount || origin?.accrued || "") || zero, accruedShare), f?.accrued?.currency || holding.currency, f?.accrued?.at ? reportingDate(f.accrued.at.seconds) : date) : undefined;
+      const interestCost = accruedShare ? convert(multiply(decimal(f?.accrued?.amount || origin?.accrued || "") || zero, accruedShare), f?.accrued?.currency || origin?.currency || lot.currency || holding.currency, f?.accrued?.at ? reportingDate(f.accrued.at.seconds) : date) : undefined;
       const economic = pure && feeCost && interestCost ? add(pure, feeCost, interestCost) : undefined;
       if (pure) p.cost = add(p.cost, pure); else incompleteCost.add(p.key);
       if (economic) economicCost.set(p.key, add(economicCost.get(p.key), economic)); else incompleteEconomicCost.add(p.key);
@@ -99,7 +99,7 @@ export function portfolioReport(snapshots: InvestmentSnapshot[], operations: Inv
         const at = op.kind === "opening_position" ? op.acquiredAt ? reportingDate(op.acquiredAt.seconds) : undefined : date;
         addCash(p.key, decimal(op.amount), op.currency, at, buy);
         addCash(p.key, decimal(op.accrued), op.currency, at, buy);
-        addCash(p.key, decimal(op.fee), op.currency, at, true);
+        addCash(p.key, decimal(op.fee), op.feeCurrency || op.currency, at, true);
       } else {
         // Statement principal adjustment is in the principal's native currency.
         // Expense components have their own currency and effective date.

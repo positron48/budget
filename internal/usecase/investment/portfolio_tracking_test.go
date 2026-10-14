@@ -20,8 +20,17 @@ func TestPortfolioPurchaseWithoutFundingAndCouponWithoutTaxReview(t *testing.T) 
 		t.Fatal(err)
 	}
 	position := result.Snapshot.Positions[0]
-	if position.Quantity != "1" || position.CleanCost != "101" || position.RealizedClean != "18" || position.CouponEarned != "15" {
+	if position.Quantity != "1" || position.CleanCost != "100" || position.RealizedClean != "20" || position.CouponEarned != "15" {
 		t.Fatal(position)
+	}
+	fees := rational("0")
+	for _, event := range result.ProfitEvents {
+		if event.Kind == "fees" {
+			fees.Add(fees, event.Amount)
+		}
+	}
+	if fees.RatString() != "-3" || position.CostBasis != "principal" {
+		t.Fatal("fees lost from profit", result.ProfitEvents)
 	}
 	if len(result.Snapshot.Cash) != 0 || slices.Contains(result.Snapshot.Issues, "tax_review_required") || slices.Contains(result.Snapshot.Issues, "negative_imported_cash") {
 		t.Fatal(result.Snapshot)

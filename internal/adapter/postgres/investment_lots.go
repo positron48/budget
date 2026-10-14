@@ -106,7 +106,12 @@ func (r *MarketDataRepo) InvestmentLots(ctx context.Context, tenant, actor, key,
 			if len(out.Rows) >= 10000 {
 				return out, d.ErrInvestmentLimit
 			}
-			out.Rows = append(out.Rows, nav.LotView{LedgerID: id, LedgerName: ledger.Name, Currency: currency, Lot: lot, Origin: origins[lot.OriginID]})
+			out.Rows = append(out.Rows, nav.LotView{LedgerID: id, LedgerName: ledger.Name, Currency: func() string {
+				if lot.Currency != "" {
+					return lot.Currency
+				}
+				return currency
+			}(), Lot: lot, Origin: origins[lot.OriginID]})
 		}
 	}
 	// Keep the exact replay FIFO order within each account, including tied

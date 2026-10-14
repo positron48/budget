@@ -855,6 +855,7 @@ type InvestmentOperation struct {
 	NominalBefore             string                        `protobuf:"bytes,21,opt,name=nominal_before,json=nominalBefore,proto3" json:"nominal_before,omitempty"` // per-unit outstanding nominal immediately before event
 	NominalAfter              string                        `protobuf:"bytes,22,opt,name=nominal_after,json=nominalAfter,proto3" json:"nominal_after,omitempty"`    // zero for full redemption
 	Source                    *InvestmentOperationSource    `protobuf:"bytes,20,opt,name=source,proto3" json:"source,omitempty"`                                    // immutable, server-verified provenance
+	FeeCurrency               string                        `protobuf:"bytes,40,opt,name=fee_currency,json=feeCurrency,proto3" json:"fee_currency,omitempty"`       // simple portfolio commission; empty means currency, no cash FX
 	unknownFields             protoimpl.UnknownFields
 	sizeCache                 protoimpl.SizeCache
 }
@@ -1162,6 +1163,13 @@ func (x *InvestmentOperation) GetSource() *InvestmentOperationSource {
 	return nil
 }
 
+func (x *InvestmentOperation) GetFeeCurrency() string {
+	if x != nil {
+		return x.FeeCurrency
+	}
+	return ""
+}
+
 type InvestmentOperationSource struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	ImportId        string                 `protobuf:"bytes,1,opt,name=import_id,json=importId,proto3" json:"import_id,omitempty"`
@@ -1376,6 +1384,7 @@ type InvestmentLot struct {
 	CleanCost              string                 `protobuf:"bytes,3,opt,name=clean_cost,json=cleanCost,proto3" json:"clean_cost,omitempty"`
 	AcquiredAccrued        string                 `protobuf:"bytes,4,opt,name=acquired_accrued,json=acquiredAccrued,proto3" json:"acquired_accrued,omitempty"`
 	AcquiredAt             *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=acquired_at,json=acquiredAt,proto3" json:"acquired_at,omitempty"`
+	Currency               string                 `protobuf:"bytes,9,opt,name=currency,proto3" json:"currency,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -1466,8 +1475,16 @@ func (x *InvestmentLot) GetAcquiredAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *InvestmentLot) GetCurrency() string {
+	if x != nil {
+		return x.Currency
+	}
+	return ""
+}
+
 type InvestmentPosition struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
+	CostBasis          string                 `protobuf:"bytes,14,opt,name=cost_basis,json=costBasis,proto3" json:"cost_basis,omitempty"` // principal for native portfolio lots; empty means legacy capitalized fees
 	Lots               []*InvestmentLot       `protobuf:"bytes,9,rep,name=lots,proto3" json:"lots,omitempty"`
 	CouponGross        string                 `protobuf:"bytes,10,opt,name=coupon_gross,json=couponGross,proto3" json:"coupon_gross,omitempty"`
 	CouponTax          string                 `protobuf:"bytes,11,opt,name=coupon_tax,json=couponTax,proto3" json:"coupon_tax,omitempty"`
@@ -1513,6 +1530,13 @@ func (x *InvestmentPosition) ProtoReflect() protoreflect.Message {
 // Deprecated: Use InvestmentPosition.ProtoReflect.Descriptor instead.
 func (*InvestmentPosition) Descriptor() ([]byte, []int) {
 	return file_budget_v1_investment_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *InvestmentPosition) GetCostBasis() string {
+	if x != nil {
+		return x.CostBasis
+	}
+	return ""
 }
 
 func (x *InvestmentPosition) GetLots() []*InvestmentLot {
@@ -9876,7 +9900,7 @@ const file_budget_v1_investment_proto_rawDesc = "" +
 	"\x0fprice_fx_source\x18\x11 \x01(\tR\rpriceFxSource\x12*\n" +
 	"\x11price_fx_evidence\x18\x12 \x01(\tR\x0fpriceFxEvidence\x12:\n" +
 	"\vprice_fx_at\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\tpriceFxAt\x12M\n" +
-	"#actual_settlement_includes_expenses\x18\x14 \x01(\bR actualSettlementIncludesExpenses\"\xc1\r\n" +
+	"#actual_settlement_includes_expenses\x18\x14 \x01(\bR actualSettlementIncludesExpenses\"\xe4\r\n" +
 	"\x13InvestmentOperation\x12?\n" +
 	"\x1cimported_cash_deficit_reason\x18' \x01(\tR\x19importedCashDeficitReason\x12O\n" +
 	"\x10trade_financials\x18& \x01(\v2$.budget.v1.InvestmentTradeFinancialsR\x0ftradeFinancials\x12I\n" +
@@ -9921,7 +9945,8 @@ const file_budget_v1_investment_proto_rawDesc = "" +
 	"\x12accrued_recoveries\x18\x18 \x03(\v2$.budget.v1.InvestmentAccruedRecoveryR\x11accruedRecoveries\x12%\n" +
 	"\x0enominal_before\x18\x15 \x01(\tR\rnominalBefore\x12#\n" +
 	"\rnominal_after\x18\x16 \x01(\tR\fnominalAfter\x12<\n" +
-	"\x06source\x18\x14 \x01(\v2$.budget.v1.InvestmentOperationSourceR\x06source\"\xa0\x01\n" +
+	"\x06source\x18\x14 \x01(\v2$.budget.v1.InvestmentOperationSourceR\x06source\x12!\n" +
+	"\ffee_currency\x18( \x01(\tR\vfeeCurrency\"\xa0\x01\n" +
 	"\x19InvestmentOperationSource\x12\x1b\n" +
 	"\timport_id\x18\x01 \x01(\tR\bimportId\x12\x16\n" +
 	"\x06record\x18\x02 \x01(\x05R\x06record\x12)\n" +
@@ -9938,7 +9963,7 @@ const file_budget_v1_investment_proto_rawDesc = "" +
 	"\x19InvestmentAccruedRecovery\x12\x1b\n" +
 	"\torigin_id\x18\x01 \x01(\tR\boriginId\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\tR\x06amount\x12#\n" +
-	"\rall_remaining\x18\x03 \x01(\bR\fallRemaining\"\xdc\x02\n" +
+	"\rall_remaining\x18\x03 \x01(\bR\fallRemaining\"\xf8\x02\n" +
 	"\rInvestmentLot\x128\n" +
 	"\x18acquisition_operation_id\x18\x06 \x01(\tR\x16acquisitionOperationId\x12(\n" +
 	"\x10origin_ledger_id\x18\a \x01(\tR\x0eoriginLedgerId\x12'\n" +
@@ -9949,8 +9974,11 @@ const file_budget_v1_investment_proto_rawDesc = "" +
 	"clean_cost\x18\x03 \x01(\tR\tcleanCost\x12)\n" +
 	"\x10acquired_accrued\x18\x04 \x01(\tR\x0facquiredAccrued\x12;\n" +
 	"\vacquired_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"acquiredAt\"\x80\x04\n" +
-	"\x12InvestmentPosition\x12,\n" +
+	"acquiredAt\x12\x1a\n" +
+	"\bcurrency\x18\t \x01(\tR\bcurrency\"\x9f\x04\n" +
+	"\x12InvestmentPosition\x12\x1d\n" +
+	"\n" +
+	"cost_basis\x18\x0e \x01(\tR\tcostBasis\x12,\n" +
 	"\x04lots\x18\t \x03(\v2\x18.budget.v1.InvestmentLotR\x04lots\x12!\n" +
 	"\fcoupon_gross\x18\n" +
 	" \x01(\tR\vcouponGross\x12\x1d\n" +

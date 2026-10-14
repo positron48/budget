@@ -118,7 +118,7 @@ export async function prepareSimpleImport(api: ImportAPI, source: InvestmentImpo
       Event: f.Event, Symbol: f.Symbol, Exchange: f.Exchange, Currency: f.Currency, InstrumentKey: instrumentKey,
       Kind: f.Event === "REPAYMENT" ? "redemption" : f.Event === "CASH_GAIN" ? "repo_income" : income ? catalog.names.get(instrumentKey)?.instrumentType === "bond" ? "coupon" : "dividend" : f.Event.toLowerCase(),
       AmountBasis: income ? "quantity" : "quantity_price", QuantityFactor: "1", AmountFactor: "1",
-      MoneyRounding: "12dp_half_away", AccruedBasis: "per_security_unit", FeePolicy: "same_currency", IncomeBasis: "received",
+      MoneyRounding: "12dp_half_away", AccruedBasis: "per_security_unit", FeePolicy: "native_currency", IncomeBasis: "received",
       Reason: "Snowball import: security units, per-security price and accrued interest; payouts as supplied; monetary totals rounded half away from zero to 12 decimal places.",
     });
   }

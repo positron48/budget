@@ -6,13 +6,13 @@ from test_financial_evidence import cash
 
 def fixture():
     row = {'id':'source:1','record':1,
-           'raw':{'Event':'BUY','Date':'2024-06-04 11:10:58','Currency':'RUB',
+           'raw':{'Event':'BUY','Date':'2024-02-06 14:05:09','Currency':'RUB',
                   'Symbol':'NEW','FeeCurrency':'','DoNotAdjustCash':'False'},
-           'decimals':{'Quantity':'7.0135','Price':'198.43159621','FeeTax':'4.18','NKD':'0'}}
-    op = {'id':'op','brokerAccountId':'a','date':'2024-06-04T08:10:58.245Z',
+           'decimals':{'Quantity':'2.5','Price':'40','FeeTax':'1.25','NKD':'0'}}
+    op = {'id':'op','brokerAccountId':'a','date':'2024-02-06T11:05:09.123Z',
           'type':'OPERATION_TYPE_BUY','state':'OPERATION_STATE_EXECUTED',
           'instrumentType':'share','instrumentUid':'uid','ticker':'OLD','quantityDone':'1',
-          'price':cash('1391.7'),'payment':cash('-1391.7'),'commission':cash('-4.18')}
+          'price':cash('100'),'payment':cash('-100'),'commission':cash('-1.25')}
     return row, op
 
 
@@ -20,8 +20,8 @@ class AdjustedTradeTests(unittest.TestCase):
     def test_observed_ratio_not_permission_to_post(self):
         row, op = fixture()
         result = candidate(row, op)
-        self.assertEqual(result['observed_quantity_ratio'], '7.0135')
-        self.assertEqual(result['cash'], '1391.7')
+        self.assertEqual(result['observed_quantity_ratio'], '2.5')
+        self.assertEqual(result['cash'], '100')
         matches = {'rows':[{'source_record':1,'status':'unmatched'}],
                    'broker_operations':{'a:op':{'raw':op}}}
         result = audit({'audit':{'sha256':'source'},'rows':[row]},matches)
@@ -30,9 +30,9 @@ class AdjustedTradeTests(unittest.TestCase):
 
     def test_wrong_cash_fee_currency_time_state_rejected(self):
         row, op = fixture()
-        for key, value in [('payment',cash('-1391.71')),('commission',cash('-4.19')),
-                           ('price',cash('1391.7','usd')),('date','2024-06-04T08:10:59Z'),
-                           ('state','OPERATION_STATE_CANCELED'),('quantityDone','7.0135')]:
+        for key, value in [('payment',cash('-100.01')),('commission',cash('-1.26')),
+                           ('price',cash('100','usd')),('date','2024-02-06T11:05:10Z'),
+                           ('state','OPERATION_STATE_CANCELED'),('quantityDone','2.5')]:
             bad = dict(op); bad[key] = value
             self.assertIsNone(candidate(row,bad), key)
 

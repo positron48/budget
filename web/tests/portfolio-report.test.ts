@@ -63,6 +63,18 @@ describe("portfolio reporting currency", () => {
     expect(positionDecimal(p.cost)).toBe("16000");
     expect(positionDecimal(p.profit)).toBe("11820"); // current 28000 -native principal 16000 -later fee 180
   });
+  it("reports native FIFO principal lots and a fee paid in another currency without capitalizing it twice", () => {
+    const rub = create(InvestmentOperationSchema, {id:"rub", status:"posted", kind:"buy", instrumentKey:"BOND", currency:"RUB", quantity:"2", amount:"200", fee:"2", feeCurrency:"USD", accrued:"0", occurredAt:at("2026-01-01")});
+    const usd = create(InvestmentOperationSchema, {id:"usd", status:"posted", kind:"buy", instrumentKey:"BOND", currency:"USD", quantity:"3", amount:"30", fee:"3", feeCurrency:"RUB", accrued:"0", occurredAt:at("2026-01-01")});
+    const s = create(InvestmentSnapshotSchema, {positions:[{instrumentKey:"BOND", currency:"RUB", costBasis:"principal", quantity:"5", lots:[
+      {originId:"rub", currency:"RUB", quantity:"2", cleanCost:"200", acquiredAccrued:"0", acquiredAt:at("2026-01-01")},
+      {originId:"usd", currency:"USD", quantity:"3", cleanCost:"30", acquiredAccrued:"0", acquiredAt:at("2026-01-01")},
+    ]}]});
+    const p = portfolioReport([s], [rub, usd], new Map([["BOND\0RUB", {price:decimal("100")!, at:1}]]), "RUB", fx()).positions[0];
+    expect(positionDecimal(p.cost)).toBe("2600");
+    expect(positionDecimal(p.profit)).toBe("-2263");
+    expect(positionDecimal(p.realized)).toBe("0");
+  });
   it("includes portfolio payouts and fees without requiring a security or broker cash book", () => {
     const payout = create(InvestmentOperationSchema, {id:"interest", status:"posted", kind:"cash_interest", currency:"RUB", amount:"15", occurredAt:at("2026-02-01")});
     const fee = create(InvestmentOperationSchema, {...payout, id:"fee", kind:"fee", amount:"2"});

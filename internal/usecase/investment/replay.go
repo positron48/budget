@@ -35,6 +35,7 @@ func (e *ReplayCashError) Unwrap() error { return e.Cause }
 
 type PositionBookValues struct{ Quantity, CleanCost, AcquiredAccrued *big.Rat }
 type RemainingLot struct {
+	Currency                             string `json:",omitempty"`
 	LotID, OriginLedgerID                string
 	OriginSequence                       int64
 	OriginID                             string
@@ -109,6 +110,14 @@ func ReplayLotHistory(ledger d.InvestmentLedger, input []d.InvestmentOperation, 
 	return replay(ledger, input, asOf, replayOptions{origins: selected})
 }
 func replay(ledger d.InvestmentLedger, input []d.InvestmentOperation, asOf time.Time, options replayOptions) (ReplayResult, error) {
+	if ledger.PortfolioTracking && nativePortfolioHistory(input) {
+		return replayNativePortfolio(ledger, input, asOf, options)
+	}
+	for _, o := range input {
+		if o.Status != "voided" && o.FeeCurrency != "" && o.FeeCurrency != o.Currency {
+			return ReplayResult{}, inconsistent("native fee currency requires a simple portfolio")
+		}
+	}
 	origins := options.origins
 	result := ReplayResult{SecurityTransfers: map[string]SecurityTransferReceipt{}, ExactLots: map[string][]RemainingLot{}, ExactPositions: map[string]PositionBookValues{}, Snapshot: d.InvestmentSnapshot{Ledger: ledger, AsOf: asOf, Cash: []d.InvestmentCash{}, Positions: []d.InvestmentPosition{}, ValuationStatus: "market_data_required"}}
 	if asOf.IsZero() || ledger.StartedAt.IsZero() {
@@ -775,7 +784,7 @@ func sameRemainingLot(a, b *RemainingLot) bool {
 		}
 		return x.Cmp(y) == 0
 	}
-	return a.LotID == b.LotID && a.OriginID == b.OriginID && a.OriginLedgerID == b.OriginLedgerID && a.OriginSequence == b.OriginSequence && a.AcquiredAt.Equal(b.AcquiredAt) && same(a.Quantity, b.Quantity) && same(a.CleanCost, b.CleanCost) && same(a.AcquiredAccrued, b.AcquiredAccrued)
+	return a.Currency == b.Currency && a.LotID == b.LotID && a.OriginID == b.OriginID && a.OriginLedgerID == b.OriginLedgerID && a.OriginSequence == b.OriginSequence && a.AcquiredAt.Equal(b.AcquiredAt) && same(a.Quantity, b.Quantity) && same(a.CleanCost, b.CleanCost) && same(a.AcquiredAccrued, b.AcquiredAccrued)
 }
 
 func cloneRemainingLot(v *RemainingLot) *RemainingLot {

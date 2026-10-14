@@ -41,7 +41,7 @@ func TestInvestmentPortfolioTrackingPersistenceWithoutFunding(t *testing.T) {
 	if err != nil || !state.Ledger.PortfolioTracking || len(state.Cash) != 0 || len(state.Positions) != 1 {
 		t.Fatal(state, err)
 	}
-	if state.Positions[0].Quantity != "2" || state.Positions[0].CleanCost != "202" || state.Positions[0].CouponEarned != "15" {
+	if state.Positions[0].Quantity != "2" || state.Positions[0].CleanCost != "200" || state.Positions[0].CouponEarned != "15" {
 		t.Fatal(state.Positions)
 	}
 	// Rollback must refuse to reinterpret a populated unfunded tracker as a cash book.

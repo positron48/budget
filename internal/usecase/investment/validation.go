@@ -42,6 +42,10 @@ func normalize(v string, precision, scale int) (string, error) {
 	return v, nil
 }
 func ValidateOperation(o *d.InvestmentOperation) error {
+	o.FeeCurrency = strings.ToUpper(strings.TrimSpace(o.FeeCurrency))
+	if o.FeeCurrency != "" && (o.Kind != "buy" && o.Kind != "sell" || !tradeCurrency(o.FeeCurrency) || o.TradeFinancials != nil) {
+		return invalid("native fee currency only applies to simple portfolio trades")
+	}
 	if err := normalizeCashDeficitReason(o); err != nil {
 		return err
 	}
@@ -218,7 +222,7 @@ func ValidateOperation(o *d.InvestmentOperation) error {
 		if o.InstrumentKey == "" || o.Quantity == "0" || o.Amount == "0" || (!zero(o.SplitNew, o.SplitOld) || o.TradeFinancials == nil && o.Tax != "0") {
 			return invalid("trade requires instrument, positive quantity and clean principal")
 		}
-		if o.Kind == "sell" && o.TradeFinancials == nil && new(big.Rat).Add(rational(o.Amount), rational(o.Accrued)).Cmp(rational(o.Fee)) < 0 {
+		if o.Kind == "sell" && o.TradeFinancials == nil && (o.FeeCurrency == "" || o.FeeCurrency == o.Currency) && new(big.Rat).Add(rational(o.Amount), rational(o.Accrued)).Cmp(rational(o.Fee)) < 0 {
 			return invalid("sell fee exceeds proceeds")
 		}
 	case "amortization", "redemption":
