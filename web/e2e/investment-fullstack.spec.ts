@@ -5,6 +5,8 @@ import {createGrpcWebTransport} from "@connectrpc/connect-web";
 import {randomUUID} from "node:crypto";
 import {AuthService} from "../proto/budget/v1/auth_pb";
 import {InvestmentService} from "../proto/budget/v1/investment_pb";
+import {portfolioReport} from "../lib/portfolio-report";
+import {positionDecimal} from "../lib/investment-positions";
 const enabled=process.env.E2E_FULLSTACK==="1",phase=process.env.E2E_FULLSTACK_PHASE||"write";
 test.skip(!enabled,"Run scripts/investments/fullstack_smoke.py against disposable local services");
 const password="Disposable-smoke-146!",stamp=(s:string)=>({seconds:BigInt(Date.parse(s)/1000),nanos:0});
@@ -42,7 +44,11 @@ for(const locale of ["ru","en"])test(`${locale} simple portfolio ${phase}`,async
  }
  const state=(await api.getInvestmentSnapshot({ledgerId:ledger.id})).snapshot!;
  expect(state.ledger!.portfolioTracking).toBe(true);expect(state.cash).toHaveLength(0);
- expect(state.positions[0].quantity).toBe("1");expect(state.positions[0].cleanCost).toBe("101");expect(state.positions[0].realizedClean).toBe("18");expect(state.positions[0].couponEarned).toBe("15");
+ expect(state.positions[0].quantity).toBe("1");expect(state.positions[0].costBasis).toBe("principal");expect(state.positions[0].cleanCost).toBe("100");expect(state.positions[0].realizedClean).toBe("20");expect(state.positions[0].couponEarned).toBe("15");
+ const operations=(await api.listInvestmentOperations({ledgerId:ledger.id,limit:200})).operations;
+ const report=portfolioReport([state],operations,new Map([["TRACKER-STOCK\0RUB",{price:{numerator:"100",denominator:"1"},at:Date.now()}]]),"RUB").positions[0];
+ // Principal cost excludes fees, while profit includes both buy/sell fees once.
+ expect(positionDecimal(report.cost)).toBe("100");expect(positionDecimal(report.realized)).toBe("18");expect(positionDecimal(report.profit)).toBe("32");
  await page.goto("/investments");await expect(page.getByRole("heading",{name:ru?"Мой портфель":"My portfolio",exact:true})).toBeVisible();
  await expect(page.getByRole("table")).toContainText("TRACKER-STOCK");
  await page.getByRole("button",{name:ru?"Дивиденды и купоны":"Dividends and coupons",exact:true}).click();await expect(page.getByRole("table")).toContainText("15");
