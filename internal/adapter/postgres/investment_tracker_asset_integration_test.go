@@ -119,7 +119,7 @@ func TestInvestmentTrackerAssetReplacementUsesCleanQuotesWithoutFundingOrDoubleC
 	if _, e = assets.CreateSnapshot(ctx, d.AssetSnapshot{TenantID: tenant, AccountID: a.ID, UserID: actor, Kind: "valuation", Amount: d.Money{CurrencyCode: "RUB", MinorUnits: 1}, AsOf: time.Now()}, "manual-bypass"); !errors.Is(e, d.ErrAssetPrecondition) {
 		t.Fatal("manual value bypass", e)
 	}
-	if _, e = repo.SaveObservations(ctx, scope, []md.Observation{{InstrumentID: id, Kind: "last_price", At: time.Now().UTC().Add(-time.Millisecond), SourceKind: "exchange", Adjustment: "unadjusted", PriceUnit: "provider_unspecified", Price: "21", Complete: true}}); e != nil {
+	if _, e = repo.SaveObservations(ctx, scope, []md.Observation{{InstrumentID: id, Kind: "last_price", At: time.Now().UTC().Add(-time.Millisecond).Truncate(time.Microsecond), SourceKind: "exchange", Adjustment: "unadjusted", PriceUnit: "provider_unspecified", Price: "21", Complete: true}}); e != nil {
 		t.Fatal(e)
 	}
 	updated, e := NewAssetRepo(pool).GetAccount(ctx, tenant, a.ID, time.Now())

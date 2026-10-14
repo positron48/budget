@@ -47,6 +47,17 @@ func TestInvestmentAsyncExportIsolationLeaseAndDownload(t *testing.T) {
 		_, e = svc.Mutate(ctx, tenant, actor, inv.Mutation{Action: "create", RequestKey: fmt.Sprintf("fixture-%d", i), ExpectedLedgerVersion: int64(i + 2), Operation: d.InvestmentOperation{LedgerID: ledger.ID, Kind: "deposit", Currency: "RUB", Amount: "1", OccurredAt: at.Add(time.Duration(i+2) * time.Hour), Note: strings.Repeat("a", 4990) + "<>&\u2028"}})
 		must(e)
 	}
+	tracker, e := svc.CreateLedgerWithDetails(ctx, tenant, actor, d.InvestmentLedger{Name: "Simple tracker", StartedAt: at, PortfolioTracking: true}, "tracker")
+	must(e)
+	for i, op := range []d.InvestmentOperation{
+		{Kind: "buy", InstrumentKey: "SYNTHETIC", Currency: "RUB", Quantity: "3", Amount: "300", Fee: "1"},
+		{Kind: "sell", InstrumentKey: "SYNTHETIC", Currency: "RUB", Quantity: "1", Amount: "150", Fee: "1"},
+		{Kind: "dividend", InstrumentKey: "SYNTHETIC", Currency: "RUB", Amount: "12"},
+	} {
+		op.LedgerID, op.OccurredAt = tracker.ID, at.Add(time.Duration(i+1)*time.Hour)
+		_, e = svc.Mutate(ctx, tenant, actor, inv.Mutation{Action: "create", RequestKey: uuid.NewString(), ExpectedLedgerVersion: int64(i + 1), Operation: op})
+		must(e)
+	}
 	if _, e = repo.StartExport(ctx, tenant, member, uuid.NewString()); !errors.Is(e, d.ErrInvestmentForbidden) {
 		t.Fatal("member export", e)
 	}
@@ -113,7 +124,7 @@ func TestInvestmentAsyncExportIsolationLeaseAndDownload(t *testing.T) {
 	targetRepo := NewInvestmentRepo(target)
 	restored, e := targetRepo.RestoreInvestmentArchive(ctx, actor, bundle, bundle.SHA256)
 	must(e)
-	if restored.Operations != 36 {
+	if restored.Operations != 39 {
 		t.Fatal("download restore lost operations", restored.Operations)
 	}
 	before, e := repo.Snapshot(ctx, tenant, ledger.ID, at.AddDate(0, 0, 10))
@@ -122,6 +133,13 @@ func TestInvestmentAsyncExportIsolationLeaseAndDownload(t *testing.T) {
 	must(e)
 	if !reflect.DeepEqual(before.Cash, after.Cash) || !reflect.DeepEqual(before.Positions, after.Positions) {
 		t.Fatal("download round trip changed snapshot")
+	}
+	trackerBefore, e := repo.Snapshot(ctx, tenant, tracker.ID, at.AddDate(0, 0, 10))
+	must(e)
+	trackerAfter, e := targetRepo.Snapshot(ctx, tenant, tracker.ID, at.AddDate(0, 0, 10))
+	must(e)
+	if !reflect.DeepEqual(trackerBefore, trackerAfter) {
+		t.Fatal("simple tracker download round trip changed quantities, FIFO costs or payouts")
 	}
 	targetBundle, e := targetRepo.ExportInvestmentArchive(ctx, tenant, actor)
 	must(e)
