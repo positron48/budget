@@ -186,9 +186,10 @@ func (r *MarketDataRepo) ScheduleMarket(ctx context.Context, scope md.Scope, at 
 				q.To = at.Truncate(time.Second)
 			}
 		}
-		// Keep bond request within the existing 365-day provider contract.
+		// Include recent quote days across weekends and exchange holidays while
+		// keeping the complete request within the 365-day provider contract.
 		if q.Kind == "bond_facts" {
-			q.From = at.Truncate(24 * time.Hour)
+			q.From = at.Truncate(24 * time.Hour).AddDate(0, 0, -14)
 			q.To = q.From.Add(365*24*time.Hour - time.Second)
 		}
 		if err = md.ValidateRequest(q); err != nil {

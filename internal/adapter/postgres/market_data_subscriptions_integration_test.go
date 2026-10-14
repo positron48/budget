@@ -208,7 +208,7 @@ func TestMarketSubscriptionsCapacityAndBondWindow(t *testing.T) {
 	if err = pool.DB.QueryRow(ctx, `SELECT from_at,to_at FROM market_data_jobs WHERE tenant_id=$1 AND instrument_id=$2 AND status='pending'`, tenant, id).Scan(&from, &to); err != nil {
 		t.Fatal(err)
 	}
-	if !from.Equal(later.Truncate(24*time.Hour)) || to.Sub(from) != 365*24*time.Hour-time.Second {
+	if !from.Equal(later.Truncate(24*time.Hour).AddDate(0, 0, -14)) || to.Sub(from) != 365*24*time.Hour-time.Second {
 		t.Fatal("bond provider range", from, to)
 	}
 	// A still-active request absorbs another scheduler period without N jobs.
