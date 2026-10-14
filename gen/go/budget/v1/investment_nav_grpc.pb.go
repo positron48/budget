@@ -42,6 +42,7 @@ const (
 	InvestmentNAVService_ListInvestmentNAVSeries_FullMethodName          = "/budget.v1.InvestmentNAVService/ListInvestmentNAVSeries"
 	InvestmentNAVService_GetInvestmentNAVHistory_FullMethodName          = "/budget.v1.InvestmentNAVService/GetInvestmentNAVHistory"
 	InvestmentNAVService_RequestInvestmentNAVRefresh_FullMethodName      = "/budget.v1.InvestmentNAVService/RequestInvestmentNAVRefresh"
+	InvestmentNAVService_GetInvestmentExchangeRates_FullMethodName       = "/budget.v1.InvestmentNAVService/GetInvestmentExchangeRates"
 )
 
 // InvestmentNAVServiceClient is the client API for InvestmentNAVService service.
@@ -71,6 +72,7 @@ type InvestmentNAVServiceClient interface {
 	ListInvestmentNAVSeries(ctx context.Context, in *ListInvestmentNAVSeriesRequest, opts ...grpc.CallOption) (*ListInvestmentNAVSeriesResponse, error)
 	GetInvestmentNAVHistory(ctx context.Context, in *GetInvestmentNAVHistoryRequest, opts ...grpc.CallOption) (*GetInvestmentNAVHistoryResponse, error)
 	RequestInvestmentNAVRefresh(ctx context.Context, in *RequestInvestmentNAVRefreshRequest, opts ...grpc.CallOption) (*RequestInvestmentNAVRefreshResponse, error)
+	GetInvestmentExchangeRates(ctx context.Context, in *GetInvestmentExchangeRatesRequest, opts ...grpc.CallOption) (*GetInvestmentExchangeRatesResponse, error)
 }
 
 type investmentNAVServiceClient struct {
@@ -311,6 +313,16 @@ func (c *investmentNAVServiceClient) RequestInvestmentNAVRefresh(ctx context.Con
 	return out, nil
 }
 
+func (c *investmentNAVServiceClient) GetInvestmentExchangeRates(ctx context.Context, in *GetInvestmentExchangeRatesRequest, opts ...grpc.CallOption) (*GetInvestmentExchangeRatesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetInvestmentExchangeRatesResponse)
+	err := c.cc.Invoke(ctx, InvestmentNAVService_GetInvestmentExchangeRates_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // InvestmentNAVServiceServer is the server API for InvestmentNAVService service.
 // All implementations must embed UnimplementedInvestmentNAVServiceServer
 // for forward compatibility.
@@ -338,6 +350,7 @@ type InvestmentNAVServiceServer interface {
 	ListInvestmentNAVSeries(context.Context, *ListInvestmentNAVSeriesRequest) (*ListInvestmentNAVSeriesResponse, error)
 	GetInvestmentNAVHistory(context.Context, *GetInvestmentNAVHistoryRequest) (*GetInvestmentNAVHistoryResponse, error)
 	RequestInvestmentNAVRefresh(context.Context, *RequestInvestmentNAVRefreshRequest) (*RequestInvestmentNAVRefreshResponse, error)
+	GetInvestmentExchangeRates(context.Context, *GetInvestmentExchangeRatesRequest) (*GetInvestmentExchangeRatesResponse, error)
 	mustEmbedUnimplementedInvestmentNAVServiceServer()
 }
 
@@ -416,6 +429,9 @@ func (UnimplementedInvestmentNAVServiceServer) GetInvestmentNAVHistory(context.C
 }
 func (UnimplementedInvestmentNAVServiceServer) RequestInvestmentNAVRefresh(context.Context, *RequestInvestmentNAVRefreshRequest) (*RequestInvestmentNAVRefreshResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RequestInvestmentNAVRefresh not implemented")
+}
+func (UnimplementedInvestmentNAVServiceServer) GetInvestmentExchangeRates(context.Context, *GetInvestmentExchangeRatesRequest) (*GetInvestmentExchangeRatesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetInvestmentExchangeRates not implemented")
 }
 func (UnimplementedInvestmentNAVServiceServer) mustEmbedUnimplementedInvestmentNAVServiceServer() {}
 func (UnimplementedInvestmentNAVServiceServer) testEmbeddedByValue()                              {}
@@ -852,6 +868,24 @@ func _InvestmentNAVService_RequestInvestmentNAVRefresh_Handler(srv interface{}, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _InvestmentNAVService_GetInvestmentExchangeRates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetInvestmentExchangeRatesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InvestmentNAVServiceServer).GetInvestmentExchangeRates(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InvestmentNAVService_GetInvestmentExchangeRates_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InvestmentNAVServiceServer).GetInvestmentExchangeRates(ctx, req.(*GetInvestmentExchangeRatesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // InvestmentNAVService_ServiceDesc is the grpc.ServiceDesc for InvestmentNAVService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -950,6 +984,10 @@ var InvestmentNAVService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RequestInvestmentNAVRefresh",
 			Handler:    _InvestmentNAVService_RequestInvestmentNAVRefresh_Handler,
+		},
+		{
+			MethodName: "GetInvestmentExchangeRates",
+			Handler:    _InvestmentNAVService_GetInvestmentExchangeRates_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

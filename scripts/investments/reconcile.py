@@ -64,8 +64,20 @@ def economics(row, op):
         return False
     if event in {'BUY', 'SELL'}:
         commission = op.get('commission')
-        # A missing fee is unknown, not a proven zero fee.
-        if commission is None or abs(money(commission)) != Decimal(dec['FeeTax']):
+        if commission is None:
+            # Account identity can be established independently of fees. Do not
+            # manufacture a zero commission: financial validation stays pending.
+            with localcontext() as ctx:
+                ctx.prec = 1024
+                quantity = Decimal(dec['Quantity'])
+                gross = (Decimal(dec['Price']) + Decimal(dec.get('NKD') or '0')) * quantity
+                paid = abs(money(op.get('payment')))
+                gross_matches = gross == paid or (
+                    paid == paid.quantize(Decimal('.01'))
+                    and gross.quantize(Decimal('.01'), rounding=ROUND_HALF_UP) == paid)
+            return (gross_matches and quantity == Decimal(op.get('quantityDone', '0'))
+                    and trade_price_matches(row, op))
+        if abs(money(commission)) != Decimal(dec['FeeTax']):
             return False
         fee_currency = raw['FeeCurrency'] or raw['Currency']
         if commission.get('currency', '').upper() != fee_currency.upper():

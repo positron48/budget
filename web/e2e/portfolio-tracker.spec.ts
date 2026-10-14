@@ -2,6 +2,7 @@ import {test, expect} from "@playwright/test";
 import {create, fromBinary, toBinary} from "@bufbuild/protobuf";
 import {InvestmentService} from "../proto/budget/v1/investment_pb";
 import {InvestmentImportService} from "../proto/budget/v1/investment_import_pb";
+import {InvestmentNAVService} from "../proto/budget/v1/investment_nav_pb";
 import {TimestampSchema} from "@bufbuild/protobuf/wkt";
 import {TenantService} from "../proto/budget/v1/tenant_pb";
 
@@ -14,11 +15,13 @@ for (const locale of ["ru", "en"]) {
     await page.addInitScript(() => {localStorage.setItem("budget/access", "synthetic-session"); localStorage.setItem("budget/tenant", "tenant");});
     const key = "tinvest:11111111-1111-4111-8111-111111111111";
     const ledger = {id: "account", name: "Broker", version: 1n, portfolioTracking: true, startedAt: {seconds: 1704067200n}};
-    const position = {instrumentKey: key, currency: "RUB", quantity: "10", cleanCost: "1000", acquiredAccrued: "0", realizedClean: "0", realizedAccrued: "0"};
-    const operations: any[] = [{id: "buy", ledgerId: ledger.id, status: "posted", instrumentKey: key, currency: "RUB", kind: "buy", quantity: "10", amount: "1000", occurredAt: {seconds: 1704153600n}}, {id: "payout", ledgerId: ledger.id, status: "posted", instrumentKey: key, currency: "RUB", kind: "dividend", quantity: "0", amount: "100", tax: "20", taxReviewRequired: true, occurredAt: {seconds: 1704240000n}}];
+    const position = {instrumentKey: key, currency: "RUB", quantity: "10", cleanCost: "1000", acquiredAccrued: "0", realizedClean: "0", realizedAccrued: "0", lots: [{originId: "buy", quantity: "10", cleanCost: "1000", acquiredAccrued: "0", acquiredAt: {seconds: 1704153600n}}]};
+    const operations: any[] = [{id: "buy", ledgerId: ledger.id, status: "posted", instrumentKey: key, currency: "RUB", kind: "buy", quantity: "10", amount: "1000", fee: "0", accrued: "0", occurredAt: {seconds: 1704153600n}}, {id: "payout", ledgerId: ledger.id, status: "posted", instrumentKey: key, currency: "RUB", kind: "dividend", quantity: "0", amount: "100", tax: "20", taxReviewRequired: true, occurredAt: {seconds: 1704240000n}}];
+    const foreign = {instrumentKey: "tinvest:foreign", currency: "USD", quantity: "2", cleanCost: "200", acquiredAccrued: "0", lots:[{originId:"foreign-buy", quantity:"2", cleanCost:"200", acquiredAccrued:"0", acquiredAt:{seconds:1704153600n}}]};
+    operations.push({id:"foreign-buy", ledgerId:ledger.id, status:"posted", instrumentKey:foreign.instrumentKey, currency:"USD", kind:"buy", quantity:"2", amount:"200", fee:"0", accrued:"0", occurredAt:{seconds:1704153600n}});
     await page.route("**/budget.v1.*/*", async route => {
       const path = new URL(route.request().url()).pathname;
-      const service = [InvestmentService, InvestmentImportService, TenantService].find(s => path.includes(s.typeName + "/"));
+      const service = [InvestmentService, InvestmentImportService, InvestmentNAVService, TenantService].find(s => path.includes(s.typeName + "/"));
       const method = service?.methods.find(m => path.endsWith("/" + m.name));
       const bytes = route.request().postDataBuffer()!;
       const input = method ? fromBinary(method.input, bytes.subarray(5, 5 + bytes.readUInt32BE(1))) as any : {};
@@ -26,14 +29,19 @@ for (const locale of ["ru", "en"]) {
       let data: any = {};
       if (method?.name === "ListMyTenants") data = {memberships: [{tenant: {id: "tenant", name: "Synthetic"}, role: 1}]};
       if (method?.name === "ListInvestmentLedgers") data = {ledgers: [ledger]};
-      if (method?.name === "GetInvestmentSnapshot") data = {snapshot: {ledger, positions: [position], cash: [{currency: "RUB", economic: "999999"}]}};
+      if (method?.name === "GetInvestmentSnapshot") data = {snapshot: {ledger, positions: [position, foreign], cash: [{currency: "RUB", economic: "999999"}]}};
       if (method?.name === "ListInvestmentOperations") data = {operations};
+      if (method?.name === "ListInvestmentValuationProfiles") data = {fxProfiles:[{key:"market", mode:"market", version:1n},{key:"cbr", mode:"cbr", version:1n}]};
+      if (method?.name === "GetInvestmentExchangeRates") {
+        const current = input.fxPolicyKey === "market" ? 100 : 90, historical = input.fxPolicyKey === "market" ? 80 : 70;
+        data = {currency:input.currency, fxPolicyKey:input.fxPolicyKey, policyVersion:1n, mode:input.fxPolicyKey, readAt:{seconds:BigInt(Math.floor(Date.now()/1000))}, rates:["", ...input.dates].flatMap((date:string) => ["RUB","USD"].map(fromCurrency => ({date,fromCurrency,rate:{numerator:String(fromCurrency === input.currency ? 1 : fromCurrency === "USD" ? date ? historical : current : 1), denominator:String(fromCurrency === input.currency || fromCurrency === "USD" ? 1 : date ? historical : current)}})))};
+      }
       if (method?.name === "ListBrokerSnapshots") data = {snapshots: [{id: "snapshot", accountId: "broker", createdAt: {seconds: BigInt(Math.floor(Date.now() / 1000))}}]};
-      if (method?.name === "GetBrokerSnapshot") data = {originalJson: new TextEncoder().encode(JSON.stringify({fetched_at: new Date().toISOString(), operations: [{ticker: "ABC", instrumentUid: key.slice(8), name: "Example security"}], portfolio: {positions: [{instrumentUid: key.slice(8), ticker: "ABC", instrumentType: "share", currentPrice: {currency: "rub", units: "120", nano: 0}}]}}))};
+      if (method?.name === "GetBrokerSnapshot") data = {originalJson: new TextEncoder().encode(JSON.stringify({fetched_at: new Date().toISOString(), operations: [{ticker: "ABC", instrumentUid: key.slice(8), name: "Example security"}], portfolio: {positions: [{instrumentUid:"foreign", ticker:"US", instrumentType:"share", currentPrice:{currency:"usd",units:"110",nano:0}}, {instrumentUid: key.slice(8), ticker: "ABC", instrumentType: "share", currentPrice: {currency: "rub", units: "120", nano: 0}}]}}))};
       if (method?.name === "PreviewInvestmentOperation") data = {valid: true, previewHash: "reviewed"};
       if (method?.name === "SaveInvestmentOperation") {
         expect(input.previewHash).toBe("reviewed"); expect(input.operation.kind).toBe("buy"); expect(input.operation.amount).toBe("100"); expect(input.operation.tax).toBe("0");
-        ledger.version++; position.quantity = "11"; position.cleanCost = "1100";
+        ledger.version++; position.quantity = "11"; position.cleanCost = "1100"; position.lots.push({originId:"new-purchase",quantity:"1",cleanCost:"100",acquiredAccrued:"0",acquiredAt:{seconds:1704326400n}});
         operations.push({...input.operation, id: "new-purchase", status: "posted", occurredAt: create(TimestampSchema, {seconds: 1704326400n})});
         data = {operation: operations.at(-1)};
       }
@@ -45,7 +53,16 @@ for (const locale of ["ru", "en"]) {
     await page.goto("/investments");
     await expect(page.getByRole("heading", {name: ru ? "Мой портфель" : "My portfolio", exact: true})).toBeVisible();
     const value = page.locator("section").filter({has: page.getByRole("heading", {name: ru ? "Стоимость портфеля" : "Portfolio value", exact: true})});
-    await expect(value).toContainText(/1[\s,.]?200/);
+    await expect(value).toContainText(/23[\s,.]?200/);
+    await expect(page.locator("section").filter({has:page.getByRole("heading",{name:ru?"Вложено в бумаги":"Cost of holdings",exact:true})})).toContainText(/17[\s,.]?000/);
+    await page.getByRole("combobox",{name:ru?"Источник валютного курса":"Exchange rate source",exact:true}).selectOption("cbr");
+    await expect(value).toContainText(/21[\s,.]?000/);
+    await page.getByRole("combobox",{name:ru?"Источник валютного курса":"Exchange rate source",exact:true}).selectOption("market");
+    await page.getByRole("combobox",{name:ru?"Валюта сумм":"Amount currency",exact:true}).selectOption("USD");
+    await expect(value).toContainText(/232/);
+    await expect(page.getByRole("table")).toContainText("ABC");
+    await page.getByRole("combobox",{name:ru?"Валюта сумм":"Amount currency",exact:true}).selectOption("RUB");
+    await expect(value).toContainText(/23[\s,.]?200/);
     await expect(page.getByRole("table")).toContainText("ABC");
     await expect(page.locator("main")).not.toContainText("999999");
     await expect(page.getByRole("button", {name: ru ? "Дивиденды и купоны" : "Dividends and coupons", exact: true})).toBeVisible();
@@ -76,7 +93,7 @@ for (const locale of ["ru", "en"]) {
     await page.addInitScript(() => {localStorage.setItem("budget/access", "synthetic-session"); localStorage.setItem("budget/tenant", "tenant");});
     const source = {id: "source", filename: "operations.csv", sourceSha256: "a".repeat(64), rowCount: 2, version: 1n, accounts: [{id: "source-account", name: "Broker", rowCount: 2}]};
     await page.route("**/budget.v1.*/*", async route => {
-      const path = new URL(route.request().url()).pathname, service = [InvestmentService, InvestmentImportService, TenantService].find(s => path.includes(s.typeName + "/")), method = service?.methods.find(m => path.endsWith("/" + m.name));
+      const path = new URL(route.request().url()).pathname, service = [InvestmentService, InvestmentImportService, InvestmentNAVService, TenantService].find(s => path.includes(s.typeName + "/")), method = service?.methods.find(m => path.endsWith("/" + m.name));
       const bytes = route.request().postDataBuffer()!, input = method ? fromBinary(method.input, bytes.subarray(5, 5 + bytes.readUInt32BE(1))) as any : {};
       let data: any = {}, code = 0, message = "";
       if (method?.name === "ListMyTenants") data = {memberships: [{tenant: {id: "tenant", name: "Synthetic"}, role: 1}]};

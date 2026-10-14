@@ -10,6 +10,7 @@ import (
 // Explicit classification: newly added investment RPCs are blocked until
 // reviewed. PreviewImportDraft persists its review and is therefore a write.
 var investmentReadMethods = map[string]bool{
+	"/budget.v1.InvestmentNAVService/GetInvestmentExchangeRates":           true,
 	"/budget.v1.InvestmentService/StartInvestmentExport":                   true, // persists only an expiring read artifact
 	"/budget.v1.InvestmentService/GetInvestmentExport":                     true,
 	"/budget.v1.InvestmentService/DownloadInvestmentExport":                true,

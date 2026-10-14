@@ -281,11 +281,11 @@ func MapSnowballFinancial(input io.Reader, mapping FinancialMapping) (FinancialM
 			factor, _ := NormalizeSourceDecimal(rule.AmountFactor)
 			op.Amount = exactProduct(op.Amount, factor)
 			switch rule.Kind {
-			case "buy", "sell":
+			case "buy", "sell", "redemption":
 				if rule.AmountBasis == "fee_tax" {
 					issue("trade_principal_basis_required")
 				}
-				if rule.Event != "BUY" && rule.Event != "SELL" || rule.Kind != strings.ToLower(rule.Event) {
+				if rule.Kind == "redemption" && rule.Event != "REPAYMENT" || rule.Kind != "redemption" && (rule.Event != "BUY" && rule.Event != "SELL" || rule.Kind != strings.ToLower(rule.Event)) {
 					issue("event_kind_mismatch")
 				}
 				q, e := NormalizeSourceDecimal(rule.QuantityFactor)

@@ -39,3 +39,39 @@ func TestPortfolioHistoryDoesNotRequireAnAccountOpeningDate(t *testing.T) {
 		t.Fatal(result, err)
 	}
 }
+
+func TestPortfolioSplitBeforeFirstPurchaseIsNotAnOpeningPosition(t *testing.T) {
+	ledger := testLedger()
+	ledger.PortfolioTracking = true
+	split := op("calendar-split", "split", "0", 1)
+	split.InstrumentKey, split.Currency, split.SplitNew, split.SplitOld = "STOCK", "", "4", "1"
+	buy := op("later-buy", "buy", "100", 2)
+	buy.InstrumentKey, buy.Quantity, buy.Currency = "STOCK", "2", "USD"
+	later := op("held-split", "split", "0", 3)
+	later.InstrumentKey, later.Currency, later.SplitNew, later.SplitOld = "STOCK", "", "3", "1"
+	result, err := Replay(ledger, []d.InvestmentOperation{split, buy, later}, day.AddDate(0, 0, 1))
+	if err != nil || len(result.Snapshot.Positions) != 1 || result.Snapshot.Positions[0].Quantity != "6" || result.Snapshot.Positions[0].CleanCost != "100" {
+		t.Fatal(result, err)
+	}
+	ledger.PortfolioTracking = false
+	if _, err = Replay(ledger, []d.InvestmentOperation{split, buy, later}, day.AddDate(0, 0, 1)); err == nil {
+		t.Fatal("cash-account corporate-event contract changed")
+	}
+}
+
+func TestPortfolioFullRedemptionNeedsUnitsAndProceedsButNotFaceValue(t *testing.T) {
+	ledger := testLedger()
+	ledger.PortfolioTracking = true
+	buy := op("bond-buy", "buy", "190", 1)
+	buy.InstrumentKey, buy.Quantity = "BOND", "2"
+	redeem := op("bond-redemption", "redemption", "200", 2)
+	redeem.InstrumentKey, redeem.Quantity = "BOND", "2"
+	result, err := Replay(ledger, []d.InvestmentOperation{buy, redeem}, day.AddDate(0, 0, 1))
+	if err != nil || result.Snapshot.Positions[0].Quantity != "0" || result.Snapshot.Positions[0].RealizedClean != "10" {
+		t.Fatal(result, err)
+	}
+	redeem.Quantity = "1"
+	if _, err = Replay(ledger, []d.InvestmentOperation{buy, redeem}, day.AddDate(0, 0, 1)); err == nil {
+		t.Fatal("partial quantity masqueraded as full redemption")
+	}
+}

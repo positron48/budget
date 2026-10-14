@@ -360,11 +360,17 @@ func replay(ledger d.InvestmentLedger, input []d.InvestmentOperation, asOf time.
 				p = &position{cleanUnknown: map[string]bool{}, accruedUnknown: map[string]bool{}, lotDates: map[string]time.Time{}, currency: o.Currency, realized: new(big.Rat), realizedAccrued: new(big.Rat)}
 				books[o.InstrumentKey] = p
 			}
+			if ledger.PortfolioTracking && p.currency == "" && o.Kind != "split" {
+				p.currency = o.Currency
+			}
 			if o.Kind != "split" && p.currency != o.Currency {
 				return result, inconsistent("instrument cost currency changed; explicit conversion required")
 			}
 			if o.Kind == "amortization" || o.Kind == "redemption" {
-				if p.nominal != "" && p.nominal != o.NominalBefore {
+				if !ledger.PortfolioTracking && o.NominalBefore == "0" {
+					return result, inconsistent("prior nominal is required for principal events")
+				}
+				if o.NominalBefore != "0" && p.nominal != "" && p.nominal != o.NominalBefore {
 					return result, inconsistent("prior nominal does not match preceding corporate event")
 				}
 				if o.Kind == "redemption" {
@@ -495,6 +501,9 @@ func replay(ledger d.InvestmentLedger, input []d.InvestmentOperation, asOf time.
 				}
 				before, _ := p.clean.Totals()
 				if before.Sign() == 0 {
+					if ledger.PortfolioTracking {
+						continue
+					}
 					return result, inconsistent("split requires an existing position")
 				}
 				if err := p.clean.Split(o.SplitNew, o.SplitOld); err != nil {

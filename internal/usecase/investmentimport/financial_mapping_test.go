@@ -300,3 +300,15 @@ func TestTrackerImportRoundingDoesNotDiscardOversizedFees(t *testing.T) {
 		t.Fatal(report, err)
 	}
 }
+
+func TestSnowballBondAccruedIsPerUnitAndRepaymentClosesUnits(t *testing.T) {
+	csv := financialHeader + "BUY,2024-01-01 12:00:00,TEST,95,3,RUB,1,X,2,,False,\nREPAYMENT,2024-02-01 12:00:00,TEST,100,3,RUB,0,X,,,False,\n"
+	buy := tradeRule()
+	buy.QuantityFactor, buy.AccruedBasis = "1", "per_security_unit"
+	redeem := buy
+	redeem.Event, redeem.Kind = "REPAYMENT", "redemption"
+	report, err := MapSnowballFinancial(strings.NewReader(csv), financialConfig(t, csv, buy, redeem))
+	if err != nil || report.Ready != 2 || report.Rows[0].Operation.Accrued != "6" || report.Rows[1].Operation.Quantity != "3" || report.Rows[1].Operation.Amount != "300" {
+		t.Fatal(report, err)
+	}
+}

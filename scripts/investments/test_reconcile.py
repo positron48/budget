@@ -49,15 +49,33 @@ class ReconciliationTest(unittest.TestCase):
         result = reconcile(source([row(time='2026-01-01 13:00:01')]), [snapshot([op()])])
         self.assertEqual(result['rows'][0]['status'], 'same_day_review')
 
-    def test_cancelled_and_missing_commission_not_matched(self):
-        for kind in ('canceled', 'no_fee'):
-            operation = op()
-            if kind == 'canceled':
-                operation['state'] = 'OPERATION_STATE_CANCELED'
-            else:
-                del operation['commission']
-            result = reconcile(source([row()]), [snapshot([operation])])
-            self.assertEqual(result['rows'][0]['status'], 'unmatched')
+    def test_cancelled_trade_not_matched(self):
+        operation = op()
+        operation['state'] = 'OPERATION_STATE_CANCELED'
+        result = reconcile(source([row()]), [snapshot([operation])])
+        self.assertEqual(result['rows'][0]['status'], 'unmatched')
+
+    def test_missing_commission_does_not_hide_proven_account_identity(self):
+        operation = op()
+        del operation['commission']
+        result = reconcile(source([row()]), [snapshot([operation])])
+        self.assertEqual(result['rows'][0]['account_id'], 'tinvest:a')
+        self.assertEqual(result['rows'][0]['financial_validation'], 'pending')
+        self.assertEqual(result['broker_operations']['tinvest:a:o1']['raw'], operation)
+        self.assertNotIn('commission', operation)
+
+    def test_missing_commission_requires_independent_gross_payment_match(self):
+        operation = op()
+        del operation['commission']
+        operation['payment']['nano'] = -400000000
+        result = reconcile(source([row()]), [snapshot([operation])])
+        self.assertEqual(result['rows'][0]['status'], 'unmatched')
+
+    def test_missing_commission_still_cannot_choose_between_accounts(self):
+        first, second = op(), op(account='b')
+        del first['commission'], second['commission']
+        result = reconcile(source([row()]), [snapshot([first]), snapshot([second], 'b')])
+        self.assertEqual(result['rows'][0]['status'], 'ambiguous')
 
     def test_child_fee_is_linked_not_new_expense(self):
         fee = copy.deepcopy(op('fee'))

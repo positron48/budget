@@ -65,7 +65,9 @@ service InvestmentNAVService {
  rpc ListInvestmentNAVSeries(ListInvestmentNAVSeriesRequest) returns (ListInvestmentNAVSeriesResponse);
  rpc GetInvestmentNAVHistory(GetInvestmentNAVHistoryRequest) returns (GetInvestmentNAVHistoryResponse);
  rpc RequestInvestmentNAVRefresh(RequestInvestmentNAVRefreshRequest) returns (RequestInvestmentNAVRefreshResponse);
+ rpc GetInvestmentExchangeRates(GetInvestmentExchangeRatesRequest) returns (GetInvestmentExchangeRatesResponse);
 }
+
 
 message InvestmentPortfolio {
  bool auto_extend = 13;
@@ -502,4 +504,18 @@ message PrepareInvestmentNAVVariantResponse {
  InvestmentNAVSeries series=1;
  bool registered=2; // enabled target watch covers the entire source range
  int32 queued_days=3; // newly created jobs, not completed calculations
+}
+
+// Reporting translation only; these rates never create broker cash movements.
+message GetInvestmentExchangeRatesRequest {
+ string fx_policy_key=1; string currency=2;
+ repeated string from_currencies=3;
+ repeated string dates=4; // Moscow dates; current rates are also returned with date=""
+}
+message InvestmentExchangeRate {
+ string date=1; string from_currency=2; InvestmentNAVAmount rate=3; // absent when unavailable or expired
+}
+message GetInvestmentExchangeRatesResponse {
+ string currency=1; string fx_policy_key=2; int64 policy_version=3; string mode=4;
+ google.protobuf.Timestamp read_at=5; repeated InvestmentExchangeRate rates=6;
 }

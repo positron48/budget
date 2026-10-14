@@ -89,6 +89,7 @@ export function trackerError(error: unknown, ru: boolean): string {
   if (/pending_write_changed/.test(message)) return ru ? "Результат предыдущего сохранения ещё не подтверждён. Обновите портфель перед изменением операции." : "The previous save is not confirmed. Refresh the portfolio before changing the operation.";
   if (/positive_trade_values|invalid decimal/.test(message)) return ru ? "Укажите положительные количество и цену." : "Enter a positive quantity and price.";
   if (/trade_precision|precision exceeded/.test(message)) return ru ? "Слишком много знаков после запятой. Проверьте сумму." : "Too many decimal places. Check the amount.";
+  if (/instrument cost currency changed/.test(message)) return ru ? "У бумаги операции в разных валютах. Нужен пересчёт стоимости по курсам на даты сделок." : "This security has trades in different currencies. Translate acquisition costs using historical exchange rates.";
   if (/changed|conflict|aborted/i.test(message)) return ru ? "Данные изменились. Обновите страницу и повторите." : "Data changed. Refresh and retry.";
   return ru ? "Не удалось сохранить изменения. Попробуйте ещё раз; сохранённая история останется на месте." : "Could not save changes. Retry; existing history is preserved.";
 }

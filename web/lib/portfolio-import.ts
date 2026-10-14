@@ -1,7 +1,7 @@
 import {Code, ConnectError, type Client} from "@connectrpc/connect";
 import {InvestmentService, type InvestmentLedger, type InvestmentImportBatch, type InvestmentOperation} from "@/proto/budget/v1/investment_pb";
 import {InvestmentImportService, type InvestmentImport, type InvestmentImportRow} from "@/proto/budget/v1/investment_import_pb";
-import {add, trackerError, type TrackerQuote} from "./portfolio-tracker";
+import {trackerError, type TrackerQuote} from "./portfolio-tracker";
 import type {Fraction} from "./investment-positions";
 
 type ImportAPI = Client<typeof InvestmentImportService>;
@@ -36,10 +36,8 @@ export function brokerCatalog(snapshots: BrokerSnapshot[], now = Date.now()): Br
       if (!p.instrumentUid || !["share", "bond", "etf"].includes(p.instrumentType || "")) continue;
       const currency = p.currentPrice?.currency?.toUpperCase(), price = money(p.currentPrice);
       if (!currency || !price || BigInt(price.numerator) <= 0n || !Number.isFinite(at) || at > now || now - at > 7 * 86400000) continue;
-      if (p.instrumentType === "bond" && p.currentNkd?.currency?.toUpperCase() !== currency) continue;
-      const dirty = p.instrumentType === "bond" ? add(price, money(p.currentNkd)) : price;
       const key = `tinvest:${p.instrumentUid}\0${currency}`;
-      if ((quotes.get(key)?.at || 0) < at) quotes.set(key, {price: dirty, at, ticker: p.ticker, name: names.get(`tinvest:${p.instrumentUid}`)?.name});
+      if ((quotes.get(key)?.at || 0) < at) quotes.set(key, {price, at, ticker: p.ticker, name: names.get(`tinvest:${p.instrumentUid}`)?.name});
     }
   }
   const symbols = new Map<string, string>();
@@ -91,7 +89,7 @@ export async function prepareSimpleImport(api: ImportAPI, source: InvestmentImpo
   const rows = await importRows(api, source), ledgerByRecord: Record<string, string> = {}, rules = new Map<string, object>();
   let alreadyImported = 0, ignored = 0;
   const problems: ImportProblem[] = [];
-  const supported = new Set(["BUY", "SELL", "DIVIDEND", "SPLIT", "CASH_GAIN"]);
+  const supported = new Set(["BUY", "SELL", "DIVIDEND", "SPLIT", "CASH_GAIN", "REPAYMENT"]);
   // A combined export repeats one corporate split for each original portfolio.
   // Once accounts are combined, that event changes the whole holding only once.
   const splitRecords = new Map<string, number>(), redundantSplits = new Set<number>();
@@ -118,10 +116,10 @@ export async function prepareSimpleImport(api: ImportAPI, source: InvestmentImpo
     const key = JSON.stringify([f.Event, f.Symbol, f.Exchange, f.Currency]);
     rules.set(key, {
       Event: f.Event, Symbol: f.Symbol, Exchange: f.Exchange, Currency: f.Currency, InstrumentKey: instrumentKey,
-      Kind: f.Event === "CASH_GAIN" ? "repo_income" : income ? catalog.names.get(instrumentKey)?.instrumentType === "bond" ? "coupon" : "dividend" : f.Event.toLowerCase(),
+      Kind: f.Event === "REPAYMENT" ? "redemption" : f.Event === "CASH_GAIN" ? "repo_income" : income ? catalog.names.get(instrumentKey)?.instrumentType === "bond" ? "coupon" : "dividend" : f.Event.toLowerCase(),
       AmountBasis: income ? "quantity" : "quantity_price", QuantityFactor: "1", AmountFactor: "1",
-      MoneyRounding: "12dp_half_away", AccruedBasis: "total", FeePolicy: "same_currency", IncomeBasis: "received",
-      Reason: "Snowball import: security units, per-security price, total accrued interest; payouts as supplied; monetary totals rounded half away from zero to 12 decimal places.",
+      MoneyRounding: "12dp_half_away", AccruedBasis: "per_security_unit", FeePolicy: "same_currency", IncomeBasis: "received",
+      Reason: "Snowball import: security units, per-security price and accrued interest; payouts as supplied; monetary totals rounded half away from zero to 12 decimal places.",
     });
   }
   const duplicateReview = Object.fromEntries(rows.filter(row => ledgerByRecord[row.record] && (preserveIdenticalRows || row.sourceFields.Event === "SPLIT")).map(row => [row.record, row.sourceFields.Event === "SPLIT" ? "Apply one identical corporate split per combined account; retain repeated source rows without applying the ratio again." : "Preserve each CSV row as supplied; identical values alone do not establish duplicate transactions. This is a source import policy, not independent execution verification."]));

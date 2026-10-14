@@ -1,7 +1,7 @@
 import {describe, expect, it, vi} from "vitest";
 import {create} from "@bufbuild/protobuf";
 import {InvestmentOperationSchema, InvestmentSnapshotSchema, InvestmentImportBatchSchema} from "@/proto/budget/v1/investment_pb";
-import {add, decimal, trackerPositions, tradeAmount} from "@/lib/portfolio-tracker";
+import {add, decimal, trackerPositions, tradeAmount, trackerError} from "@/lib/portfolio-tracker";
 import {positionDecimal} from "@/lib/investment-positions";
 import {brokerCatalog, prepareSimpleImport, commitSimpleImport, type SimpleImportPlan} from "@/lib/portfolio-import";
 import {InvestmentImportSchema, InvestmentImportRowSchema} from "@/proto/budget/v1/investment_import_pb";
@@ -43,9 +43,9 @@ describe("portfolio tracker", () => {
     expect(() => tradeAmount("0.0000000000000000000000000001", "0.0000000000000000000000000001")).toThrow("trade_precision");
     expect(positionDecimal(add(decimal("0.1"), decimal("0.2")))).toBe("0.3");
   });
-  it("uses per-security portfolio money including bond NKD, never bond point scaling", () => {
+  it("uses clean per-security portfolio money without adding NKD or bond point scaling", () => {
     const data = brokerCatalog([{fetched_at: "2026-10-13T00:00:00Z", portfolio: {positions: [{instrumentUid: "bond", instrumentType: "bond", ticker: "BOND", currentPrice: {currency: "rub", units: "980", nano: 500000000}, currentNkd: {currency: "rub", units: "12", nano: 250000000}}]}}], Date.parse("2026-10-13T01:00:00Z"));
-    expect(positionDecimal(data.quotes.get("tinvest:bond\0RUB")?.price)).toBe("992.75"); expect(data.symbols.get("BOND")).toBe("tinvest:bond");
+    expect(positionDecimal(data.quotes.get("tinvest:bond\0RUB")?.price)).toBe("980.5"); expect(data.symbols.get("BOND")).toBe("tinvest:bond");
   });
   it("rejects ambiguous tickers, stale snapshots and unknown bond NKD currency", () => {
     const data = brokerCatalog([{fetched_at: "2020-01-01T00:00:00Z", operations: [{ticker: "ABC", instrumentUid: "one"}, {ticker: "ABC", instrumentUid: "two"}], portfolio: {positions: [{ticker: "ABC", instrumentUid: "one", instrumentType: "share", currentPrice: {currency: "rub", units: "10"}}]}}], Date.parse("2026-10-13T00:00:00Z"));
@@ -114,4 +114,12 @@ it("applies a repeated corporate split once per combined account, including on r
     const result = await prepareSimpleImport({listInvestmentImportRows: async () => ({rows}), previewInvestmentFinancialMapping: preview} as never, create(InvestmentImportSchema, {id: "source", rowCount: 3}), ["account", "second"].map(id => create(InvestmentLedgerSchema, {id})), {"source-account": "account", other: "second"}, brokerCatalog([]), true, false);
     expect(result.ignored).toBe(1); expect(result.alreadyImported).toBe(posted ? 1 : 0); expect(result.problems).toEqual([]);
   }
+});
+
+
+it("explains a change in settlement currency without suggesting a stale-page retry", () => {
+  const error = new Error("investment history is inconsistent: instrument cost currency changed; explicit conversion required");
+  expect(trackerError(error, true)).toContain("разных валютах");
+  expect(trackerError(error, true)).not.toContain("Обновите страницу");
+  expect(trackerError(error, false)).toContain("historical exchange rates");
 });

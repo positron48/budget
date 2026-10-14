@@ -222,10 +222,10 @@ func ValidateOperation(o *d.InvestmentOperation) error {
 			return invalid("sell fee exceeds proceeds")
 		}
 	case "amortization", "redemption":
-		if o.InstrumentKey == "" || o.Amount == "0" || o.NominalBefore == "0" || !zero(o.Accrued, o.Fee, o.Tax, o.SplitNew, o.SplitOld) {
-			return invalid("principal event requires instrument, amount and prior nominal; coupon is separate")
+		if o.InstrumentKey == "" || o.Amount == "0" || !zero(o.Accrued, o.Fee, o.Tax, o.SplitNew, o.SplitOld) {
+			return invalid("principal event requires instrument and amount; coupon is separate")
 		}
-		if o.Kind == "amortization" && (o.Quantity != "0" || o.NominalAfter == "0" || rational(o.NominalAfter).Cmp(rational(o.NominalBefore)) >= 0) {
+		if o.Kind == "amortization" && (o.NominalBefore == "0" || o.Quantity != "0" || o.NominalAfter == "0" || rational(o.NominalAfter).Cmp(rational(o.NominalBefore)) >= 0) {
 			return invalid("amortization requires a lower positive nominal and no quantity change")
 		}
 		if o.Kind == "redemption" && (o.Quantity == "0" || o.NominalAfter != "0") {
