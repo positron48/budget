@@ -598,11 +598,11 @@
     "deletePropertyValuationConfirm": "Delete this valuation? The current value will be determined by the remaining valuations.",
     "includeProperty": "Include property in the total",
     "totalWithoutProperty": "Total excluding property",
-    "ledgerValuation": "Investment journal valuation. Uses CBR rates with manual overrides, matching savings.",
+    "ledgerValuation": "Investment account valuation. Uses CBR rates with manual overrides, matching savings.",
     "ledgerIncomplete": "Investment market valuation is incomplete. The known portion is shown; the previous manual valuation is not substituted.",
     "ledgerJournal": "Open investment journal",
     "ledgerValuedAt": "Calculated as of {date}",
-    "ledgerValueLabel": "Journal valuation",
+    "ledgerValueLabel": "Investment account valuation",
     "investmentCashLink": "Open joint cash document in journal"
   },
   "brokerSource": {

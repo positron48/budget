@@ -71,7 +71,7 @@ type AssetOverview struct {
 	AsOf              time.Time
 }
 
-// Activation is a one-way, explicitly reconciled change of the valuation source.
+// Activation is a one-way, explicitly reviewed change of the valuation source.
 type InvestmentAssetActivation struct {
 	AccountID, LedgerID, ConventionKey, Evidence, PreviewHash, RequestKey string
 	ValuationFrom                                                         time.Time

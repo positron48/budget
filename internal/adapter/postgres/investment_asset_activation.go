@@ -28,6 +28,10 @@ func readAssetInvestmentFX(ctx context.Context, tx pgx.Tx, pool *Pool, snapshots
 			codes[p.Currency] = true
 		}
 	}
+	return readAssetCurrencyFX(ctx, tx, pool, codes, target, at)
+}
+
+func readAssetCurrencyFX(ctx context.Context, tx pgx.Tx, pool *Pool, codes map[string]bool, target string, at time.Time) ([]calc.FXFixing, error) {
 	list := []string{}
 	for c := range codes {
 		if c != target {
@@ -111,7 +115,7 @@ func (r *AssetRepo) resolveInvestmentAccount(ctx context.Context, a d.AssetAccou
 		return a, d.ErrInvestmentForbidden
 	}
 	at = at.UTC().Truncate(time.Microsecond)
-	result, e := readInvestmentValuationPolicy(ctx, tx, nav.Request{TenantID: a.TenantID, UserID: user, LedgerIDs: []string{a.InvestmentLedgerID}, At: at, Currency: a.FixedCurrencyCode, FXPolicyKey: assetInvestmentFXPolicy, ConventionKey: a.InvestmentConventionKey}, nil, r.pool)
+	result, e := readAssetLedgerValue(ctx, tx, r.pool, a.TenantID, user, a.InvestmentLedgerID, a.FixedCurrencyCode, a.InvestmentConventionKey, at)
 	if e != nil {
 		return a, e
 	}
@@ -205,7 +209,7 @@ func previewAssetActivationTx(ctx context.Context, tx pgx.Tx, pool *Pool, t, u s
 		return out, d.ErrInvestmentLimit
 	}
 	out.InventoryCount = int64(len(inventory))
-	result, e := readInvestmentValuationPolicy(ctx, tx, nav.Request{TenantID: t, UserID: u, LedgerIDs: []string{ledger.ID}, At: m.ValuationFrom, Currency: account.FixedCurrencyCode, FXPolicyKey: assetInvestmentFXPolicy, ConventionKey: m.ConventionKey}, nil, pool)
+	result, e := readAssetLedgerValue(ctx, tx, pool, t, u, ledger.ID, account.FixedCurrencyCode, m.ConventionKey, m.ValuationFrom)
 	if e != nil {
 		return out, e
 	}
@@ -293,7 +297,15 @@ func (r *InvestmentRepo) ActivateAsset(ctx context.Context, t, u string, m d.Inv
 	if out.PreviewHash != m.PreviewHash || out.Account.Version != m.ExpectedAccountVersion || out.Ledger.Version != m.ExpectedLedgerVersion {
 		return empty, d.ErrInvestmentConflict
 	}
-	if !out.Complete || !out.Matches {
+	if out.Ledger.PortfolioTracking {
+		// A tracker replaces a manual estimate; equality is not a funding
+		// reconciliation. Its explicit preview may show a partial known value.
+		for _, issue := range out.Issues {
+			if issue == "manual_facts_after_cutover" {
+				return empty, d.ErrInvestmentPrecondition
+			}
+		}
+	} else if !out.Complete || !out.Matches {
 		return empty, d.ErrInvestmentPrecondition
 	}
 	_, e = tx.Exec(ctx, `UPDATE asset_accounts SET investment_mode='ledger',investment_ledger_id=$3,ledger_started_at=$4,ledger_valuation_from=$5,investment_convention_key=$6,version=version+1 WHERE tenant_id=$1 AND id=$2`, t, m.AccountID, m.LedgerID, out.Ledger.StartedAt, m.ValuationFrom, m.ConventionKey)

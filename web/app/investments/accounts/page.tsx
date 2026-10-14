@@ -7,6 +7,7 @@ import {useClients} from "@/app/providers";
 import {useAssetTenant} from "@/lib/assets";
 import {useInvestmentReadOnly} from "@/components/InvestmentMode";
 import Modal from "@/components/Modal";
+import PortfolioAssetLink from "@/components/PortfolioAssetLink";
 import {trackerError} from "@/lib/portfolio-tracker";
 import type {TenantMembership} from "@/proto/budget/v1/tenant_pb";
 import type {InvestmentLedger} from "@/proto/budget/v1/investment_pb";
@@ -27,7 +28,7 @@ function Accounts({tenantId}:{tenantId:string}){
  }catch(e){setError(trackerError(e,ru));}finally{setBusy(false);}};
  return <div className="mx-auto max-w-3xl space-y-6 px-4 py-8"><header className="flex items-center justify-between gap-4"><h1 className="text-2xl font-semibold">{tr("Мои счета","My accounts")}</h1><Link className={button} href="/investments">{tr("К портфелю","Back to portfolio")}</Link></header>
  {(list.error||roles.error)&&<p role="alert">{trackerError(list.error||roles.error,ru)}</p>}
- {list.data?.map(l=><article key={l.id} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 p-5 dark:border-slate-800"><div><h2 className="font-semibold">{l.name}</h2><p className="mt-1 text-sm text-slate-500">{l.broker}{l.broker?" · ":""}{l.accountType==="iis"?tr("ИИС","IIS"):tr("Брокерский счёт","Brokerage account")}</p></div>{canWrite&&<button className={button} onClick={()=>{setEditing(l);setDraft({name:l.name,broker:l.broker,type:l.accountType||"regular"});setError("");}}>{tr("Изменить","Edit")}</button>}</article>)}
+ {list.data?.map(l=><article key={l.id} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 p-5 dark:border-slate-800"><div><h2 className="font-semibold">{l.name}</h2><p className="mt-1 text-sm text-slate-500">{l.broker}{l.broker?" · ":""}{l.accountType==="iis"?tr("ИИС","IIS"):tr("Брокерский счёт","Brokerage account")}</p></div>{canWrite&&<div className="flex flex-wrap gap-2">{l.portfolioTracking&&<PortfolioAssetLink ledger={l} tenantId={tenantId}/>}<button className={button} onClick={()=>{setEditing(l);setDraft({name:l.name,broker:l.broker,type:l.accountType||"regular"});setError("");}}>{tr("Изменить","Edit")}</button></div>}</article>)}
  {editing&&<Modal open title={tr("Изменить счёт","Edit account")} onClose={()=>{if(!busy)setEditing(null);}}><form className="space-y-4" onSubmit={e=>{e.preventDefault();void save();}}><fieldset className="space-y-4" disabled={busy}>
  <label className="block text-sm">{tr("Название","Name")}<input required className={input} value={draft.name} onChange={e=>setDraft({...draft,name:e.target.value})}/></label>
  <label className="block text-sm">{tr("Брокер","Broker")}<input className={input} value={draft.broker} onChange={e=>setDraft({...draft,broker:e.target.value})}/></label>
