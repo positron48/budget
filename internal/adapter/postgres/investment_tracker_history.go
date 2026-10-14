@@ -63,6 +63,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		fixings = append(fixings, p.Fixing())
 	}
 	inputs := map[string]investmentReplayInput{}
+	splits := map[string]map[string][]d.InvestmentOperation{}
 	count := 0
 	for _, id := range q.LedgerIDs {
 		l, e := scanLedger(tx.QueryRow(ctx, `SELECT `+ledgerColumns+` FROM investment_ledgers WHERE tenant_id=$1 AND id=$2`, tenant, id))
@@ -81,6 +82,12 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 			return out, d.ErrInvestmentLimit
 		}
 		inputs[id] = investmentReplayInput{Ledger: l, Operations: ops}
+		splits[id] = map[string][]d.InvestmentOperation{}
+		for _, op := range ops {
+			if op.Kind == "split" && op.Status == "posted" {
+				splits[id][op.InstrumentKey] = append(splits[id][op.InstrumentKey], op)
+			}
+		}
 	}
 	// Journal heads and immutable provider revision counters fence pagination.
 	// Intraday last-price refreshes must neither mix corrected daily candles nor
@@ -161,6 +168,8 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 	for i, at := range days {
 		row := nav.TrackerHistoryPoint{Date: first.AddDate(0, 0, i).Format(time.DateOnly), State: "ready"}
 		components := []calc.ExactComponent{}
+		required, priced := map[string]int{}, map[string]int{}
+		amounts := map[string]calc.ExactComponent{}
 		for _, s := range states[i] {
 			if at.Before(s.Ledger.StartedAt) {
 				row.Issues = append(row.Issues, calc.QualityIssue{ComponentID: s.Ledger.ID, Code: "ledger_history_missing"})
@@ -177,7 +186,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 				if quantity.Sign() == 0 {
 					continue
 				}
-				row.Positions++
+				required[p.InstrumentKey]++
 				quote, e := trackerHistoricalQuote(tenant, p.InstrumentKey, market[p.InstrumentKey], at, out.ReadAt)
 				if e != nil {
 					return out, e
@@ -189,17 +198,34 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 					}
 					continue
 				}
-				components = append(components, calc.ExactComponent{ID: id, Currency: quote.Currency, Amount: new(big.Rat).Mul(quantity, quote.CleanPrice)})
+				price, err := nav.RebaseHistoricalPrice(quote.CleanPrice, quote.At, at, p.InstrumentKey, splits[s.Ledger.ID][p.InstrumentKey])
+				if err != nil {
+					return out, err
+				}
+				amount := new(big.Rat).Mul(quantity, price)
+				if existing, ok := amounts[p.InstrumentKey]; ok {
+					if existing.Currency != quote.Currency {
+						return out, d.ErrInvestmentPrecondition
+					}
+					amount.Add(amount, existing.Amount)
+				}
+				amounts[p.InstrumentKey] = calc.ExactComponent{ID: p.InstrumentKey, Currency: quote.Currency, Amount: amount}
+				priced[p.InstrumentKey]++
 			}
 		}
+		row.Positions = len(required)
+		for _, amount := range amounts {
+			components = append(components, amount)
+		}
+		sort.Slice(components, func(i, j int) bool { return components[i].ID < components[j].ID })
 		value, e := calc.ValueExact(components, fixings, q.Currency, md.FXPolicyRef(policy.Key, policy.Version), at)
 		if e != nil {
 			return out, e
 		}
 		row.KnownValue = value.KnownValue
 		row.Issues = append(row.Issues, value.Issues...)
-		for _, v := range value.ComponentValues {
-			if v != nil {
+		for key, v := range value.ComponentValues {
+			if v != nil && priced[key] == required[key] {
 				row.PricedPositions++
 			}
 		}
@@ -335,9 +361,19 @@ func trackerHistoricalQuote(tenant, key string, entry trackerHistoryMarket, at, 
 			}
 			var bond *md.SavedBondFacts
 			if price.Fact != nil {
+				for _, observation := range entry.observations[cache] {
+					if observation.ID == price.ObservationID && observation.Revision == price.ObservationRevision {
+						var err error
+						bond, err = md.ObservationBondFacts(observation.SavedObservation)
+						if err != nil {
+							return nav.PortfolioQuote{}, err
+						}
+						break
+					}
+				}
 				day := price.Fact.EffectiveAt.UTC().Truncate(24 * time.Hour).Add(-24 * time.Hour)
 				for _, f := range entry.bonds[cache] {
-					if !day.Before(f.From) && !day.After(f.To) {
+					if bond == nil && !day.Before(f.From) && !day.After(f.To) {
 						copy := f
 						bond = &copy
 						break

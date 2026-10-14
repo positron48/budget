@@ -19,7 +19,7 @@ import (
 )
 
 // EquityListing must come from a confirmed instrument mapping, not ticker search.
-// This adapter initially supports USD common stocks on the two primary US venues.
+// This adapter supports USD common shares (including REITs) on the two primary US venues.
 type EquityListing struct {
 	Symbol, Exchange, MIC string
 }
@@ -32,7 +32,8 @@ func (l EquityListing) ID() string {
 
 type EquityBar struct {
 	Bar
-	Volume string `json:"volume"`
+	Volume       string `json:"volume"`
+	QualityIssue string `json:"quality_issue,omitempty"`
 }
 
 type EquityMeta struct {
@@ -98,7 +99,11 @@ func (c *Client) EquityHistory(ctx context.Context, listing EquityListing, from,
 		return EquityAudit{}, errors.New("cannot build equity request")
 	}
 	req.Header.Set("Authorization", "apikey "+c.token)
-	resp, err := c.http.Do(req)
+	// Raw multi-year equity history can take longer than the small FX audit
+	// requests. Keep the caller context and a bounded per-request deadline.
+	httpClient := *c.http
+	httpClient.Timeout = time.Minute
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return EquityAudit{}, errors.New("twelve data equity request failed")
 	}
@@ -107,8 +112,11 @@ func (c *Client) EquityHistory(ctx context.Context, listing EquityListing, from,
 		return EquityAudit{}, fmt.Errorf("twelve data equity HTTP %d", resp.StatusCode)
 	}
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxBody+1))
-	if err != nil || len(body) > maxBody {
-		return EquityAudit{}, errors.New("invalid or oversized equity response")
+	if err != nil {
+		return EquityAudit{}, errors.New("equity response read failed")
+	}
+	if len(body) > maxBody {
+		return EquityAudit{}, errors.New("oversized equity response")
 	}
 	return parseEquity(body, listing, from, to, now)
 }
@@ -129,7 +137,7 @@ func parseEquity(body []byte, listing EquityListing, from, to string, now time.T
 		return EquityAudit{}, errors.New("invalid equity response status or JSON")
 	}
 	m := payload.Meta
-	if m.Symbol != listing.Symbol || m.Exchange != listing.Exchange || m.MIC != listing.MIC || m.Interval != "1day" || m.Currency != "USD" || m.Type != "Common Stock" || m.Timezone != "America/New_York" {
+	if m.Symbol != listing.Symbol || m.Exchange != listing.Exchange || m.MIC != listing.MIC || m.Interval != "1day" || m.Currency != "USD" || m.Type != "Common Stock" && m.Type != "REIT" || m.Timezone != "America/New_York" {
 		return EquityAudit{}, errors.New("equity response listing mismatch")
 	}
 	if len(payload.Values) == 0 || len(payload.Values) > 5000 {
@@ -151,7 +159,7 @@ func parseEquity(body []byte, listing EquityListing, from, to string, now time.T
 			return EquityAudit{}, errors.New("invalid exact equity price")
 		}
 		if h.Cmp(l) < 0 || h.Cmp(o) < 0 || h.Cmp(closePrice) < 0 || l.Cmp(o) > 0 || l.Cmp(closePrice) > 0 {
-			return EquityAudit{}, errors.New("inconsistent equity OHLC")
+			b.QualityIssue = "provider_ohlc_conflict"
 		}
 		if !day.After(last) {
 			// Normalize verifies exact precision and the provider volume too.
@@ -177,7 +185,7 @@ func equityObservation(id string, b EquityBar) (md.Observation, error) {
 	// At is the logical exchange session date on a UTC date axis, not an
 	// exchange opening instant. Only the explicit retrospective daily policy
 	// may use these observations; their close is eligible from the next UTC day.
-	return md.Normalize(md.Observation{InstrumentID: id, Kind: "daily_candle", At: day, SourceKind: "exchange", Currency: "USD", PriceUnit: "currency_per_unit", Adjustment: "unadjusted", Price: b.Close, Open: b.Open, High: b.High, Low: b.Low, Volume: b.Volume, Complete: true})
+	return md.Normalize(md.Observation{InstrumentID: id, Kind: "daily_candle", At: day, SourceKind: "exchange", Currency: "USD", PriceUnit: "currency_per_unit", Adjustment: "unadjusted", Price: b.Close, Open: b.Open, High: b.High, Low: b.Low, Volume: b.Volume, Complete: true, QualityIssue: b.QualityIssue})
 }
 
 // LoadEquityHistory returns cache-ready evidence from this client's raw-mode

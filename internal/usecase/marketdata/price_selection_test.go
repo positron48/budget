@@ -5,6 +5,22 @@ import (
 	"time"
 )
 
+func TestInvalidSourceOHLCBlocksPriorRetrospectiveClose(t *testing.T) {
+	o := validObservation()
+	o.Price, o.Open, o.High, o.Low = "10", "10", "11", "9"
+	o.Adjustment, o.Currency, o.PriceUnit = "unadjusted", "USD", "currency_per_unit"
+	scope := Scope{TenantID: o.InstrumentID, Provider: "twelvedata", AccessScope: "personal"}
+	good := ScopedObservation{Scope: scope, SavedObservation: SavedObservation{Observation: o, ID: "good", Revision: 1, ReceivedAt: o.At.AddDate(1, 0, 0)}}
+	o.At = o.At.Add(24 * time.Hour)
+	o.Open = "12"
+	o.QualityIssue = "provider_ohlc_conflict"
+	bad := ScopedObservation{Scope: scope, SavedObservation: SavedObservation{Observation: o, ID: "bad", Revision: 1, ReceivedAt: o.At.AddDate(1, 0, 0)}}
+	selection, err := SelectValuationPrice(PriceSelectionRequest{Scope: scope, InstrumentID: o.InstrumentID, Kind: "daily_candle", SourceKind: "exchange", Adjustment: "unadjusted", At: o.At.Add(25 * time.Hour), Retrospective: &RetrospectiveDailyPolicy{Convention: RetrospectiveCloseNextUTCDay, MaxAge: 96 * time.Hour}}, []ScopedObservation{good, bad})
+	if err != nil || selection.Fact != nil || selection.State != "unavailable" || selection.ObservationID != "bad" || len(selection.Issues) != 1 || selection.Issues[0] != "provider_ohlc_conflict" {
+		t.Fatal("bad source candle replaced by prior close", selection, err)
+	}
+}
+
 func selectionFixture() (PriceSelectionRequest, []ScopedObservation) {
 	const id = "11111111-1111-4111-8111-111111111111"
 	scope := Scope{TenantID: id, Provider: "tinvest", AccessScope: "personal"}

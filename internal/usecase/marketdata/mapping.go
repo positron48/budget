@@ -23,6 +23,9 @@ type MappingPeriod struct {
 	Nominal, NominalCurrency, LotSize   string
 	From, To                            time.Time
 	Evidence                            string
+	// Canonical identity for regenerating licensed native caches after an
+	// archive restore. A hashed provider ID alone cannot recover its symbol.
+	NativeInstrument *Instrument `json:",omitempty"`
 }
 
 type Mapping struct {
@@ -111,6 +114,9 @@ func validateMappingPeriods(tenant string, periods []MappingPeriod) error {
 		return ErrInvalid
 	}
 	for i, p := range periods {
+		if p.NativeInstrument != nil && (ValidateInstrument(*p.NativeInstrument) != nil || !p.NativeInstrument.Detailed || p.NativeInstrument.ID != p.InstrumentID || p.NativeInstrument.Kind != p.Kind || p.NativeInstrument.Currency != p.Currency) {
+			return ErrInvalid
+		}
 		if ValidateScope(Scope{tenant, p.Provider, p.AccessScope}) != nil || !mappingText(p.Evidence, 2000) {
 			return ErrInvalid
 		}

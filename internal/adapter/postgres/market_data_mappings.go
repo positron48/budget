@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -91,32 +92,43 @@ func saveMarketMapping(ctx context.Context, tx pgx.Tx, tenant, actor string, c m
 	if old.Version != c.ExpectedVersion {
 		return out, md.ErrConflict
 	}
-	history := old.HistoricalPeriods
+	current := slices.Clone(c.Periods)
+	history := slices.Clone(old.HistoricalPeriods)
 	if c.HistoricalPeriods != nil {
-		history = *c.HistoricalPeriods
+		history = slices.Clone(*c.HistoricalPeriods)
 	}
-	for _, p := range append(append([]md.MappingPeriod{}, c.Periods...), history...) {
-		var enabled bool
-		err = tx.QueryRow(ctx, `SELECT enabled FROM market_data_sources WHERE tenant_id=$1 AND provider=$2 AND access_scope=$3 FOR SHARE`, tenant, p.Provider, p.AccessScope).Scan(&enabled)
-		if errors.Is(err, pgx.ErrNoRows) || err == nil && !enabled {
-			return out, md.ErrNotFound
-		}
-		if err != nil {
-			return out, err
-		}
-		var kind string
-		err = tx.QueryRow(ctx, `SELECT data->>'kind' FROM market_provider_instruments WHERE tenant_id=$1 AND provider=$2 AND access_scope=$3 AND instrument_id=$4 FOR SHARE`, tenant, p.Provider, p.AccessScope, p.InstrumentID).Scan(&kind)
-		if errors.Is(err, pgx.ErrNoRows) {
-			return out, md.ErrNotFound
-		}
-		if err != nil {
-			return out, err
-		}
-		if kind != p.Kind {
-			return out, md.ErrInvalid
+	for _, schedule := range [][]md.MappingPeriod{current, history} {
+		for i := range schedule {
+			p := &schedule[i]
+			var enabled bool
+			err = tx.QueryRow(ctx, `SELECT enabled FROM market_data_sources WHERE tenant_id=$1 AND provider=$2 AND access_scope=$3 FOR SHARE`, tenant, p.Provider, p.AccessScope).Scan(&enabled)
+			if errors.Is(err, pgx.ErrNoRows) || err == nil && !enabled {
+				return out, md.ErrNotFound
+			}
+			if err != nil {
+				return out, err
+			}
+			var data []byte
+			err = tx.QueryRow(ctx, `SELECT data FROM market_provider_instruments WHERE tenant_id=$1 AND provider=$2 AND access_scope=$3 AND instrument_id=$4 FOR SHARE`, tenant, p.Provider, p.AccessScope, p.InstrumentID).Scan(&data)
+			if errors.Is(err, pgx.ErrNoRows) {
+				return out, md.ErrNotFound
+			}
+			if err != nil {
+				return out, err
+			}
+			var instrument md.Instrument
+			if json.Unmarshal(data, &instrument) != nil || md.ValidateInstrument(instrument) != nil || instrument.ID != p.InstrumentID || instrument.Kind != p.Kind {
+				return out, md.ErrInvalid
+			}
+			if p.Provider == "moex" || p.Provider == "twelvedata" {
+				if !instrument.Detailed || instrument.Currency != p.Currency {
+					return out, md.ErrInvalid
+				}
+				p.NativeInstrument = &instrument
+			}
 		}
 	}
-	out = md.Mapping{InstrumentKey: c.InstrumentKey, Version: old.Version + 1, Periods: c.Periods, HistoricalPeriods: history, ActorID: actor, Reason: c.Reason}
+	out = md.Mapping{InstrumentKey: c.InstrumentKey, Version: old.Version + 1, Periods: current, HistoricalPeriods: history, ActorID: actor, Reason: c.Reason}
 	if err = tx.QueryRow(ctx, `SELECT clock_timestamp()`).Scan(&out.RecordedAt); err != nil {
 		return out, err
 	}

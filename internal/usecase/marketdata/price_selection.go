@@ -185,6 +185,11 @@ func SelectValuationPrice(q PriceSelectionRequest, input []ScopedObservation) (S
 	out.ObservationID = best.ID
 	out.ObservationRevision = best.Revision
 	out.ReceivedAt = best.ReceivedAt
+	if best.QualityIssue != "" {
+		out.State = "unavailable"
+		out.Issues = append(out.Issues, best.QualityIssue)
+		return out, nil
+	}
 	stale := q.Kind == "last_price" && q.At.Sub(bestFact.EffectiveAt) > q.MaxQuoteAge
 	if q.Retrospective != nil {
 		stale = !q.At.Before(bestFact.EffectiveAt.Add(q.Retrospective.MaxAge))

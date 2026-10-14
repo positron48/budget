@@ -60,7 +60,7 @@ func TestInvestmentTrackerHistoryUsesActualDailyPositionsAndMarketFX(t *testing.
 		offset   int
 		price    string
 		complete bool
-	}{{-1, "10", true}, {0, "6", true}, {1, "7", true}, {2, "9", false}, {4, "8", true}} {
+	}{{-1, "10", true}, {0, "12", true}, {1, "7", true}, {2, "9", false}, {4, "8", true}} {
 		o := md.Observation{InstrumentID: instrument.ID, Kind: "daily_candle", At: day.AddDate(0, 0, p.offset), SourceKind: "exchange", Adjustment: "unadjusted", PriceUnit: "provider_unspecified", Price: p.price, Open: p.price, High: p.price, Low: p.price, Volume: "1", Complete: p.complete}
 		if _, e = repo.SaveObservations(ctx, scope, []md.Observation{o}); e != nil {
 			t.Fatal(e)
@@ -207,6 +207,7 @@ func TestInvestmentTrackerHistoryUsesActualDailyPositionsAndMarketFX(t *testing.
 		t.Fatal(e)
 	}
 	nativeInstrument := unknown
+	nativeInstrument.Detailed = true
 	nativeInstrument.ID = uuid.NewString()
 	tx, e = pool.DB.Begin(ctx)
 	if e != nil {
@@ -262,5 +263,43 @@ func TestInvestmentTrackerHistoryUsesActualDailyPositionsAndMarketFX(t *testing.
 	clearChange.HistoricalPeriods = nil
 	if _, e = repo.SaveMapping(ctx, tenant, actor, clearChange); !errors.Is(e, md.ErrConflict) {
 		t.Fatal("clear and preserve share idempotency hash", e)
+	}
+	// MOEX's session nominal travels with the percentage observation. A later
+	// amortization must not use today's or the mapping's initial face value.
+	bondScope := md.Scope{TenantID: tenant, Provider: "moex", AccessScope: "personal"}
+	if e = repo.ConfigureSource(ctx, bondScope, "Synthetic native bond history", true); e != nil {
+		t.Fatal(e)
+	}
+	bondInstrument := md.Instrument{Detailed: true, ID: uuid.NewString(), Ticker: "B", Name: "Amortizing bond", Kind: "bond", Currency: "RUB"}
+	tx, e = pool.DB.Begin(ctx)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, e = saveMarketInstrument(ctx, tx, bondScope, bondInstrument); e != nil {
+		t.Fatal(e)
+	}
+	if e = tx.Commit(ctx); e != nil {
+		t.Fatal(e)
+	}
+	bondPeriods := []md.MappingPeriod{{Provider: "moex", AccessScope: "personal", InstrumentID: bondInstrument.ID, Kind: "bond", Currency: "RUB", Unit: "percent_of_nominal", Nominal: "1000", NominalCurrency: "RUB", From: day.Add(-48 * time.Hour), Evidence: "Session-specific native nominal"}}
+	if _, e = repo.SaveMapping(ctx, tenant, actor, md.MappingChange{InstrumentKey: "B", RequestKey: "bond-history", Reason: "Reviewed native bond history", HistoricalPeriods: &bondPeriods}); e != nil {
+		t.Fatal(e)
+	}
+	for i, nominal := range []string{"1000", "800", ""} {
+		o := md.Observation{InstrumentID: bondInstrument.ID, Kind: "daily_candle", At: day.AddDate(0, 0, i-1), SourceKind: "exchange", Currency: "RUB", PriceUnit: "percent_of_nominal", Adjustment: "unadjusted", Price: "95", Open: "95", High: "95", Low: "95", Volume: "1", Complete: true, Nominal: nominal}
+		if nominal != "" {
+			o.NominalCurrency = "RUB"
+		}
+		if _, e = repo.SaveObservations(ctx, bondScope, []md.Observation{o}); e != nil {
+			t.Fatal(e)
+		}
+	}
+	if _, e = svc.Mutate(ctx, tenant, actor, inv.Mutation{Action: "create", RequestKey: uuid.NewString(), ExpectedLedgerVersion: 7, Operation: d.InvestmentOperation{LedgerID: l.ID, Kind: "buy", InstrumentKey: "B", Currency: "RUB", Quantity: "2", Amount: "2000", OccurredAt: day.Add(3 * time.Hour)}}); e != nil {
+		t.Fatal(e)
+	}
+	q.From, q.To = "2020-01-01", "2020-01-03"
+	r, e = repo.TrackerHistory(ctx, tenant, actor, q)
+	if e != nil || len(r.Points) != 3 || r.Points[0].KnownValue.RatString() != "3682" || r.Points[1].KnownValue.RatString() != "3680" || r.Points[2].KnownValue.RatString() != "2100" || r.Points[2].PricedPositions != 1 {
+		t.Fatal("session nominal not used or missing nominal guessed", r, e)
 	}
 }

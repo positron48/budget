@@ -24,7 +24,12 @@ import (
 type Listing struct{ SecurityID, ISIN, Board string }
 
 func (l Listing) ID() string {
-	return uuid.NewSHA1(uuid.NameSpaceURL, []byte("https://iss.moex.com/stock/shares/"+l.Board+"/"+l.SecurityID+"/"+l.ISIN)).String()
+	return l.id("shares")
+}
+
+func (l Listing) BondID() string { return l.id("bonds") }
+func (l Listing) id(market string) string {
+	return uuid.NewSHA1(uuid.NameSpaceURL, []byte("https://iss.moex.com/stock/"+market+"/"+l.Board+"/"+l.SecurityID+"/"+l.ISIN)).String()
 }
 
 type Client struct{ http *http.Client }
@@ -35,6 +40,7 @@ func New() *Client {
 
 type History struct {
 	Listing         Listing
+	Market          string
 	From, To        string
 	RetrievedAt     time.Time
 	ResponseHashes  []string
@@ -102,16 +108,29 @@ func (c *Client) get(ctx context.Context, path string, query url.Values) (map[st
 
 var securityID = regexp.MustCompile(`^[A-Z0-9][A-Z0-9_-]{0,31}$`)
 var isin = regexp.MustCompile(`^[A-Z]{2}[A-Z0-9]{9}[0-9]$`)
+var bondBoard = regexp.MustCompile(`^TQ[A-Z0-9]{2,6}$`)
 
 // History loads actual OHLC trading summaries, not an adjusted candle series.
 // Listing periods must already be reviewed: current ISIN metadata alone is not
 // proof of historical ticker continuity. Bonds require their own quote/nominal
 // contract and are deliberately outside this shares/funds adapter.
 func (c *Client) History(ctx context.Context, listing Listing, from, to string) (History, error) {
-	out := History{Listing: listing, From: from, To: to, RetrievedAt: time.Now().UTC()}
+	return c.history(ctx, listing, from, to, "shares")
+}
+
+// BondHistory retains the actual percentage quote and that day's FACEVALUE /
+// FACEUNIT together. CURRENCYID is settlement currency, which may differ from
+// the contractual nominal currency. No present-day nominal or NKD is substituted.
+func (c *Client) BondHistory(ctx context.Context, listing Listing, from, to string) (History, error) {
+	return c.history(ctx, listing, from, to, "bonds")
+}
+
+func (c *Client) history(ctx context.Context, listing Listing, from, to, market string) (History, error) {
+	out := History{Listing: listing, Market: market, From: from, To: to, RetrievedAt: time.Now().UTC()}
 	first, e1 := time.Parse(time.DateOnly, from)
 	last, e2 := time.Parse(time.DateOnly, to)
-	if !securityID.MatchString(listing.SecurityID) || !isin.MatchString(listing.ISIN) || listing.Board != "TQBR" && listing.Board != "TQTF" || e1 != nil || e2 != nil || first.Year() < 1900 || last.Before(first) || !last.Before(out.RetrievedAt.Truncate(24*time.Hour)) || last.Sub(first) > 3660*24*time.Hour {
+	validBoard := market == "shares" && (listing.Board == "TQBR" || listing.Board == "TQTF") || market == "bonds" && bondBoard.MatchString(listing.Board)
+	if !securityID.MatchString(listing.SecurityID) || !isin.MatchString(listing.ISIN) || !validBoard || e1 != nil || e2 != nil || first.Year() < 1900 || last.Before(first) || !last.Before(out.RetrievedAt.Truncate(24*time.Hour)) || last.Sub(first) > 3660*24*time.Hour {
 		return out, errors.New("invalid ISS listing or completed date range")
 	}
 	blocks, hash, err := c.get(ctx, "securities/"+listing.SecurityID+".json", url.Values{"iss.meta": {"off"}, "iss.only": {"description"}})
@@ -138,8 +157,12 @@ func (c *Client) History(ctx context.Context, listing Listing, from, to string) 
 	}
 	out.ResponseHashes = append(out.ResponseHashes, hash)
 	seen := map[string]bool{}
+	requestedColumns := "BOARDID,TRADEDATE,SECID,OPEN,HIGH,LOW,CLOSE,VOLUME,CURRENCYID"
+	if market == "bonds" {
+		requestedColumns += ",FACEVALUE,FACEUNIT"
+	}
 	for start, pages := 0, 0; pages < 50; pages++ {
-		blocks, hash, err = c.get(ctx, "history/engines/stock/markets/shares/boards/"+listing.Board+"/securities/"+listing.SecurityID+".json", url.Values{"from": {from}, "till": {to}, "start": {strconv.Itoa(start)}, "iss.meta": {"off"}, "history.columns": {"BOARDID,TRADEDATE,SECID,OPEN,HIGH,LOW,CLOSE,VOLUME,CURRENCYID"}})
+		blocks, hash, err = c.get(ctx, "history/engines/stock/markets/"+market+"/boards/"+listing.Board+"/securities/"+listing.SecurityID+".json", url.Values{"from": {from}, "till": {to}, "start": {strconv.Itoa(start)}, "iss.meta": {"off"}, "history.columns": {requestedColumns}})
 		if err != nil {
 			return out, err
 		}
@@ -165,7 +188,8 @@ func (c *Client) History(ctx context.Context, listing Listing, from, to string) 
 				values[column] = v
 			}
 			day, err := time.Parse(time.DateOnly, values["TRADEDATE"])
-			if err != nil || day.Before(first) || day.After(last) || seen[values["TRADEDATE"]] || values["SECID"] != listing.SecurityID || values["BOARDID"] != listing.Board || values["CURRENCYID"] != "SUR" && values["CURRENCYID"] != "RUB" {
+			currency := nativeCurrency(values["CURRENCYID"])
+			if err != nil || day.Before(first) || day.After(last) || seen[values["TRADEDATE"]] || values["SECID"] != listing.SecurityID || values["BOARDID"] != listing.Board || currency == "" || market == "shares" && currency != "RUB" {
 				return out, errors.New("ISS history identity/date/currency mismatch")
 			}
 			seen[values["TRADEDATE"]] = true
@@ -173,7 +197,21 @@ func (c *Client) History(ctx context.Context, listing Listing, from, to string) 
 				out.MissingSessions = append(out.MissingSessions, values["TRADEDATE"])
 				continue
 			}
-			o, err := md.Normalize(md.Observation{InstrumentID: listing.ID(), Kind: "daily_candle", At: day, SourceKind: "exchange", Currency: "RUB", PriceUnit: "currency_per_unit", Adjustment: "unadjusted", Price: values["CLOSE"], Open: values["OPEN"], High: values["HIGH"], Low: values["LOW"], Volume: values["VOLUME"], Complete: true})
+			input := md.Observation{InstrumentID: listing.id(market), Kind: "daily_candle", At: day, SourceKind: "exchange", Currency: currency, PriceUnit: "currency_per_unit", Adjustment: "unadjusted", Price: values["CLOSE"], Open: values["OPEN"], High: values["HIGH"], Low: values["LOW"], Volume: values["VOLUME"], Complete: true}
+			if market == "bonds" {
+				face, e1 := history.cell(row, "FACEVALUE")
+				unit, e2 := history.cell(row, "FACEUNIT")
+				if e1 != nil || e2 != nil {
+					return out, errors.New("missing ISS bond nominal columns")
+				}
+				if face == "" || nativeCurrency(unit) == "" {
+					out.MissingSessions = append(out.MissingSessions, values["TRADEDATE"])
+					continue
+				}
+				input.PriceUnit, input.Nominal, input.NominalCurrency = "percent_of_nominal", face, nativeCurrency(unit)
+				input.Currency = input.NominalCurrency
+			}
+			o, err := md.Normalize(input)
 			if err != nil {
 				return out, errors.New("invalid ISS OHLC or volume")
 			}
@@ -195,4 +233,15 @@ func (c *Client) History(ctx context.Context, listing Listing, from, to string) 
 		}
 	}
 	return out, errors.New("ISS history page limit exceeded")
+}
+
+func nativeCurrency(value string) string {
+	switch value {
+	case "SUR", "RUB":
+		return "RUB"
+	case "USD", "EUR", "CNY":
+		return value
+	default:
+		return ""
+	}
 }

@@ -117,3 +117,37 @@ func TestISSSafeTransportAndUnsupportedListing(t *testing.T) {
 		}
 	}
 }
+
+func TestBondHistoryUsesSessionFaceValueAndNativeCurrency(t *testing.T) {
+	desc := strings.ReplaceAll(strings.ReplaceAll(description, "SBER", "RU0000000001"), "RU0009029540", "RU0000000001")
+	body := `{"history":{"columns":[` + columns + `,"FACEVALUE","FACEUNIT"],"data":[["TQCB","2024-06-07","RU0000000001",105,106,103,103.95,2430,"SUR",100,"USD"],["TQCB","2024-06-10","RU0000000001",104,105,102,103.5,100,"SUR",80,"USD"]]},"history.cursor":{"columns":["INDEX","TOTAL","PAGESIZE"],"data":[[0,2,100]]}}`
+	c := New()
+	calls := 0
+	c.http.Transport = transportFunc(func(r *http.Request) (*http.Response, error) {
+		text := desc
+		if calls > 0 {
+			text = body
+			if !strings.Contains(r.URL.Path, "/markets/bonds/") || !strings.Contains(r.URL.Query().Get("history.columns"), "FACEVALUE,FACEUNIT") {
+				t.Fatal(r.URL)
+			}
+		}
+		calls++
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(text)), Request: r}, nil
+	})
+	l := Listing{"RU0000000001", "RU0000000001", "TQCB"}
+	h, err := c.BondHistory(context.Background(), l, "2024-06-07", "2024-06-10")
+	if err != nil || len(h.Observations) != 2 {
+		t.Fatal(h, err)
+	}
+	if h.Observations[0].Currency != "USD" || h.Observations[0].NominalCurrency != "USD" || h.Observations[0].PriceUnit != "percent_of_nominal" || h.Observations[0].Nominal != "100.000000000" || h.Observations[1].Nominal != "80.000000000" || h.Observations[1].InstrumentID != l.BondID() {
+		t.Fatal(h)
+	}
+	// Missing historical nominal remains a gap; current descriptor nominal
+	// must never fill it, nor can a settlement-currency conversion be guessed.
+	body = strings.Replace(body, `100,"USD"`, `null,"USD"`, 1)
+	calls = 0
+	h, err = c.BondHistory(context.Background(), l, "2024-06-07", "2024-06-10")
+	if err != nil || len(h.Observations) != 1 || len(h.MissingSessions) != 1 {
+		t.Fatal(h, err)
+	}
+}

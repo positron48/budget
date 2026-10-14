@@ -38,7 +38,15 @@ type Observation struct {
 	High         string    `json:"high,omitempty"`
 	Low          string    `json:"low,omitempty"`
 	Volume       string    `json:"volume,omitempty"`
-	Complete     bool      `json:"complete"`
+	// Native historical bond summaries may carry the face value for this
+	// exact session. It is versioned with the percentage price, never borrowed
+	// from today's instrument metadata.
+	Nominal         string `json:"nominal,omitempty"`
+	NominalCurrency string `json:"nominal_currency,omitempty"`
+	// Explicitly unusable source evidence is retained verbatim and can block
+	// a stale prior close. It is never a normalized valuation input.
+	QualityIssue string `json:"quality_issue,omitempty"`
+	Complete     bool   `json:"complete"`
 }
 
 type SavedObservation struct {
@@ -88,6 +96,9 @@ func Normalize(o Observation) (Observation, error) {
 		return o, ErrInvalid
 	}
 	o.At = o.At.UTC()
+	if o.QualityIssue != "" && (o.Kind != "daily_candle" || o.QualityIssue != "provider_ohlc_conflict") {
+		return o, ErrInvalid
+	}
 	if o.Currency != "" && (len(o.Currency) != 3 || strings.Trim(o.Currency, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") != "") {
 		return o, ErrInvalid
 	}
@@ -96,6 +107,16 @@ func Normalize(o Observation) (Observation, error) {
 	}
 	if o.Adjustment != "provider_unspecified" && o.Adjustment != "unadjusted" {
 		return o, ErrInvalid
+	}
+	if o.Nominal != "" || o.NominalCurrency != "" {
+		if o.Kind != "daily_candle" || o.PriceUnit != "percent_of_nominal" || o.NominalCurrency != o.Currency || len(o.NominalCurrency) != 3 {
+			return o, ErrInvalid
+		}
+		value, number, err := decimal(o.Nominal)
+		if err != nil || number.Sign() <= 0 {
+			return o, ErrInvalid
+		}
+		o.Nominal = value
 	}
 	var err error
 	var price *big.Rat
@@ -122,7 +143,8 @@ func Normalize(o Observation) (Observation, error) {
 	if err != nil {
 		return o, err
 	}
-	if low.Cmp(high) > 0 || open.Cmp(low) < 0 || open.Cmp(high) > 0 || price.Cmp(low) < 0 || price.Cmp(high) > 0 {
+	conflict := low.Cmp(high) > 0 || open.Cmp(low) < 0 || open.Cmp(high) > 0 || price.Cmp(low) < 0 || price.Cmp(high) > 0
+	if conflict != (o.QualityIssue == "provider_ohlc_conflict") {
 		return o, ErrInvalid
 	}
 	if !volumePattern.MatchString(o.Volume) {

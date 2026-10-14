@@ -48,7 +48,7 @@ func TestEquityRawSplitBoundaryAndPaddedEnd(t *testing.T) {
 }
 
 func TestEquityRejectsWrongListingAndCorruptBars(t *testing.T) {
-	for _, field := range []string{"symbol", "exchange", "mic_code", "currency", "interval", "type", "exchange_timezone", "duplicate", "outside", "negative", "ohlc", "status"} {
+	for _, field := range []string{"symbol", "exchange", "mic_code", "currency", "interval", "type", "exchange_timezone", "duplicate", "outside", "negative", "status"} {
 		t.Run(field, func(t *testing.T) {
 			p := equityPayload()
 			bars := p["values"].([]EquityBar)
@@ -72,6 +72,28 @@ func TestEquityRejectsWrongListingAndCorruptBars(t *testing.T) {
 				t.Fatalf("error=%v", err)
 			}
 		})
+	}
+}
+
+func TestEquityRetainsBadSourceBarWithoutDiscardingOtherDates(t *testing.T) {
+	p := equityPayload()
+	p["values"].([]EquityBar)[0].Low = "121"
+	a, err := parseEquity(encode(t, p), EquityListing{"NVDA", "NASDAQ", "XNGS"}, "2024-06-07", "2024-06-10", checkedAt)
+	if err != nil || len(a.Bars) != 2 || a.Bars[0].QualityIssue != "" || a.Bars[1].QualityIssue != "provider_ohlc_conflict" {
+		t.Fatal(a, err)
+	}
+	o, err := equityObservation((EquityListing{"NVDA", "NASDAQ", "XNGS"}).ID(), a.Bars[1])
+	if err != nil || o.Low != "121.000000000" || o.Open != "120.370000000" || o.QualityIssue != "provider_ohlc_conflict" {
+		t.Fatal("source evidence changed", o, err)
+	}
+}
+
+func TestEquityAcceptsREITCommonShareUnits(t *testing.T) {
+	p := equityPayload()
+	p["meta"].(map[string]any)["type"] = "REIT"
+	a, err := parseEquity(encode(t, p), EquityListing{"NVDA", "NASDAQ", "XNGS"}, "2024-06-07", "2024-06-10", checkedAt)
+	if err != nil || a.Meta.Type != "REIT" || len(a.Bars) != 2 {
+		t.Fatal(a, err)
 	}
 }
 
