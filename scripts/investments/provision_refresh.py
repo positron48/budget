@@ -166,7 +166,8 @@ def worker_status(kube, namespace):
                     row["SuccessfulUpdates"] = metric(body, "budget_investment_worker_iterations_total", {"worker": worker, "result": "success"}) or 0
                 if worker == "alphafx":
                     row["FreshFXPairs"] = metric(body, "budget_investment_worker_fx_endpoints", {"worker": worker, "state": "fresh"}) or 0
-                    row["MissingOrExpiredFXPairs"] = sum(metric(body, "budget_investment_worker_fx_endpoints", {"worker": worker, "state": state}) or 0 for state in ("missing", "expired"))
+                    invalid = [metric(body, "budget_investment_worker_fx_endpoints", {"worker": worker, "state": state}) for state in ("missing", "expired")]
+                    row["MissingOrExpiredFXPairs"] = sum(invalid) if all(v is not None for v in invalid) else None
         rows.append(row)
     verified = all(r["Ready"] and r["SnapshotReadable"] and r["SuccessfulUpdates"] > 0 for r in rows)
     verified = verified and rows[0].get("SourceEnabled") is True and rows[0].get("FreshMappedQuotes", 0) > 0 and rows[0].get("UnusableMappedQuotes") == 0 and rows[1].get("FreshFXPairs") == 2 and rows[1].get("MissingOrExpiredFXPairs") == 0

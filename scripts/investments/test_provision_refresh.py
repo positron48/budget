@@ -47,6 +47,14 @@ class ProvisionRefreshTests(unittest.TestCase):
         self.assertIsNone(module.metric('metric{worker="marketdata"} NaN',"metric",{"worker":"marketdata"}))
         self.assertEqual(module.metric('metric{worker="marketdata"} 7',"metric",{"worker":"marketdata"}),7)
 
+    def test_missing_fx_diagnostics_do_not_prove_zero_missing_pairs(self):
+        responses=self.worker_responses()
+        responses[4]=responses[4].replace(b'budget_investment_worker_fx_endpoints{state="missing",worker="alphafx"} 0\n',b'')
+        with patch.object(module,"command",side_effect=responses):
+            result=module.worker_status(["kubectl"],"budget")
+        self.assertFalse(result["WorkersOperationalVerified"])
+        self.assertIsNone(result["Workers"][1]["MissingOrExpiredFXPairs"])
+
     def test_keys_only_enter_kubernetes_stdin_and_never_the_report_or_argv(self):
         keys = ["synthetic-tinvest-canary", "synthetic-alpha-canary"]
         with patch.object(module, "command", side_effect=[b"", b"secret created"]) as command, \
