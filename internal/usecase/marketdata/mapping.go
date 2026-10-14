@@ -26,11 +26,12 @@ type MappingPeriod struct {
 }
 
 type Mapping struct {
-	InstrumentKey   string
-	Version         int64
-	Periods         []MappingPeriod
-	ActorID, Reason string
-	RecordedAt      time.Time
+	InstrumentKey     string
+	Version           int64
+	Periods           []MappingPeriod
+	HistoricalPeriods []MappingPeriod `json:",omitempty"`
+	ActorID, Reason   string
+	RecordedAt        time.Time
 }
 
 type MappingChange struct {
@@ -38,6 +39,9 @@ type MappingChange struct {
 	ExpectedVersion    int64
 	RequestKey, Reason string
 	Periods            []MappingPeriod
+	// Nil preserves the historical schedule for existing API clients; an
+	// explicit empty schedule clears it. The pointer also fences idempotency.
+	HistoricalPeriods *[]MappingPeriod `json:",omitempty"`
 }
 
 type MappingRepo interface {
@@ -93,7 +97,20 @@ func ValidateMappingChange(tenant string, c MappingChange) error {
 	if !mappingText(c.InstrumentKey, 200) || !mappingText(c.RequestKey, 128) || !mappingText(c.Reason, 2000) || c.ExpectedVersion < 0 || len(c.Periods) > 100 {
 		return ErrInvalid
 	}
-	for i, p := range c.Periods {
+	if err := validateMappingPeriods(tenant, c.Periods); err != nil {
+		return err
+	}
+	if c.HistoricalPeriods != nil {
+		return validateMappingPeriods(tenant, *c.HistoricalPeriods)
+	}
+	return nil
+}
+
+func validateMappingPeriods(tenant string, periods []MappingPeriod) error {
+	if len(periods) > 100 {
+		return ErrInvalid
+	}
+	for i, p := range periods {
 		if ValidateScope(Scope{tenant, p.Provider, p.AccessScope}) != nil || !mappingText(p.Evidence, 2000) {
 			return ErrInvalid
 		}
@@ -104,7 +121,7 @@ func ValidateMappingChange(tenant string, c MappingChange) error {
 		if p.From.Year() < 1900 || p.From.Year() > 2200 || p.From.Nanosecond()%1000 != 0 || (!p.To.IsZero() && (p.To.Year() > 2200 || p.To.Nanosecond()%1000 != 0 || !p.To.After(p.From))) {
 			return ErrInvalid
 		}
-		if i > 0 && (c.Periods[i-1].To.IsZero() || p.From.Before(c.Periods[i-1].To)) {
+		if i > 0 && (periods[i-1].To.IsZero() || p.From.Before(periods[i-1].To)) {
 			return ErrInvalid
 		}
 		terms := p.Terms("validate", 1)
@@ -117,15 +134,34 @@ func ValidateMappingChange(tenant string, c MappingChange) error {
 	}
 	return nil
 }
+
+// HistoryPeriods separates raw historical listings from live quote providers.
+// Old mappings retain their existing behavior, including explicit unknown
+// adjustment gaps. A configured historical schedule never falls back through
+// its gaps to an unrelated current listing.
+func (m Mapping) HistoryPeriods() []MappingPeriod {
+	if len(m.HistoricalPeriods) > 0 {
+		return m.HistoricalPeriods
+	}
+	return m.Periods
+}
 func (p MappingPeriod) Terms(id string, revision int64) calc.PriceTerms {
 	return calc.PriceTerms{ID: id, Revision: revision, InstrumentID: p.InstrumentID, SourceKey: p.Provider + "/" + p.AccessScope, Kind: p.Kind, Currency: p.Currency, Unit: p.Unit, Nominal: p.Nominal, NominalCurrency: p.NominalCurrency, LotSize: p.LotSize, From: p.From, To: p.To, Confirmed: true}
 }
 
 // TermsAt uses the mapping revision as provenance. It never bridges a gap.
 func (m Mapping) TermsAt(at time.Time) (calc.PriceTerms, bool) {
-	for i, p := range m.Periods {
+	return m.termsAt(m.Periods, at, "")
+}
+
+func (m Mapping) HistoricalTermsAt(at time.Time) (calc.PriceTerms, bool) {
+	return m.termsAt(m.HistoryPeriods(), at, "history:")
+}
+
+func (m Mapping) termsAt(periods []MappingPeriod, at time.Time, prefix string) (calc.PriceTerms, bool) {
+	for i, p := range periods {
 		if !at.Before(p.From) && (p.To.IsZero() || at.Before(p.To)) {
-			return p.Terms(fmt.Sprintf("%s:%d", m.InstrumentKey, i), m.Version), true
+			return p.Terms(fmt.Sprintf("%s%s:%d", prefix, m.InstrumentKey, i), m.Version), true
 		}
 	}
 	return calc.PriceTerms{}, false

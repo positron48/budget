@@ -248,7 +248,7 @@ func readTrackerHistoryMarket(ctx context.Context, tx pgx.Tx, tenant string, key
 	}
 	// Each listing is loaded once for the page, not once per historical day.
 	for key, entry := range result {
-		for _, p := range entry.mapping.Periods {
+		for _, p := range entry.mapping.HistoryPeriods() {
 			if p.From.After(to) || !p.To.IsZero() && !p.To.After(from) {
 				continue
 			}
@@ -315,7 +315,7 @@ func trackerHistoricalQuote(tenant, key string, entry trackerHistoryMarket, at, 
 	if entry.mapping.InstrumentKey == "" {
 		return missing("mapping_missing"), nil
 	}
-	for _, p := range entry.mapping.Periods {
+	for _, p := range entry.mapping.HistoryPeriods() {
 		if !at.Before(p.From) && (p.To.IsZero() || at.Before(p.To)) {
 			cache := historyPeriodKey(p)
 			price, e := md.SelectValuationPrice(historyPriceSelection(tenant, p, at), entry.observations[cache])

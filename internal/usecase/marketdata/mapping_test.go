@@ -51,3 +51,30 @@ func TestMappingScheduleBoundaries(t *testing.T) {
 		t.Fatal("gap silently filled")
 	}
 }
+
+func TestHistoricalScheduleDoesNotReplaceLiveTermsOrFillGaps(t *testing.T) {
+	day := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	live := MappingPeriod{Provider: "tinvest", AccessScope: "personal", InstrumentID: uuid.NewString(), Kind: "share", Currency: "USD", Unit: "currency_per_unit", From: day, Evidence: "Confirmed current listing"}
+	history := live
+	history.Provider, history.InstrumentID, history.From = "twelvedata", uuid.NewString(), day.AddDate(0, 0, 2)
+	m := Mapping{InstrumentKey: "S", Version: 1, Periods: []MappingPeriod{live}, HistoricalPeriods: []MappingPeriod{history}}
+	if _, ok := m.HistoricalTermsAt(day); ok {
+		t.Fatal("historical gap filled by live listing")
+	}
+	terms, ok := m.TermsAt(history.From)
+	if !ok || terms.InstrumentID != live.InstrumentID {
+		t.Fatal("history replaced live terms", terms)
+	}
+	terms, ok = m.HistoricalTermsAt(history.From)
+	if !ok || terms.InstrumentID != history.InstrumentID {
+		t.Fatal("native history terms missing", terms)
+	}
+	change := MappingChange{InstrumentKey: "S", RequestKey: "reviewed", Reason: "Confirmed history", Periods: m.Periods, HistoricalPeriods: &m.HistoricalPeriods}
+	if err := ValidateMappingChange(uuid.NewString(), change); err != nil {
+		t.Fatal(err)
+	}
+	m.HistoricalPeriods = append(m.HistoricalPeriods, history)
+	if err := ValidateMappingChange(uuid.NewString(), change); err == nil {
+		t.Fatal("overlapping history accepted")
+	}
+}

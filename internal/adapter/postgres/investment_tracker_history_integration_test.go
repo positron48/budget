@@ -200,5 +200,67 @@ func TestInvestmentTrackerHistoryUsesActualDailyPositionsAndMarketFX(t *testing.
 	if !found {
 		t.Fatal("uncertain adjustment reason missing", r.Points[0].Issues)
 	}
-
+	// A native historical source fixes only the historical basis. Live prices
+	// and current mappings stay on the broker listing.
+	native := md.Scope{TenantID: tenant, Provider: "twelvedata", AccessScope: "personal"}
+	if e = repo.ConfigureSource(ctx, native, "Synthetic raw US history", true); e != nil {
+		t.Fatal(e)
+	}
+	nativeInstrument := unknown
+	nativeInstrument.ID = uuid.NewString()
+	tx, e = pool.DB.Begin(ctx)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, e = saveMarketInstrument(ctx, tx, native, nativeInstrument); e != nil {
+		t.Fatal(e)
+	}
+	if e = tx.Commit(ctx); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = repo.SaveObservations(ctx, native, []md.Observation{{InstrumentID: nativeInstrument.ID, Kind: "daily_candle", At: day.Add(-24 * time.Hour), SourceKind: "exchange", Adjustment: "unadjusted", PriceUnit: "currency_per_unit", Currency: "USD", Price: "20", Open: "20", High: "20", Low: "20", Volume: "1", Complete: true}}); e != nil {
+		t.Fatal(e)
+	}
+	old, e := repo.GetMapping(ctx, tenant, "UNKNOWN-BASIS")
+	if e != nil {
+		t.Fatal(e)
+	}
+	history := []md.MappingPeriod{{Provider: native.Provider, AccessScope: native.AccessScope, InstrumentID: nativeInstrument.ID, Kind: "share", Currency: "USD", Unit: "currency_per_unit", From: day.Add(-48 * time.Hour), Evidence: "Explicit raw daily history"}}
+	change := md.MappingChange{InstrumentKey: old.InstrumentKey, ExpectedVersion: old.Version, RequestKey: "native-history", Reason: "Use raw historical prices", Periods: old.Periods, HistoricalPeriods: &history}
+	updated, e := repo.SaveMapping(ctx, tenant, actor, change)
+	if e != nil || updated.Periods[0].InstrumentID != unknown.ID || updated.HistoricalPeriods[0].InstrumentID != nativeInstrument.ID {
+		t.Fatal(updated, e)
+	}
+	r, e = repo.TrackerHistory(ctx, tenant, actor, q)
+	if e != nil || r.Points[0].State != "ready" || r.Points[0].PricedPositions != 2 || r.Points[0].KnownValue.RatString() != "5022" {
+		t.Fatal("native raw history not used", r, e)
+	}
+	// An existing API client omitting the new field must not erase history.
+	updated, e = repo.SaveMapping(ctx, tenant, actor, md.MappingChange{InstrumentKey: old.InstrumentKey, ExpectedVersion: updated.Version, RequestKey: "old-client", Reason: "Current listing edit", Periods: updated.Periods})
+	if e != nil || len(updated.HistoricalPeriods) != 1 {
+		t.Fatal("old client erased history", updated, e)
+	}
+	if e = repo.ConfigureSource(ctx, native, "Synthetic raw US history", false); e != nil {
+		t.Fatal(e)
+	}
+	r, e = repo.TrackerHistory(ctx, tenant, actor, q)
+	if e != nil || r.Points[0].State != "incomplete" || r.Points[0].KnownValue.RatString() != "1782" {
+		t.Fatal("disabled native source fell through to broker history", r, e)
+	}
+	if e = repo.ConfigureSource(ctx, native, "Synthetic raw US history", true); e != nil {
+		t.Fatal(e)
+	}
+	clearHistory := []md.MappingPeriod{}
+	clearChange := md.MappingChange{InstrumentKey: old.InstrumentKey, ExpectedVersion: updated.Version, RequestKey: "clear-history", Reason: "Clear history explicitly", Periods: updated.Periods, HistoricalPeriods: &clearHistory}
+	cleared, e := repo.SaveMapping(ctx, tenant, actor, clearChange)
+	if e != nil || len(cleared.HistoricalPeriods) != 0 {
+		t.Fatal(cleared, e)
+	}
+	if _, e = repo.SaveMapping(ctx, tenant, actor, clearChange); e != nil {
+		t.Fatal("retry failed", e)
+	}
+	clearChange.HistoricalPeriods = nil
+	if _, e = repo.SaveMapping(ctx, tenant, actor, clearChange); !errors.Is(e, md.ErrConflict) {
+		t.Fatal("clear and preserve share idempotency hash", e)
+	}
 }

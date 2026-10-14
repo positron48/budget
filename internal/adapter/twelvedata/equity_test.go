@@ -11,9 +11,9 @@ import (
 )
 
 func equityPayload() map[string]any {
-	return map[string]any{"status": "ok", "meta": map[string]any{"symbol": "NVDA", "exchange": "NASDAQ", "mic_code": "XNGS", "currency": "USD", "interval": "1day", "type": "Common Stock", "exchange_timezone": "America/New_York"}, "values": []Bar{
-		{Date: "2024-06-10", Open: "120.37", High: "123.10", Low: "117.01", Close: "121.79"},
-		{Date: "2024-06-07", Open: "1197.69997", High: "1216.91645", Low: "1180.22000", Close: "1208.88000"},
+	return map[string]any{"status": "ok", "meta": map[string]any{"symbol": "NVDA", "exchange": "NASDAQ", "mic_code": "XNGS", "currency": "USD", "interval": "1day", "type": "Common Stock", "exchange_timezone": "America/New_York"}, "values": []EquityBar{
+		{Bar: Bar{Date: "2024-06-10", Open: "120.37", High: "123.10", Low: "117.01", Close: "121.79"}, Volume: "123"},
+		{Bar: Bar{Date: "2024-06-07", Open: "1197.69997", High: "1216.91645", Low: "1180.22000", Close: "1208.88000"}, Volume: "41238600"},
 	}}
 }
 
@@ -29,12 +29,15 @@ func TestEquityRawSplitBoundaryAndPaddedEnd(t *testing.T) {
 		}
 		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(string(encode(t, equityPayload())))), Request: r}, nil
 	})
-	a, err := c.EquityHistory(context.Background(), EquityListing{"NVDA", "NASDAQ", "XNGS"}, "2024-06-07", "2024-06-10")
+	a, observations, err := c.LoadEquityHistory(context.Background(), EquityListing{"NVDA", "NASDAQ", "XNGS"}, "2024-06-07", "2024-06-10")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if a.Adjustment != "none" || a.Meta.Timezone != "America/New_York" || len(a.Bars) != 2 || a.Bars[0].Close != "1208.88000" || a.Bars[1].Close != "121.79" || len(a.BodySHA256) != 64 {
 		t.Fatal(a)
+	}
+	if len(observations) != 2 || observations[0].Price != "1208.880000000" || observations[0].InstrumentID != (EquityListing{"NVDA", "NASDAQ", "XNGS"}).ID() || observations[0].Adjustment != "unadjusted" || observations[0].Currency != "USD" || observations[0].Volume != "41238600" {
+		t.Fatal(observations)
 	}
 	// An inclusive provider response may include the padded session. It must
 	// never enter the requested series or cause an endpoint day to be omitted.
@@ -48,7 +51,7 @@ func TestEquityRejectsWrongListingAndCorruptBars(t *testing.T) {
 	for _, field := range []string{"symbol", "exchange", "mic_code", "currency", "interval", "type", "exchange_timezone", "duplicate", "outside", "negative", "ohlc", "status"} {
 		t.Run(field, func(t *testing.T) {
 			p := equityPayload()
-			bars := p["values"].([]Bar)
+			bars := p["values"].([]EquityBar)
 			switch field {
 			case "duplicate":
 				bars[1].Date = bars[0].Date

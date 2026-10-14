@@ -13,12 +13,26 @@ import (
 	"regexp"
 	"sort"
 	"time"
+
+	"github.com/google/uuid"
+	md "github.com/positron48/budget/internal/usecase/marketdata"
 )
 
 // EquityListing must come from a confirmed instrument mapping, not ticker search.
 // This adapter initially supports USD common stocks on the two primary US venues.
 type EquityListing struct {
 	Symbol, Exchange, MIC string
+}
+
+// ID belongs to Twelve Data, never a reused broker UID. Exchange and MIC are
+// part of the identity so equal tickers on different listings cannot collide.
+func (l EquityListing) ID() string {
+	return uuid.NewSHA1(uuid.NameSpaceURL, []byte("https://api.twelvedata.com/equities/"+l.Exchange+"/"+l.MIC+"/"+l.Symbol)).String()
+}
+
+type EquityBar struct {
+	Bar
+	Volume string `json:"volume"`
 }
 
 type EquityMeta struct {
@@ -34,14 +48,14 @@ type EquityMeta struct {
 // EquityAudit retains exchange session dates, not UTC opening/publication times.
 // Adjustment records the request contract; the API does not echo it in metadata.
 type EquityAudit struct {
-	Source      string     `json:"source"`
-	Adjustment  string     `json:"adjustment"`
-	From        string     `json:"from"`
-	To          string     `json:"to"`
-	RetrievedAt time.Time  `json:"retrieved_at"`
-	BodySHA256  string     `json:"body_sha256"`
-	Meta        EquityMeta `json:"meta"`
-	Bars        []Bar      `json:"bars"`
+	Source      string      `json:"source"`
+	Adjustment  string      `json:"adjustment"`
+	From        string      `json:"from"`
+	To          string      `json:"to"`
+	RetrievedAt time.Time   `json:"retrieved_at"`
+	BodySHA256  string      `json:"body_sha256"`
+	Meta        EquityMeta  `json:"meta"`
+	Bars        []EquityBar `json:"bars"`
 }
 
 var equitySymbol = regexp.MustCompile(`^[A-Z][A-Z0-9.-]{0,19}$`)
@@ -107,9 +121,9 @@ func parseEquity(body []byte, listing EquityListing, from, to string, now time.T
 		return EquityAudit{}, err
 	}
 	var payload struct {
-		Meta   EquityMeta `json:"meta"`
-		Values []Bar      `json:"values"`
-		Status string     `json:"status"`
+		Meta   EquityMeta  `json:"meta"`
+		Values []EquityBar `json:"values"`
+		Status string      `json:"status"`
 	}
 	if len(body) > maxBody || json.Unmarshal(body, &payload) != nil || payload.Status != "ok" {
 		return EquityAudit{}, errors.New("invalid equity response status or JSON")
@@ -122,7 +136,7 @@ func parseEquity(body []byte, listing EquityListing, from, to string, now time.T
 		return EquityAudit{}, errors.New("empty or oversized equity series")
 	}
 	seen := map[string]bool{}
-	bars := make([]Bar, 0, len(payload.Values))
+	bars := make([]EquityBar, 0, len(payload.Values))
 	for _, b := range payload.Values {
 		day, e := time.Parse(time.DateOnly, b.Date)
 		if e != nil || day.Before(first) || day.After(last.AddDate(0, 0, 1)) || seen[b.Date] {
@@ -140,6 +154,10 @@ func parseEquity(body []byte, listing EquityListing, from, to string, now time.T
 			return EquityAudit{}, errors.New("inconsistent equity OHLC")
 		}
 		if !day.After(last) {
+			// Normalize verifies exact precision and the provider volume too.
+			if _, err := equityObservation(listing.ID(), b); err != nil {
+				return EquityAudit{}, errors.New("invalid equity candle precision or volume")
+			}
 			bars = append(bars, b)
 		}
 	}
@@ -149,4 +167,33 @@ func parseEquity(body []byte, listing EquityListing, from, to string, now time.T
 	sort.Slice(bars, func(i, j int) bool { return bars[i].Date < bars[j].Date })
 	hash := sha256.Sum256(body)
 	return EquityAudit{Source: "twelvedata", Adjustment: "none", From: from, To: to, RetrievedAt: now, BodySHA256: hex.EncodeToString(hash[:]), Meta: m, Bars: bars}, nil
+}
+
+func equityObservation(id string, b EquityBar) (md.Observation, error) {
+	day, err := time.Parse(time.DateOnly, b.Date)
+	if err != nil {
+		return md.Observation{}, err
+	}
+	// At is the logical exchange session date on a UTC date axis, not an
+	// exchange opening instant. Only the explicit retrospective daily policy
+	// may use these observations; their close is eligible from the next UTC day.
+	return md.Normalize(md.Observation{InstrumentID: id, Kind: "daily_candle", At: day, SourceKind: "exchange", Currency: "USD", PriceUnit: "currency_per_unit", Adjustment: "unadjusted", Price: b.Close, Open: b.Open, High: b.High, Low: b.Low, Volume: b.Volume, Complete: true})
+}
+
+// LoadEquityHistory returns cache-ready evidence from this client's raw-mode
+// request. It does not accept arbitrary caller-supplied adjusted audit JSON.
+func (c *Client) LoadEquityHistory(ctx context.Context, listing EquityListing, from, to string) (EquityAudit, []md.Observation, error) {
+	audit, err := c.EquityHistory(ctx, listing, from, to)
+	if err != nil {
+		return EquityAudit{}, nil, err
+	}
+	observations := make([]md.Observation, 0, len(audit.Bars))
+	for _, bar := range audit.Bars {
+		o, err := equityObservation(listing.ID(), bar)
+		if err != nil {
+			return EquityAudit{}, nil, errors.New("invalid equity observation")
+		}
+		observations = append(observations, o)
+	}
+	return audit, observations, nil
 }

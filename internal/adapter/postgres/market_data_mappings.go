@@ -91,7 +91,11 @@ func saveMarketMapping(ctx context.Context, tx pgx.Tx, tenant, actor string, c m
 	if old.Version != c.ExpectedVersion {
 		return out, md.ErrConflict
 	}
-	for _, p := range c.Periods {
+	history := old.HistoricalPeriods
+	if c.HistoricalPeriods != nil {
+		history = *c.HistoricalPeriods
+	}
+	for _, p := range append(append([]md.MappingPeriod{}, c.Periods...), history...) {
 		var enabled bool
 		err = tx.QueryRow(ctx, `SELECT enabled FROM market_data_sources WHERE tenant_id=$1 AND provider=$2 AND access_scope=$3 FOR SHARE`, tenant, p.Provider, p.AccessScope).Scan(&enabled)
 		if errors.Is(err, pgx.ErrNoRows) || err == nil && !enabled {
@@ -112,7 +116,7 @@ func saveMarketMapping(ctx context.Context, tx pgx.Tx, tenant, actor string, c m
 			return out, md.ErrInvalid
 		}
 	}
-	out = md.Mapping{InstrumentKey: c.InstrumentKey, Version: old.Version + 1, Periods: c.Periods, ActorID: actor, Reason: c.Reason}
+	out = md.Mapping{InstrumentKey: c.InstrumentKey, Version: old.Version + 1, Periods: c.Periods, HistoricalPeriods: history, ActorID: actor, Reason: c.Reason}
 	if err = tx.QueryRow(ctx, `SELECT clock_timestamp()`).Scan(&out.RecordedAt); err != nil {
 		return out, err
 	}
@@ -127,7 +131,7 @@ func saveMarketMapping(ctx context.Context, tx pgx.Tx, tenant, actor string, c m
 		return out, err
 	}
 	var affected *time.Time
-	for _, schedule := range [][]md.MappingPeriod{old.Periods, c.Periods} {
+	for _, schedule := range [][]md.MappingPeriod{old.Periods, c.Periods, old.HistoricalPeriods, history} {
 		for _, p := range schedule {
 			if affected == nil || p.From.Before(*affected) {
 				v := p.From

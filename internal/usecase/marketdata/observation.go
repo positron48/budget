@@ -56,7 +56,7 @@ func ValidateScope(s Scope) error {
 	if id, err := uuid.Parse(s.TenantID); err != nil || id.String() != s.TenantID {
 		return ErrInvalid
 	}
-	if s.Provider != "tinvest" || !scopePattern.MatchString(s.AccessScope) {
+	if s.Provider != "tinvest" && s.Provider != "moex" && s.Provider != "twelvedata" || !scopePattern.MatchString(s.AccessScope) {
 		return ErrInvalid
 	}
 	return nil

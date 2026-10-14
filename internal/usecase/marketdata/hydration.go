@@ -21,7 +21,7 @@ func MappedHistoryRanges(m Mapping, scope Scope, first, last, at time.Time, open
 		}
 	}
 	var ranges []JobRequest
-	for _, p := range m.Periods {
+	for _, p := range m.HistoryPeriods() {
 		if p.Provider != scope.Provider || p.AccessScope != scope.AccessScope {
 			continue
 		}

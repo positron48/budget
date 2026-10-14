@@ -65,6 +65,9 @@ func NormalizeHistoricalPortfolioQuote(mapping md.Mapping, price md.SelectedPric
 func normalizePortfolioQuote(mapping md.Mapping, price md.SelectedPrice, at time.Time, facts *md.SavedBondFacts, knowledge time.Time, retrospective bool) (PortfolioQuote, error) {
 	out := PortfolioQuote{InstrumentKey: mapping.InstrumentKey, MappingVersion: mapping.Version, State: price.State, Issues: slices.Clone(price.Issues)}
 	terms, ok := mapping.TermsAt(at)
+	if retrospective {
+		terms, ok = mapping.HistoricalTermsAt(at)
+	}
 	if !ok {
 		out.State = "unavailable"
 		out.Issues = append(out.Issues, "terms_missing")
