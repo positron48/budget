@@ -57,7 +57,15 @@ func run() error {
 	checkReplace := flag.String("check-replace", "", "rehearse portfolio replacement; always rolls back")
 	beforeState := flag.String("before-state-sha256", "", "canonical investment state digest from reviewed current export")
 	scopeLedger := flag.String("scope-ledger", "", "inspect portfolio account identities/counters only, using the existing ledger creator")
+	marketFile := flag.String("market-file", "", "optional private market evidence included in the same replacement transaction")
+	marketSHA := flag.String("expected-market-sha256", "", "reviewed market evidence digest")
 	flag.Parse()
+	if (*marketFile != "") != (*marketSHA != "") {
+		return errors.New("market-file and expected-market-sha256 are required together")
+	}
+	if *marketFile != "" && *replace == "" && *checkReplace == "" {
+		return errors.New("market evidence requires replacement")
+	}
 	if *scopeLedger != "" {
 		if *replace != "" || *checkReplace != "" || *beforeState != "" || *restore != "" || *checkRestore != "" || *verify != "" || *output != "" || *tenant != "" || *actor != "" || *expectedSHA != "" || flag.NArg() != 0 {
 			return errors.New("scope-ledger cannot be combined with archive modes")
@@ -72,7 +80,7 @@ func run() error {
 		if path == "" {
 			path = *checkReplace
 		}
-		return replaceArchive(path, *actor, *expectedSHA, *beforeState, *replace != "")
+		return replaceArchive(path, *actor, *expectedSHA, *beforeState, *marketFile, *marketSHA, *replace != "")
 	}
 	if *beforeState != "" {
 		return errors.New("before-state-sha256 requires replacement")
@@ -179,7 +187,7 @@ func restoreArchive(path, actor, expectedSHA string, apply bool) error {
 	fmt.Printf("%s: %d ledgers, %d operations; SHA256 %s\n", status, result.Ledgers, result.Operations, bundle.SHA256)
 	return nil
 }
-func replaceArchive(path, actor, expectedSHA, beforeState string, apply bool) error {
+func replaceArchive(path, actor, expectedSHA, beforeState, marketFile, marketSHA string, apply bool) error {
 	file, e := os.Open(path)
 	if e != nil {
 		return errors.New("cannot open replacement archive")
@@ -192,6 +200,10 @@ func replaceArchive(path, actor, expectedSHA, beforeState string, apply bool) er
 	if expectedSHA != bundle.SHA256 {
 		return errors.New("replacement checksum mismatch")
 	}
+	market, e := readReplacementMarket(marketFile, marketSHA)
+	if e != nil {
+		return e
+	}
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		return errors.New("DATABASE_URL required")
@@ -203,7 +215,7 @@ func replaceArchive(path, actor, expectedSHA, beforeState string, apply bool) er
 		return errors.New("database connection failed")
 	}
 	defer pool.Close()
-	result, retry, e := postgres.NewInvestmentRepo(pool).ReplacePortfolioArchive(ctx, actor, bundle, postgres.PortfolioArchiveReplacement{ExpectedStateSHA256: beforeState, ExpectedArchiveSHA256: expectedSHA}, apply)
+	result, retry, e := postgres.NewInvestmentRepo(pool).ReplacePortfolioArchive(ctx, actor, bundle, postgres.PortfolioArchiveReplacement{ExpectedStateSHA256: beforeState, ExpectedArchiveSHA256: expectedSHA, Market: market, ExpectedMarketSHA256: marketSHA}, apply)
 	if e != nil {
 		return errors.New("portfolio replacement failed; check current state digest, authorization, matching standalone accounts, archive and constraints")
 	}
@@ -214,7 +226,7 @@ func replaceArchive(path, actor, expectedSHA, beforeState string, apply bool) er
 	if retry {
 		status = "replacement_already_applied"
 	}
-	return json.NewEncoder(os.Stdout).Encode(map[string]any{"Status": status, "ArchiveSHA256": bundle.SHA256, "Verification": result, "HouseholdWrites": false})
+	return json.NewEncoder(os.Stdout).Encode(map[string]any{"Status": status, "ArchiveSHA256": bundle.SHA256, "Verification": result, "HouseholdWrites": false, "MarketEvidenceIncluded": market != nil, "MarketSHA256": marketSHA})
 }
 
 func main() {

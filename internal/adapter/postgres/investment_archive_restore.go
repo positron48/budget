@@ -68,6 +68,11 @@ func (r *InvestmentRepo) restoreInvestmentArchiveWithReplacement(ctx context.Con
 	if err = tx.QueryRow(ctx, `SELECT id FROM tenants WHERE id=$1 FOR UPDATE`, tenant).Scan(&locked); err != nil {
 		return empty, err
 	}
+	if replacement != nil && replacement.Market != nil {
+		if err = lockPortfolioMarket(ctx, tx, tenant, *replacement.Market); err != nil {
+			return empty, err
+		}
+	}
 	if replacement != nil {
 		if err = lockPortfolioArchiveTables(ctx, tx); err != nil {
 			return empty, err
@@ -78,7 +83,7 @@ func (r *InvestmentRepo) restoreInvestmentArchiveWithReplacement(ctx context.Con
 		var raw []byte
 		e := tx.QueryRow(ctx, `SELECT payload_hash,result FROM financial_write_requests WHERE tenant_id=$1 AND operation='investment.archive.replace' AND request_key=$2`, tenant, bundle.SHA256).Scan(&payload, &raw)
 		if e == nil {
-			if payload != investmentHash([]string{actor, replacement.ExpectedStateSHA256, bundle.SHA256}) || json.Unmarshal(raw, &empty) != nil {
+			if payload != investmentHash([]string{actor, replacement.ExpectedStateSHA256, bundle.SHA256, replacement.ExpectedMarketSHA256}) || json.Unmarshal(raw, &empty) != nil {
 				return empty, d.ErrInvestmentConflict
 			}
 			replacement.AlreadyApplied = true
@@ -221,6 +226,11 @@ func (r *InvestmentRepo) restoreInvestmentArchiveWithReplacement(ctx context.Con
 	if err != nil || result != verified {
 		return empty, d.ErrInvestmentPrecondition
 	}
+	if replacement != nil && replacement.Market != nil {
+		if err = publishPortfolioMarketTx(ctx, tx, tenant, *replacement.Market); err != nil {
+			return empty, err
+		}
+	}
 	if err = restartArchiveSequences(ctx, tx); err != nil {
 		return empty, err
 	}
@@ -235,7 +245,7 @@ func (r *InvestmentRepo) restoreInvestmentArchiveWithReplacement(ctx context.Con
 		return empty, err
 	}
 	if replacement != nil {
-		if _, err = tx.Exec(ctx, `INSERT INTO financial_write_requests(tenant_id,operation,request_key,payload_hash,result) VALUES($1,'investment.archive.replace',$2,$3,$4)`, tenant, bundle.SHA256, investmentHash([]string{actor, replacement.ExpectedStateSHA256, bundle.SHA256}), raw); err != nil {
+		if _, err = tx.Exec(ctx, `INSERT INTO financial_write_requests(tenant_id,operation,request_key,payload_hash,result) VALUES($1,'investment.archive.replace',$2,$3,$4)`, tenant, bundle.SHA256, investmentHash([]string{actor, replacement.ExpectedStateSHA256, bundle.SHA256, replacement.ExpectedMarketSHA256}), raw); err != nil {
 			return empty, err
 		}
 	}

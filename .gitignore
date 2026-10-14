@@ -75,6 +75,8 @@ doc/ARTIFACT_DEPLOYMENT.md
 /investfxpolicy
 /investalphafx
 /alphafx
+/investmentarchive
+/portfoliocandidate
 
 # Synthetic CI output is uploaded as artifacts, never committed.
 /go-test-results.jsonl

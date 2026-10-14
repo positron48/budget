@@ -37,6 +37,14 @@ class PreparePortfolioTests(unittest.TestCase):
         self.assertIn("export", str(raised.exception))
         self.assertNotIn("canary", str(raised.exception))
 
+    def test_existing_configmap_reference_is_resolved_without_printing_its_value(self):
+        value = "postgres://synthetic:canary@postgres/budget"
+        deployment = {"spec": {"template": {"spec": {"containers": [{"name": "budget-app", "env": [{"name": "DATABASE_URL", "valueFrom": {"configMapKeyRef": {"name": "database", "key": "dsn"}}}]}]}}}}
+        config = {"data": {"dsn": value}}
+        with patch.object(module, "command", side_effect=[json.dumps(deployment).encode(), json.dumps(config).encode()]) as command:
+            self.assertEqual(module.deployment_dsn(["k3s", "kubectl"], "budget"), value)
+            self.assertNotIn("canary", str(command.call_args_list))
+
 
 if __name__ == "__main__":
     unittest.main()

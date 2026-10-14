@@ -35,9 +35,16 @@ def deployment_dsn(kube, namespace):
     containers = deployment["spec"]["template"]["spec"]["containers"]
     app = next(c for c in containers if c["name"] == "budget-app")
     variable = next(v for v in app.get("env", []) if v["name"] == "DATABASE_URL")
-    reference = variable["valueFrom"]["secretKeyRef"]
-    secret = read("secret", reference["name"])
-    return base64.b64decode(secret["data"][reference["key"]], validate=True).decode()
+    sources = variable.get("valueFrom", {})
+    if "secretKeyRef" in sources:
+        reference = sources["secretKeyRef"]
+        secret = read("secret", reference["name"])
+        return base64.b64decode(secret["data"][reference["key"]], validate=True).decode()
+    if "configMapKeyRef" in sources:
+        reference = sources["configMapKeyRef"]
+        config = read("configmap", reference["name"])
+        return config["data"][reference["key"]]
+    raise Failure("DATABASE_URL must reference an existing Secret or ConfigMap")
 
 
 def forwarded_dsn(original, port):

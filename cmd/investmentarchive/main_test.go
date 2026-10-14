@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
+	pg "github.com/positron48/budget/internal/adapter/postgres"
 	archive "github.com/positron48/budget/internal/usecase/investmentarchive"
 	"os"
 	"path/filepath"
@@ -36,6 +38,9 @@ func TestRestoreModesRequireExplicitChecksum(t *testing.T) {
 		args []string
 		want string
 	}{
+		{[]string{"-market-file", "market.json"}, "required together"},
+		{[]string{"-expected-market-sha256", "sha"}, "required together"},
+		{[]string{"-market-file", "market.json", "-expected-market-sha256", "sha"}, "requires replacement"},
 		{[]string{"-scope-ledger", "not-uuid"}, "canonical scope ledger"},
 		{[]string{"-scope-ledger", "ledger", "-restore", "file"}, "scope-ledger cannot"},
 		{[]string{"-replace", "archive.json", "-actor", "actor", "-expected-sha", "sha"}, "replacement requires"},
@@ -57,5 +62,39 @@ func TestRestoreModesRequireExplicitChecksum(t *testing.T) {
 				t.Fatalf("%v: %v", test.args, err)
 			}
 		}()
+	}
+}
+
+func TestReplacementMarketRequiresPrivateExactEvidence(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "market.json")
+	input := pg.PortfolioMarketInput{}
+	raw, err := json.Marshal(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(path, raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	sha := pg.PortfolioMarketSHA256(input)
+	if _, err = readReplacementMarket(path, sha); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = readReplacementMarket(path, strings.Repeat("0", 64)); err == nil {
+		t.Fatal("unreviewed evidence accepted")
+	}
+	if err = os.Chmod(path, 0644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = readReplacementMarket(path, sha); err == nil {
+		t.Fatal("public evidence accepted")
+	}
+	if err = os.Chmod(path, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(path, append(raw, []byte(" {}")...), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = readReplacementMarket(path, sha); err == nil {
+		t.Fatal("trailing data accepted")
 	}
 }

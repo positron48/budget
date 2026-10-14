@@ -18,6 +18,8 @@ type PortfolioArchiveReplacement struct {
 	ExpectedStateSHA256   string
 	ExpectedArchiveSHA256 string
 	AlreadyApplied        bool
+	Market                *PortfolioMarketInput
+	ExpectedMarketSHA256  string
 }
 
 // InvestmentArchiveStateSHA256 binds canonical investment facts, independent
@@ -60,6 +62,13 @@ func validArchiveSHA(s string) bool {
 // Dry-run performs the same deletes/restoration then rolls the transaction back.
 func (r *InvestmentRepo) ReplacePortfolioArchive(ctx context.Context, actor string, bundle archive.Bundle, options PortfolioArchiveReplacement, apply bool) (archive.JournalVerification, bool, error) {
 	if !validArchiveSHA(options.ExpectedStateSHA256) || options.ExpectedArchiveSHA256 != bundle.SHA256 {
+		return archive.JournalVerification{}, false, d.ErrInvestmentPrecondition
+	}
+	if options.Market != nil {
+		if !validArchiveSHA(options.ExpectedMarketSHA256) || PortfolioMarketSHA256(*options.Market) != options.ExpectedMarketSHA256 || validatePortfolioMarket(bundle.Data.TenantID, *options.Market) != nil {
+			return archive.JournalVerification{}, false, d.ErrInvestmentPrecondition
+		}
+	} else if options.ExpectedMarketSHA256 != "" {
 		return archive.JournalVerification{}, false, d.ErrInvestmentPrecondition
 	}
 	result, e := r.restoreInvestmentArchiveWithReplacement(ctx, actor, bundle, apply, &options)

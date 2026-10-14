@@ -327,11 +327,11 @@ jobs:
           GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.commit=${{ github.sha }}" -o dist/budgetd-linux-arm64 ./cmd/budgetd
           GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o dist/budgetbackup-linux-amd64 ./cmd/budgetbackup
           GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w" -o dist/budgetbackup-linux-arm64 ./cmd/budgetbackup
-          for command in investfxpolicy investcbr marketdata investmentnav; do
+          for command in investfxpolicy investcbr marketdata investmentnav investalphafx alphafx investmentarchive portfoliocandidate; do
             GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o dist/$command-linux-amd64 ./cmd/$command
             GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w" -o dist/$command-linux-arm64 ./cmd/$command
           done
-          chmod +x dist/budgetd-* dist/budgetbackup-* dist/investfxpolicy-* dist/investcbr-* dist/marketdata-* dist/investmentnav-*
+          chmod +x dist/*-linux-amd64 dist/*-linux-arm64
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
