@@ -19,7 +19,7 @@ export async function downloadPortfolioExport(api: ExportAPI, job: InvestmentExp
     progress(offset, size);
   }
   signal.throwIfAborted();
-  const digest = await crypto.subtle.digest("SHA-256", data.buffer);
+  const digest = await crypto.subtle.digest("SHA-256", data);
   const sha = Array.from(new Uint8Array(digest), value => value.toString(16).padStart(2, "0")).join("");
   if (sha !== job.sha256) throw new Error("export_checksum_mismatch");
   signal.throwIfAborted();
