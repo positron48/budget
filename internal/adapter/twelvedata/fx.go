@@ -1,4 +1,4 @@
-// Package twelvedata audits candidate FX history without activating financial policies.
+// Package twelvedata reads exact historical prices without activating financial policies.
 package twelvedata
 
 import (
@@ -24,7 +24,7 @@ import (
 const KeychainService = "budget.twelvedata.readonly"
 const maxBody = 4 << 20
 
-// Client exposes only the historical forex endpoint. Credentials never enter URLs.
+// Client exposes historical time series. Credentials never enter URLs.
 type Client struct {
 	token, baseURL string
 	http           *http.Client
