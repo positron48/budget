@@ -41,6 +41,12 @@ for (const locale of ["ru", "en"] as const) for (const scenario of ["success", "
   await dialog.getByRole("button", {name: ru ? "Подготовить архив" : "Prepare archive", exact: true}).click();
   const button = dialog.getByRole("button", {name: ru ? "Скачать JSON" : "Download JSON", exact: true});
   await expect(button).toBeVisible();
+  if (scenario === "success") {
+    await page.reload();
+    await page.getByRole("button", {name: ru ? "Скачать архив" : "Export archive", exact: true}).click();
+    await expect(button).toBeVisible();
+    expect(starts).toBe(1);
+  }
   await page.setViewportSize({width: 390, height: 844});
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   if (process.env.E2E_PORTFOLIO_EXPORT_PREVIEW && ru && scenario === "success") await page.screenshot({path: process.env.E2E_PORTFOLIO_EXPORT_PREVIEW});

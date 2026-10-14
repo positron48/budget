@@ -1,6 +1,8 @@
 "use client";
 
 import {useEffect, useRef, useState} from "react";
+import {create} from "@bufbuild/protobuf";
+import {InvestmentExportJobSchema} from "@/proto/budget/v1/investment_pb";
 import {useLocale} from "next-intl";
 import {useQuery} from "@tanstack/react-query";
 import {useClients} from "@/app/providers";
@@ -16,6 +18,15 @@ export default function PortfolioExport({tenantId}: {tenantId: string}) {
   const [progress, setProgress] = useState(0);
   const key = useRef<string | undefined>(undefined), controller = useRef<AbortController | undefined>(undefined);
   const alive = useRef(true);
+  const storageKey = `budget/portfolio-export/${tenantId}`;
+  const remember = (id?: string) => {try {sessionStorage.setItem(storageKey, JSON.stringify({id, key: key.current}));} catch {/* Downloads still work without browser storage. */}};
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(storageKey) || "null");
+      if (typeof saved?.key === "string" && saved.key.length <= 128) key.current = saved.key;
+      if (typeof saved?.id === "string" && saved.id.length > 0 && saved.id.length <= 128) setJob(create(InvestmentExportJobSchema, {id: saved.id, state: "pending"}));
+    } catch {/* Ignore unavailable or invalid session storage. */}
+  }, [storageKey]);
   useEffect(() => {alive.current = true; return () => {alive.current = false; controller.current?.abort();};}, []);
   const status = useQuery<{job?: InvestmentExportJob}>({queryKey: ["investment", tenantId, "export", job?.id], enabled: open && !!job && ["pending", "running", "ready"].includes(job.state),
     queryFn: async ({signal}) => {
@@ -23,15 +34,16 @@ export default function PortfolioExport({tenantId}: {tenantId: string}) {
       if (response.job?.id !== job!.id || !["pending", "running", "ready", "error", "expired"].includes(response.job.state)) throw new Error("invalid_export_status");
       return response;
     }, refetchInterval: job && ["pending", "running"].includes(job.state) ? 2000 : false, retry: false});
-  useEffect(() => {if (status.data?.job?.id === job?.id) setJob(status.data?.job);}, [status.data, job?.id]);
+  useEffect(() => {if (status.data?.job && status.data.job.id === job?.id) setJob(status.data.job);}, [status.data, job?.id]);
   const start = async () => {
     setBusy(true); setError("");
     key.current ||= crypto.randomUUID();
+    remember();
     const next = new AbortController(); controller.current = next;
     try {
       const response = await api.startInvestmentExport({requestKey: key.current}, {signal: next.signal});
       if (!response.job?.id || !["pending", "running", "ready", "error", "expired"].includes(response.job.state)) throw new Error("missing_export");
-      if (alive.current && !next.signal.aborted) setJob(response.job);
+      if (alive.current && !next.signal.aborted) {setJob(response.job); remember(response.job.id);}
     } catch {if (alive.current && !next.signal.aborted) setError(tr("Не удалось подготовить файл. Повторите попытку.", "Could not prepare the file. Please retry."));}
     finally {if (alive.current && controller.current === next) setBusy(false);}
   };
