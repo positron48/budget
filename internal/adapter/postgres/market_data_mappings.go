@@ -42,6 +42,22 @@ func (r *MarketDataRepo) SaveMapping(ctx context.Context, tenant, actor string, 
 		return out, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
+	out, err = saveMarketMapping(ctx, tx, tenant, actor, c)
+	if err != nil {
+		return out, err
+	}
+	return out, tx.Commit(ctx)
+}
+
+func saveMarketMapping(ctx context.Context, tx pgx.Tx, tenant, actor string, c md.MappingChange) (md.Mapping, error) {
+	var out md.Mapping
+	if e := md.ValidateMappingChange(tenant, c); e != nil {
+		return out, e
+	}
+	if id, e := uuid.Parse(actor); e != nil || id.String() != actor {
+		return out, md.ErrInvalid
+	}
+	var err error
 	// Tenant lock also serializes request keys across different instrument keys.
 	if _, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, "market-mapping:"+tenant); err != nil {
 		return out, err
@@ -122,5 +138,5 @@ func (r *MarketDataRepo) SaveMapping(ctx context.Context, tenant, actor string, 
 	if _, err = tx.Exec(ctx, `INSERT INTO investment_market_mapping_changes(tenant_id,instrument_key,version,affected_from) VALUES($1,$2,$3,$4)`, tenant, c.InstrumentKey, out.Version, affected); err != nil {
 		return out, err
 	}
-	return out, tx.Commit(ctx)
+	return out, nil
 }

@@ -429,6 +429,36 @@ func TestInvestmentPrivatePortfolioImportRehearsal(t *testing.T) {
 			t.Fatal("empty account lost during replacement", e)
 		}
 	}
+	if path := os.Getenv("INVESTMENT_PORTFOLIO_QUOTE_DELTA"); path != "" {
+		if marketInput == nil {
+			t.Fatal("quote delta rehearsal requires base market fixtures")
+		}
+		data, e := os.ReadFile(path)
+		if e != nil {
+			t.Fatal("read private quote delta", e)
+		}
+		var delta []PortfolioQuoteSeed
+		if json.Unmarshal(data, &delta) != nil {
+			t.Fatal("decode private quote delta")
+		}
+		marketRepo := NewMarketDataRepo(restoredPool)
+		for _, apply := range []bool{false, true, true} {
+			if _, e = marketRepo.ImportPortfolioQuotes(ctx, tenant, actor, delta, PortfolioQuotesSHA256(delta), apply); e != nil {
+				t.Fatal("private quote delta rehearsal/apply/retry", e)
+			}
+		}
+		health, e := marketRepo.ReadMarketWorkerHealth(ctx, md.Scope{TenantID: tenant, Provider: "tinvest", AccessScope: "personal"})
+		if e != nil || health.QuoteStates["fresh"] != int64(len(marketInput.Quotes)+len(delta)) || health.QuoteStates["missing"] != 0 || health.QuoteStates["expired"] != 0 {
+			t.Fatal("private quote delta coverage", e)
+		}
+		for _, a := range report {
+			state, e := restoredService.Snapshot(ctx, tenant, actor, a.Snapshot.Ledger.ID, time.Now().UTC())
+			if e != nil || !reflect.DeepEqual(portfolioRehearsalValues(state.Positions), portfolioRehearsalValues(a.Snapshot.Positions)) {
+				t.Fatal("private quote delta changed the book", e)
+			}
+		}
+		t.Log("Reviewed quote delta: complete restored-source coverage, rolled-back rehearsal, apply, retry and unchanged book verified")
+	}
 	raw, e := json.MarshalIndent(report, "", "  ")
 	if e != nil {
 		t.Fatal(e)
