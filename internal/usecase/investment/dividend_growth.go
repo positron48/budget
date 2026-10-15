@@ -63,9 +63,11 @@ type dividendGrowthRepo interface {
 func dividendEvidence(s string) bool {
 	return strings.TrimSpace(s) != "" && len(s) <= 4000 && utf8.ValidString(s) && !strings.ContainsRune(s, 0)
 }
+
 func dividendInstant(t time.Time) bool {
 	return !t.IsZero() && t.Year() >= 1900 && t.Year() <= 2200 && t.Nanosecond()%1000 == 0
 }
+
 func NormalizeDividendHistory(h DividendHistory) (DividendHistory, error) {
 	bad := func() (DividendHistory, error) { return h, d.ErrInvestmentInvalid }
 	if !validID(h.ID) || h.Version < 0 || len(h.InstrumentKey) < 1 || len(h.InstrumentKey) > 200 || strings.TrimSpace(h.InstrumentKey) != h.InstrumentKey || !utf8.ValidString(h.InstrumentKey) || strings.ContainsRune(h.InstrumentKey, 0) || (h.Currency != "RUB" && h.Currency != "USD" && h.Currency != "EUR") || !dividendEvidence(h.SourceReference) || !dividendEvidence(h.Evidence) || !dividendEvidence(h.Reason) || !dividendInstant(h.BasisAt) || !dividendInstant(h.ReviewedFrom) || h.ReviewedFrom.After(h.BasisAt) || len(h.Years) > 201 || len(h.Dividends) > 2000 || len(h.Splits) > 200 {
@@ -243,6 +245,7 @@ func BuildDividendHistory(h DividendHistory, asOf time.Time) (DividendHistoryRep
 	}
 	return out, nil
 }
+
 func (s *Service) DividendGrowth(ctx context.Context, t, u string) (DividendGrowthReport, error) {
 	if e := s.authorize(ctx, t, u, false); e != nil {
 		return DividendGrowthReport{}, e
@@ -253,6 +256,25 @@ func (s *Service) DividendGrowth(ctx context.Context, t, u string) (DividendGrow
 	}
 	return r.DividendGrowth(ctx, t, u)
 }
+
+// DividendGrowthForInstrument reads issuer evidence for one exact book identity;
+// no ticker matching or investor holdings change the issuer series.
+func (s *Service) DividendGrowthForInstrument(ctx context.Context, t, u, key string) (DividendGrowthReport, error) {
+	if e := s.authorize(ctx, t, u, false); e != nil {
+		return DividendGrowthReport{}, e
+	}
+	if len(key) < 1 || len(key) > 200 || strings.TrimSpace(key) != key || !utf8.ValidString(key) || strings.ContainsRune(key, 0) {
+		return DividendGrowthReport{}, d.ErrInvestmentInvalid
+	}
+	r, ok := s.repo.(interface {
+		DividendGrowthForInstrument(context.Context, string, string, string) (DividendGrowthReport, error)
+	})
+	if !ok {
+		return DividendGrowthReport{}, d.ErrInvestmentPrecondition
+	}
+	return r.DividendGrowthForInstrument(ctx, t, u, key)
+}
+
 func (s *Service) SaveDividendHistory(ctx context.Context, t, u string, h DividendHistory, expected int64) (DividendHistory, error) {
 	if e := s.authorize(ctx, t, u, true); e != nil {
 		return DividendHistory{}, e

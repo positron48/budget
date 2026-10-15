@@ -197,10 +197,16 @@ def main():
                      capture_output=True).stdout.strip()
         if counts.split("|")[1:] != ["4", "6", "2", "2"]:
             raise RuntimeError("unexpected persisted row counts after feature/read-only checks")
+        issuer_counts = run("docker", "exec", pg, "psql", "-U", "budget", "-d", "budget", "-At", "-c",
+                            "SELECT (SELECT count(*) FROM investment_dividend_histories),(SELECT count(*) FROM investment_dividend_history_revisions);",
+                            capture_output=True).stdout.strip()
+        if issuer_counts != "2|4":
+            raise RuntimeError("issuer history revisions did not survive restart/read-only checks")
         report = {"status": "passed", "scope": "disposable local authenticated full stack; no production or broker calls",
                   "backend_sha256": hashlib.sha256((out / "budgetd").read_bytes()).hexdigest(),
                   "web_build_id": (ROOT / "web/.next/BUILD_ID").read_text().strip(),
                   "schema_ledgers_operations_events_links": counts,
+                  "issuer_histories_revisions": issuer_counts,
                   "phases": ["write", "backend_restart", "read_only", "module_disabled"], "locales": ["ru", "en"]}
         (out / "report.json").write_text(json.dumps(report, indent=2) + "\n")
         print("Fullstack smoke passed; evidence:", out)

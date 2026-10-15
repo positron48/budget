@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/google/uuid"
 	d "github.com/positron48/budget/internal/domain"
 	inv "github.com/positron48/budget/internal/usecase/investment"
 	archive "github.com/positron48/budget/internal/usecase/investmentarchive"
-	"testing"
-	"time"
 )
 
 func TestInvestmentDividendGrowthPersistenceRolesRestore(t *testing.T) {
@@ -46,6 +47,18 @@ func TestInvestmentDividendGrowthPersistenceRolesRestore(t *testing.T) {
 	report, e := svc.DividendGrowth(ctx, tenant, member)
 	if e != nil || len(report.Histories) != 1 || report.Histories[0].Years[1].PercentChange.RatString() != "20" {
 		t.Fatal(e, report)
+	}
+	filtered, e := svc.DividendGrowthForInstrument(ctx, tenant, member, "STOCK")
+	if e != nil || len(filtered.Histories) != 1 || filtered.Histories[0].Years[1].PercentChange.RatString() != "20" {
+		t.Fatal(filtered, e)
+	}
+	missing, e := svc.DividendGrowthForInstrument(ctx, tenant, member, "OTHER")
+	if e != nil || len(missing.Histories) != 0 {
+		t.Fatal("instrument scope leak", missing, e)
+	}
+	foreignReport, e := svc.DividendGrowthForInstrument(ctx, foreign, actor, "STOCK")
+	if e != nil || len(foreignReport.Histories) != 0 {
+		t.Fatal("tenant instrument leak", foreignReport, e)
 	}
 	other, e := svc.DividendGrowth(ctx, foreign, actor)
 	if e != nil || len(other.Histories) != 0 {
@@ -117,6 +130,10 @@ func TestInvestmentDividendGrowthPersistenceRolesRestore(t *testing.T) {
 	if e != nil || len(restored.Histories) != 1 || restored.Histories[0].Years[1].PercentChange.RatString() != "20" {
 		t.Fatal(e, restored)
 	}
+	filteredRestored, e := targetRepo.DividendGrowthForInstrument(ctx, tenant, actor, "STOCK")
+	if e != nil || len(filteredRestored.Histories) != 1 || filteredRestored.Histories[0].Years[1].PercentChange.RatString() != "20" {
+		t.Fatal("filtered restore failed", filteredRestored, e)
+	}
 	current := restored.Histories[0].History
 	current.Cancelled = true
 	current.Reason = "Cancel reviewed source"
@@ -141,4 +158,53 @@ func TestInvestmentDividendGrowthPersistenceRolesRestore(t *testing.T) {
 		t.Log(line)
 	}
 	rows.Close()
+}
+
+func TestDividendGrowthInstrumentQueryAtCapacityAndPlan(t *testing.T) {
+	pool, done := withPg(t)
+	defer done()
+	ctx, tenant, actor := acceptanceOwner(t, pool)
+	repo := NewInvestmentRepo(pool)
+	svc := inv.NewService(repo, NewTenantRepo(pool))
+	at := time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC)
+	for i := 0; i < 100; i++ {
+		key := fmt.Sprintf("ISSUER-%03d", i)
+		currency := "USD"
+		if i < 3 {
+			key = "TARGET"
+			currency = []string{"RUB", "USD", "EUR"}[i]
+		}
+		h := inv.DividendHistory{ID: uuid.NewString(), InstrumentKey: key, Currency: currency, Timezone: "Europe/Moscow", BasisAt: at, ReviewedFrom: at.AddDate(-2, 0, 0), SourceReference: "Synthetic issuer", Evidence: "Synthetic reviewed unit range", Reason: "Synthetic capacity fixture", Years: []inv.DividendYearReview{{Year: 2024, SourceReference: "Synthetic source", Evidence: "Incomplete"}}}
+		if _, e := svc.SaveDividendHistory(ctx, tenant, actor, h, 0); e != nil {
+			t.Fatal(e)
+		}
+	}
+	report, e := svc.DividendGrowthForInstrument(ctx, tenant, actor, "TARGET")
+	if e != nil || len(report.Histories) != 3 {
+		t.Fatal(report, e)
+	}
+	for _, h := range report.Histories {
+		if h.History.InstrumentKey != "TARGET" {
+			t.Fatal("instrument leak", h)
+		}
+	}
+	if _, e = pool.DB.Exec(ctx, `ANALYZE investment_dividend_histories`); e != nil {
+		t.Fatal(e)
+	}
+	rows, e := pool.DB.Query(ctx, "EXPLAIN (ANALYZE,BUFFERS,FORMAT TEXT) "+dividendInstrumentGrowthSQL, tenant, "TARGET")
+	if e != nil {
+		t.Fatal(e)
+	}
+	for rows.Next() {
+		var line string
+		if e = rows.Scan(&line); e != nil {
+			t.Fatal(e)
+		}
+		t.Log(line)
+	}
+	e = rows.Err()
+	rows.Close()
+	if e != nil {
+		t.Fatal(e)
+	}
 }

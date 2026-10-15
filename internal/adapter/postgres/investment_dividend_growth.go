@@ -4,14 +4,25 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"time"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	d "github.com/positron48/budget/internal/domain"
 	inv "github.com/positron48/budget/internal/usecase/investment"
-	"time"
 )
 
 func (r *InvestmentRepo) DividendGrowth(ctx context.Context, t, u string) (inv.DividendGrowthReport, error) {
+	return r.readDividendGrowth(ctx, t, u, "")
+}
+
+func (r *InvestmentRepo) DividendGrowthForInstrument(ctx context.Context, t, u, key string) (inv.DividendGrowthReport, error) {
+	return r.readDividendGrowth(ctx, t, u, key)
+}
+
+const dividendInstrumentGrowthSQL = `SELECT data FROM investment_dividend_histories WHERE tenant_id=$1 AND data->>'InstrumentKey'=$2 ORDER BY id LIMIT 4`
+
+func (r *InvestmentRepo) readDividendGrowth(ctx context.Context, t, u, key string) (inv.DividendGrowthReport, error) {
 	out := inv.DividendGrowthReport{}
 	tx, e := r.pool.DB.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
 	if e != nil {
@@ -24,7 +35,13 @@ func (r *InvestmentRepo) DividendGrowth(ctx context.Context, t, u string) (inv.D
 	if e = tx.QueryRow(ctx, `SELECT transaction_timestamp()`).Scan(&out.AsOf); e != nil {
 		return out, e
 	}
-	rows, e := tx.Query(ctx, `SELECT data FROM investment_dividend_histories WHERE tenant_id=$1 ORDER BY id LIMIT 101`, t)
+	query := `SELECT data FROM investment_dividend_histories WHERE tenant_id=$1 ORDER BY id LIMIT 101`
+	args := []any{t}
+	if key != "" {
+		query = dividendInstrumentGrowthSQL
+		args = append(args, key)
+	}
+	rows, e := tx.Query(ctx, query, args...)
 	if e != nil {
 		return out, e
 	}
@@ -52,11 +69,12 @@ func (r *InvestmentRepo) DividendGrowth(ctx context.Context, t, u string) (inv.D
 	if rowErr != nil {
 		return out, rowErr
 	}
-	if len(out.Histories) > 100 {
+	if len(out.Histories) > 100 || key != "" && len(out.Histories) > 3 {
 		return out, d.ErrInvestmentLimit
 	}
 	return out, tx.Commit(ctx)
 }
+
 func (r *InvestmentRepo) SaveDividendHistory(ctx context.Context, t, u string, h inv.DividendHistory, expected int64) (inv.DividendHistory, error) {
 	h, e := inv.NormalizeDividendHistory(h)
 	if e != nil || expected < 0 || expected == 1<<63-1 || h.BasisAt.After(time.Now()) {

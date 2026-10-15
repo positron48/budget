@@ -9632,6 +9632,7 @@ func (x *InvestmentDividendHistoryReport) GetYears() []*InvestmentDividendYearGr
 
 type GetInvestmentDividendGrowthRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	InstrumentKey string                 `protobuf:"bytes,1,opt,name=instrument_key,json=instrumentKey,proto3" json:"instrument_key,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -9664,6 +9665,13 @@ func (x *GetInvestmentDividendGrowthRequest) ProtoReflect() protoreflect.Message
 // Deprecated: Use GetInvestmentDividendGrowthRequest.ProtoReflect.Descriptor instead.
 func (*GetInvestmentDividendGrowthRequest) Descriptor() ([]byte, []int) {
 	return file_budget_v1_investment_proto_rawDescGZIP(), []int{122}
+}
+
+func (x *GetInvestmentDividendGrowthRequest) GetInstrumentKey() string {
+	if x != nil {
+		return x.InstrumentKey
+	}
+	return ""
 }
 
 type GetInvestmentDividendGrowthResponse struct {
@@ -10692,8 +10700,9 @@ const file_budget_v1_investment_proto_rawDesc = "" +
 	"\x06status\x18\v \x01(\tR\x06status\"\xa0\x01\n" +
 	"\x1fInvestmentDividendHistoryReport\x12>\n" +
 	"\ahistory\x18\x01 \x01(\v2$.budget.v1.InvestmentDividendHistoryR\ahistory\x12=\n" +
-	"\x05years\x18\x02 \x03(\v2'.budget.v1.InvestmentDividendYearGrowthR\x05years\"$\n" +
-	"\"GetInvestmentDividendGrowthRequest\"\xa0\x01\n" +
+	"\x05years\x18\x02 \x03(\v2'.budget.v1.InvestmentDividendYearGrowthR\x05years\"K\n" +
+	"\"GetInvestmentDividendGrowthRequest\x12%\n" +
+	"\x0einstrument_key\x18\x01 \x01(\tR\rinstrumentKey\"\xa0\x01\n" +
 	"#GetInvestmentDividendGrowthResponse\x12/\n" +
 	"\x05as_of\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04asOf\x12H\n" +
 	"\thistories\x18\x02 \x03(\v2*.budget.v1.InvestmentDividendHistoryReportR\thistories\"\x91\x01\n" +

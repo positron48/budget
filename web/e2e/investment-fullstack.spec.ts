@@ -93,6 +93,34 @@ for(const locale of ["ru","en"])test(`${locale} simple portfolio ${phase}`,async
  }
  await expect(calendar).toContainText(ru?"Получено":"Received");await expect(calendar).toContainText("15 RUB");
  if(phase==="readonly")await expect(page.getByRole("button",{name:ru?"Добавить событие":"Add event",exact:true})).toHaveCount(0);
+ await page.goto(`/investments/instruments/TRACKER-STOCK?account=${ledger.id}`);
+ const issuer=page.getByRole("region",{name:ru?"Дивиденды на акцию":"Dividends per share",exact:true});
+ if(phase==="write"){
+  await issuer.getByRole("button",{name:ru?"Добавить историю эмитента":"Add issuer history",exact:true}).click();const editor=page.getByRole("dialog");
+  await editor.getByLabel(ru?"Сплиты проверены начиная с (UTC)":"Splits reviewed from (UTC)").fill("2023-01-01T00:00");
+  await editor.getByLabel(ru?"Источник: ссылка или документ":"Source: link or document").fill("Synthetic issuer statements");
+  await editor.getByLabel(ru?"Что проверено по источнику":"Source review notes").fill("Synthetic ordinary/special payouts and complete two-for-one unit history");
+  for(const [i,date,amount,kind] of [[0,"2023-07-01","100","regular"],[1,"2024-07-01","75","regular"],[2,"2024-09-01","20","special"]] as const){
+   await editor.getByRole("button",{name:ru?"Добавить выплату":"Add payout",exact:true}).click();
+   await editor.getByLabel(ru?"Дата выплаты эмитента":"Issuer payment date",{exact:true}).nth(i).fill(date);
+   await editor.getByLabel(ru?"Сумма на акцию":"Amount per share",{exact:true}).nth(i).fill(amount);
+   await editor.getByLabel(ru?"Тип дивиденда":"Dividend class",{exact:true}).nth(i).selectOption(kind);
+   await editor.getByLabel(ru?"Факт выплаты эмитента":"Issuer payment status",{exact:true}).nth(i).selectOption("paid");
+   await editor.getByLabel(ru?"Единица этой суммы на (UTC)":"This amount's share unit at (UTC)",{exact:true}).nth(i).fill(date+"T00:00");
+  }
+  await editor.getByRole("checkbox",{name:/2023/}).check();await editor.getByRole("checkbox",{name:/2024/}).check();
+  await editor.locator("summary").filter({hasText:ru?"Сплиты и изменения единицы":"Splits and share-unit changes"}).click();
+  await editor.getByRole("button",{name:ru?"Добавить сплит":"Add split",exact:true}).click();
+  await editor.getByLabel(ru?"Момент сплита (UTC)":"Split instant (UTC)").fill("2024-01-01T00:00");await editor.getByLabel(ru?"Новых акций":"New units").fill("2");await editor.getByLabel(ru?"Старых акций":"Old units").fill("1");
+  await editor.getByRole("checkbox",{name:ru?"Проверены все сплиты и изменения единицы за указанный период":"All splits and share-unit changes in the stated range were reviewed",exact:true}).check();
+  await editor.getByRole("button",{name:ru?"Сохранить историю":"Save history",exact:true}).click();await expect(editor).toHaveCount(0);
+  await issuer.getByRole("button",{name:ru?"Изменить историю":"Edit history",exact:true}).click();
+  await editor.getByLabel(ru?"Причина изменения":"Change reason",{exact:true}).fill("Synthetic source review update");
+  await editor.getByRole("checkbox",{name:ru?"Проверены все сплиты и изменения единицы за указанный период":"All splits and share-unit changes in the stated range were reviewed",exact:true}).check();await editor.getByRole("button",{name:ru?"Сохранить историю":"Save history",exact:true}).click();await expect(editor).toHaveCount(0);
+ }
+ const annual=issuer.getByRole("row").filter({has:page.getByRole("cell",{name:"2024",exact:true})});await expect(annual).toContainText("75 RUB");await expect(annual).toContainText("20 RUB");await expect(annual).toContainText("50%");
+ const history=(await api.getInvestmentDividendGrowth({instrumentKey:"TRACKER-STOCK"})).histories[0];expect(history.history!.version).toBe(2n);expect(history.years.find(y=>y.year===2024)!.percentChange!.numerator).toBe("50");
+ if(phase==="readonly"){await expect(issuer.getByRole("button",{name:ru?"Добавить историю эмитента":"Add issuer history",exact:true})).toHaveCount(0);await expect(issuer.getByRole("button",{name:ru?"Изменить историю":"Edit history",exact:true})).toHaveCount(0);}
  const unchanged=(await api.getInvestmentSnapshot({ledgerId:ledger.id})).snapshot!;
  expect(unchanged.ledger!.version).toBe(state.ledger!.version);expect(unchanged.positions).toEqual(state.positions);
  await page.goto("/investments");await expect(page.getByRole("heading",{name:ru?"Мой портфель":"My portfolio",exact:true})).toBeVisible();

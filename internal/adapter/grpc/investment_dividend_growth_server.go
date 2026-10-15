@@ -2,11 +2,12 @@ package grpcadapter
 
 import (
 	"context"
+	"time"
+
 	pb "github.com/positron48/budget/gen/go/budget/v1"
 	d "github.com/positron48/budget/internal/domain"
 	inv "github.com/positron48/budget/internal/usecase/investment"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"time"
 )
 
 func dividendTimestamp(t *timestamppb.Timestamp) (time.Time, error) {
@@ -15,6 +16,7 @@ func dividendTimestamp(t *timestamppb.Timestamp) (time.Time, error) {
 	}
 	return t.AsTime(), nil
 }
+
 func parseDividendHistory(p *pb.InvestmentDividendHistory) (inv.DividendHistory, error) {
 	h := inv.DividendHistory{}
 	if p == nil {
@@ -58,6 +60,7 @@ func parseDividendHistory(p *pb.InvestmentDividendHistory) (inv.DividendHistory,
 	}
 	return inv.NormalizeDividendHistory(h)
 }
+
 func protoDividendHistory(h inv.DividendHistory) *pb.InvestmentDividendHistory {
 	p := &pb.InvestmentDividendHistory{Id: h.ID, InstrumentKey: h.InstrumentKey, Currency: h.Currency, Timezone: h.Timezone, BasisAt: optionalInvestmentTimestamp(h.BasisAt), ReviewedFrom: optionalInvestmentTimestamp(h.ReviewedFrom), SourceReference: h.SourceReference, Evidence: h.Evidence, Reason: h.Reason, Version: h.Version, Cancelled: h.Cancelled}
 	for _, v := range h.Years {
@@ -71,12 +74,18 @@ func protoDividendHistory(h inv.DividendHistory) *pb.InvestmentDividendHistory {
 	}
 	return p
 }
-func (s *InvestmentServer) GetInvestmentDividendGrowth(ctx context.Context, _ *pb.GetInvestmentDividendGrowthRequest) (*pb.GetInvestmentDividendGrowthResponse, error) {
+
+func (s *InvestmentServer) GetInvestmentDividendGrowth(ctx context.Context, req *pb.GetInvestmentDividendGrowthRequest) (*pb.GetInvestmentDividendGrowthResponse, error) {
 	t, u, e := assetContext(ctx)
 	if e != nil {
 		return nil, e
 	}
-	r, e := s.svc.DividendGrowth(ctx, t, u)
+	var r inv.DividendGrowthReport
+	if req.GetInstrumentKey() == "" {
+		r, e = s.svc.DividendGrowth(ctx, t, u)
+	} else {
+		r, e = s.svc.DividendGrowthForInstrument(ctx, t, u, req.GetInstrumentKey())
+	}
 	if e != nil {
 		return nil, investmentRPCError(e)
 	}
@@ -90,6 +99,7 @@ func (s *InvestmentServer) GetInvestmentDividendGrowth(ctx context.Context, _ *p
 	}
 	return out, nil
 }
+
 func (s *InvestmentServer) SaveInvestmentDividendHistory(ctx context.Context, req *pb.SaveInvestmentDividendHistoryRequest) (*pb.SaveInvestmentDividendHistoryResponse, error) {
 	t, u, e := assetContext(ctx)
 	if e != nil {

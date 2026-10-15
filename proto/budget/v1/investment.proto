@@ -524,7 +524,7 @@ message InvestmentDividendYearGrowth {
  int32 year=1; InvestmentPayoutAmount regular=2; InvestmentPayoutAmount special=3; InvestmentPayoutAmount total=4; InvestmentPayoutAmount known_total=5; InvestmentPayoutAmount previous_regular=6; InvestmentPayoutAmount change=7; InvestmentPayoutAmount percent_change=8; int32 special_count=9; int32 unknown_class_count=10; string status=11;
 }
 message InvestmentDividendHistoryReport { InvestmentDividendHistory history=1; repeated InvestmentDividendYearGrowth years=2; }
-message GetInvestmentDividendGrowthRequest {}
+message GetInvestmentDividendGrowthRequest { string instrument_key=1; }
 message GetInvestmentDividendGrowthResponse { google.protobuf.Timestamp as_of=1; repeated InvestmentDividendHistoryReport histories=2; }
 message SaveInvestmentDividendHistoryRequest { InvestmentDividendHistory history=1; int64 expected_version=2; }
 message SaveInvestmentDividendHistoryResponse { InvestmentDividendHistory history=1; }
