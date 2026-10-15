@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/positron48/budget/internal/adapter/nativehistory"
 	md "github.com/positron48/budget/internal/usecase/marketdata"
 )
 
@@ -73,6 +74,15 @@ func (r *MarketDataRepo) ScheduleMarketHistory(ctx context.Context, scope md.Sco
 		return 0, err
 	}
 	wants = append(wants, benchmarkHistoryRanges(benchmarkPeriods, scope, at)...)
+	for _, b := range nativehistory.Benchmarks() {
+		if b.Provider == scope.Provider && b.AccessScope == scope.AccessScope {
+			first := at.UTC().Truncate(24*time.Hour).AddDate(-10, 0, -5)
+			if first.Before(b.From) {
+				first = b.From
+			}
+			wants = append(wants, md.MappedHistoryRanges(md.Mapping{Periods: []md.MappingPeriod{b.Period()}}, scope, first, first, at, true)...)
+		}
+	}
 	fxPolicies, e := fxSeriesPolicies(ctx, tx, scope)
 	if e != nil {
 		return 0, e

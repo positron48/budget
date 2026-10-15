@@ -90,6 +90,26 @@ func (s *InvestmentNAVServer) GetTrackerPerformance(ctx context.Context, req *pb
 	if cursor != last.AddDate(0, 0, 1).Format(time.DateOnly) {
 		return invalid()
 	}
+	performance, e := calc.CalculatePeriod(calc.PeriodPerformanceInput{Days: days, FlowCoverage: true, ResetDates: resets})
+	if e != nil {
+		return nil, status.Error(codes.Internal, "portfolio performance unavailable")
+	}
+	var benchmarks []nav.TrackerBenchmark
+	if benchmarkRepo, ok := s.repo.(interface {
+		TrackerBenchmarks(context.Context, string, string, nav.TrackerHistoryRequest, string) ([]nav.TrackerBenchmark, error)
+	}); ok {
+		baseline := days[0].Date
+		for _, p := range performance.TWR.Points {
+			if p.State == "baseline" {
+				baseline = p.Date
+				break
+			}
+		}
+		benchmarks, e = benchmarkRepo.TrackerBenchmarks(ctx, tenant, actor, q, baseline)
+		if e != nil {
+			return nil, investmentRPCError(e)
+		}
+	}
 	// Recheck current membership, selected ledger identities and scoped market
 	// basis. A signed old value is never silently used after a correction.
 	check := q
@@ -101,10 +121,6 @@ func (s *InvestmentNAVServer) GetTrackerPerformance(ctx context.Context, req *pb
 	}
 	if fresh.BasisKey != basis || fresh.FXPolicyVersion != version || fresh.FXMode != mode {
 		return invalid()
-	}
-	performance, e := calc.CalculatePeriod(calc.PeriodPerformanceInput{Days: days, FlowCoverage: true, ResetDates: resets})
-	if e != nil {
-		return nil, status.Error(codes.Internal, "portfolio performance unavailable")
 	}
 	// Percentages are presented to twelve decimals; exact monetary values and
 	// all source daily factors remain independent of display precision.
@@ -132,6 +148,13 @@ func (s *InvestmentNAVServer) GetTrackerPerformance(ctx context.Context, req *pb
 		}
 	}
 	out := protoInvestmentPerformance(nav.Performance{PeriodPerformance: performance, Currency: q.Currency, FXPolicyKey: q.FXPolicyKey, Generation: fresh.Generation})
+	for _, b := range benchmarks {
+		line := &pb.TrackerBenchmarkLine{Key: b.Key, Title: b.Title, Kind: b.Kind, NativeCurrency: b.NativeCurrency, Provider: b.Provider, SourceUrl: b.SourceURL, BaseDate: b.BaseDate, Reason: b.Reason, ReadAt: optionalInvestmentTimestamp(b.ReadAt)}
+		for _, p := range b.Points {
+			line.Points = append(line.Points, &pb.TrackerBenchmarkPoint{Date: p.Date, Index: protoPerformanceAmount(p.Index), Reason: p.Reason})
+		}
+		out.TrackerBenchmarks = append(out.TrackerBenchmarks, line)
+	}
 	out.HistoryScope = "recorded_securities_strategy"
 	out.TwrConvention = "securities_daily_end_of_day_flows"
 	return out, nil

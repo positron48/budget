@@ -102,7 +102,7 @@ func Normalize(o Observation) (Observation, error) {
 	if o.Currency != "" && (len(o.Currency) != 3 || strings.Trim(o.Currency, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") != "") {
 		return o, ErrInvalid
 	}
-	if o.PriceUnit != "provider_unspecified" && o.PriceUnit != "currency_per_unit" && o.PriceUnit != "percent_of_nominal" {
+	if o.PriceUnit != "provider_unspecified" && o.PriceUnit != "currency_per_unit" && o.PriceUnit != "percent_of_nominal" && o.PriceUnit != "index_points" {
 		return o, ErrInvalid
 	}
 	if o.Adjustment != "provider_unspecified" && o.Adjustment != "unadjusted" {
@@ -146,6 +146,10 @@ func Normalize(o Observation) (Observation, error) {
 	conflict := low.Cmp(high) > 0 || open.Cmp(low) < 0 || open.Cmp(high) > 0 || price.Cmp(low) < 0 || price.Cmp(high) > 0
 	if conflict != (o.QualityIssue == "provider_ohlc_conflict") {
 		return o, ErrInvalid
+	}
+	// An index is a level, not traded shares. Missing index volume stays absent.
+	if o.PriceUnit == "index_points" && o.Volume == "" {
+		return o, nil
 	}
 	if !volumePattern.MatchString(o.Volume) {
 		return o, ErrInvalid

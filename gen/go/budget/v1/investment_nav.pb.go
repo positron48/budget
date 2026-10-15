@@ -1479,26 +1479,27 @@ func (x *InvestmentTWRPoint) GetIndex() *InvestmentNAVAmount {
 }
 
 type GetInvestmentPerformanceResponse struct {
-	state                  protoimpl.MessageState `protogen:"open.v1"`
-	FromDate               string                 `protobuf:"bytes,1,opt,name=from_date,json=fromDate,proto3" json:"from_date,omitempty"`
-	ToDate                 string                 `protobuf:"bytes,2,opt,name=to_date,json=toDate,proto3" json:"to_date,omitempty"`
-	Currency               string                 `protobuf:"bytes,3,opt,name=currency,proto3" json:"currency,omitempty"`
-	FxPolicyKey            string                 `protobuf:"bytes,4,opt,name=fx_policy_key,json=fxPolicyKey,proto3" json:"fx_policy_key,omitempty"`
-	Generation             int64                  `protobuf:"varint,5,opt,name=generation,proto3" json:"generation,omitempty"`
-	Profit                 *InvestmentNAVAmount   `protobuf:"bytes,6,opt,name=profit,proto3" json:"profit,omitempty"`
-	NetContributions       *InvestmentNAVAmount   `protobuf:"bytes,7,opt,name=net_contributions,json=netContributions,proto3" json:"net_contributions,omitempty"`
-	Reason                 string                 `protobuf:"bytes,8,opt,name=reason,proto3" json:"reason,omitempty"`
-	Twr                    *InvestmentNAVAmount   `protobuf:"bytes,9,opt,name=twr,proto3" json:"twr,omitempty"`
-	TwrReason              string                 `protobuf:"bytes,10,opt,name=twr_reason,json=twrReason,proto3" json:"twr_reason,omitempty"`
-	TwrPoints              []*InvestmentTWRPoint  `protobuf:"bytes,11,rep,name=twr_points,json=twrPoints,proto3" json:"twr_points,omitempty"`
-	Xirr                   *float64               `protobuf:"fixed64,12,opt,name=xirr,proto3,oneof" json:"xirr,omitempty"` // annual fraction; absent means undefined, not zero
-	XirrReason             string                 `protobuf:"bytes,13,opt,name=xirr_reason,json=xirrReason,proto3" json:"xirr_reason,omitempty"`
-	XirrDays               int32                  `protobuf:"varint,14,opt,name=xirr_days,json=xirrDays,proto3" json:"xirr_days,omitempty"`
-	XirrAnnualized         bool                   `protobuf:"varint,15,opt,name=xirr_annualized,json=xirrAnnualized,proto3" json:"xirr_annualized,omitempty"`
-	TwrConvention          string                 `protobuf:"bytes,16,opt,name=twr_convention,json=twrConvention,proto3" json:"twr_convention,omitempty"`
-	ReportingTimezone      string                 `protobuf:"bytes,17,opt,name=reporting_timezone,json=reportingTimezone,proto3" json:"reporting_timezone,omitempty"`
-	NetContributionsReason string                 `protobuf:"bytes,19,opt,name=net_contributions_reason,json=netContributionsReason,proto3" json:"net_contributions_reason,omitempty"`
-	HistoryScope           string                 `protobuf:"bytes,18,opt,name=history_scope,json=historyScope,proto3" json:"history_scope,omitempty"` // recorded_journal, not broker reconciliation certification
+	state                  protoimpl.MessageState  `protogen:"open.v1"`
+	FromDate               string                  `protobuf:"bytes,1,opt,name=from_date,json=fromDate,proto3" json:"from_date,omitempty"`
+	ToDate                 string                  `protobuf:"bytes,2,opt,name=to_date,json=toDate,proto3" json:"to_date,omitempty"`
+	Currency               string                  `protobuf:"bytes,3,opt,name=currency,proto3" json:"currency,omitempty"`
+	FxPolicyKey            string                  `protobuf:"bytes,4,opt,name=fx_policy_key,json=fxPolicyKey,proto3" json:"fx_policy_key,omitempty"`
+	Generation             int64                   `protobuf:"varint,5,opt,name=generation,proto3" json:"generation,omitempty"`
+	Profit                 *InvestmentNAVAmount    `protobuf:"bytes,6,opt,name=profit,proto3" json:"profit,omitempty"`
+	NetContributions       *InvestmentNAVAmount    `protobuf:"bytes,7,opt,name=net_contributions,json=netContributions,proto3" json:"net_contributions,omitempty"`
+	Reason                 string                  `protobuf:"bytes,8,opt,name=reason,proto3" json:"reason,omitempty"`
+	Twr                    *InvestmentNAVAmount    `protobuf:"bytes,9,opt,name=twr,proto3" json:"twr,omitempty"`
+	TwrReason              string                  `protobuf:"bytes,10,opt,name=twr_reason,json=twrReason,proto3" json:"twr_reason,omitempty"`
+	TwrPoints              []*InvestmentTWRPoint   `protobuf:"bytes,11,rep,name=twr_points,json=twrPoints,proto3" json:"twr_points,omitempty"`
+	Xirr                   *float64                `protobuf:"fixed64,12,opt,name=xirr,proto3,oneof" json:"xirr,omitempty"` // annual fraction; absent means undefined, not zero
+	XirrReason             string                  `protobuf:"bytes,13,opt,name=xirr_reason,json=xirrReason,proto3" json:"xirr_reason,omitempty"`
+	XirrDays               int32                   `protobuf:"varint,14,opt,name=xirr_days,json=xirrDays,proto3" json:"xirr_days,omitempty"`
+	XirrAnnualized         bool                    `protobuf:"varint,15,opt,name=xirr_annualized,json=xirrAnnualized,proto3" json:"xirr_annualized,omitempty"`
+	TwrConvention          string                  `protobuf:"bytes,16,opt,name=twr_convention,json=twrConvention,proto3" json:"twr_convention,omitempty"`
+	ReportingTimezone      string                  `protobuf:"bytes,17,opt,name=reporting_timezone,json=reportingTimezone,proto3" json:"reporting_timezone,omitempty"`
+	NetContributionsReason string                  `protobuf:"bytes,19,opt,name=net_contributions_reason,json=netContributionsReason,proto3" json:"net_contributions_reason,omitempty"`
+	TrackerBenchmarks      []*TrackerBenchmarkLine `protobuf:"bytes,20,rep,name=tracker_benchmarks,json=trackerBenchmarks,proto3" json:"tracker_benchmarks,omitempty"`
+	HistoryScope           string                  `protobuf:"bytes,18,opt,name=history_scope,json=historyScope,proto3" json:"history_scope,omitempty"` // recorded_journal, not broker reconciliation certification
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -1659,11 +1660,195 @@ func (x *GetInvestmentPerformanceResponse) GetNetContributionsReason() string {
 	return ""
 }
 
+func (x *GetInvestmentPerformanceResponse) GetTrackerBenchmarks() []*TrackerBenchmarkLine {
+	if x != nil {
+		return x.TrackerBenchmarks
+	}
+	return nil
+}
+
 func (x *GetInvestmentPerformanceResponse) GetHistoryScope() string {
 	if x != nil {
 		return x.HistoryScope
 	}
 	return ""
+}
+
+// Price-only public comparisons; never an unlabeled index/ETF substitution.
+type TrackerBenchmarkPoint struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Date          string                 `protobuf:"bytes,1,opt,name=date,proto3" json:"date,omitempty"`
+	Index         *InvestmentNAVAmount   `protobuf:"bytes,2,opt,name=index,proto3" json:"index,omitempty"`
+	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TrackerBenchmarkPoint) Reset() {
+	*x = TrackerBenchmarkPoint{}
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TrackerBenchmarkPoint) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TrackerBenchmarkPoint) ProtoMessage() {}
+
+func (x *TrackerBenchmarkPoint) ProtoReflect() protoreflect.Message {
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TrackerBenchmarkPoint.ProtoReflect.Descriptor instead.
+func (*TrackerBenchmarkPoint) Descriptor() ([]byte, []int) {
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *TrackerBenchmarkPoint) GetDate() string {
+	if x != nil {
+		return x.Date
+	}
+	return ""
+}
+
+func (x *TrackerBenchmarkPoint) GetIndex() *InvestmentNAVAmount {
+	if x != nil {
+		return x.Index
+	}
+	return nil
+}
+
+func (x *TrackerBenchmarkPoint) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type TrackerBenchmarkLine struct {
+	state          protoimpl.MessageState   `protogen:"open.v1"`
+	Key            string                   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Title          string                   `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Kind           string                   `protobuf:"bytes,3,opt,name=kind,proto3" json:"kind,omitempty"`
+	NativeCurrency string                   `protobuf:"bytes,4,opt,name=native_currency,json=nativeCurrency,proto3" json:"native_currency,omitempty"`
+	Provider       string                   `protobuf:"bytes,5,opt,name=provider,proto3" json:"provider,omitempty"`
+	SourceUrl      string                   `protobuf:"bytes,6,opt,name=source_url,json=sourceUrl,proto3" json:"source_url,omitempty"`
+	BaseDate       string                   `protobuf:"bytes,7,opt,name=base_date,json=baseDate,proto3" json:"base_date,omitempty"`
+	Reason         string                   `protobuf:"bytes,8,opt,name=reason,proto3" json:"reason,omitempty"`
+	ReadAt         *timestamppb.Timestamp   `protobuf:"bytes,9,opt,name=read_at,json=readAt,proto3" json:"read_at,omitempty"`
+	Points         []*TrackerBenchmarkPoint `protobuf:"bytes,10,rep,name=points,proto3" json:"points,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *TrackerBenchmarkLine) Reset() {
+	*x = TrackerBenchmarkLine{}
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TrackerBenchmarkLine) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TrackerBenchmarkLine) ProtoMessage() {}
+
+func (x *TrackerBenchmarkLine) ProtoReflect() protoreflect.Message {
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TrackerBenchmarkLine.ProtoReflect.Descriptor instead.
+func (*TrackerBenchmarkLine) Descriptor() ([]byte, []int) {
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *TrackerBenchmarkLine) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *TrackerBenchmarkLine) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *TrackerBenchmarkLine) GetKind() string {
+	if x != nil {
+		return x.Kind
+	}
+	return ""
+}
+
+func (x *TrackerBenchmarkLine) GetNativeCurrency() string {
+	if x != nil {
+		return x.NativeCurrency
+	}
+	return ""
+}
+
+func (x *TrackerBenchmarkLine) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *TrackerBenchmarkLine) GetSourceUrl() string {
+	if x != nil {
+		return x.SourceUrl
+	}
+	return ""
+}
+
+func (x *TrackerBenchmarkLine) GetBaseDate() string {
+	if x != nil {
+		return x.BaseDate
+	}
+	return ""
+}
+
+func (x *TrackerBenchmarkLine) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *TrackerBenchmarkLine) GetReadAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ReadAt
+	}
+	return nil
+}
+
+func (x *TrackerBenchmarkLine) GetPoints() []*TrackerBenchmarkPoint {
+	if x != nil {
+		return x.Points
+	}
+	return nil
 }
 
 type InvestmentBenchmark struct {
@@ -1679,7 +1864,7 @@ type InvestmentBenchmark struct {
 
 func (x *InvestmentBenchmark) Reset() {
 	*x = InvestmentBenchmark{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[23]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1691,7 +1876,7 @@ func (x *InvestmentBenchmark) String() string {
 func (*InvestmentBenchmark) ProtoMessage() {}
 
 func (x *InvestmentBenchmark) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[23]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1704,7 +1889,7 @@ func (x *InvestmentBenchmark) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentBenchmark.ProtoReflect.Descriptor instead.
 func (*InvestmentBenchmark) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{23}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *InvestmentBenchmark) GetKey() string {
@@ -1751,7 +1936,7 @@ type ListInvestmentBenchmarksRequest struct {
 
 func (x *ListInvestmentBenchmarksRequest) Reset() {
 	*x = ListInvestmentBenchmarksRequest{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[24]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1763,7 +1948,7 @@ func (x *ListInvestmentBenchmarksRequest) String() string {
 func (*ListInvestmentBenchmarksRequest) ProtoMessage() {}
 
 func (x *ListInvestmentBenchmarksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[24]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1776,7 +1961,7 @@ func (x *ListInvestmentBenchmarksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInvestmentBenchmarksRequest.ProtoReflect.Descriptor instead.
 func (*ListInvestmentBenchmarksRequest) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{24}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ListInvestmentBenchmarksRequest) GetAfterKey() string {
@@ -1796,7 +1981,7 @@ type ListInvestmentBenchmarksResponse struct {
 
 func (x *ListInvestmentBenchmarksResponse) Reset() {
 	*x = ListInvestmentBenchmarksResponse{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[25]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1808,7 +1993,7 @@ func (x *ListInvestmentBenchmarksResponse) String() string {
 func (*ListInvestmentBenchmarksResponse) ProtoMessage() {}
 
 func (x *ListInvestmentBenchmarksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[25]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1821,7 +2006,7 @@ func (x *ListInvestmentBenchmarksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInvestmentBenchmarksResponse.ProtoReflect.Descriptor instead.
 func (*ListInvestmentBenchmarksResponse) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{25}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ListInvestmentBenchmarksResponse) GetBenchmarks() []*InvestmentBenchmark {
@@ -1850,7 +2035,7 @@ type GetInvestmentBenchmarkComparisonRequest struct {
 
 func (x *GetInvestmentBenchmarkComparisonRequest) Reset() {
 	*x = GetInvestmentBenchmarkComparisonRequest{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[26]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1862,7 +2047,7 @@ func (x *GetInvestmentBenchmarkComparisonRequest) String() string {
 func (*GetInvestmentBenchmarkComparisonRequest) ProtoMessage() {}
 
 func (x *GetInvestmentBenchmarkComparisonRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[26]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1875,7 +2060,7 @@ func (x *GetInvestmentBenchmarkComparisonRequest) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use GetInvestmentBenchmarkComparisonRequest.ProtoReflect.Descriptor instead.
 func (*GetInvestmentBenchmarkComparisonRequest) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{26}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *GetInvestmentBenchmarkComparisonRequest) GetSeriesKey() string {
@@ -1929,7 +2114,7 @@ type InvestmentBenchmarkPoint struct {
 
 func (x *InvestmentBenchmarkPoint) Reset() {
 	*x = InvestmentBenchmarkPoint{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[27]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1941,7 +2126,7 @@ func (x *InvestmentBenchmarkPoint) String() string {
 func (*InvestmentBenchmarkPoint) ProtoMessage() {}
 
 func (x *InvestmentBenchmarkPoint) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[27]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1954,7 +2139,7 @@ func (x *InvestmentBenchmarkPoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentBenchmarkPoint.ProtoReflect.Descriptor instead.
 func (*InvestmentBenchmarkPoint) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{27}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *InvestmentBenchmarkPoint) GetPortfolioIndex() *InvestmentNAVAmount {
@@ -2079,7 +2264,7 @@ type GetInvestmentBenchmarkComparisonResponse struct {
 
 func (x *GetInvestmentBenchmarkComparisonResponse) Reset() {
 	*x = GetInvestmentBenchmarkComparisonResponse{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[28]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2091,7 +2276,7 @@ func (x *GetInvestmentBenchmarkComparisonResponse) String() string {
 func (*GetInvestmentBenchmarkComparisonResponse) ProtoMessage() {}
 
 func (x *GetInvestmentBenchmarkComparisonResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[28]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2104,7 +2289,7 @@ func (x *GetInvestmentBenchmarkComparisonResponse) ProtoReflect() protoreflect.M
 
 // Deprecated: Use GetInvestmentBenchmarkComparisonResponse.ProtoReflect.Descriptor instead.
 func (*GetInvestmentBenchmarkComparisonResponse) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{28}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GetInvestmentBenchmarkComparisonResponse) GetBenchmark() *InvestmentBenchmark {
@@ -2180,7 +2365,7 @@ type InvestmentGroup struct {
 
 func (x *InvestmentGroup) Reset() {
 	*x = InvestmentGroup{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[29]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2192,7 +2377,7 @@ func (x *InvestmentGroup) String() string {
 func (*InvestmentGroup) ProtoMessage() {}
 
 func (x *InvestmentGroup) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[29]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2205,7 +2390,7 @@ func (x *InvestmentGroup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentGroup.ProtoReflect.Descriptor instead.
 func (*InvestmentGroup) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{29}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *InvestmentGroup) GetId() string {
@@ -2233,7 +2418,7 @@ type InvestmentGroupMembership struct {
 
 func (x *InvestmentGroupMembership) Reset() {
 	*x = InvestmentGroupMembership{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[30]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2245,7 +2430,7 @@ func (x *InvestmentGroupMembership) String() string {
 func (*InvestmentGroupMembership) ProtoMessage() {}
 
 func (x *InvestmentGroupMembership) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[30]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2258,7 +2443,7 @@ func (x *InvestmentGroupMembership) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentGroupMembership.ProtoReflect.Descriptor instead.
 func (*InvestmentGroupMembership) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{30}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *InvestmentGroupMembership) GetLedgerId() string {
@@ -2293,7 +2478,7 @@ type InvestmentGroups struct {
 
 func (x *InvestmentGroups) Reset() {
 	*x = InvestmentGroups{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[31]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2305,7 +2490,7 @@ func (x *InvestmentGroups) String() string {
 func (*InvestmentGroups) ProtoMessage() {}
 
 func (x *InvestmentGroups) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[31]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2318,7 +2503,7 @@ func (x *InvestmentGroups) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentGroups.ProtoReflect.Descriptor instead.
 func (*InvestmentGroups) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{31}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *InvestmentGroups) GetVersion() int64 {
@@ -2353,7 +2538,7 @@ type InvestmentGroupPosition struct {
 
 func (x *InvestmentGroupPosition) Reset() {
 	*x = InvestmentGroupPosition{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[32]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2365,7 +2550,7 @@ func (x *InvestmentGroupPosition) String() string {
 func (*InvestmentGroupPosition) ProtoMessage() {}
 
 func (x *InvestmentGroupPosition) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[32]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2378,7 +2563,7 @@ func (x *InvestmentGroupPosition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentGroupPosition.ProtoReflect.Descriptor instead.
 func (*InvestmentGroupPosition) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{32}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *InvestmentGroupPosition) GetLedgerId() string {
@@ -2410,7 +2595,7 @@ type GetInvestmentGroupsRequest struct {
 
 func (x *GetInvestmentGroupsRequest) Reset() {
 	*x = GetInvestmentGroupsRequest{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[33]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2422,7 +2607,7 @@ func (x *GetInvestmentGroupsRequest) String() string {
 func (*GetInvestmentGroupsRequest) ProtoMessage() {}
 
 func (x *GetInvestmentGroupsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[33]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2435,7 +2620,7 @@ func (x *GetInvestmentGroupsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvestmentGroupsRequest.ProtoReflect.Descriptor instead.
 func (*GetInvestmentGroupsRequest) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{33}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{35}
 }
 
 type GetInvestmentGroupsResponse struct {
@@ -2448,7 +2633,7 @@ type GetInvestmentGroupsResponse struct {
 
 func (x *GetInvestmentGroupsResponse) Reset() {
 	*x = GetInvestmentGroupsResponse{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[34]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2460,7 +2645,7 @@ func (x *GetInvestmentGroupsResponse) String() string {
 func (*GetInvestmentGroupsResponse) ProtoMessage() {}
 
 func (x *GetInvestmentGroupsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[34]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2473,7 +2658,7 @@ func (x *GetInvestmentGroupsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvestmentGroupsResponse.ProtoReflect.Descriptor instead.
 func (*GetInvestmentGroupsResponse) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{34}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *GetInvestmentGroupsResponse) GetClassification() *InvestmentGroups {
@@ -2501,7 +2686,7 @@ type SaveInvestmentGroupsRequest struct {
 
 func (x *SaveInvestmentGroupsRequest) Reset() {
 	*x = SaveInvestmentGroupsRequest{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[35]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2513,7 +2698,7 @@ func (x *SaveInvestmentGroupsRequest) String() string {
 func (*SaveInvestmentGroupsRequest) ProtoMessage() {}
 
 func (x *SaveInvestmentGroupsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[35]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2526,7 +2711,7 @@ func (x *SaveInvestmentGroupsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveInvestmentGroupsRequest.ProtoReflect.Descriptor instead.
 func (*SaveInvestmentGroupsRequest) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{35}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *SaveInvestmentGroupsRequest) GetClassification() *InvestmentGroups {
@@ -2559,7 +2744,7 @@ type SaveInvestmentGroupsResponse struct {
 
 func (x *SaveInvestmentGroupsResponse) Reset() {
 	*x = SaveInvestmentGroupsResponse{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[36]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2571,7 +2756,7 @@ func (x *SaveInvestmentGroupsResponse) String() string {
 func (*SaveInvestmentGroupsResponse) ProtoMessage() {}
 
 func (x *SaveInvestmentGroupsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[36]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2584,7 +2769,7 @@ func (x *SaveInvestmentGroupsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveInvestmentGroupsResponse.ProtoReflect.Descriptor instead.
 func (*SaveInvestmentGroupsResponse) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{36}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *SaveInvestmentGroupsResponse) GetClassification() *InvestmentGroups {
@@ -2608,7 +2793,7 @@ type GetInvestmentCompositionHistoryRequest struct {
 
 func (x *GetInvestmentCompositionHistoryRequest) Reset() {
 	*x = GetInvestmentCompositionHistoryRequest{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[37]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2620,7 +2805,7 @@ func (x *GetInvestmentCompositionHistoryRequest) String() string {
 func (*GetInvestmentCompositionHistoryRequest) ProtoMessage() {}
 
 func (x *GetInvestmentCompositionHistoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[37]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2633,7 +2818,7 @@ func (x *GetInvestmentCompositionHistoryRequest) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use GetInvestmentCompositionHistoryRequest.ProtoReflect.Descriptor instead.
 func (*GetInvestmentCompositionHistoryRequest) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{37}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *GetInvestmentCompositionHistoryRequest) GetSeriesKey() string {
@@ -2686,7 +2871,7 @@ type InvestmentCompositionPoint struct {
 
 func (x *InvestmentCompositionPoint) Reset() {
 	*x = InvestmentCompositionPoint{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[38]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2698,7 +2883,7 @@ func (x *InvestmentCompositionPoint) String() string {
 func (*InvestmentCompositionPoint) ProtoMessage() {}
 
 func (x *InvestmentCompositionPoint) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[38]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2711,7 +2896,7 @@ func (x *InvestmentCompositionPoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentCompositionPoint.ProtoReflect.Descriptor instead.
 func (*InvestmentCompositionPoint) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{38}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *InvestmentCompositionPoint) GetDate() string {
@@ -2777,7 +2962,7 @@ type InvestmentCompositionSegment struct {
 
 func (x *InvestmentCompositionSegment) Reset() {
 	*x = InvestmentCompositionSegment{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[39]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2789,7 +2974,7 @@ func (x *InvestmentCompositionSegment) String() string {
 func (*InvestmentCompositionSegment) ProtoMessage() {}
 
 func (x *InvestmentCompositionSegment) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[39]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2802,7 +2987,7 @@ func (x *InvestmentCompositionSegment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentCompositionSegment.ProtoReflect.Descriptor instead.
 func (*InvestmentCompositionSegment) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{39}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *InvestmentCompositionSegment) GetCategoryKey() string {
@@ -2864,7 +3049,7 @@ type GetInvestmentCompositionHistoryResponse struct {
 
 func (x *GetInvestmentCompositionHistoryResponse) Reset() {
 	*x = GetInvestmentCompositionHistoryResponse{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[40]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2876,7 +3061,7 @@ func (x *GetInvestmentCompositionHistoryResponse) String() string {
 func (*GetInvestmentCompositionHistoryResponse) ProtoMessage() {}
 
 func (x *GetInvestmentCompositionHistoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[40]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2889,7 +3074,7 @@ func (x *GetInvestmentCompositionHistoryResponse) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use GetInvestmentCompositionHistoryResponse.ProtoReflect.Descriptor instead.
 func (*GetInvestmentCompositionHistoryResponse) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{40}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *GetInvestmentCompositionHistoryResponse) GetClassificationVersion() int64 {
@@ -2966,7 +3151,7 @@ type GetInvestmentPositionsRequest struct {
 
 func (x *GetInvestmentPositionsRequest) Reset() {
 	*x = GetInvestmentPositionsRequest{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[41]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2978,7 +3163,7 @@ func (x *GetInvestmentPositionsRequest) String() string {
 func (*GetInvestmentPositionsRequest) ProtoMessage() {}
 
 func (x *GetInvestmentPositionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[41]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2991,7 +3176,7 @@ func (x *GetInvestmentPositionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvestmentPositionsRequest.ProtoReflect.Descriptor instead.
 func (*GetInvestmentPositionsRequest) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{41}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *GetInvestmentPositionsRequest) GetSeriesKey() string {
@@ -3027,7 +3212,7 @@ type InvestmentPositionPayment struct {
 
 func (x *InvestmentPositionPayment) Reset() {
 	*x = InvestmentPositionPayment{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[42]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3039,7 +3224,7 @@ func (x *InvestmentPositionPayment) String() string {
 func (*InvestmentPositionPayment) ProtoMessage() {}
 
 func (x *InvestmentPositionPayment) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[42]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3052,7 +3237,7 @@ func (x *InvestmentPositionPayment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentPositionPayment.ProtoReflect.Descriptor instead.
 func (*InvestmentPositionPayment) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{42}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *InvestmentPositionPayment) GetCurrency() string {
@@ -3125,7 +3310,7 @@ type InvestmentPositionDetail struct {
 
 func (x *InvestmentPositionDetail) Reset() {
 	*x = InvestmentPositionDetail{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[43]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3137,7 +3322,7 @@ func (x *InvestmentPositionDetail) String() string {
 func (*InvestmentPositionDetail) ProtoMessage() {}
 
 func (x *InvestmentPositionDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[43]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3150,7 +3335,7 @@ func (x *InvestmentPositionDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentPositionDetail.ProtoReflect.Descriptor instead.
 func (*InvestmentPositionDetail) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{43}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *InvestmentPositionDetail) GetLedgerId() string {
@@ -3405,7 +3590,7 @@ type GetInvestmentPositionsResponse struct {
 
 func (x *GetInvestmentPositionsResponse) Reset() {
 	*x = GetInvestmentPositionsResponse{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[44]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3417,7 +3602,7 @@ func (x *GetInvestmentPositionsResponse) String() string {
 func (*GetInvestmentPositionsResponse) ProtoMessage() {}
 
 func (x *GetInvestmentPositionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[44]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3430,7 +3615,7 @@ func (x *GetInvestmentPositionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvestmentPositionsResponse.ProtoReflect.Descriptor instead.
 func (*GetInvestmentPositionsResponse) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{44}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *GetInvestmentPositionsResponse) GetDate() string {
@@ -3488,7 +3673,7 @@ type GetInvestmentInstrumentRequest struct {
 
 func (x *GetInvestmentInstrumentRequest) Reset() {
 	*x = GetInvestmentInstrumentRequest{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[45]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3500,7 +3685,7 @@ func (x *GetInvestmentInstrumentRequest) String() string {
 func (*GetInvestmentInstrumentRequest) ProtoMessage() {}
 
 func (x *GetInvestmentInstrumentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[45]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3513,7 +3698,7 @@ func (x *GetInvestmentInstrumentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvestmentInstrumentRequest.ProtoReflect.Descriptor instead.
 func (*GetInvestmentInstrumentRequest) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{45}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *GetInvestmentInstrumentRequest) GetSeriesKey() string {
@@ -3565,7 +3750,7 @@ type GetInvestmentInstrumentResponse struct {
 
 func (x *GetInvestmentInstrumentResponse) Reset() {
 	*x = GetInvestmentInstrumentResponse{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[46]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3577,7 +3762,7 @@ func (x *GetInvestmentInstrumentResponse) String() string {
 func (*GetInvestmentInstrumentResponse) ProtoMessage() {}
 
 func (x *GetInvestmentInstrumentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[46]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3590,7 +3775,7 @@ func (x *GetInvestmentInstrumentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvestmentInstrumentResponse.ProtoReflect.Descriptor instead.
 func (*GetInvestmentInstrumentResponse) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{46}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *GetInvestmentInstrumentResponse) GetAsOf() *timestamppb.Timestamp {
@@ -3648,7 +3833,7 @@ type GetInvestmentInstrumentPricesRequest struct {
 
 func (x *GetInvestmentInstrumentPricesRequest) Reset() {
 	*x = GetInvestmentInstrumentPricesRequest{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[47]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3660,7 +3845,7 @@ func (x *GetInvestmentInstrumentPricesRequest) String() string {
 func (*GetInvestmentInstrumentPricesRequest) ProtoMessage() {}
 
 func (x *GetInvestmentInstrumentPricesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[47]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3673,7 +3858,7 @@ func (x *GetInvestmentInstrumentPricesRequest) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use GetInvestmentInstrumentPricesRequest.ProtoReflect.Descriptor instead.
 func (*GetInvestmentInstrumentPricesRequest) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{47}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *GetInvestmentInstrumentPricesRequest) GetSeriesKey() string {
@@ -3725,7 +3910,7 @@ type InvestmentAccruedEvidence struct {
 
 func (x *InvestmentAccruedEvidence) Reset() {
 	*x = InvestmentAccruedEvidence{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[48]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3737,7 +3922,7 @@ func (x *InvestmentAccruedEvidence) String() string {
 func (*InvestmentAccruedEvidence) ProtoMessage() {}
 
 func (x *InvestmentAccruedEvidence) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[48]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3750,7 +3935,7 @@ func (x *InvestmentAccruedEvidence) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentAccruedEvidence.ProtoReflect.Descriptor instead.
 func (*InvestmentAccruedEvidence) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{48}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *InvestmentAccruedEvidence) GetSourceId() string {
@@ -3817,7 +4002,7 @@ type InvestmentPriceAdjustmentEvidence struct {
 
 func (x *InvestmentPriceAdjustmentEvidence) Reset() {
 	*x = InvestmentPriceAdjustmentEvidence{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[49]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3829,7 +4014,7 @@ func (x *InvestmentPriceAdjustmentEvidence) String() string {
 func (*InvestmentPriceAdjustmentEvidence) ProtoMessage() {}
 
 func (x *InvestmentPriceAdjustmentEvidence) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[49]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3842,7 +4027,7 @@ func (x *InvestmentPriceAdjustmentEvidence) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use InvestmentPriceAdjustmentEvidence.ProtoReflect.Descriptor instead.
 func (*InvestmentPriceAdjustmentEvidence) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{49}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *InvestmentPriceAdjustmentEvidence) GetSourcePrice() string {
@@ -3965,7 +4150,7 @@ type InvestmentInstrumentPricePoint struct {
 
 func (x *InvestmentInstrumentPricePoint) Reset() {
 	*x = InvestmentInstrumentPricePoint{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[50]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3977,7 +4162,7 @@ func (x *InvestmentInstrumentPricePoint) String() string {
 func (*InvestmentInstrumentPricePoint) ProtoMessage() {}
 
 func (x *InvestmentInstrumentPricePoint) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[50]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3990,7 +4175,7 @@ func (x *InvestmentInstrumentPricePoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentInstrumentPricePoint.ProtoReflect.Descriptor instead.
 func (*InvestmentInstrumentPricePoint) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{50}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *InvestmentInstrumentPricePoint) GetAdjustmentEvidence() *InvestmentPriceAdjustmentEvidence {
@@ -4105,7 +4290,7 @@ type GetInvestmentInstrumentPricesResponse struct {
 
 func (x *GetInvestmentInstrumentPricesResponse) Reset() {
 	*x = GetInvestmentInstrumentPricesResponse{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[51]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4117,7 +4302,7 @@ func (x *GetInvestmentInstrumentPricesResponse) String() string {
 func (*GetInvestmentInstrumentPricesResponse) ProtoMessage() {}
 
 func (x *GetInvestmentInstrumentPricesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[51]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4130,7 +4315,7 @@ func (x *GetInvestmentInstrumentPricesResponse) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use GetInvestmentInstrumentPricesResponse.ProtoReflect.Descriptor instead.
 func (*GetInvestmentInstrumentPricesResponse) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{51}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *GetInvestmentInstrumentPricesResponse) GetMarkers() []*InvestmentOperation {
@@ -4188,7 +4373,7 @@ type InvestmentProfitPoint struct {
 
 func (x *InvestmentProfitPoint) Reset() {
 	*x = InvestmentProfitPoint{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[52]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4200,7 +4385,7 @@ func (x *InvestmentProfitPoint) String() string {
 func (*InvestmentProfitPoint) ProtoMessage() {}
 
 func (x *InvestmentProfitPoint) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[52]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4213,7 +4398,7 @@ func (x *InvestmentProfitPoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentProfitPoint.ProtoReflect.Descriptor instead.
 func (*InvestmentProfitPoint) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{52}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *InvestmentProfitPoint) GetDate() string {
@@ -4265,7 +4450,7 @@ type InvestmentProfitBucket struct {
 
 func (x *InvestmentProfitBucket) Reset() {
 	*x = InvestmentProfitBucket{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[53]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4277,7 +4462,7 @@ func (x *InvestmentProfitBucket) String() string {
 func (*InvestmentProfitBucket) ProtoMessage() {}
 
 func (x *InvestmentProfitBucket) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[53]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4290,7 +4475,7 @@ func (x *InvestmentProfitBucket) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentProfitBucket.ProtoReflect.Descriptor instead.
 func (*InvestmentProfitBucket) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{53}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *InvestmentProfitBucket) GetPeriod() string {
@@ -4348,7 +4533,7 @@ type InvestmentProfitComponent struct {
 
 func (x *InvestmentProfitComponent) Reset() {
 	*x = InvestmentProfitComponent{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[54]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4360,7 +4545,7 @@ func (x *InvestmentProfitComponent) String() string {
 func (*InvestmentProfitComponent) ProtoMessage() {}
 
 func (x *InvestmentProfitComponent) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[54]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4373,7 +4558,7 @@ func (x *InvestmentProfitComponent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentProfitComponent.ProtoReflect.Descriptor instead.
 func (*InvestmentProfitComponent) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{54}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *InvestmentProfitComponent) GetKind() string {
@@ -4427,7 +4612,7 @@ type InvestmentInstrumentContribution struct {
 
 func (x *InvestmentInstrumentContribution) Reset() {
 	*x = InvestmentInstrumentContribution{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[55]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4439,7 +4624,7 @@ func (x *InvestmentInstrumentContribution) String() string {
 func (*InvestmentInstrumentContribution) ProtoMessage() {}
 
 func (x *InvestmentInstrumentContribution) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[55]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4452,7 +4637,7 @@ func (x *InvestmentInstrumentContribution) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentInstrumentContribution.ProtoReflect.Descriptor instead.
 func (*InvestmentInstrumentContribution) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{55}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *InvestmentInstrumentContribution) GetInstrumentKey() string {
@@ -4539,7 +4724,7 @@ type GetInvestmentProfitResponse struct {
 
 func (x *GetInvestmentProfitResponse) Reset() {
 	*x = GetInvestmentProfitResponse{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[56]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4551,7 +4736,7 @@ func (x *GetInvestmentProfitResponse) String() string {
 func (*GetInvestmentProfitResponse) ProtoMessage() {}
 
 func (x *GetInvestmentProfitResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[56]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4564,7 +4749,7 @@ func (x *GetInvestmentProfitResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvestmentProfitResponse.ProtoReflect.Descriptor instead.
 func (*GetInvestmentProfitResponse) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{56}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *GetInvestmentProfitResponse) GetSeriesKey() string {
@@ -4728,7 +4913,7 @@ type InvestmentOverviewFX struct {
 
 func (x *InvestmentOverviewFX) Reset() {
 	*x = InvestmentOverviewFX{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[57]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4740,7 +4925,7 @@ func (x *InvestmentOverviewFX) String() string {
 func (*InvestmentOverviewFX) ProtoMessage() {}
 
 func (x *InvestmentOverviewFX) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[57]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4753,7 +4938,7 @@ func (x *InvestmentOverviewFX) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentOverviewFX.ProtoReflect.Descriptor instead.
 func (*InvestmentOverviewFX) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{57}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *InvestmentOverviewFX) GetFromCurrency() string {
@@ -4868,7 +5053,7 @@ type GetInvestmentOverviewResponse struct {
 
 func (x *GetInvestmentOverviewResponse) Reset() {
 	*x = GetInvestmentOverviewResponse{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[58]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4880,7 +5065,7 @@ func (x *GetInvestmentOverviewResponse) String() string {
 func (*GetInvestmentOverviewResponse) ProtoMessage() {}
 
 func (x *GetInvestmentOverviewResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[58]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4893,7 +5078,7 @@ func (x *GetInvestmentOverviewResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvestmentOverviewResponse.ProtoReflect.Descriptor instead.
 func (*GetInvestmentOverviewResponse) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{58}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *GetInvestmentOverviewResponse) GetSeriesKey() string {
@@ -5002,7 +5187,7 @@ type ExportInvestmentSeriesResponse struct {
 
 func (x *ExportInvestmentSeriesResponse) Reset() {
 	*x = ExportInvestmentSeriesResponse{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[59]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5014,7 +5199,7 @@ func (x *ExportInvestmentSeriesResponse) String() string {
 func (*ExportInvestmentSeriesResponse) ProtoMessage() {}
 
 func (x *ExportInvestmentSeriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[59]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5027,7 +5212,7 @@ func (x *ExportInvestmentSeriesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportInvestmentSeriesResponse.ProtoReflect.Descriptor instead.
 func (*ExportInvestmentSeriesResponse) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{59}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *ExportInvestmentSeriesResponse) GetFilename() string {
@@ -5090,7 +5275,7 @@ type InvestmentNAVVariantRequest struct {
 
 func (x *InvestmentNAVVariantRequest) Reset() {
 	*x = InvestmentNAVVariantRequest{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[60]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5102,7 +5287,7 @@ func (x *InvestmentNAVVariantRequest) String() string {
 func (*InvestmentNAVVariantRequest) ProtoMessage() {}
 
 func (x *InvestmentNAVVariantRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[60]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5115,7 +5300,7 @@ func (x *InvestmentNAVVariantRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentNAVVariantRequest.ProtoReflect.Descriptor instead.
 func (*InvestmentNAVVariantRequest) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{60}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *InvestmentNAVVariantRequest) GetSourceSeriesKey() string {
@@ -5150,7 +5335,7 @@ type InvestmentNAVVariantResponse struct {
 
 func (x *InvestmentNAVVariantResponse) Reset() {
 	*x = InvestmentNAVVariantResponse{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[61]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5162,7 +5347,7 @@ func (x *InvestmentNAVVariantResponse) String() string {
 func (*InvestmentNAVVariantResponse) ProtoMessage() {}
 
 func (x *InvestmentNAVVariantResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[61]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5175,7 +5360,7 @@ func (x *InvestmentNAVVariantResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentNAVVariantResponse.ProtoReflect.Descriptor instead.
 func (*InvestmentNAVVariantResponse) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{61}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *InvestmentNAVVariantResponse) GetSeries() *InvestmentNAVSeries {
@@ -5224,7 +5409,7 @@ type GetInvestmentCurrentNAVResponse struct {
 
 func (x *GetInvestmentCurrentNAVResponse) Reset() {
 	*x = GetInvestmentCurrentNAVResponse{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[62]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5236,7 +5421,7 @@ func (x *GetInvestmentCurrentNAVResponse) String() string {
 func (*GetInvestmentCurrentNAVResponse) ProtoMessage() {}
 
 func (x *GetInvestmentCurrentNAVResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[62]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5249,7 +5434,7 @@ func (x *GetInvestmentCurrentNAVResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvestmentCurrentNAVResponse.ProtoReflect.Descriptor instead.
 func (*GetInvestmentCurrentNAVResponse) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{62}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *GetInvestmentCurrentNAVResponse) GetProvisional() bool {
@@ -5387,7 +5572,7 @@ type InvestmentCurrentQuote struct {
 
 func (x *InvestmentCurrentQuote) Reset() {
 	*x = InvestmentCurrentQuote{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[63]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5399,7 +5584,7 @@ func (x *InvestmentCurrentQuote) String() string {
 func (*InvestmentCurrentQuote) ProtoMessage() {}
 
 func (x *InvestmentCurrentQuote) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[63]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5412,7 +5597,7 @@ func (x *InvestmentCurrentQuote) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentCurrentQuote.ProtoReflect.Descriptor instead.
 func (*InvestmentCurrentQuote) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{63}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *InvestmentCurrentQuote) GetInstrumentKey() string {
@@ -5539,7 +5724,7 @@ type InvestmentCurrentFXLeg struct {
 
 func (x *InvestmentCurrentFXLeg) Reset() {
 	*x = InvestmentCurrentFXLeg{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[64]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5551,7 +5736,7 @@ func (x *InvestmentCurrentFXLeg) String() string {
 func (*InvestmentCurrentFXLeg) ProtoMessage() {}
 
 func (x *InvestmentCurrentFXLeg) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[64]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5564,7 +5749,7 @@ func (x *InvestmentCurrentFXLeg) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentCurrentFXLeg.ProtoReflect.Descriptor instead.
 func (*InvestmentCurrentFXLeg) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{64}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *InvestmentCurrentFXLeg) GetObservedRate() *InvestmentNAVAmount {
@@ -5657,7 +5842,7 @@ type GetInvestmentLotsRequest struct {
 
 func (x *GetInvestmentLotsRequest) Reset() {
 	*x = GetInvestmentLotsRequest{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[65]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5669,7 +5854,7 @@ func (x *GetInvestmentLotsRequest) String() string {
 func (*GetInvestmentLotsRequest) ProtoMessage() {}
 
 func (x *GetInvestmentLotsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[65]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5682,7 +5867,7 @@ func (x *GetInvestmentLotsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvestmentLotsRequest.ProtoReflect.Descriptor instead.
 func (*GetInvestmentLotsRequest) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{65}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *GetInvestmentLotsRequest) GetSeriesKey() string {
@@ -5736,7 +5921,7 @@ type InvestmentExactLot struct {
 
 func (x *InvestmentExactLot) Reset() {
 	*x = InvestmentExactLot{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[66]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5748,7 +5933,7 @@ func (x *InvestmentExactLot) String() string {
 func (*InvestmentExactLot) ProtoMessage() {}
 
 func (x *InvestmentExactLot) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[66]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5761,7 +5946,7 @@ func (x *InvestmentExactLot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentExactLot.ProtoReflect.Descriptor instead.
 func (*InvestmentExactLot) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{66}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *InvestmentExactLot) GetLotId() string {
@@ -5837,7 +6022,7 @@ type InvestmentLotChange struct {
 
 func (x *InvestmentLotChange) Reset() {
 	*x = InvestmentLotChange{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[67]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5849,7 +6034,7 @@ func (x *InvestmentLotChange) String() string {
 func (*InvestmentLotChange) ProtoMessage() {}
 
 func (x *InvestmentLotChange) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[67]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5862,7 +6047,7 @@ func (x *InvestmentLotChange) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentLotChange.ProtoReflect.Descriptor instead.
 func (*InvestmentLotChange) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{67}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *InvestmentLotChange) GetLedgerId() string {
@@ -5950,7 +6135,7 @@ type InvestmentLotDetail struct {
 
 func (x *InvestmentLotDetail) Reset() {
 	*x = InvestmentLotDetail{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[68]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5962,7 +6147,7 @@ func (x *InvestmentLotDetail) String() string {
 func (*InvestmentLotDetail) ProtoMessage() {}
 
 func (x *InvestmentLotDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[68]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5975,7 +6160,7 @@ func (x *InvestmentLotDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentLotDetail.ProtoReflect.Descriptor instead.
 func (*InvestmentLotDetail) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{68}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *InvestmentLotDetail) GetLedgerId() string {
@@ -6090,7 +6275,7 @@ type GetInvestmentLotsResponse struct {
 
 func (x *GetInvestmentLotsResponse) Reset() {
 	*x = GetInvestmentLotsResponse{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[69]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6102,7 +6287,7 @@ func (x *GetInvestmentLotsResponse) String() string {
 func (*GetInvestmentLotsResponse) ProtoMessage() {}
 
 func (x *GetInvestmentLotsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[69]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6115,7 +6300,7 @@ func (x *GetInvestmentLotsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvestmentLotsResponse.ProtoReflect.Descriptor instead.
 func (*GetInvestmentLotsResponse) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{69}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *GetInvestmentLotsResponse) GetDate() string {
@@ -6170,7 +6355,7 @@ type GetInvestmentCurrentNAVRequest struct {
 
 func (x *GetInvestmentCurrentNAVRequest) Reset() {
 	*x = GetInvestmentCurrentNAVRequest{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[70]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6182,7 +6367,7 @@ func (x *GetInvestmentCurrentNAVRequest) String() string {
 func (*GetInvestmentCurrentNAVRequest) ProtoMessage() {}
 
 func (x *GetInvestmentCurrentNAVRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[70]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6195,7 +6380,7 @@ func (x *GetInvestmentCurrentNAVRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvestmentCurrentNAVRequest.ProtoReflect.Descriptor instead.
 func (*GetInvestmentCurrentNAVRequest) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{70}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *GetInvestmentCurrentNAVRequest) GetSeriesKey() string {
@@ -6216,7 +6401,7 @@ type ExportInvestmentSeriesRequest struct {
 
 func (x *ExportInvestmentSeriesRequest) Reset() {
 	*x = ExportInvestmentSeriesRequest{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[71]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6228,7 +6413,7 @@ func (x *ExportInvestmentSeriesRequest) String() string {
 func (*ExportInvestmentSeriesRequest) ProtoMessage() {}
 
 func (x *ExportInvestmentSeriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[71]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6241,7 +6426,7 @@ func (x *ExportInvestmentSeriesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportInvestmentSeriesRequest.ProtoReflect.Descriptor instead.
 func (*ExportInvestmentSeriesRequest) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{71}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *ExportInvestmentSeriesRequest) GetSeriesKey() string {
@@ -6276,7 +6461,7 @@ type GetInvestmentOverviewRequest struct {
 
 func (x *GetInvestmentOverviewRequest) Reset() {
 	*x = GetInvestmentOverviewRequest{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[72]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6288,7 +6473,7 @@ func (x *GetInvestmentOverviewRequest) String() string {
 func (*GetInvestmentOverviewRequest) ProtoMessage() {}
 
 func (x *GetInvestmentOverviewRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[72]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6301,7 +6486,7 @@ func (x *GetInvestmentOverviewRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvestmentOverviewRequest.ProtoReflect.Descriptor instead.
 func (*GetInvestmentOverviewRequest) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{72}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *GetInvestmentOverviewRequest) GetSeriesKey() string {
@@ -6336,7 +6521,7 @@ type GetInvestmentProfitRequest struct {
 
 func (x *GetInvestmentProfitRequest) Reset() {
 	*x = GetInvestmentProfitRequest{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[73]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6348,7 +6533,7 @@ func (x *GetInvestmentProfitRequest) String() string {
 func (*GetInvestmentProfitRequest) ProtoMessage() {}
 
 func (x *GetInvestmentProfitRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[73]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6361,7 +6546,7 @@ func (x *GetInvestmentProfitRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvestmentProfitRequest.ProtoReflect.Descriptor instead.
 func (*GetInvestmentProfitRequest) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{73}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *GetInvestmentProfitRequest) GetSeriesKey() string {
@@ -6396,7 +6581,7 @@ type GetInvestmentNAVVariantRequest struct {
 
 func (x *GetInvestmentNAVVariantRequest) Reset() {
 	*x = GetInvestmentNAVVariantRequest{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[74]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6408,7 +6593,7 @@ func (x *GetInvestmentNAVVariantRequest) String() string {
 func (*GetInvestmentNAVVariantRequest) ProtoMessage() {}
 
 func (x *GetInvestmentNAVVariantRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[74]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6421,7 +6606,7 @@ func (x *GetInvestmentNAVVariantRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvestmentNAVVariantRequest.ProtoReflect.Descriptor instead.
 func (*GetInvestmentNAVVariantRequest) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{74}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{76}
 }
 
 func (x *GetInvestmentNAVVariantRequest) GetSourceSeriesKey() string {
@@ -6456,7 +6641,7 @@ type PrepareInvestmentNAVVariantRequest struct {
 
 func (x *PrepareInvestmentNAVVariantRequest) Reset() {
 	*x = PrepareInvestmentNAVVariantRequest{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[75]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6468,7 +6653,7 @@ func (x *PrepareInvestmentNAVVariantRequest) String() string {
 func (*PrepareInvestmentNAVVariantRequest) ProtoMessage() {}
 
 func (x *PrepareInvestmentNAVVariantRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[75]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6481,7 +6666,7 @@ func (x *PrepareInvestmentNAVVariantRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use PrepareInvestmentNAVVariantRequest.ProtoReflect.Descriptor instead.
 func (*PrepareInvestmentNAVVariantRequest) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{75}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *PrepareInvestmentNAVVariantRequest) GetSourceSeriesKey() string {
@@ -6516,7 +6701,7 @@ type GetInvestmentNAVVariantResponse struct {
 
 func (x *GetInvestmentNAVVariantResponse) Reset() {
 	*x = GetInvestmentNAVVariantResponse{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[76]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6528,7 +6713,7 @@ func (x *GetInvestmentNAVVariantResponse) String() string {
 func (*GetInvestmentNAVVariantResponse) ProtoMessage() {}
 
 func (x *GetInvestmentNAVVariantResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[76]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6541,7 +6726,7 @@ func (x *GetInvestmentNAVVariantResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvestmentNAVVariantResponse.ProtoReflect.Descriptor instead.
 func (*GetInvestmentNAVVariantResponse) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{76}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{78}
 }
 
 func (x *GetInvestmentNAVVariantResponse) GetSeries() *InvestmentNAVSeries {
@@ -6576,7 +6761,7 @@ type PrepareInvestmentNAVVariantResponse struct {
 
 func (x *PrepareInvestmentNAVVariantResponse) Reset() {
 	*x = PrepareInvestmentNAVVariantResponse{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[77]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6588,7 +6773,7 @@ func (x *PrepareInvestmentNAVVariantResponse) String() string {
 func (*PrepareInvestmentNAVVariantResponse) ProtoMessage() {}
 
 func (x *PrepareInvestmentNAVVariantResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[77]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6601,7 +6786,7 @@ func (x *PrepareInvestmentNAVVariantResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use PrepareInvestmentNAVVariantResponse.ProtoReflect.Descriptor instead.
 func (*PrepareInvestmentNAVVariantResponse) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{77}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *PrepareInvestmentNAVVariantResponse) GetSeries() *InvestmentNAVSeries {
@@ -6638,7 +6823,7 @@ type GetInvestmentExchangeRatesRequest struct {
 
 func (x *GetInvestmentExchangeRatesRequest) Reset() {
 	*x = GetInvestmentExchangeRatesRequest{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[78]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6650,7 +6835,7 @@ func (x *GetInvestmentExchangeRatesRequest) String() string {
 func (*GetInvestmentExchangeRatesRequest) ProtoMessage() {}
 
 func (x *GetInvestmentExchangeRatesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[78]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6663,7 +6848,7 @@ func (x *GetInvestmentExchangeRatesRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use GetInvestmentExchangeRatesRequest.ProtoReflect.Descriptor instead.
 func (*GetInvestmentExchangeRatesRequest) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{78}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *GetInvestmentExchangeRatesRequest) GetFxPolicyKey() string {
@@ -6705,7 +6890,7 @@ type InvestmentExchangeRate struct {
 
 func (x *InvestmentExchangeRate) Reset() {
 	*x = InvestmentExchangeRate{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[79]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6717,7 +6902,7 @@ func (x *InvestmentExchangeRate) String() string {
 func (*InvestmentExchangeRate) ProtoMessage() {}
 
 func (x *InvestmentExchangeRate) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[79]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6730,7 +6915,7 @@ func (x *InvestmentExchangeRate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentExchangeRate.ProtoReflect.Descriptor instead.
 func (*InvestmentExchangeRate) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{79}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *InvestmentExchangeRate) GetDate() string {
@@ -6768,7 +6953,7 @@ type GetInvestmentExchangeRatesResponse struct {
 
 func (x *GetInvestmentExchangeRatesResponse) Reset() {
 	*x = GetInvestmentExchangeRatesResponse{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[80]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6780,7 +6965,7 @@ func (x *GetInvestmentExchangeRatesResponse) String() string {
 func (*GetInvestmentExchangeRatesResponse) ProtoMessage() {}
 
 func (x *GetInvestmentExchangeRatesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[80]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6793,7 +6978,7 @@ func (x *GetInvestmentExchangeRatesResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use GetInvestmentExchangeRatesResponse.ProtoReflect.Descriptor instead.
 func (*GetInvestmentExchangeRatesResponse) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{80}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *GetInvestmentExchangeRatesResponse) GetCurrency() string {
@@ -6847,7 +7032,7 @@ type GetInvestmentQuotesRequest struct {
 
 func (x *GetInvestmentQuotesRequest) Reset() {
 	*x = GetInvestmentQuotesRequest{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[81]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6859,7 +7044,7 @@ func (x *GetInvestmentQuotesRequest) String() string {
 func (*GetInvestmentQuotesRequest) ProtoMessage() {}
 
 func (x *GetInvestmentQuotesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[81]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6872,7 +7057,7 @@ func (x *GetInvestmentQuotesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvestmentQuotesRequest.ProtoReflect.Descriptor instead.
 func (*GetInvestmentQuotesRequest) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{81}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *GetInvestmentQuotesRequest) GetInstrumentKeys() []string {
@@ -6898,7 +7083,7 @@ type InvestmentQuote struct {
 
 func (x *InvestmentQuote) Reset() {
 	*x = InvestmentQuote{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[82]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6910,7 +7095,7 @@ func (x *InvestmentQuote) String() string {
 func (*InvestmentQuote) ProtoMessage() {}
 
 func (x *InvestmentQuote) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[82]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6923,7 +7108,7 @@ func (x *InvestmentQuote) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentQuote.ProtoReflect.Descriptor instead.
 func (*InvestmentQuote) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{82}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{84}
 }
 
 func (x *InvestmentQuote) GetInstrumentKey() string {
@@ -6992,7 +7177,7 @@ type GetInvestmentQuotesResponse struct {
 
 func (x *GetInvestmentQuotesResponse) Reset() {
 	*x = GetInvestmentQuotesResponse{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[83]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7004,7 +7189,7 @@ func (x *GetInvestmentQuotesResponse) String() string {
 func (*GetInvestmentQuotesResponse) ProtoMessage() {}
 
 func (x *GetInvestmentQuotesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[83]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7017,7 +7202,7 @@ func (x *GetInvestmentQuotesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvestmentQuotesResponse.ProtoReflect.Descriptor instead.
 func (*GetInvestmentQuotesResponse) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{83}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *GetInvestmentQuotesResponse) GetReadAt() *timestamppb.Timestamp {
@@ -7048,7 +7233,7 @@ type GetTrackerPerformanceRequest struct {
 
 func (x *GetTrackerPerformanceRequest) Reset() {
 	*x = GetTrackerPerformanceRequest{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[84]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7060,7 +7245,7 @@ func (x *GetTrackerPerformanceRequest) String() string {
 func (*GetTrackerPerformanceRequest) ProtoMessage() {}
 
 func (x *GetTrackerPerformanceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[84]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7073,7 +7258,7 @@ func (x *GetTrackerPerformanceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTrackerPerformanceRequest.ProtoReflect.Descriptor instead.
 func (*GetTrackerPerformanceRequest) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{84}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *GetTrackerPerformanceRequest) GetLedgerIds() []string {
@@ -7132,7 +7317,7 @@ type GetTrackerHistoryRequest struct {
 
 func (x *GetTrackerHistoryRequest) Reset() {
 	*x = GetTrackerHistoryRequest{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[85]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7144,7 +7329,7 @@ func (x *GetTrackerHistoryRequest) String() string {
 func (*GetTrackerHistoryRequest) ProtoMessage() {}
 
 func (x *GetTrackerHistoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[85]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7157,7 +7342,7 @@ func (x *GetTrackerHistoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTrackerHistoryRequest.ProtoReflect.Descriptor instead.
 func (*GetTrackerHistoryRequest) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{85}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *GetTrackerHistoryRequest) GetLedgerIds() []string {
@@ -7217,7 +7402,7 @@ type TrackerHistoryPoint struct {
 
 func (x *TrackerHistoryPoint) Reset() {
 	*x = TrackerHistoryPoint{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[86]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7229,7 +7414,7 @@ func (x *TrackerHistoryPoint) String() string {
 func (*TrackerHistoryPoint) ProtoMessage() {}
 
 func (x *TrackerHistoryPoint) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[86]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7242,7 +7427,7 @@ func (x *TrackerHistoryPoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TrackerHistoryPoint.ProtoReflect.Descriptor instead.
 func (*TrackerHistoryPoint) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{86}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *TrackerHistoryPoint) GetDate() string {
@@ -7314,7 +7499,7 @@ type GetTrackerHistoryResponse struct {
 
 func (x *GetTrackerHistoryResponse) Reset() {
 	*x = GetTrackerHistoryResponse{}
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[87]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7326,7 +7511,7 @@ func (x *GetTrackerHistoryResponse) String() string {
 func (*GetTrackerHistoryResponse) ProtoMessage() {}
 
 func (x *GetTrackerHistoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_budget_v1_investment_nav_proto_msgTypes[87]
+	mi := &file_budget_v1_investment_nav_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7339,7 +7524,7 @@ func (x *GetTrackerHistoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTrackerHistoryResponse.ProtoReflect.Descriptor instead.
 func (*GetTrackerHistoryResponse) Descriptor() ([]byte, []int) {
-	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{87}
+	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{89}
 }
 
 func (x *GetTrackerHistoryResponse) GetPoints() []*TrackerHistoryPoint {
@@ -7558,7 +7743,7 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\asegment\x18\x04 \x01(\x05R\asegment\x12A\n" +
 	"\fdaily_return\x18\x05 \x01(\v2\x1e.budget.v1.InvestmentNAVAmountR\vdailyReturn\x12E\n" +
 	"\x0esegment_return\x18\x06 \x01(\v2\x1e.budget.v1.InvestmentNAVAmountR\rsegmentReturn\x124\n" +
-	"\x05index\x18\a \x01(\v2\x1e.budget.v1.InvestmentNAVAmountR\x05index\"\xa2\x06\n" +
+	"\x05index\x18\a \x01(\v2\x1e.budget.v1.InvestmentNAVAmountR\x05index\"\xf2\x06\n" +
 	" GetInvestmentPerformanceResponse\x12\x1b\n" +
 	"\tfrom_date\x18\x01 \x01(\tR\bfromDate\x12\x17\n" +
 	"\ato_date\x18\x02 \x01(\tR\x06toDate\x12\x1a\n" +
@@ -7583,9 +7768,27 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\x0fxirr_annualized\x18\x0f \x01(\bR\x0exirrAnnualized\x12%\n" +
 	"\x0etwr_convention\x18\x10 \x01(\tR\rtwrConvention\x12-\n" +
 	"\x12reporting_timezone\x18\x11 \x01(\tR\x11reportingTimezone\x128\n" +
-	"\x18net_contributions_reason\x18\x13 \x01(\tR\x16netContributionsReason\x12#\n" +
+	"\x18net_contributions_reason\x18\x13 \x01(\tR\x16netContributionsReason\x12N\n" +
+	"\x12tracker_benchmarks\x18\x14 \x03(\v2\x1f.budget.v1.TrackerBenchmarkLineR\x11trackerBenchmarks\x12#\n" +
 	"\rhistory_scope\x18\x12 \x01(\tR\fhistoryScopeB\a\n" +
-	"\x05_xirr\"\x94\x01\n" +
+	"\x05_xirr\"y\n" +
+	"\x15TrackerBenchmarkPoint\x12\x12\n" +
+	"\x04date\x18\x01 \x01(\tR\x04date\x124\n" +
+	"\x05index\x18\x02 \x01(\v2\x1e.budget.v1.InvestmentNAVAmountR\x05index\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\"\xda\x02\n" +
+	"\x14TrackerBenchmarkLine\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12\x12\n" +
+	"\x04kind\x18\x03 \x01(\tR\x04kind\x12'\n" +
+	"\x0fnative_currency\x18\x04 \x01(\tR\x0enativeCurrency\x12\x1a\n" +
+	"\bprovider\x18\x05 \x01(\tR\bprovider\x12\x1d\n" +
+	"\n" +
+	"source_url\x18\x06 \x01(\tR\tsourceUrl\x12\x1b\n" +
+	"\tbase_date\x18\a \x01(\tR\bbaseDate\x12\x16\n" +
+	"\x06reason\x18\b \x01(\tR\x06reason\x123\n" +
+	"\aread_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\x06readAt\x128\n" +
+	"\x06points\x18\n" +
+	" \x03(\v2 .budget.v1.TrackerBenchmarkPointR\x06points\"\x94\x01\n" +
 	"\x13InvestmentBenchmark\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x12\n" +
@@ -8212,7 +8415,7 @@ func file_budget_v1_investment_nav_proto_rawDescGZIP() []byte {
 	return file_budget_v1_investment_nav_proto_rawDescData
 }
 
-var file_budget_v1_investment_nav_proto_msgTypes = make([]protoimpl.MessageInfo, 88)
+var file_budget_v1_investment_nav_proto_msgTypes = make([]protoimpl.MessageInfo, 90)
 var file_budget_v1_investment_nav_proto_goTypes = []any{
 	(*InvestmentNAVSeries)(nil),                      // 0: budget.v1.InvestmentNAVSeries
 	(*InvestmentNAVIssue)(nil),                       // 1: budget.v1.InvestmentNAVIssue
@@ -8237,84 +8440,86 @@ var file_budget_v1_investment_nav_proto_goTypes = []any{
 	(*GetInvestmentPerformanceRequest)(nil),          // 20: budget.v1.GetInvestmentPerformanceRequest
 	(*InvestmentTWRPoint)(nil),                       // 21: budget.v1.InvestmentTWRPoint
 	(*GetInvestmentPerformanceResponse)(nil),         // 22: budget.v1.GetInvestmentPerformanceResponse
-	(*InvestmentBenchmark)(nil),                      // 23: budget.v1.InvestmentBenchmark
-	(*ListInvestmentBenchmarksRequest)(nil),          // 24: budget.v1.ListInvestmentBenchmarksRequest
-	(*ListInvestmentBenchmarksResponse)(nil),         // 25: budget.v1.ListInvestmentBenchmarksResponse
-	(*GetInvestmentBenchmarkComparisonRequest)(nil),  // 26: budget.v1.GetInvestmentBenchmarkComparisonRequest
-	(*InvestmentBenchmarkPoint)(nil),                 // 27: budget.v1.InvestmentBenchmarkPoint
-	(*GetInvestmentBenchmarkComparisonResponse)(nil), // 28: budget.v1.GetInvestmentBenchmarkComparisonResponse
-	(*InvestmentGroup)(nil),                          // 29: budget.v1.InvestmentGroup
-	(*InvestmentGroupMembership)(nil),                // 30: budget.v1.InvestmentGroupMembership
-	(*InvestmentGroups)(nil),                         // 31: budget.v1.InvestmentGroups
-	(*InvestmentGroupPosition)(nil),                  // 32: budget.v1.InvestmentGroupPosition
-	(*GetInvestmentGroupsRequest)(nil),               // 33: budget.v1.GetInvestmentGroupsRequest
-	(*GetInvestmentGroupsResponse)(nil),              // 34: budget.v1.GetInvestmentGroupsResponse
-	(*SaveInvestmentGroupsRequest)(nil),              // 35: budget.v1.SaveInvestmentGroupsRequest
-	(*SaveInvestmentGroupsResponse)(nil),             // 36: budget.v1.SaveInvestmentGroupsResponse
-	(*GetInvestmentCompositionHistoryRequest)(nil),   // 37: budget.v1.GetInvestmentCompositionHistoryRequest
-	(*InvestmentCompositionPoint)(nil),               // 38: budget.v1.InvestmentCompositionPoint
-	(*InvestmentCompositionSegment)(nil),             // 39: budget.v1.InvestmentCompositionSegment
-	(*GetInvestmentCompositionHistoryResponse)(nil),  // 40: budget.v1.GetInvestmentCompositionHistoryResponse
-	(*GetInvestmentPositionsRequest)(nil),            // 41: budget.v1.GetInvestmentPositionsRequest
-	(*InvestmentPositionPayment)(nil),                // 42: budget.v1.InvestmentPositionPayment
-	(*InvestmentPositionDetail)(nil),                 // 43: budget.v1.InvestmentPositionDetail
-	(*GetInvestmentPositionsResponse)(nil),           // 44: budget.v1.GetInvestmentPositionsResponse
-	(*GetInvestmentInstrumentRequest)(nil),           // 45: budget.v1.GetInvestmentInstrumentRequest
-	(*GetInvestmentInstrumentResponse)(nil),          // 46: budget.v1.GetInvestmentInstrumentResponse
-	(*GetInvestmentInstrumentPricesRequest)(nil),     // 47: budget.v1.GetInvestmentInstrumentPricesRequest
-	(*InvestmentAccruedEvidence)(nil),                // 48: budget.v1.InvestmentAccruedEvidence
-	(*InvestmentPriceAdjustmentEvidence)(nil),        // 49: budget.v1.InvestmentPriceAdjustmentEvidence
-	(*InvestmentInstrumentPricePoint)(nil),           // 50: budget.v1.InvestmentInstrumentPricePoint
-	(*GetInvestmentInstrumentPricesResponse)(nil),    // 51: budget.v1.GetInvestmentInstrumentPricesResponse
-	(*InvestmentProfitPoint)(nil),                    // 52: budget.v1.InvestmentProfitPoint
-	(*InvestmentProfitBucket)(nil),                   // 53: budget.v1.InvestmentProfitBucket
-	(*InvestmentProfitComponent)(nil),                // 54: budget.v1.InvestmentProfitComponent
-	(*InvestmentInstrumentContribution)(nil),         // 55: budget.v1.InvestmentInstrumentContribution
-	(*GetInvestmentProfitResponse)(nil),              // 56: budget.v1.GetInvestmentProfitResponse
-	(*InvestmentOverviewFX)(nil),                     // 57: budget.v1.InvestmentOverviewFX
-	(*GetInvestmentOverviewResponse)(nil),            // 58: budget.v1.GetInvestmentOverviewResponse
-	(*ExportInvestmentSeriesResponse)(nil),           // 59: budget.v1.ExportInvestmentSeriesResponse
-	(*InvestmentNAVVariantRequest)(nil),              // 60: budget.v1.InvestmentNAVVariantRequest
-	(*InvestmentNAVVariantResponse)(nil),             // 61: budget.v1.InvestmentNAVVariantResponse
-	(*GetInvestmentCurrentNAVResponse)(nil),          // 62: budget.v1.GetInvestmentCurrentNAVResponse
-	(*InvestmentCurrentQuote)(nil),                   // 63: budget.v1.InvestmentCurrentQuote
-	(*InvestmentCurrentFXLeg)(nil),                   // 64: budget.v1.InvestmentCurrentFXLeg
-	(*GetInvestmentLotsRequest)(nil),                 // 65: budget.v1.GetInvestmentLotsRequest
-	(*InvestmentExactLot)(nil),                       // 66: budget.v1.InvestmentExactLot
-	(*InvestmentLotChange)(nil),                      // 67: budget.v1.InvestmentLotChange
-	(*InvestmentLotDetail)(nil),                      // 68: budget.v1.InvestmentLotDetail
-	(*GetInvestmentLotsResponse)(nil),                // 69: budget.v1.GetInvestmentLotsResponse
-	(*GetInvestmentCurrentNAVRequest)(nil),           // 70: budget.v1.GetInvestmentCurrentNAVRequest
-	(*ExportInvestmentSeriesRequest)(nil),            // 71: budget.v1.ExportInvestmentSeriesRequest
-	(*GetInvestmentOverviewRequest)(nil),             // 72: budget.v1.GetInvestmentOverviewRequest
-	(*GetInvestmentProfitRequest)(nil),               // 73: budget.v1.GetInvestmentProfitRequest
-	(*GetInvestmentNAVVariantRequest)(nil),           // 74: budget.v1.GetInvestmentNAVVariantRequest
-	(*PrepareInvestmentNAVVariantRequest)(nil),       // 75: budget.v1.PrepareInvestmentNAVVariantRequest
-	(*GetInvestmentNAVVariantResponse)(nil),          // 76: budget.v1.GetInvestmentNAVVariantResponse
-	(*PrepareInvestmentNAVVariantResponse)(nil),      // 77: budget.v1.PrepareInvestmentNAVVariantResponse
-	(*GetInvestmentExchangeRatesRequest)(nil),        // 78: budget.v1.GetInvestmentExchangeRatesRequest
-	(*InvestmentExchangeRate)(nil),                   // 79: budget.v1.InvestmentExchangeRate
-	(*GetInvestmentExchangeRatesResponse)(nil),       // 80: budget.v1.GetInvestmentExchangeRatesResponse
-	(*GetInvestmentQuotesRequest)(nil),               // 81: budget.v1.GetInvestmentQuotesRequest
-	(*InvestmentQuote)(nil),                          // 82: budget.v1.InvestmentQuote
-	(*GetInvestmentQuotesResponse)(nil),              // 83: budget.v1.GetInvestmentQuotesResponse
-	(*GetTrackerPerformanceRequest)(nil),             // 84: budget.v1.GetTrackerPerformanceRequest
-	(*GetTrackerHistoryRequest)(nil),                 // 85: budget.v1.GetTrackerHistoryRequest
-	(*TrackerHistoryPoint)(nil),                      // 86: budget.v1.TrackerHistoryPoint
-	(*GetTrackerHistoryResponse)(nil),                // 87: budget.v1.GetTrackerHistoryResponse
-	(*timestamppb.Timestamp)(nil),                    // 88: google.protobuf.Timestamp
-	(*MarketInstrument)(nil),                         // 89: budget.v1.MarketInstrument
-	(*InvestmentOperation)(nil),                      // 90: budget.v1.InvestmentOperation
+	(*TrackerBenchmarkPoint)(nil),                    // 23: budget.v1.TrackerBenchmarkPoint
+	(*TrackerBenchmarkLine)(nil),                     // 24: budget.v1.TrackerBenchmarkLine
+	(*InvestmentBenchmark)(nil),                      // 25: budget.v1.InvestmentBenchmark
+	(*ListInvestmentBenchmarksRequest)(nil),          // 26: budget.v1.ListInvestmentBenchmarksRequest
+	(*ListInvestmentBenchmarksResponse)(nil),         // 27: budget.v1.ListInvestmentBenchmarksResponse
+	(*GetInvestmentBenchmarkComparisonRequest)(nil),  // 28: budget.v1.GetInvestmentBenchmarkComparisonRequest
+	(*InvestmentBenchmarkPoint)(nil),                 // 29: budget.v1.InvestmentBenchmarkPoint
+	(*GetInvestmentBenchmarkComparisonResponse)(nil), // 30: budget.v1.GetInvestmentBenchmarkComparisonResponse
+	(*InvestmentGroup)(nil),                          // 31: budget.v1.InvestmentGroup
+	(*InvestmentGroupMembership)(nil),                // 32: budget.v1.InvestmentGroupMembership
+	(*InvestmentGroups)(nil),                         // 33: budget.v1.InvestmentGroups
+	(*InvestmentGroupPosition)(nil),                  // 34: budget.v1.InvestmentGroupPosition
+	(*GetInvestmentGroupsRequest)(nil),               // 35: budget.v1.GetInvestmentGroupsRequest
+	(*GetInvestmentGroupsResponse)(nil),              // 36: budget.v1.GetInvestmentGroupsResponse
+	(*SaveInvestmentGroupsRequest)(nil),              // 37: budget.v1.SaveInvestmentGroupsRequest
+	(*SaveInvestmentGroupsResponse)(nil),             // 38: budget.v1.SaveInvestmentGroupsResponse
+	(*GetInvestmentCompositionHistoryRequest)(nil),   // 39: budget.v1.GetInvestmentCompositionHistoryRequest
+	(*InvestmentCompositionPoint)(nil),               // 40: budget.v1.InvestmentCompositionPoint
+	(*InvestmentCompositionSegment)(nil),             // 41: budget.v1.InvestmentCompositionSegment
+	(*GetInvestmentCompositionHistoryResponse)(nil),  // 42: budget.v1.GetInvestmentCompositionHistoryResponse
+	(*GetInvestmentPositionsRequest)(nil),            // 43: budget.v1.GetInvestmentPositionsRequest
+	(*InvestmentPositionPayment)(nil),                // 44: budget.v1.InvestmentPositionPayment
+	(*InvestmentPositionDetail)(nil),                 // 45: budget.v1.InvestmentPositionDetail
+	(*GetInvestmentPositionsResponse)(nil),           // 46: budget.v1.GetInvestmentPositionsResponse
+	(*GetInvestmentInstrumentRequest)(nil),           // 47: budget.v1.GetInvestmentInstrumentRequest
+	(*GetInvestmentInstrumentResponse)(nil),          // 48: budget.v1.GetInvestmentInstrumentResponse
+	(*GetInvestmentInstrumentPricesRequest)(nil),     // 49: budget.v1.GetInvestmentInstrumentPricesRequest
+	(*InvestmentAccruedEvidence)(nil),                // 50: budget.v1.InvestmentAccruedEvidence
+	(*InvestmentPriceAdjustmentEvidence)(nil),        // 51: budget.v1.InvestmentPriceAdjustmentEvidence
+	(*InvestmentInstrumentPricePoint)(nil),           // 52: budget.v1.InvestmentInstrumentPricePoint
+	(*GetInvestmentInstrumentPricesResponse)(nil),    // 53: budget.v1.GetInvestmentInstrumentPricesResponse
+	(*InvestmentProfitPoint)(nil),                    // 54: budget.v1.InvestmentProfitPoint
+	(*InvestmentProfitBucket)(nil),                   // 55: budget.v1.InvestmentProfitBucket
+	(*InvestmentProfitComponent)(nil),                // 56: budget.v1.InvestmentProfitComponent
+	(*InvestmentInstrumentContribution)(nil),         // 57: budget.v1.InvestmentInstrumentContribution
+	(*GetInvestmentProfitResponse)(nil),              // 58: budget.v1.GetInvestmentProfitResponse
+	(*InvestmentOverviewFX)(nil),                     // 59: budget.v1.InvestmentOverviewFX
+	(*GetInvestmentOverviewResponse)(nil),            // 60: budget.v1.GetInvestmentOverviewResponse
+	(*ExportInvestmentSeriesResponse)(nil),           // 61: budget.v1.ExportInvestmentSeriesResponse
+	(*InvestmentNAVVariantRequest)(nil),              // 62: budget.v1.InvestmentNAVVariantRequest
+	(*InvestmentNAVVariantResponse)(nil),             // 63: budget.v1.InvestmentNAVVariantResponse
+	(*GetInvestmentCurrentNAVResponse)(nil),          // 64: budget.v1.GetInvestmentCurrentNAVResponse
+	(*InvestmentCurrentQuote)(nil),                   // 65: budget.v1.InvestmentCurrentQuote
+	(*InvestmentCurrentFXLeg)(nil),                   // 66: budget.v1.InvestmentCurrentFXLeg
+	(*GetInvestmentLotsRequest)(nil),                 // 67: budget.v1.GetInvestmentLotsRequest
+	(*InvestmentExactLot)(nil),                       // 68: budget.v1.InvestmentExactLot
+	(*InvestmentLotChange)(nil),                      // 69: budget.v1.InvestmentLotChange
+	(*InvestmentLotDetail)(nil),                      // 70: budget.v1.InvestmentLotDetail
+	(*GetInvestmentLotsResponse)(nil),                // 71: budget.v1.GetInvestmentLotsResponse
+	(*GetInvestmentCurrentNAVRequest)(nil),           // 72: budget.v1.GetInvestmentCurrentNAVRequest
+	(*ExportInvestmentSeriesRequest)(nil),            // 73: budget.v1.ExportInvestmentSeriesRequest
+	(*GetInvestmentOverviewRequest)(nil),             // 74: budget.v1.GetInvestmentOverviewRequest
+	(*GetInvestmentProfitRequest)(nil),               // 75: budget.v1.GetInvestmentProfitRequest
+	(*GetInvestmentNAVVariantRequest)(nil),           // 76: budget.v1.GetInvestmentNAVVariantRequest
+	(*PrepareInvestmentNAVVariantRequest)(nil),       // 77: budget.v1.PrepareInvestmentNAVVariantRequest
+	(*GetInvestmentNAVVariantResponse)(nil),          // 78: budget.v1.GetInvestmentNAVVariantResponse
+	(*PrepareInvestmentNAVVariantResponse)(nil),      // 79: budget.v1.PrepareInvestmentNAVVariantResponse
+	(*GetInvestmentExchangeRatesRequest)(nil),        // 80: budget.v1.GetInvestmentExchangeRatesRequest
+	(*InvestmentExchangeRate)(nil),                   // 81: budget.v1.InvestmentExchangeRate
+	(*GetInvestmentExchangeRatesResponse)(nil),       // 82: budget.v1.GetInvestmentExchangeRatesResponse
+	(*GetInvestmentQuotesRequest)(nil),               // 83: budget.v1.GetInvestmentQuotesRequest
+	(*InvestmentQuote)(nil),                          // 84: budget.v1.InvestmentQuote
+	(*GetInvestmentQuotesResponse)(nil),              // 85: budget.v1.GetInvestmentQuotesResponse
+	(*GetTrackerPerformanceRequest)(nil),             // 86: budget.v1.GetTrackerPerformanceRequest
+	(*GetTrackerHistoryRequest)(nil),                 // 87: budget.v1.GetTrackerHistoryRequest
+	(*TrackerHistoryPoint)(nil),                      // 88: budget.v1.TrackerHistoryPoint
+	(*GetTrackerHistoryResponse)(nil),                // 89: budget.v1.GetTrackerHistoryResponse
+	(*timestamppb.Timestamp)(nil),                    // 90: google.protobuf.Timestamp
+	(*MarketInstrument)(nil),                         // 91: budget.v1.MarketInstrument
+	(*InvestmentOperation)(nil),                      // 92: budget.v1.InvestmentOperation
 }
 var file_budget_v1_investment_nav_proto_depIdxs = []int32{
-	88,  // 0: budget.v1.InvestmentNAVPoint.computed_at:type_name -> google.protobuf.Timestamp
+	90,  // 0: budget.v1.InvestmentNAVPoint.computed_at:type_name -> google.protobuf.Timestamp
 	2,   // 1: budget.v1.InvestmentNAVPoint.known_value:type_name -> budget.v1.InvestmentNAVAmount
 	1,   // 2: budget.v1.InvestmentNAVPoint.issues:type_name -> budget.v1.InvestmentNAVIssue
 	1,   // 3: budget.v1.InvestmentNAVPoint.warnings:type_name -> budget.v1.InvestmentNAVIssue
-	88,  // 4: budget.v1.InvestmentNAVPoint.as_of:type_name -> google.protobuf.Timestamp
+	90,  // 4: budget.v1.InvestmentNAVPoint.as_of:type_name -> google.protobuf.Timestamp
 	0,   // 5: budget.v1.ListInvestmentNAVSeriesResponse.series:type_name -> budget.v1.InvestmentNAVSeries
 	3,   // 6: budget.v1.GetInvestmentNAVHistoryResponse.points:type_name -> budget.v1.InvestmentNAVPoint
-	88,  // 7: budget.v1.InvestmentPortfolio.updated_at:type_name -> google.protobuf.Timestamp
+	90,  // 7: budget.v1.InvestmentPortfolio.updated_at:type_name -> google.protobuf.Timestamp
 	10,  // 8: budget.v1.SaveInvestmentPortfolioResponse.portfolio:type_name -> budget.v1.InvestmentPortfolio
 	10,  // 9: budget.v1.ListInvestmentPortfoliosResponse.portfolios:type_name -> budget.v1.InvestmentPortfolio
 	15,  // 10: budget.v1.ListInvestmentValuationProfilesResponse.price_profiles:type_name -> budget.v1.InvestmentValuationProfileOption
@@ -8327,197 +8532,201 @@ var file_budget_v1_investment_nav_proto_depIdxs = []int32{
 	2,   // 17: budget.v1.GetInvestmentPerformanceResponse.net_contributions:type_name -> budget.v1.InvestmentNAVAmount
 	2,   // 18: budget.v1.GetInvestmentPerformanceResponse.twr:type_name -> budget.v1.InvestmentNAVAmount
 	21,  // 19: budget.v1.GetInvestmentPerformanceResponse.twr_points:type_name -> budget.v1.InvestmentTWRPoint
-	23,  // 20: budget.v1.ListInvestmentBenchmarksResponse.benchmarks:type_name -> budget.v1.InvestmentBenchmark
-	2,   // 21: budget.v1.InvestmentBenchmarkPoint.portfolio_index:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 22: budget.v1.InvestmentBenchmarkPoint.index:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 23: budget.v1.InvestmentBenchmarkPoint.value:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 24: budget.v1.InvestmentBenchmarkPoint.units:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 25: budget.v1.InvestmentBenchmarkPoint.cash:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 26: budget.v1.InvestmentBenchmarkPoint.pending_withdrawal:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 27: budget.v1.InvestmentBenchmarkPoint.portfolio_value:type_name -> budget.v1.InvestmentNAVAmount
-	23,  // 28: budget.v1.GetInvestmentBenchmarkComparisonResponse.benchmark:type_name -> budget.v1.InvestmentBenchmark
-	27,  // 29: budget.v1.GetInvestmentBenchmarkComparisonResponse.points:type_name -> budget.v1.InvestmentBenchmarkPoint
-	29,  // 30: budget.v1.InvestmentGroups.groups:type_name -> budget.v1.InvestmentGroup
-	30,  // 31: budget.v1.InvestmentGroups.memberships:type_name -> budget.v1.InvestmentGroupMembership
-	31,  // 32: budget.v1.GetInvestmentGroupsResponse.classification:type_name -> budget.v1.InvestmentGroups
-	32,  // 33: budget.v1.GetInvestmentGroupsResponse.positions:type_name -> budget.v1.InvestmentGroupPosition
-	31,  // 34: budget.v1.SaveInvestmentGroupsRequest.classification:type_name -> budget.v1.InvestmentGroups
-	31,  // 35: budget.v1.SaveInvestmentGroupsResponse.classification:type_name -> budget.v1.InvestmentGroups
-	2,   // 36: budget.v1.InvestmentCompositionPoint.securities_known:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 37: budget.v1.InvestmentCompositionPoint.cash_known:type_name -> budget.v1.InvestmentNAVAmount
-	1,   // 38: budget.v1.InvestmentCompositionPoint.issues:type_name -> budget.v1.InvestmentNAVIssue
-	2,   // 39: budget.v1.InvestmentCompositionSegment.known_value:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 40: budget.v1.InvestmentCompositionSegment.weight:type_name -> budget.v1.InvestmentNAVAmount
-	38,  // 41: budget.v1.GetInvestmentCompositionHistoryResponse.points:type_name -> budget.v1.InvestmentCompositionPoint
-	39,  // 42: budget.v1.GetInvestmentCompositionHistoryResponse.segments:type_name -> budget.v1.InvestmentCompositionSegment
-	29,  // 43: budget.v1.GetInvestmentCompositionHistoryResponse.groups:type_name -> budget.v1.InvestmentGroup
-	2,   // 44: budget.v1.InvestmentPositionPayment.gross:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 45: budget.v1.InvestmentPositionPayment.tax:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 46: budget.v1.InvestmentPositionPayment.net:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 47: budget.v1.InvestmentPositionDetail.value:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 48: budget.v1.InvestmentPositionDetail.weight:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 49: budget.v1.InvestmentPositionDetail.unrealized_clean:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 50: budget.v1.InvestmentPositionDetail.unrealized_dirty:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 51: budget.v1.InvestmentPositionDetail.clean_price_per_security:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 52: budget.v1.InvestmentPositionDetail.accrued_per_security:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 53: budget.v1.InvestmentPositionDetail.dirty_price_per_security:type_name -> budget.v1.InvestmentNAVAmount
-	88,  // 54: budget.v1.InvestmentPositionDetail.price_at:type_name -> google.protobuf.Timestamp
-	42,  // 55: budget.v1.InvestmentPositionDetail.payments:type_name -> budget.v1.InvestmentPositionPayment
-	1,   // 56: budget.v1.InvestmentPositionDetail.issues:type_name -> budget.v1.InvestmentNAVIssue
-	89,  // 57: budget.v1.InvestmentPositionDetail.metadata:type_name -> budget.v1.MarketInstrument
-	2,   // 58: budget.v1.InvestmentPositionDetail.historical_clean_cost:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 59: budget.v1.InvestmentPositionDetail.historical_acquired_accrued:type_name -> budget.v1.InvestmentNAVAmount
-	43,  // 60: budget.v1.GetInvestmentPositionsResponse.positions:type_name -> budget.v1.InvestmentPositionDetail
-	88,  // 61: budget.v1.GetInvestmentInstrumentResponse.as_of:type_name -> google.protobuf.Timestamp
-	44,  // 62: budget.v1.GetInvestmentInstrumentResponse.holdings:type_name -> budget.v1.GetInvestmentPositionsResponse
-	89,  // 63: budget.v1.GetInvestmentInstrumentResponse.metadata:type_name -> budget.v1.MarketInstrument
-	90,  // 64: budget.v1.GetInvestmentInstrumentResponse.operations:type_name -> budget.v1.InvestmentOperation
-	88,  // 65: budget.v1.InvestmentAccruedEvidence.from:type_name -> google.protobuf.Timestamp
-	88,  // 66: budget.v1.InvestmentAccruedEvidence.to:type_name -> google.protobuf.Timestamp
-	49,  // 67: budget.v1.InvestmentInstrumentPricePoint.adjustment_evidence:type_name -> budget.v1.InvestmentPriceAdjustmentEvidence
-	48,  // 68: budget.v1.InvestmentInstrumentPricePoint.accrued_evidence:type_name -> budget.v1.InvestmentAccruedEvidence
-	2,   // 69: budget.v1.InvestmentInstrumentPricePoint.percent:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 70: budget.v1.InvestmentInstrumentPricePoint.native_clean:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 71: budget.v1.InvestmentInstrumentPricePoint.native_dirty:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 72: budget.v1.InvestmentInstrumentPricePoint.target_clean:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 73: budget.v1.InvestmentInstrumentPricePoint.target_dirty:type_name -> budget.v1.InvestmentNAVAmount
-	88,  // 74: budget.v1.InvestmentInstrumentPricePoint.price_at:type_name -> google.protobuf.Timestamp
-	1,   // 75: budget.v1.InvestmentInstrumentPricePoint.issues:type_name -> budget.v1.InvestmentNAVIssue
-	90,  // 76: budget.v1.GetInvestmentInstrumentPricesResponse.markers:type_name -> budget.v1.InvestmentOperation
-	50,  // 77: budget.v1.GetInvestmentInstrumentPricesResponse.points:type_name -> budget.v1.InvestmentInstrumentPricePoint
-	2,   // 78: budget.v1.InvestmentProfitPoint.daily:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 79: budget.v1.InvestmentProfitPoint.cumulative:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 80: budget.v1.InvestmentProfitBucket.profit:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 81: budget.v1.InvestmentProfitBucket.net_contributions:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 82: budget.v1.InvestmentProfitComponent.known:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 83: budget.v1.InvestmentInstrumentContribution.known:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 84: budget.v1.InvestmentInstrumentContribution.share:type_name -> budget.v1.InvestmentNAVAmount
-	54,  // 85: budget.v1.InvestmentInstrumentContribution.components:type_name -> budget.v1.InvestmentProfitComponent
-	89,  // 86: budget.v1.InvestmentInstrumentContribution.metadata:type_name -> budget.v1.MarketInstrument
-	2,   // 87: budget.v1.GetInvestmentProfitResponse.profit:type_name -> budget.v1.InvestmentNAVAmount
-	52,  // 88: budget.v1.GetInvestmentProfitResponse.points:type_name -> budget.v1.InvestmentProfitPoint
-	53,  // 89: budget.v1.GetInvestmentProfitResponse.months:type_name -> budget.v1.InvestmentProfitBucket
-	53,  // 90: budget.v1.GetInvestmentProfitResponse.years:type_name -> budget.v1.InvestmentProfitBucket
-	54,  // 91: budget.v1.GetInvestmentProfitResponse.components:type_name -> budget.v1.InvestmentProfitComponent
-	55,  // 92: budget.v1.GetInvestmentProfitResponse.instruments:type_name -> budget.v1.InvestmentInstrumentContribution
-	54,  // 93: budget.v1.GetInvestmentProfitResponse.instrument_remainder:type_name -> budget.v1.InvestmentProfitComponent
-	2,   // 94: budget.v1.GetInvestmentProfitResponse.instrument_remainder_share:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 95: budget.v1.InvestmentOverviewFX.rate:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 96: budget.v1.InvestmentOverviewFX.change:type_name -> budget.v1.InvestmentNAVAmount
-	88,  // 97: budget.v1.InvestmentOverviewFX.as_of:type_name -> google.protobuf.Timestamp
-	88,  // 98: budget.v1.InvestmentOverviewFX.available_at:type_name -> google.protobuf.Timestamp
-	88,  // 99: budget.v1.InvestmentOverviewFX.valid_until:type_name -> google.protobuf.Timestamp
-	22,  // 100: budget.v1.GetInvestmentOverviewResponse.performance:type_name -> budget.v1.GetInvestmentPerformanceResponse
-	3,   // 101: budget.v1.GetInvestmentOverviewResponse.nav:type_name -> budget.v1.InvestmentNAVPoint
-	2,   // 102: budget.v1.GetInvestmentOverviewResponse.securities_known:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 103: budget.v1.GetInvestmentOverviewResponse.cash_known:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 104: budget.v1.GetInvestmentOverviewResponse.daily_profit:type_name -> budget.v1.InvestmentNAVAmount
-	57,  // 105: budget.v1.GetInvestmentOverviewResponse.fx:type_name -> budget.v1.InvestmentOverviewFX
-	88,  // 106: budget.v1.GetInvestmentOverviewResponse.read_at:type_name -> google.protobuf.Timestamp
-	1,   // 107: budget.v1.GetInvestmentOverviewResponse.breakdown_issues:type_name -> budget.v1.InvestmentNAVIssue
-	0,   // 108: budget.v1.InvestmentNAVVariantResponse.series:type_name -> budget.v1.InvestmentNAVSeries
-	88,  // 109: budget.v1.GetInvestmentCurrentNAVResponse.as_of:type_name -> google.protobuf.Timestamp
-	2,   // 110: budget.v1.GetInvestmentCurrentNAVResponse.known_value:type_name -> budget.v1.InvestmentNAVAmount
-	1,   // 111: budget.v1.GetInvestmentCurrentNAVResponse.issues:type_name -> budget.v1.InvestmentNAVIssue
-	1,   // 112: budget.v1.GetInvestmentCurrentNAVResponse.warnings:type_name -> budget.v1.InvestmentNAVIssue
-	63,  // 113: budget.v1.GetInvestmentCurrentNAVResponse.quotes:type_name -> budget.v1.InvestmentCurrentQuote
-	64,  // 114: budget.v1.GetInvestmentCurrentNAVResponse.fx_legs:type_name -> budget.v1.InvestmentCurrentFXLeg
-	2,   // 115: budget.v1.InvestmentCurrentQuote.candidate_price:type_name -> budget.v1.InvestmentNAVAmount
-	88,  // 116: budget.v1.InvestmentCurrentQuote.price_at:type_name -> google.protobuf.Timestamp
-	88,  // 117: budget.v1.InvestmentCurrentQuote.received_at:type_name -> google.protobuf.Timestamp
-	88,  // 118: budget.v1.InvestmentCurrentQuote.valid_until:type_name -> google.protobuf.Timestamp
-	2,   // 119: budget.v1.InvestmentCurrentFXLeg.observed_rate:type_name -> budget.v1.InvestmentNAVAmount
-	88,  // 120: budget.v1.InvestmentCurrentFXLeg.as_of:type_name -> google.protobuf.Timestamp
-	88,  // 121: budget.v1.InvestmentCurrentFXLeg.available_at:type_name -> google.protobuf.Timestamp
-	88,  // 122: budget.v1.InvestmentCurrentFXLeg.valid_until:type_name -> google.protobuf.Timestamp
-	88,  // 123: budget.v1.InvestmentExactLot.acquired_at:type_name -> google.protobuf.Timestamp
-	2,   // 124: budget.v1.InvestmentExactLot.quantity:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 125: budget.v1.InvestmentExactLot.clean_cost:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 126: budget.v1.InvestmentExactLot.acquired_accrued:type_name -> budget.v1.InvestmentNAVAmount
-	88,  // 127: budget.v1.InvestmentLotChange.at:type_name -> google.protobuf.Timestamp
-	66,  // 128: budget.v1.InvestmentLotChange.before:type_name -> budget.v1.InvestmentExactLot
-	66,  // 129: budget.v1.InvestmentLotChange.after:type_name -> budget.v1.InvestmentExactLot
-	66,  // 130: budget.v1.InvestmentLotDetail.lot:type_name -> budget.v1.InvestmentExactLot
-	90,  // 131: budget.v1.InvestmentLotDetail.origin:type_name -> budget.v1.InvestmentOperation
-	2,   // 132: budget.v1.InvestmentLotDetail.historical_clean_cost:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 133: budget.v1.InvestmentLotDetail.historical_acquired_accrued:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 134: budget.v1.InvestmentLotDetail.acquisition_fx_rate:type_name -> budget.v1.InvestmentNAVAmount
-	88,  // 135: budget.v1.InvestmentLotDetail.acquisition_fx_cutoff:type_name -> google.protobuf.Timestamp
-	64,  // 136: budget.v1.InvestmentLotDetail.fx_legs:type_name -> budget.v1.InvestmentCurrentFXLeg
-	67,  // 137: budget.v1.InvestmentLotDetail.changes:type_name -> budget.v1.InvestmentLotChange
-	68,  // 138: budget.v1.GetInvestmentLotsResponse.lots:type_name -> budget.v1.InvestmentLotDetail
-	0,   // 139: budget.v1.GetInvestmentNAVVariantResponse.series:type_name -> budget.v1.InvestmentNAVSeries
-	0,   // 140: budget.v1.PrepareInvestmentNAVVariantResponse.series:type_name -> budget.v1.InvestmentNAVSeries
-	2,   // 141: budget.v1.InvestmentExchangeRate.rate:type_name -> budget.v1.InvestmentNAVAmount
-	88,  // 142: budget.v1.GetInvestmentExchangeRatesResponse.read_at:type_name -> google.protobuf.Timestamp
-	79,  // 143: budget.v1.GetInvestmentExchangeRatesResponse.rates:type_name -> budget.v1.InvestmentExchangeRate
-	2,   // 144: budget.v1.InvestmentQuote.clean_price:type_name -> budget.v1.InvestmentNAVAmount
-	88,  // 145: budget.v1.InvestmentQuote.price_at:type_name -> google.protobuf.Timestamp
-	88,  // 146: budget.v1.GetInvestmentQuotesResponse.read_at:type_name -> google.protobuf.Timestamp
-	82,  // 147: budget.v1.GetInvestmentQuotesResponse.quotes:type_name -> budget.v1.InvestmentQuote
-	2,   // 148: budget.v1.TrackerHistoryPoint.known_value:type_name -> budget.v1.InvestmentNAVAmount
-	1,   // 149: budget.v1.TrackerHistoryPoint.issues:type_name -> budget.v1.InvestmentNAVIssue
-	86,  // 150: budget.v1.GetTrackerHistoryResponse.points:type_name -> budget.v1.TrackerHistoryPoint
-	88,  // 151: budget.v1.GetTrackerHistoryResponse.read_at:type_name -> google.protobuf.Timestamp
-	85,  // 152: budget.v1.InvestmentNAVService.GetTrackerHistory:input_type -> budget.v1.GetTrackerHistoryRequest
-	84,  // 153: budget.v1.InvestmentNAVService.GetTrackerPerformance:input_type -> budget.v1.GetTrackerPerformanceRequest
-	65,  // 154: budget.v1.InvestmentNAVService.GetInvestmentLots:input_type -> budget.v1.GetInvestmentLotsRequest
-	70,  // 155: budget.v1.InvestmentNAVService.GetInvestmentCurrentNAV:input_type -> budget.v1.GetInvestmentCurrentNAVRequest
-	74,  // 156: budget.v1.InvestmentNAVService.GetInvestmentNAVVariant:input_type -> budget.v1.GetInvestmentNAVVariantRequest
-	75,  // 157: budget.v1.InvestmentNAVService.PrepareInvestmentNAVVariant:input_type -> budget.v1.PrepareInvestmentNAVVariantRequest
-	71,  // 158: budget.v1.InvestmentNAVService.ExportInvestmentSeries:input_type -> budget.v1.ExportInvestmentSeriesRequest
-	72,  // 159: budget.v1.InvestmentNAVService.GetInvestmentOverview:input_type -> budget.v1.GetInvestmentOverviewRequest
-	73,  // 160: budget.v1.InvestmentNAVService.GetInvestmentProfit:input_type -> budget.v1.GetInvestmentProfitRequest
-	24,  // 161: budget.v1.InvestmentNAVService.ListInvestmentBenchmarks:input_type -> budget.v1.ListInvestmentBenchmarksRequest
-	26,  // 162: budget.v1.InvestmentNAVService.GetInvestmentBenchmarkComparison:input_type -> budget.v1.GetInvestmentBenchmarkComparisonRequest
-	20,  // 163: budget.v1.InvestmentNAVService.GetInvestmentPerformance:input_type -> budget.v1.GetInvestmentPerformanceRequest
-	18,  // 164: budget.v1.InvestmentNAVService.GetInvestmentNAVSeries:input_type -> budget.v1.GetInvestmentNAVSeriesRequest
-	47,  // 165: budget.v1.InvestmentNAVService.GetInvestmentInstrumentPrices:input_type -> budget.v1.GetInvestmentInstrumentPricesRequest
-	41,  // 166: budget.v1.InvestmentNAVService.GetInvestmentPositions:input_type -> budget.v1.GetInvestmentPositionsRequest
-	45,  // 167: budget.v1.InvestmentNAVService.GetInvestmentInstrument:input_type -> budget.v1.GetInvestmentInstrumentRequest
-	37,  // 168: budget.v1.InvestmentNAVService.GetInvestmentCompositionHistory:input_type -> budget.v1.GetInvestmentCompositionHistoryRequest
-	33,  // 169: budget.v1.InvestmentNAVService.GetInvestmentGroups:input_type -> budget.v1.GetInvestmentGroupsRequest
-	35,  // 170: budget.v1.InvestmentNAVService.SaveInvestmentGroups:input_type -> budget.v1.SaveInvestmentGroupsRequest
-	11,  // 171: budget.v1.InvestmentNAVService.SaveInvestmentPortfolio:input_type -> budget.v1.SaveInvestmentPortfolioRequest
-	13,  // 172: budget.v1.InvestmentNAVService.ListInvestmentPortfolios:input_type -> budget.v1.ListInvestmentPortfoliosRequest
-	16,  // 173: budget.v1.InvestmentNAVService.ListInvestmentValuationProfiles:input_type -> budget.v1.ListInvestmentValuationProfilesRequest
-	4,   // 174: budget.v1.InvestmentNAVService.ListInvestmentNAVSeries:input_type -> budget.v1.ListInvestmentNAVSeriesRequest
-	6,   // 175: budget.v1.InvestmentNAVService.GetInvestmentNAVHistory:input_type -> budget.v1.GetInvestmentNAVHistoryRequest
-	8,   // 176: budget.v1.InvestmentNAVService.RequestInvestmentNAVRefresh:input_type -> budget.v1.RequestInvestmentNAVRefreshRequest
-	78,  // 177: budget.v1.InvestmentNAVService.GetInvestmentExchangeRates:input_type -> budget.v1.GetInvestmentExchangeRatesRequest
-	81,  // 178: budget.v1.InvestmentNAVService.GetInvestmentQuotes:input_type -> budget.v1.GetInvestmentQuotesRequest
-	87,  // 179: budget.v1.InvestmentNAVService.GetTrackerHistory:output_type -> budget.v1.GetTrackerHistoryResponse
-	22,  // 180: budget.v1.InvestmentNAVService.GetTrackerPerformance:output_type -> budget.v1.GetInvestmentPerformanceResponse
-	69,  // 181: budget.v1.InvestmentNAVService.GetInvestmentLots:output_type -> budget.v1.GetInvestmentLotsResponse
-	62,  // 182: budget.v1.InvestmentNAVService.GetInvestmentCurrentNAV:output_type -> budget.v1.GetInvestmentCurrentNAVResponse
-	76,  // 183: budget.v1.InvestmentNAVService.GetInvestmentNAVVariant:output_type -> budget.v1.GetInvestmentNAVVariantResponse
-	77,  // 184: budget.v1.InvestmentNAVService.PrepareInvestmentNAVVariant:output_type -> budget.v1.PrepareInvestmentNAVVariantResponse
-	59,  // 185: budget.v1.InvestmentNAVService.ExportInvestmentSeries:output_type -> budget.v1.ExportInvestmentSeriesResponse
-	58,  // 186: budget.v1.InvestmentNAVService.GetInvestmentOverview:output_type -> budget.v1.GetInvestmentOverviewResponse
-	56,  // 187: budget.v1.InvestmentNAVService.GetInvestmentProfit:output_type -> budget.v1.GetInvestmentProfitResponse
-	25,  // 188: budget.v1.InvestmentNAVService.ListInvestmentBenchmarks:output_type -> budget.v1.ListInvestmentBenchmarksResponse
-	28,  // 189: budget.v1.InvestmentNAVService.GetInvestmentBenchmarkComparison:output_type -> budget.v1.GetInvestmentBenchmarkComparisonResponse
-	22,  // 190: budget.v1.InvestmentNAVService.GetInvestmentPerformance:output_type -> budget.v1.GetInvestmentPerformanceResponse
-	19,  // 191: budget.v1.InvestmentNAVService.GetInvestmentNAVSeries:output_type -> budget.v1.GetInvestmentNAVSeriesResponse
-	51,  // 192: budget.v1.InvestmentNAVService.GetInvestmentInstrumentPrices:output_type -> budget.v1.GetInvestmentInstrumentPricesResponse
-	44,  // 193: budget.v1.InvestmentNAVService.GetInvestmentPositions:output_type -> budget.v1.GetInvestmentPositionsResponse
-	46,  // 194: budget.v1.InvestmentNAVService.GetInvestmentInstrument:output_type -> budget.v1.GetInvestmentInstrumentResponse
-	40,  // 195: budget.v1.InvestmentNAVService.GetInvestmentCompositionHistory:output_type -> budget.v1.GetInvestmentCompositionHistoryResponse
-	34,  // 196: budget.v1.InvestmentNAVService.GetInvestmentGroups:output_type -> budget.v1.GetInvestmentGroupsResponse
-	36,  // 197: budget.v1.InvestmentNAVService.SaveInvestmentGroups:output_type -> budget.v1.SaveInvestmentGroupsResponse
-	12,  // 198: budget.v1.InvestmentNAVService.SaveInvestmentPortfolio:output_type -> budget.v1.SaveInvestmentPortfolioResponse
-	14,  // 199: budget.v1.InvestmentNAVService.ListInvestmentPortfolios:output_type -> budget.v1.ListInvestmentPortfoliosResponse
-	17,  // 200: budget.v1.InvestmentNAVService.ListInvestmentValuationProfiles:output_type -> budget.v1.ListInvestmentValuationProfilesResponse
-	5,   // 201: budget.v1.InvestmentNAVService.ListInvestmentNAVSeries:output_type -> budget.v1.ListInvestmentNAVSeriesResponse
-	7,   // 202: budget.v1.InvestmentNAVService.GetInvestmentNAVHistory:output_type -> budget.v1.GetInvestmentNAVHistoryResponse
-	9,   // 203: budget.v1.InvestmentNAVService.RequestInvestmentNAVRefresh:output_type -> budget.v1.RequestInvestmentNAVRefreshResponse
-	80,  // 204: budget.v1.InvestmentNAVService.GetInvestmentExchangeRates:output_type -> budget.v1.GetInvestmentExchangeRatesResponse
-	83,  // 205: budget.v1.InvestmentNAVService.GetInvestmentQuotes:output_type -> budget.v1.GetInvestmentQuotesResponse
-	179, // [179:206] is the sub-list for method output_type
-	152, // [152:179] is the sub-list for method input_type
-	152, // [152:152] is the sub-list for extension type_name
-	152, // [152:152] is the sub-list for extension extendee
-	0,   // [0:152] is the sub-list for field type_name
+	24,  // 20: budget.v1.GetInvestmentPerformanceResponse.tracker_benchmarks:type_name -> budget.v1.TrackerBenchmarkLine
+	2,   // 21: budget.v1.TrackerBenchmarkPoint.index:type_name -> budget.v1.InvestmentNAVAmount
+	90,  // 22: budget.v1.TrackerBenchmarkLine.read_at:type_name -> google.protobuf.Timestamp
+	23,  // 23: budget.v1.TrackerBenchmarkLine.points:type_name -> budget.v1.TrackerBenchmarkPoint
+	25,  // 24: budget.v1.ListInvestmentBenchmarksResponse.benchmarks:type_name -> budget.v1.InvestmentBenchmark
+	2,   // 25: budget.v1.InvestmentBenchmarkPoint.portfolio_index:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 26: budget.v1.InvestmentBenchmarkPoint.index:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 27: budget.v1.InvestmentBenchmarkPoint.value:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 28: budget.v1.InvestmentBenchmarkPoint.units:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 29: budget.v1.InvestmentBenchmarkPoint.cash:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 30: budget.v1.InvestmentBenchmarkPoint.pending_withdrawal:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 31: budget.v1.InvestmentBenchmarkPoint.portfolio_value:type_name -> budget.v1.InvestmentNAVAmount
+	25,  // 32: budget.v1.GetInvestmentBenchmarkComparisonResponse.benchmark:type_name -> budget.v1.InvestmentBenchmark
+	29,  // 33: budget.v1.GetInvestmentBenchmarkComparisonResponse.points:type_name -> budget.v1.InvestmentBenchmarkPoint
+	31,  // 34: budget.v1.InvestmentGroups.groups:type_name -> budget.v1.InvestmentGroup
+	32,  // 35: budget.v1.InvestmentGroups.memberships:type_name -> budget.v1.InvestmentGroupMembership
+	33,  // 36: budget.v1.GetInvestmentGroupsResponse.classification:type_name -> budget.v1.InvestmentGroups
+	34,  // 37: budget.v1.GetInvestmentGroupsResponse.positions:type_name -> budget.v1.InvestmentGroupPosition
+	33,  // 38: budget.v1.SaveInvestmentGroupsRequest.classification:type_name -> budget.v1.InvestmentGroups
+	33,  // 39: budget.v1.SaveInvestmentGroupsResponse.classification:type_name -> budget.v1.InvestmentGroups
+	2,   // 40: budget.v1.InvestmentCompositionPoint.securities_known:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 41: budget.v1.InvestmentCompositionPoint.cash_known:type_name -> budget.v1.InvestmentNAVAmount
+	1,   // 42: budget.v1.InvestmentCompositionPoint.issues:type_name -> budget.v1.InvestmentNAVIssue
+	2,   // 43: budget.v1.InvestmentCompositionSegment.known_value:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 44: budget.v1.InvestmentCompositionSegment.weight:type_name -> budget.v1.InvestmentNAVAmount
+	40,  // 45: budget.v1.GetInvestmentCompositionHistoryResponse.points:type_name -> budget.v1.InvestmentCompositionPoint
+	41,  // 46: budget.v1.GetInvestmentCompositionHistoryResponse.segments:type_name -> budget.v1.InvestmentCompositionSegment
+	31,  // 47: budget.v1.GetInvestmentCompositionHistoryResponse.groups:type_name -> budget.v1.InvestmentGroup
+	2,   // 48: budget.v1.InvestmentPositionPayment.gross:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 49: budget.v1.InvestmentPositionPayment.tax:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 50: budget.v1.InvestmentPositionPayment.net:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 51: budget.v1.InvestmentPositionDetail.value:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 52: budget.v1.InvestmentPositionDetail.weight:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 53: budget.v1.InvestmentPositionDetail.unrealized_clean:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 54: budget.v1.InvestmentPositionDetail.unrealized_dirty:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 55: budget.v1.InvestmentPositionDetail.clean_price_per_security:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 56: budget.v1.InvestmentPositionDetail.accrued_per_security:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 57: budget.v1.InvestmentPositionDetail.dirty_price_per_security:type_name -> budget.v1.InvestmentNAVAmount
+	90,  // 58: budget.v1.InvestmentPositionDetail.price_at:type_name -> google.protobuf.Timestamp
+	44,  // 59: budget.v1.InvestmentPositionDetail.payments:type_name -> budget.v1.InvestmentPositionPayment
+	1,   // 60: budget.v1.InvestmentPositionDetail.issues:type_name -> budget.v1.InvestmentNAVIssue
+	91,  // 61: budget.v1.InvestmentPositionDetail.metadata:type_name -> budget.v1.MarketInstrument
+	2,   // 62: budget.v1.InvestmentPositionDetail.historical_clean_cost:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 63: budget.v1.InvestmentPositionDetail.historical_acquired_accrued:type_name -> budget.v1.InvestmentNAVAmount
+	45,  // 64: budget.v1.GetInvestmentPositionsResponse.positions:type_name -> budget.v1.InvestmentPositionDetail
+	90,  // 65: budget.v1.GetInvestmentInstrumentResponse.as_of:type_name -> google.protobuf.Timestamp
+	46,  // 66: budget.v1.GetInvestmentInstrumentResponse.holdings:type_name -> budget.v1.GetInvestmentPositionsResponse
+	91,  // 67: budget.v1.GetInvestmentInstrumentResponse.metadata:type_name -> budget.v1.MarketInstrument
+	92,  // 68: budget.v1.GetInvestmentInstrumentResponse.operations:type_name -> budget.v1.InvestmentOperation
+	90,  // 69: budget.v1.InvestmentAccruedEvidence.from:type_name -> google.protobuf.Timestamp
+	90,  // 70: budget.v1.InvestmentAccruedEvidence.to:type_name -> google.protobuf.Timestamp
+	51,  // 71: budget.v1.InvestmentInstrumentPricePoint.adjustment_evidence:type_name -> budget.v1.InvestmentPriceAdjustmentEvidence
+	50,  // 72: budget.v1.InvestmentInstrumentPricePoint.accrued_evidence:type_name -> budget.v1.InvestmentAccruedEvidence
+	2,   // 73: budget.v1.InvestmentInstrumentPricePoint.percent:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 74: budget.v1.InvestmentInstrumentPricePoint.native_clean:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 75: budget.v1.InvestmentInstrumentPricePoint.native_dirty:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 76: budget.v1.InvestmentInstrumentPricePoint.target_clean:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 77: budget.v1.InvestmentInstrumentPricePoint.target_dirty:type_name -> budget.v1.InvestmentNAVAmount
+	90,  // 78: budget.v1.InvestmentInstrumentPricePoint.price_at:type_name -> google.protobuf.Timestamp
+	1,   // 79: budget.v1.InvestmentInstrumentPricePoint.issues:type_name -> budget.v1.InvestmentNAVIssue
+	92,  // 80: budget.v1.GetInvestmentInstrumentPricesResponse.markers:type_name -> budget.v1.InvestmentOperation
+	52,  // 81: budget.v1.GetInvestmentInstrumentPricesResponse.points:type_name -> budget.v1.InvestmentInstrumentPricePoint
+	2,   // 82: budget.v1.InvestmentProfitPoint.daily:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 83: budget.v1.InvestmentProfitPoint.cumulative:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 84: budget.v1.InvestmentProfitBucket.profit:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 85: budget.v1.InvestmentProfitBucket.net_contributions:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 86: budget.v1.InvestmentProfitComponent.known:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 87: budget.v1.InvestmentInstrumentContribution.known:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 88: budget.v1.InvestmentInstrumentContribution.share:type_name -> budget.v1.InvestmentNAVAmount
+	56,  // 89: budget.v1.InvestmentInstrumentContribution.components:type_name -> budget.v1.InvestmentProfitComponent
+	91,  // 90: budget.v1.InvestmentInstrumentContribution.metadata:type_name -> budget.v1.MarketInstrument
+	2,   // 91: budget.v1.GetInvestmentProfitResponse.profit:type_name -> budget.v1.InvestmentNAVAmount
+	54,  // 92: budget.v1.GetInvestmentProfitResponse.points:type_name -> budget.v1.InvestmentProfitPoint
+	55,  // 93: budget.v1.GetInvestmentProfitResponse.months:type_name -> budget.v1.InvestmentProfitBucket
+	55,  // 94: budget.v1.GetInvestmentProfitResponse.years:type_name -> budget.v1.InvestmentProfitBucket
+	56,  // 95: budget.v1.GetInvestmentProfitResponse.components:type_name -> budget.v1.InvestmentProfitComponent
+	57,  // 96: budget.v1.GetInvestmentProfitResponse.instruments:type_name -> budget.v1.InvestmentInstrumentContribution
+	56,  // 97: budget.v1.GetInvestmentProfitResponse.instrument_remainder:type_name -> budget.v1.InvestmentProfitComponent
+	2,   // 98: budget.v1.GetInvestmentProfitResponse.instrument_remainder_share:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 99: budget.v1.InvestmentOverviewFX.rate:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 100: budget.v1.InvestmentOverviewFX.change:type_name -> budget.v1.InvestmentNAVAmount
+	90,  // 101: budget.v1.InvestmentOverviewFX.as_of:type_name -> google.protobuf.Timestamp
+	90,  // 102: budget.v1.InvestmentOverviewFX.available_at:type_name -> google.protobuf.Timestamp
+	90,  // 103: budget.v1.InvestmentOverviewFX.valid_until:type_name -> google.protobuf.Timestamp
+	22,  // 104: budget.v1.GetInvestmentOverviewResponse.performance:type_name -> budget.v1.GetInvestmentPerformanceResponse
+	3,   // 105: budget.v1.GetInvestmentOverviewResponse.nav:type_name -> budget.v1.InvestmentNAVPoint
+	2,   // 106: budget.v1.GetInvestmentOverviewResponse.securities_known:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 107: budget.v1.GetInvestmentOverviewResponse.cash_known:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 108: budget.v1.GetInvestmentOverviewResponse.daily_profit:type_name -> budget.v1.InvestmentNAVAmount
+	59,  // 109: budget.v1.GetInvestmentOverviewResponse.fx:type_name -> budget.v1.InvestmentOverviewFX
+	90,  // 110: budget.v1.GetInvestmentOverviewResponse.read_at:type_name -> google.protobuf.Timestamp
+	1,   // 111: budget.v1.GetInvestmentOverviewResponse.breakdown_issues:type_name -> budget.v1.InvestmentNAVIssue
+	0,   // 112: budget.v1.InvestmentNAVVariantResponse.series:type_name -> budget.v1.InvestmentNAVSeries
+	90,  // 113: budget.v1.GetInvestmentCurrentNAVResponse.as_of:type_name -> google.protobuf.Timestamp
+	2,   // 114: budget.v1.GetInvestmentCurrentNAVResponse.known_value:type_name -> budget.v1.InvestmentNAVAmount
+	1,   // 115: budget.v1.GetInvestmentCurrentNAVResponse.issues:type_name -> budget.v1.InvestmentNAVIssue
+	1,   // 116: budget.v1.GetInvestmentCurrentNAVResponse.warnings:type_name -> budget.v1.InvestmentNAVIssue
+	65,  // 117: budget.v1.GetInvestmentCurrentNAVResponse.quotes:type_name -> budget.v1.InvestmentCurrentQuote
+	66,  // 118: budget.v1.GetInvestmentCurrentNAVResponse.fx_legs:type_name -> budget.v1.InvestmentCurrentFXLeg
+	2,   // 119: budget.v1.InvestmentCurrentQuote.candidate_price:type_name -> budget.v1.InvestmentNAVAmount
+	90,  // 120: budget.v1.InvestmentCurrentQuote.price_at:type_name -> google.protobuf.Timestamp
+	90,  // 121: budget.v1.InvestmentCurrentQuote.received_at:type_name -> google.protobuf.Timestamp
+	90,  // 122: budget.v1.InvestmentCurrentQuote.valid_until:type_name -> google.protobuf.Timestamp
+	2,   // 123: budget.v1.InvestmentCurrentFXLeg.observed_rate:type_name -> budget.v1.InvestmentNAVAmount
+	90,  // 124: budget.v1.InvestmentCurrentFXLeg.as_of:type_name -> google.protobuf.Timestamp
+	90,  // 125: budget.v1.InvestmentCurrentFXLeg.available_at:type_name -> google.protobuf.Timestamp
+	90,  // 126: budget.v1.InvestmentCurrentFXLeg.valid_until:type_name -> google.protobuf.Timestamp
+	90,  // 127: budget.v1.InvestmentExactLot.acquired_at:type_name -> google.protobuf.Timestamp
+	2,   // 128: budget.v1.InvestmentExactLot.quantity:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 129: budget.v1.InvestmentExactLot.clean_cost:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 130: budget.v1.InvestmentExactLot.acquired_accrued:type_name -> budget.v1.InvestmentNAVAmount
+	90,  // 131: budget.v1.InvestmentLotChange.at:type_name -> google.protobuf.Timestamp
+	68,  // 132: budget.v1.InvestmentLotChange.before:type_name -> budget.v1.InvestmentExactLot
+	68,  // 133: budget.v1.InvestmentLotChange.after:type_name -> budget.v1.InvestmentExactLot
+	68,  // 134: budget.v1.InvestmentLotDetail.lot:type_name -> budget.v1.InvestmentExactLot
+	92,  // 135: budget.v1.InvestmentLotDetail.origin:type_name -> budget.v1.InvestmentOperation
+	2,   // 136: budget.v1.InvestmentLotDetail.historical_clean_cost:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 137: budget.v1.InvestmentLotDetail.historical_acquired_accrued:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 138: budget.v1.InvestmentLotDetail.acquisition_fx_rate:type_name -> budget.v1.InvestmentNAVAmount
+	90,  // 139: budget.v1.InvestmentLotDetail.acquisition_fx_cutoff:type_name -> google.protobuf.Timestamp
+	66,  // 140: budget.v1.InvestmentLotDetail.fx_legs:type_name -> budget.v1.InvestmentCurrentFXLeg
+	69,  // 141: budget.v1.InvestmentLotDetail.changes:type_name -> budget.v1.InvestmentLotChange
+	70,  // 142: budget.v1.GetInvestmentLotsResponse.lots:type_name -> budget.v1.InvestmentLotDetail
+	0,   // 143: budget.v1.GetInvestmentNAVVariantResponse.series:type_name -> budget.v1.InvestmentNAVSeries
+	0,   // 144: budget.v1.PrepareInvestmentNAVVariantResponse.series:type_name -> budget.v1.InvestmentNAVSeries
+	2,   // 145: budget.v1.InvestmentExchangeRate.rate:type_name -> budget.v1.InvestmentNAVAmount
+	90,  // 146: budget.v1.GetInvestmentExchangeRatesResponse.read_at:type_name -> google.protobuf.Timestamp
+	81,  // 147: budget.v1.GetInvestmentExchangeRatesResponse.rates:type_name -> budget.v1.InvestmentExchangeRate
+	2,   // 148: budget.v1.InvestmentQuote.clean_price:type_name -> budget.v1.InvestmentNAVAmount
+	90,  // 149: budget.v1.InvestmentQuote.price_at:type_name -> google.protobuf.Timestamp
+	90,  // 150: budget.v1.GetInvestmentQuotesResponse.read_at:type_name -> google.protobuf.Timestamp
+	84,  // 151: budget.v1.GetInvestmentQuotesResponse.quotes:type_name -> budget.v1.InvestmentQuote
+	2,   // 152: budget.v1.TrackerHistoryPoint.known_value:type_name -> budget.v1.InvestmentNAVAmount
+	1,   // 153: budget.v1.TrackerHistoryPoint.issues:type_name -> budget.v1.InvestmentNAVIssue
+	88,  // 154: budget.v1.GetTrackerHistoryResponse.points:type_name -> budget.v1.TrackerHistoryPoint
+	90,  // 155: budget.v1.GetTrackerHistoryResponse.read_at:type_name -> google.protobuf.Timestamp
+	87,  // 156: budget.v1.InvestmentNAVService.GetTrackerHistory:input_type -> budget.v1.GetTrackerHistoryRequest
+	86,  // 157: budget.v1.InvestmentNAVService.GetTrackerPerformance:input_type -> budget.v1.GetTrackerPerformanceRequest
+	67,  // 158: budget.v1.InvestmentNAVService.GetInvestmentLots:input_type -> budget.v1.GetInvestmentLotsRequest
+	72,  // 159: budget.v1.InvestmentNAVService.GetInvestmentCurrentNAV:input_type -> budget.v1.GetInvestmentCurrentNAVRequest
+	76,  // 160: budget.v1.InvestmentNAVService.GetInvestmentNAVVariant:input_type -> budget.v1.GetInvestmentNAVVariantRequest
+	77,  // 161: budget.v1.InvestmentNAVService.PrepareInvestmentNAVVariant:input_type -> budget.v1.PrepareInvestmentNAVVariantRequest
+	73,  // 162: budget.v1.InvestmentNAVService.ExportInvestmentSeries:input_type -> budget.v1.ExportInvestmentSeriesRequest
+	74,  // 163: budget.v1.InvestmentNAVService.GetInvestmentOverview:input_type -> budget.v1.GetInvestmentOverviewRequest
+	75,  // 164: budget.v1.InvestmentNAVService.GetInvestmentProfit:input_type -> budget.v1.GetInvestmentProfitRequest
+	26,  // 165: budget.v1.InvestmentNAVService.ListInvestmentBenchmarks:input_type -> budget.v1.ListInvestmentBenchmarksRequest
+	28,  // 166: budget.v1.InvestmentNAVService.GetInvestmentBenchmarkComparison:input_type -> budget.v1.GetInvestmentBenchmarkComparisonRequest
+	20,  // 167: budget.v1.InvestmentNAVService.GetInvestmentPerformance:input_type -> budget.v1.GetInvestmentPerformanceRequest
+	18,  // 168: budget.v1.InvestmentNAVService.GetInvestmentNAVSeries:input_type -> budget.v1.GetInvestmentNAVSeriesRequest
+	49,  // 169: budget.v1.InvestmentNAVService.GetInvestmentInstrumentPrices:input_type -> budget.v1.GetInvestmentInstrumentPricesRequest
+	43,  // 170: budget.v1.InvestmentNAVService.GetInvestmentPositions:input_type -> budget.v1.GetInvestmentPositionsRequest
+	47,  // 171: budget.v1.InvestmentNAVService.GetInvestmentInstrument:input_type -> budget.v1.GetInvestmentInstrumentRequest
+	39,  // 172: budget.v1.InvestmentNAVService.GetInvestmentCompositionHistory:input_type -> budget.v1.GetInvestmentCompositionHistoryRequest
+	35,  // 173: budget.v1.InvestmentNAVService.GetInvestmentGroups:input_type -> budget.v1.GetInvestmentGroupsRequest
+	37,  // 174: budget.v1.InvestmentNAVService.SaveInvestmentGroups:input_type -> budget.v1.SaveInvestmentGroupsRequest
+	11,  // 175: budget.v1.InvestmentNAVService.SaveInvestmentPortfolio:input_type -> budget.v1.SaveInvestmentPortfolioRequest
+	13,  // 176: budget.v1.InvestmentNAVService.ListInvestmentPortfolios:input_type -> budget.v1.ListInvestmentPortfoliosRequest
+	16,  // 177: budget.v1.InvestmentNAVService.ListInvestmentValuationProfiles:input_type -> budget.v1.ListInvestmentValuationProfilesRequest
+	4,   // 178: budget.v1.InvestmentNAVService.ListInvestmentNAVSeries:input_type -> budget.v1.ListInvestmentNAVSeriesRequest
+	6,   // 179: budget.v1.InvestmentNAVService.GetInvestmentNAVHistory:input_type -> budget.v1.GetInvestmentNAVHistoryRequest
+	8,   // 180: budget.v1.InvestmentNAVService.RequestInvestmentNAVRefresh:input_type -> budget.v1.RequestInvestmentNAVRefreshRequest
+	80,  // 181: budget.v1.InvestmentNAVService.GetInvestmentExchangeRates:input_type -> budget.v1.GetInvestmentExchangeRatesRequest
+	83,  // 182: budget.v1.InvestmentNAVService.GetInvestmentQuotes:input_type -> budget.v1.GetInvestmentQuotesRequest
+	89,  // 183: budget.v1.InvestmentNAVService.GetTrackerHistory:output_type -> budget.v1.GetTrackerHistoryResponse
+	22,  // 184: budget.v1.InvestmentNAVService.GetTrackerPerformance:output_type -> budget.v1.GetInvestmentPerformanceResponse
+	71,  // 185: budget.v1.InvestmentNAVService.GetInvestmentLots:output_type -> budget.v1.GetInvestmentLotsResponse
+	64,  // 186: budget.v1.InvestmentNAVService.GetInvestmentCurrentNAV:output_type -> budget.v1.GetInvestmentCurrentNAVResponse
+	78,  // 187: budget.v1.InvestmentNAVService.GetInvestmentNAVVariant:output_type -> budget.v1.GetInvestmentNAVVariantResponse
+	79,  // 188: budget.v1.InvestmentNAVService.PrepareInvestmentNAVVariant:output_type -> budget.v1.PrepareInvestmentNAVVariantResponse
+	61,  // 189: budget.v1.InvestmentNAVService.ExportInvestmentSeries:output_type -> budget.v1.ExportInvestmentSeriesResponse
+	60,  // 190: budget.v1.InvestmentNAVService.GetInvestmentOverview:output_type -> budget.v1.GetInvestmentOverviewResponse
+	58,  // 191: budget.v1.InvestmentNAVService.GetInvestmentProfit:output_type -> budget.v1.GetInvestmentProfitResponse
+	27,  // 192: budget.v1.InvestmentNAVService.ListInvestmentBenchmarks:output_type -> budget.v1.ListInvestmentBenchmarksResponse
+	30,  // 193: budget.v1.InvestmentNAVService.GetInvestmentBenchmarkComparison:output_type -> budget.v1.GetInvestmentBenchmarkComparisonResponse
+	22,  // 194: budget.v1.InvestmentNAVService.GetInvestmentPerformance:output_type -> budget.v1.GetInvestmentPerformanceResponse
+	19,  // 195: budget.v1.InvestmentNAVService.GetInvestmentNAVSeries:output_type -> budget.v1.GetInvestmentNAVSeriesResponse
+	53,  // 196: budget.v1.InvestmentNAVService.GetInvestmentInstrumentPrices:output_type -> budget.v1.GetInvestmentInstrumentPricesResponse
+	46,  // 197: budget.v1.InvestmentNAVService.GetInvestmentPositions:output_type -> budget.v1.GetInvestmentPositionsResponse
+	48,  // 198: budget.v1.InvestmentNAVService.GetInvestmentInstrument:output_type -> budget.v1.GetInvestmentInstrumentResponse
+	42,  // 199: budget.v1.InvestmentNAVService.GetInvestmentCompositionHistory:output_type -> budget.v1.GetInvestmentCompositionHistoryResponse
+	36,  // 200: budget.v1.InvestmentNAVService.GetInvestmentGroups:output_type -> budget.v1.GetInvestmentGroupsResponse
+	38,  // 201: budget.v1.InvestmentNAVService.SaveInvestmentGroups:output_type -> budget.v1.SaveInvestmentGroupsResponse
+	12,  // 202: budget.v1.InvestmentNAVService.SaveInvestmentPortfolio:output_type -> budget.v1.SaveInvestmentPortfolioResponse
+	14,  // 203: budget.v1.InvestmentNAVService.ListInvestmentPortfolios:output_type -> budget.v1.ListInvestmentPortfoliosResponse
+	17,  // 204: budget.v1.InvestmentNAVService.ListInvestmentValuationProfiles:output_type -> budget.v1.ListInvestmentValuationProfilesResponse
+	5,   // 205: budget.v1.InvestmentNAVService.ListInvestmentNAVSeries:output_type -> budget.v1.ListInvestmentNAVSeriesResponse
+	7,   // 206: budget.v1.InvestmentNAVService.GetInvestmentNAVHistory:output_type -> budget.v1.GetInvestmentNAVHistoryResponse
+	9,   // 207: budget.v1.InvestmentNAVService.RequestInvestmentNAVRefresh:output_type -> budget.v1.RequestInvestmentNAVRefreshResponse
+	82,  // 208: budget.v1.InvestmentNAVService.GetInvestmentExchangeRates:output_type -> budget.v1.GetInvestmentExchangeRatesResponse
+	85,  // 209: budget.v1.InvestmentNAVService.GetInvestmentQuotes:output_type -> budget.v1.GetInvestmentQuotesResponse
+	183, // [183:210] is the sub-list for method output_type
+	156, // [156:183] is the sub-list for method input_type
+	156, // [156:156] is the sub-list for extension type_name
+	156, // [156:156] is the sub-list for extension extendee
+	0,   // [0:156] is the sub-list for field type_name
 }
 
 func init() { file_budget_v1_investment_nav_proto_init() }
@@ -8534,7 +8743,7 @@ func file_budget_v1_investment_nav_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_budget_v1_investment_nav_proto_rawDesc), len(file_budget_v1_investment_nav_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   88,
+			NumMessages:   90,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

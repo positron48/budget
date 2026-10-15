@@ -26,6 +26,15 @@ export async function loadPortfolioPerformanceHistory(api: PerformanceAPI, scope
     if (amount && (!/^-?[0-9]+$/.test(amount.numerator) || !/^[1-9][0-9]*$/.test(amount.denominator) || !Number.isFinite(Number(amount.numerator) / Number(amount.denominator)))) throw new Error("invalid_performance");
   }
   if ((!performance.reason && (!performance.profit || !performance.netContributions)) || (!performance.twrReason && !performance.twr) || (!performance.xirrReason && performance.xirr === undefined) || (performance.xirr !== undefined && (!Number.isFinite(performance.xirr) || performance.xirr <= -1 || !performance.xirrAnnualized)) || !Number.isInteger(performance.xirrDays) || performance.xirrDays < 0 || performance.xirrDays > 3661) throw new Error("invalid_performance");
+  const rational = (v: {numerator: string; denominator: string} | undefined) => !v || /^-?[0-9]+$/.test(v.numerator) && /^[1-9][0-9]*$/.test(v.denominator) && Number.isFinite(Number(v.numerator) / Number(v.denominator));
+  const first = shiftHistoryDate(scope.fromDate, -1), count = (Date.parse(scope.toDate) - Date.parse(first)) / 86400000 + 1;
+  if (performance.twrPoints.length && (performance.twrPoints.length !== count || performance.twrPoints.some((p, i) => p.date !== shiftHistoryDate(first, i) || !["baseline", "calculated", "gap", "unfunded"].includes(p.state) || !Number.isInteger(p.segment) || p.segment < 0 || !rational(p.index)))) throw new Error("invalid_performance");
+  const seen = new Set<string>();
+  for (const line of performance.trackerBenchmarks) {
+    const expected = line.key === "imoex" ? ["moex", "RUB", "price_index", "https://www.moex.com/ru/index/IMOEX"] : line.key === "spy" ? ["twelvedata", "USD", "etf_price_proxy", "https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-sp-500-etf-trust-spy"] : undefined;
+    if (!expected || seen.has(line.key) || [line.provider, line.nativeCurrency, line.kind, line.sourceUrl].some((s, i) => s !== expected[i]) || line.baseDate < first || line.baseDate > scope.toDate || line.points.length !== count || line.points.some((p, i) => p.date !== shiftHistoryDate(first, i) || !rational(p.index) || p.index && (p.reason !== "" || Number(p.index.numerator) / Number(p.index.denominator) <= 0))) throw new Error("invalid_performance");
+    seen.add(line.key);
+  }
   return {points: result.points, performance};
 }
 async function historyPages(api: HistoryAPI, scope: HistoryScope, signal: AbortSignal, progress: (points: TrackerHistoryPoint[]) => void, performance: boolean): Promise<{points: TrackerHistoryPoint[]; tokens: string[]}> {

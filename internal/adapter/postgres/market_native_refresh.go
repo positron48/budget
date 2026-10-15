@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/positron48/budget/internal/adapter/nativehistory"
 	md "github.com/positron48/budget/internal/usecase/marketdata"
 )
 
@@ -71,7 +72,19 @@ func (r *MarketDataRepo) scheduleNativeRefresh(ctx context.Context, s md.Scope, 
 	if _, e = tx.Exec(ctx, `UPDATE market_data_subscriptions SET position_demand=false WHERE tenant_id=$1 AND provider=$2 AND access_scope=$3 AND position_demand AND NOT(instrument_id::text=ANY($4::text[]))`, s.TenantID, s.Provider, s.AccessScope, ids); e != nil {
 		return 0, e
 	}
-	rows, e = tx.Query(ctx, `SELECT instrument_id::text FROM market_data_subscriptions WHERE tenant_id=$1 AND provider=$2 AND access_scope=$3 AND kind='daily_candle' AND (position_demand OR requested_until>$4) AND next_due<=$4 ORDER BY position_demand DESC,next_due,instrument_id LIMIT $5 FOR UPDATE`, s.TenantID, s.Provider, s.AccessScope, at, limit)
+	benchmarkIDs := []string{}
+	for _, b := range nativehistory.Benchmarks() {
+		if b.Provider == s.Provider && b.AccessScope == s.AccessScope && !at.Before(b.From) {
+			benchmarkIDs = append(benchmarkIDs, b.Instrument.ID)
+			if _, e = tx.Exec(ctx, `INSERT INTO market_data_subscriptions(tenant_id,provider,access_scope,instrument_id,kind,benchmark_demand) VALUES($1,$2,$3,$4,'daily_candle',true) ON CONFLICT(tenant_id,provider,access_scope,instrument_id,kind) DO UPDATE SET benchmark_demand=true WHERE NOT market_data_subscriptions.benchmark_demand`, s.TenantID, s.Provider, s.AccessScope, b.Instrument.ID); e != nil {
+				return 0, e
+			}
+		}
+	}
+	if _, e = tx.Exec(ctx, `UPDATE market_data_subscriptions SET benchmark_demand=false WHERE tenant_id=$1 AND provider=$2 AND access_scope=$3 AND benchmark_demand AND NOT(instrument_id::text=ANY($4::text[]))`, s.TenantID, s.Provider, s.AccessScope, benchmarkIDs); e != nil {
+		return 0, e
+	}
+	rows, e = tx.Query(ctx, `SELECT instrument_id::text FROM market_data_subscriptions WHERE tenant_id=$1 AND provider=$2 AND access_scope=$3 AND kind='daily_candle' AND (position_demand OR benchmark_demand OR requested_until>$4) AND next_due<=$4 ORDER BY position_demand DESC,next_due,instrument_id LIMIT $5 FOR UPDATE`, s.TenantID, s.Provider, s.AccessScope, at, limit)
 	if e != nil {
 		return 0, e
 	}

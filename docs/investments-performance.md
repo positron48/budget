@@ -47,3 +47,32 @@ price mappings, and FX revisions before accepting them. Corrections or an expire
 snapshot require refreshing the chart. Tokens grant no access, are not persisted,
 and contain no provider credential. Money is calculated as exact rational values;
 reported return fractions are rounded to twelve decimal places.
+
+## Return chart and price comparisons
+
+The Returns view plots the portfolio's first measured TWR segment normalized to
+100. It does not connect a later restarted segment to the original one. XIRR
+remains a separate annual scalar. Unknown daily values split the plotted line.
+
+Built-in comparisons are explicitly price-only:
+
+- [IMOEX — MOEX Russia Index](https://www.moex.com/ru/index/IMOEX), a RUB price
+  index, sourced from Moscow Exchange ISS, SNDX. Its native unit is index points;
+  absent index volume stays absent.
+- [SPY — SPDR S&P 500 ETF Trust](https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-sp-500-etf-trust-spy),
+  a USD ETF price proxy on NYSE Arca, sourced through Twelve Data's NYSE/ARCX
+  identity. It is not the S&P 500 index or a total-return series. Requests disable
+  split/dividend adjustments, and response MIC, currency and ETF type must match.
+
+Both comparisons use the same retrospective daily-close rule and selected daily
+FX policy as the portfolio. Their base is the portfolio's first measured day,
+or the requested previous-day boundary when no TWR segment can be measured.
+Missing base-date FX or price makes normalization unavailable; the base is not
+silently moved. Later gaps remain gaps. There is no present-day FX substitution.
+
+Comparison prices are read from one authorized database snapshot. The portfolio
+summary then rechecks its original journal/FX/price basis. Native workers refresh
+the reviewed built-in identities only under explicitly enabled `personal` sources;
+code defaults do not enable a source or restore credentials. Recent refreshes
+and bounded historical jobs use the ordinary durable queue and provider quota.
+These price lines do not simulate actual purchases or executable trading sessions.

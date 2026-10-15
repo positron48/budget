@@ -27,6 +27,8 @@ func (l Listing) ID() string {
 	return l.id("shares")
 }
 
+func (l Listing) IndexID() string { return l.id("index") }
+
 func (l Listing) BondID() string { return l.id("bonds") }
 func (l Listing) id(market string) string {
 	return uuid.NewSHA1(uuid.NameSpaceURL, []byte("https://iss.moex.com/stock/"+market+"/"+l.Board+"/"+l.SecurityID+"/"+l.ISIN)).String()
@@ -136,12 +138,18 @@ func (c *Client) BondHistory(ctx context.Context, listing Listing, from, to stri
 	return c.history(ctx, listing, from, to, "bonds")
 }
 
+// IndexHistory supports the reviewed IMOEX SNDX price index only. Index levels
+// are index points; absent traded volume is not fabricated as zero.
+func (c *Client) IndexHistory(ctx context.Context, from, to string) (History, error) {
+	return c.history(ctx, Listing{SecurityID: "IMOEX", Board: "SNDX"}, from, to, "index")
+}
+
 func (c *Client) history(ctx context.Context, listing Listing, from, to, market string) (History, error) {
 	out := History{Listing: listing, Market: market, From: from, To: to, RetrievedAt: time.Now().UTC()}
 	first, e1 := time.Parse(time.DateOnly, from)
 	last, e2 := time.Parse(time.DateOnly, to)
-	validBoard := market == "shares" && (listing.Board == "TQBR" || listing.Board == "TQTF") || market == "bonds" && bondBoard.MatchString(listing.Board)
-	if !securityID.MatchString(listing.SecurityID) || !isin.MatchString(listing.ISIN) || !validBoard || e1 != nil || e2 != nil || first.Year() < 1900 || last.Before(first) || !last.Before(out.RetrievedAt.Truncate(24*time.Hour)) || last.Sub(first) > 3660*24*time.Hour {
+	validBoard := market == "shares" && (listing.Board == "TQBR" || listing.Board == "TQTF") || market == "bonds" && bondBoard.MatchString(listing.Board) || market == "index" && listing.SecurityID == "IMOEX" && listing.Board == "SNDX" && listing.ISIN == ""
+	if !securityID.MatchString(listing.SecurityID) || market != "index" && !isin.MatchString(listing.ISIN) || !validBoard || e1 != nil || e2 != nil || first.Year() < 1900 || last.Before(first) || !last.Before(out.RetrievedAt.Truncate(24*time.Hour)) || last.Sub(first) > 3660*24*time.Hour {
 		return out, errors.New("invalid ISS listing or completed date range")
 	}
 	blocks, hash, err := c.get(ctx, "securities/"+listing.SecurityID+".json", url.Values{"iss.meta": {"off"}, "iss.only": {"description"}})
@@ -156,14 +164,14 @@ func (c *Client) history(ctx context.Context, listing Listing, from, to, market 
 		if e1 != nil || e2 != nil {
 			return out, errors.New("invalid ISS description")
 		}
-		if name == "SECID" || name == "ISIN" {
+		if name == "SECID" || name == "ISIN" || market == "index" && (name == "CALCMODE" || name == "CURRENCYID") {
 			if _, exists := identity[name]; exists {
 				return out, errors.New("duplicate ISS identity")
 			}
 			identity[name] = value
 		}
 	}
-	if identity["SECID"] != listing.SecurityID || identity["ISIN"] != listing.ISIN {
+	if identity["SECID"] != listing.SecurityID || identity["ISIN"] != listing.ISIN || market == "index" && (identity["CALCMODE"] != "PR" || identity["CURRENCYID"] != "RUB") {
 		return out, errors.New("ISS listing identity mismatch")
 	}
 	out.ResponseHashes = append(out.ResponseHashes, hash)
@@ -200,15 +208,18 @@ func (c *Client) history(ctx context.Context, listing Listing, from, to, market 
 			}
 			day, err := time.Parse(time.DateOnly, values["TRADEDATE"])
 			currency := nativeCurrency(values["CURRENCYID"])
-			if err != nil || day.Before(first) || day.After(last) || seen[values["TRADEDATE"]] || values["SECID"] != listing.SecurityID || values["BOARDID"] != listing.Board || currency == "" || market == "shares" && currency != "RUB" {
+			if err != nil || day.Before(first) || day.After(last) || seen[values["TRADEDATE"]] || values["SECID"] != listing.SecurityID || values["BOARDID"] != listing.Board || currency == "" || (market == "shares" || market == "index") && currency != "RUB" {
 				return out, errors.New("ISS history identity/date/currency mismatch")
 			}
 			seen[values["TRADEDATE"]] = true
-			if values["CLOSE"] == "" || values["OPEN"] == "" || values["HIGH"] == "" || values["LOW"] == "" || values["VOLUME"] == "" {
+			if values["CLOSE"] == "" || values["OPEN"] == "" || values["HIGH"] == "" || values["LOW"] == "" || market != "index" && values["VOLUME"] == "" {
 				out.MissingSessions = append(out.MissingSessions, values["TRADEDATE"])
 				continue
 			}
 			input := md.Observation{InstrumentID: listing.id(market), Kind: "daily_candle", At: day, SourceKind: "exchange", Currency: currency, PriceUnit: "currency_per_unit", Adjustment: "unadjusted", Price: values["CLOSE"], Open: values["OPEN"], High: values["HIGH"], Low: values["LOW"], Volume: values["VOLUME"], Complete: true}
+			if market == "index" {
+				input.PriceUnit = "index_points"
+			}
 			if market == "bonds" {
 				face, e1 := history.cell(row, "FACEVALUE")
 				unit, e2 := history.cell(row, "FACEUNIT")

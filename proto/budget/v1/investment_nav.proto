@@ -144,7 +144,16 @@ message GetInvestmentPerformanceResponse {
  string twr_convention = 16;
  string reporting_timezone = 17;
  string net_contributions_reason = 19;
+ repeated TrackerBenchmarkLine tracker_benchmarks = 20;
  string history_scope = 18; // recorded_journal, not broker reconciliation certification
+}
+
+// Price-only public comparisons; never an unlabeled index/ETF substitution.
+message TrackerBenchmarkPoint { string date = 1; InvestmentNAVAmount index = 2; string reason = 3; }
+message TrackerBenchmarkLine {
+ string key = 1; string title = 2; string kind = 3; string native_currency = 4;
+ string provider = 5; string source_url = 6; string base_date = 7; string reason = 8;
+ google.protobuf.Timestamp read_at = 9; repeated TrackerBenchmarkPoint points = 10;
 }
 
 message InvestmentBenchmark {

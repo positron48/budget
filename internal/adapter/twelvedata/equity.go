@@ -19,7 +19,7 @@ import (
 )
 
 // EquityListing must come from a confirmed instrument mapping, not ticker search.
-// This adapter supports USD common shares (including REITs) on the two primary US venues.
+// Supports USD common shares/REITs on NYSE and Nasdaq, and ARCX ETFs.
 type EquityListing struct {
 	Symbol, Exchange, MIC string
 }
@@ -46,6 +46,15 @@ type EquityMeta struct {
 	Type     string `json:"type"`
 }
 
+// NYSE is the provider exchange name for both XNYS stocks and ARCX ETFs.
+// MIC and the returned security type must agree; no ticker-only substitution.
+func (l EquityListing) matchesType(kind string) bool {
+	if l.Exchange == "NYSE" && l.MIC == "ARCX" {
+		return kind == "ETF"
+	}
+	return kind == "Common Stock" || kind == "REIT"
+}
+
 // EquityAudit retains exchange session dates, not UTC opening/publication times.
 // Adjustment records the request contract; the API does not echo it in metadata.
 type EquityAudit struct {
@@ -64,7 +73,7 @@ var equitySymbol = regexp.MustCompile(`^[A-Z][A-Z0-9.-]{0,19}$`)
 func equityWindow(listing EquityListing, from, to string, now time.Time) (time.Time, time.Time, error) {
 	a, e1 := time.Parse(time.DateOnly, from)
 	b, e2 := time.Parse(time.DateOnly, to)
-	venue := listing.Exchange == "NASDAQ" && listing.MIC == "XNGS" || listing.Exchange == "NYSE" && listing.MIC == "XNYS"
+	venue := listing.Exchange == "NASDAQ" && listing.MIC == "XNGS" || listing.Exchange == "NYSE" && (listing.MIC == "XNYS" || listing.MIC == "ARCX")
 	// Only completed exchange dates. Missing end-of-day bars remain gaps;
 	// receiving an older bar does not prove a newer session is available.
 	loc, err := time.LoadLocation("America/New_York")
@@ -164,7 +173,7 @@ func parseEquity(body []byte, listing EquityListing, from, to string, now time.T
 		return EquityAudit{}, errors.New("invalid equity response status or JSON")
 	}
 	m := payload.Meta
-	if m.Symbol != listing.Symbol || m.Exchange != listing.Exchange || m.MIC != listing.MIC || m.Interval != "1day" || m.Currency != "USD" || m.Type != "Common Stock" && m.Type != "REIT" || m.Timezone != "America/New_York" {
+	if m.Symbol != listing.Symbol || m.Exchange != listing.Exchange || m.MIC != listing.MIC || m.Interval != "1day" || m.Currency != "USD" || !listing.matchesType(m.Type) || m.Timezone != "America/New_York" {
 		return EquityAudit{}, errors.New("equity response listing mismatch")
 	}
 	if len(payload.Values) == 0 || len(payload.Values) > 5000 {

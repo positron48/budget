@@ -56,7 +56,7 @@ func TestNativeHistoryWorkerRecoversCacheAndCorrectsPricesWithoutBookWrites(t *t
 	if e != nil {
 		t.Fatal(e)
 	}
-	scope := md.Scope{TenantID: tenant, Provider: "moex", AccessScope: "personal"}
+	scope := md.Scope{TenantID: tenant, Provider: "moex", AccessScope: "synthetic-native"}
 	batch := HistoricalPriceBatch{Version: 1}
 	for n, listing := range []moex.Listing{{SecurityID: "SYNTH", ISIN: "RU0000000001", Board: "TQBR"}, {SecurityID: "RU0000000002", ISIN: "RU0000000002", Board: "TQCB"}} {
 		kind, id, key, unit := "share", listing.ID(), "S", "currency_per_unit"
@@ -65,8 +65,8 @@ func TestNativeHistoryWorkerRecoversCacheAndCorrectsPricesWithoutBookWrites(t *t
 		}
 		i := md.Instrument{Detailed: true, ID: id, Ticker: listing.SecurityID, ISIN: listing.ISIN, ClassCode: listing.Board, Kind: kind, Name: "Synthetic", Currency: "RUB"}
 		o := (&nativeFixtureFeed{price: "10"}).history(listing, "2024-01-01", "2024-01-01", n == 1).Observations[0]
-		periods := []md.MappingPeriod{{Provider: "moex", AccessScope: "personal", InstrumentID: id, Kind: kind, Currency: "RUB", Unit: unit, From: first.Add(24 * time.Hour), Evidence: "Synthetic reviewed identity", Nominal: o.Nominal, NominalCurrency: o.NominalCurrency}}
-		batch.Listings = append(batch.Listings, HistoricalPriceListing{Provider: "moex", AccessScope: "personal", Instrument: i, Observations: []md.Observation{o}, ResponseHashes: []string{strings.Repeat("a", 64)}})
+		periods := []md.MappingPeriod{{Provider: "moex", AccessScope: "synthetic-native", InstrumentID: id, Kind: kind, Currency: "RUB", Unit: unit, From: first.Add(24 * time.Hour), Evidence: "Synthetic reviewed identity", Nominal: o.Nominal, NominalCurrency: o.NominalCurrency}}
+		batch.Listings = append(batch.Listings, HistoricalPriceListing{Provider: "moex", AccessScope: "synthetic-native", Instrument: i, Observations: []md.Observation{o}, ResponseHashes: []string{strings.Repeat("a", 64)}})
 		batch.Mappings = append(batch.Mappings, md.MappingChange{InstrumentKey: key, RequestKey: key, Reason: "Synthetic", HistoricalPeriods: &periods})
 		if _, e = svc.Mutate(ctx, tenant, actor, inv.Mutation{Action: "create", RequestKey: uuid.NewString(), ExpectedLedgerVersion: int64(n + 1), Operation: d.InvestmentOperation{LedgerID: l.ID, Kind: "buy", InstrumentKey: key, Currency: "RUB", Quantity: "2", Amount: "20", OccurredAt: first.Add(24 * time.Hour)}}); e != nil {
 			t.Fatal(e)

@@ -63,3 +63,15 @@ it("asks to refresh after a corrected or expired signed chart snapshot",async()=
  const api=performanceAPI();api.getTrackerPerformance.mockRejectedValue(new ConnectError("snapshot changed",Code.FailedPrecondition));
  await expect(loadPortfolioPerformanceHistory(api,scope,new AbortController().signal,vi.fn())).rejects.toThrow("history_changed");
 });
+
+it.each(["source", "dates", "currency", "fraction"])("rejects a mismatched benchmark %s", async kind => {
+ const api=performanceAPI(),value=performanceFixture();
+ value.trackerBenchmarks=[{ $typeName:"budget.v1.TrackerBenchmarkLine",key:"imoex",title:"IMOEX",kind:"price_index",nativeCurrency:"RUB",provider:"moex",sourceUrl:"https://www.moex.com/ru/index/IMOEX",baseDate:"2019-12-31",reason:"",points:["2019-12-31","2020-01-01","2020-01-02"].map(date=>({$typeName:"budget.v1.TrackerBenchmarkPoint",date,index:{$typeName:"budget.v1.InvestmentNAVAmount",numerator:"100",denominator:"1",decimal:"100"},reason:""}))}];
+ const line=value.trackerBenchmarks[0];
+ if(kind==="source")line.sourceUrl="https://example.test";
+ if(kind==="dates")line.points.pop();
+ if(kind==="currency")line.nativeCurrency="USD";
+ if(kind==="fraction")line.points[0].index!.denominator="0";
+ api.getTrackerPerformance.mockResolvedValue(value);
+ await expect(loadPortfolioPerformanceHistory(api,scope,new AbortController().signal,vi.fn())).rejects.toThrow("invalid_performance");
+});

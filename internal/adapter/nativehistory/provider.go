@@ -37,7 +37,12 @@ func Identity(provider string, i md.Instrument) error {
 	case "moex":
 		l := moex.Listing{SecurityID: i.Ticker, ISIN: i.ISIN, Board: i.ClassCode}
 		id := l.ID()
-		if i.Kind == "bond" {
+		if i.Kind == "index" {
+			if i.Ticker != "IMOEX" || i.ClassCode != "SNDX" || i.ISIN != "" || i.Currency != "RUB" {
+				return md.ErrInvalid
+			}
+			id = l.IndexID()
+		} else if i.Kind == "bond" {
 			id = l.BondID()
 		} else if i.Kind != "share" && i.Kind != "etf" {
 			return md.ErrInvalid
@@ -47,11 +52,12 @@ func Identity(provider string, i md.Instrument) error {
 		}
 	case "twelvedata":
 		parts := strings.Split(i.ClassCode, ":")
-		if len(parts) != 2 || i.Kind != "share" || i.Currency != "USD" {
+		if len(parts) != 2 || i.Kind != "share" && i.Kind != "etf" || i.Currency != "USD" {
 			return md.ErrInvalid
 		}
 		l := td.EquityListing{Symbol: i.Ticker, Exchange: parts[0], MIC: parts[1]}
 		validVenue := l.Exchange == "NASDAQ" && l.MIC == "XNGS" || l.Exchange == "NYSE" && l.MIC == "XNYS"
+		validVenue = validVenue && i.Kind == "share" || l.Exchange == "NYSE" && l.MIC == "ARCX" && i.Kind == "etf"
 		if l.ID() != i.ID || !validVenue {
 			return md.ErrInvalid
 		}
@@ -115,9 +121,18 @@ func (p *Provider) LoadMarketObservations(ctx context.Context, q md.JobRequest) 
 		}
 		l := moex.Listing{SecurityID: i.Ticker, ISIN: i.ISIN, Board: i.ClassCode}
 		var h moex.History
-		if i.Kind == "bond" {
+		switch i.Kind {
+		case "index":
+			loader, ok := p.MOEX.(interface {
+				IndexHistory(context.Context, string, string) (moex.History, error)
+			})
+			if !ok {
+				return nil, md.ErrInvalid
+			}
+			h, e = loader.IndexHistory(ctx, first.Format(time.DateOnly), end.Format(time.DateOnly))
+		case "bond":
 			h, e = p.MOEX.BondHistory(ctx, l, first.Format(time.DateOnly), end.Format(time.DateOnly))
-		} else {
+		default:
 			h, e = p.MOEX.History(ctx, l, first.Format(time.DateOnly), end.Format(time.DateOnly))
 		}
 		observations = h.Observations

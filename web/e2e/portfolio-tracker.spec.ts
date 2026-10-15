@@ -47,6 +47,10 @@ for (const locale of ["ru", "en"]) {
       if (method?.name === "GetTrackerPerformance") {
         expect(input.snapshotTokens.length).toBeGreaterThan(0);
         data = {fromDate:input.fromDate,toDate:input.toDate,currency:input.currency,fxPolicyKey:input.fxPolicyKey,historyScope:"recorded_securities_strategy",twrConvention:"securities_daily_end_of_day_flows",reportingTimezone:"Europe/Moscow",profit:{numerator:"12345",denominator:"100"},netContributions:{numerator:"1000",denominator:"1"},twrReason:"discontinuous_history",xirr:0.125,xirrAnnualized:true,xirrDays:30};
+        const shift=(day:string,n:number)=>{const d=new Date(day+"T00:00:00Z");d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);};
+        const start=shift(input.fromDate,-1),dates:string[]=[];for(let date=start;date<=input.toDate;date=shift(date,1))dates.push(date);
+        data.twrPoints=dates.map((date,i)=>({date,state:i===2?"gap":i>2?"baseline":i===0?"baseline":"calculated",segment:i===2?0:i>2?2:1,index:i===2?undefined:{numerator:i===1?"105":"100",denominator:"1"}}));
+        data.trackerBenchmarks=[{key:"imoex",title:"IMOEX",kind:"price_index",nativeCurrency:"RUB",provider:"moex",sourceUrl:"https://www.moex.com/ru/index/IMOEX"},{key:"spy",title:"SPY · S&P 500 ETF proxy",kind:"etf_price_proxy",nativeCurrency:"USD",provider:"twelvedata",sourceUrl:"https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-sp-500-etf-trust-spy"}].map(b=>({...b,baseDate:start,points:dates.map((date,i)=>({date,index:{numerator:String(100+i),denominator:"1"}}))}));
       }
       if (method?.name === "GetInvestmentQuotes") data = {quotes:input.instrumentKeys.map((instrumentKey:string) => instrumentKey === foreign.instrumentKey ? {instrumentKey,currency:"USD",state:"fresh",cleanPrice:{numerator:"110",denominator:"1"},priceAt:{seconds:BigInt(Math.floor(Date.now()/1000)-60)},source:"tinvest/personal"} : {instrumentKey,state:"unavailable"})};
       if (method?.name === "GetInvestmentExchangeRates") {
@@ -94,6 +98,13 @@ for (const locale of ["ru", "en"]) {
     const pendingCSV = page.waitForEvent("download"); await history.getByRole("button", {name: "CSV", exact: true}).click();
     const file = await pendingCSV, csv = await readFile((await file.path())!, "utf8");
     expect(csv).toContain('"price_convention"'); expect(csv).toContain('"retrospective_close_next_utc_day_v1"'); expect(csv).toContain('"incomplete"');
+    await history.getByRole("button",{name:ru?"Доходность":"Returns",exact:true}).click();
+    const returnChart=history.locator('[aria-label="'+(ru?"График доходности":"Return chart")+'"]');
+    await expect(returnChart.getByRole("img")).toBeVisible();
+    await expect(returnChart.getByRole("checkbox")).toHaveCount(2);
+    await expect(returnChart.locator("polyline")).toHaveCount(3);
+    await returnChart.getByRole("checkbox").last().uncheck();
+    await expect(returnChart.locator("polyline")).toHaveCount(2);
     await page.setViewportSize({width: 390, height: 844});
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     if (process.env.E2E_PORTFOLIO_HISTORY_PREVIEW && ru && !readOnly) await history.screenshot({path: process.env.E2E_PORTFOLIO_HISTORY_PREVIEW});

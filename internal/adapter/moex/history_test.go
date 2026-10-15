@@ -151,3 +151,23 @@ func TestBondHistoryUsesSessionFaceValueAndNativeCurrency(t *testing.T) {
 		t.Fatal(h, err)
 	}
 }
+
+func TestIMOEXUsesPriceIndexIdentityAndKeepsAbsentVolume(t *testing.T) {
+	c := New()
+	calls := 0
+	c.http.Transport = transportFunc(func(r *http.Request) (*http.Response, error) {
+		body := `{"description":{"columns":["name","value"],"data":[["SECID","IMOEX"],["CALCMODE","PR"],["CURRENCYID","RUB"]]}}`
+		if calls > 0 {
+			if !strings.Contains(r.URL.Path, "markets/index/boards/SNDX/securities/IMOEX.json") {
+				t.Fatal(r.URL)
+			}
+			body = `{"history":{"columns":[` + columns + `],"data":[["SNDX","2024-06-07","IMOEX",3199.75,3268.89,3193.57,3233.22,null,"RUB"]]},"history.cursor":{"columns":["INDEX","TOTAL","PAGESIZE"],"data":[[0,1,100]]}}`
+		}
+		calls++
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(body)), Request: r}, nil
+	})
+	h, e := c.IndexHistory(context.Background(), "2024-06-07", "2024-06-10")
+	if e != nil || len(h.Observations) != 1 || h.Observations[0].PriceUnit != "index_points" || h.Observations[0].Volume != "" || h.Observations[0].InstrumentID != (Listing{SecurityID: "IMOEX", Board: "SNDX"}).IndexID() {
+		t.Fatal(h, e)
+	}
+}

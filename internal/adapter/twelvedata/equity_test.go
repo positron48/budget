@@ -138,3 +138,22 @@ func TestEquityRejectsOpenWindowBeforeProviderCall(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestUSArcaETFRequiresMatchingMICAndType(t *testing.T) {
+	payload := equityPayload()
+	meta := payload["meta"].(map[string]any)
+	meta["symbol"], meta["exchange"], meta["mic_code"], meta["type"] = "SPY", "NYSE", "ARCX", "ETF"
+	listing := EquityListing{"SPY", "NYSE", "ARCX"}
+	if _, e := parseEquity(encode(t, payload), listing, "2024-06-07", "2024-06-10", checkedAt); e != nil {
+		t.Fatal(e)
+	}
+	meta["type"] = "Common Stock"
+	if _, e := parseEquity(encode(t, payload), listing, "2024-06-07", "2024-06-10", checkedAt); e == nil {
+		t.Fatal("stock silently accepted as ARCA ETF")
+	}
+	meta["type"] = "ETF"
+	meta["mic_code"] = "XNYS"
+	if _, e := parseEquity(encode(t, payload), listing, "2024-06-07", "2024-06-10", checkedAt); e == nil {
+		t.Fatal("same ticker on another venue accepted")
+	}
+}
