@@ -20,6 +20,11 @@ type PortfolioQuote struct {
 	At                                     time.Time
 	MappingVersion                         int64
 	Issues                                 []string
+	Instrument                             *md.Instrument
+	MetadataAt                             time.Time
+	RawPrice, Nominal, Accrued             *big.Rat
+	RawUnit, NominalCurrency               string
+	AccruedAt                              time.Time
 }
 type PortfolioQuotes struct {
 	ReadAt time.Time
@@ -121,6 +126,14 @@ func normalizePortfolioQuote(mapping md.Mapping, price md.SelectedPrice, at time
 		return out, nil
 	}
 	out.CleanPrice = normalized.Clean
+	out.RawPrice, _ = new(big.Rat).SetString(price.Fact.Price)
+	out.RawUnit = terms.Unit
+	if terms.Kind == "bond" && terms.Unit == "percent_of_nominal" {
+		if nominal, ok := new(big.Rat).SetString(terms.Nominal); ok && nominal.Sign() > 0 {
+			out.Nominal = nominal
+			out.NominalCurrency = terms.NominalCurrency
+		}
+	}
 	return out, nil
 }
 

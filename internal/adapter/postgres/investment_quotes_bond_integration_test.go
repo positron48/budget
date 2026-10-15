@@ -67,7 +67,8 @@ func TestPortfolioQuoteTracksAmortizedNominalFromCompletedProviderJob(t *testing
 			t.Fatal(err)
 		}
 		nominal := "800"
-		facts := md.BondFacts{Instrument: md.Instrument{ID: id, Ticker: "TEST", Name: "Synthetic amortizing bond", Kind: "bond", Currency: "RUB", Detailed: true}, From: q.From, To: q.To, AsOf: now, Terms: md.BondTerms{Nominal: &md.BondAmount{Amount: nominal, Currency: "USD"}}, Accrued: []md.BondAccrued{{Date: day, Nominal: &nominal}}}
+		accrued := "5"
+		facts := md.BondFacts{Instrument: md.Instrument{ID: id, Ticker: "TEST", Name: "Synthetic amortizing bond", Kind: "bond", Currency: "RUB", Detailed: true}, From: q.From, To: q.To, AsOf: now, Terms: md.BondTerms{Nominal: &md.BondAmount{Amount: nominal, Currency: "USD"}}, Accrued: []md.BondAccrued{{Date: day, Nominal: &nominal, Value: &accrued}}}
 		if attempt == 1 {
 			facts.Accrued[0].Nominal = nil
 		}
@@ -77,6 +78,9 @@ func TestPortfolioQuoteTracksAmortizedNominalFromCompletedProviderJob(t *testing
 		actual, err := repo.InvestmentQuotes(ctx, tenant, actor, []string{"AMORTIZING"})
 		if err != nil {
 			t.Fatal(err)
+		}
+		if attempt == 0 && (actual.Quotes[0].Nominal == nil || actual.Quotes[0].Nominal.RatString() != "800" || actual.Quotes[0].NominalCurrency != "USD" || actual.Quotes[0].Accrued == nil || actual.Quotes[0].Accrued.RatString() != "5" || !actual.Quotes[0].AccruedAt.Equal(day) || actual.Quotes[0].RawPrice.RatString() != "95") {
+			t.Fatal("dated bond details lost", actual)
 		}
 		if attempt == 0 && (actual.Quotes[0].CleanPrice == nil || actual.Quotes[0].CleanPrice.RatString() != "760" || actual.Quotes[0].Currency != "USD") {
 			t.Fatal("amortization/native currency/per-security terms lost", actual)

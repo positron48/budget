@@ -31,7 +31,11 @@ func (s *InvestmentNAVServer) GetInvestmentQuotes(ctx context.Context, req *pb.G
 	}
 	out := &pb.GetInvestmentQuotesResponse{ReadAt: optionalInvestmentTimestamp(result.ReadAt)}
 	for _, q := range result.Quotes {
-		out.Quotes = append(out.Quotes, &pb.InvestmentQuote{InstrumentKey: q.InstrumentKey, Currency: q.Currency, CleanPrice: protoPerformanceAmount(q.CleanPrice), PriceAt: optionalInvestmentTimestamp(q.At), Source: q.Source, State: q.State, Issues: q.Issues, MappingVersion: q.MappingVersion})
+		var metadata *pb.MarketInstrument
+		if q.Instrument != nil {
+			metadata = positionMetadata(*q.Instrument)
+		}
+		out.Quotes = append(out.Quotes, &pb.InvestmentQuote{InstrumentKey: q.InstrumentKey, Currency: q.Currency, CleanPrice: protoPerformanceAmount(q.CleanPrice), PriceAt: optionalInvestmentTimestamp(q.At), Source: q.Source, State: q.State, Issues: q.Issues, MappingVersion: q.MappingVersion, Instrument: metadata, MetadataAt: optionalInvestmentTimestamp(q.MetadataAt), RawPrice: protoPerformanceAmount(q.RawPrice), RawUnit: q.RawUnit, Nominal: protoPerformanceAmount(q.Nominal), NominalCurrency: q.NominalCurrency, Accrued: protoPerformanceAmount(q.Accrued), AccruedAt: optionalInvestmentTimestamp(q.AccruedAt)})
 	}
 	return out, nil
 }

@@ -67,6 +67,12 @@ func TestInvestmentQuotesOutsideBrokerHoldingsAndSourceBoundaries(t *testing.T) 
 		t.Fatal(result, e)
 	}
 	for _, q := range result.Quotes {
+		if q.InstrumentKey != "MISSING" && (q.Instrument == nil || q.Instrument.Ticker != q.InstrumentKey || q.MetadataAt.IsZero()) {
+			t.Fatal("provider metadata missing", q)
+		}
+		if q.InstrumentKey == "BOND" && (q.RawPrice == nil || q.RawPrice.RatString() != "95" || q.RawUnit != "percent_of_nominal" || q.Nominal == nil || q.Nominal.RatString() != "500" || q.Accrued != nil) {
+			t.Fatal("bond quote details incorrect", q)
+		}
 		if q.InstrumentKey == "STOCK" && (q.CleanPrice == nil || q.CleanPrice.RatString() != "95") {
 			t.Fatal(q)
 		}
@@ -109,7 +115,7 @@ func TestInvestmentQuotesOutsideBrokerHoldingsAndSourceBoundaries(t *testing.T) 
 		t.Fatal(e)
 	}
 	for _, q := range result.Quotes {
-		if q.CleanPrice != nil {
+		if q.CleanPrice != nil || q.Instrument != nil {
 			t.Fatal("disabled source leaked", q)
 		}
 	}

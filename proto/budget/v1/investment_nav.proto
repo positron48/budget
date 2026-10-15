@@ -558,6 +558,12 @@ message InvestmentQuote {
  string instrument_key=1; string currency=2; InvestmentNAVAmount clean_price=3;
  google.protobuf.Timestamp price_at=4; string source=5; string state=6;
  repeated string issues=7; int64 mapping_version=8;
+ // Current descriptive provider metadata; never historical pricing terms.
+ MarketInstrument instrument=9;google.protobuf.Timestamp metadata_at=10;
+ // Raw clean quote, nominal used for its normalization and dated per-unit NKD.
+ InvestmentNAVAmount raw_price=11;string raw_unit=12;
+ InvestmentNAVAmount nominal=13;string nominal_currency=14;
+ InvestmentNAVAmount accrued=15;google.protobuf.Timestamp accrued_at=16;
 }
 message GetInvestmentQuotesResponse {
  google.protobuf.Timestamp read_at=1; repeated InvestmentQuote quotes=2;

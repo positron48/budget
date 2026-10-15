@@ -12,7 +12,7 @@ export function portfolioQuotes(fallback: Map<string, TrackerQuote>, market: Inv
     if (!Number.isFinite(at) || at > now || now - at > 96 * 3600000 || BigInt(q.cleanPrice.numerator) <= 0n || BigInt(q.cleanPrice.denominator) <= 0n) continue;
     const existing = [...out].find(([key]) => key.startsWith(`${q.instrumentKey}\0`))?.[1];
     for (const key of out.keys()) if (key.startsWith(`${q.instrumentKey}\0`)) out.delete(key);
-    out.set(`${q.instrumentKey}\0${q.currency}`, {price: q.cleanPrice, at, name: existing?.name, ticker: existing?.ticker, source: "exchange"});
+    out.set(`${q.instrumentKey}\0${q.currency}`, {price: q.cleanPrice, at, name: q.instrument?.name||existing?.name, ticker: q.instrument?.ticker||existing?.ticker, source: "exchange"});
   }
   return out;
 }
