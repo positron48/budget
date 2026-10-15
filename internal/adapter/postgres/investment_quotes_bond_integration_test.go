@@ -10,7 +10,7 @@ import (
 	md "github.com/positron48/budget/internal/usecase/marketdata"
 )
 
-func TestPortfolioQuoteTracksAmortizedNominalFromCompletedProviderJob(t *testing.T) {
+func TestInvestmentPortfolioQuoteTracksAmortizedNominalFromCompletedProviderJob(t *testing.T) {
 	pool, done := withPg(t)
 	defer done()
 	ctx, tenant, actor := acceptanceOwner(t, pool)
