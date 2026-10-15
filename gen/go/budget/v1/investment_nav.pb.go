@@ -1503,6 +1503,10 @@ type GetInvestmentPerformanceResponse struct {
 	MonthlyProfit          []*TrackerAnalyticsPeriod `protobuf:"bytes,22,rep,name=monthly_profit,json=monthlyProfit,proto3" json:"monthly_profit,omitempty"`
 	YearlyProfit           []*TrackerAnalyticsPeriod `protobuf:"bytes,23,rep,name=yearly_profit,json=yearlyProfit,proto3" json:"yearly_profit,omitempty"`
 	AnalyticsConvention    string                    `protobuf:"bytes,24,opt,name=analytics_convention,json=analyticsConvention,proto3" json:"analytics_convention,omitempty"`
+	InstrumentKeys         []string                  `protobuf:"bytes,25,rep,name=instrument_keys,json=instrumentKeys,proto3" json:"instrument_keys,omitempty"`
+	ClassificationVersion  int64                     `protobuf:"varint,26,opt,name=classification_version,json=classificationVersion,proto3" json:"classification_version,omitempty"`
+	MonetaryOnly           bool                      `protobuf:"varint,27,opt,name=monetary_only,json=monetaryOnly,proto3" json:"monetary_only,omitempty"`
+	GroupIds               []string                  `protobuf:"bytes,28,rep,name=group_ids,json=groupIds,proto3" json:"group_ids,omitempty"`
 	HistoryScope           string                    `protobuf:"bytes,18,opt,name=history_scope,json=historyScope,proto3" json:"history_scope,omitempty"` // recorded_journal, not broker reconciliation certification
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
@@ -1697,6 +1701,34 @@ func (x *GetInvestmentPerformanceResponse) GetAnalyticsConvention() string {
 		return x.AnalyticsConvention
 	}
 	return ""
+}
+
+func (x *GetInvestmentPerformanceResponse) GetInstrumentKeys() []string {
+	if x != nil {
+		return x.InstrumentKeys
+	}
+	return nil
+}
+
+func (x *GetInvestmentPerformanceResponse) GetClassificationVersion() int64 {
+	if x != nil {
+		return x.ClassificationVersion
+	}
+	return 0
+}
+
+func (x *GetInvestmentPerformanceResponse) GetMonetaryOnly() bool {
+	if x != nil {
+		return x.MonetaryOnly
+	}
+	return false
+}
+
+func (x *GetInvestmentPerformanceResponse) GetGroupIds() []string {
+	if x != nil {
+		return x.GroupIds
+	}
+	return nil
 }
 
 func (x *GetInvestmentPerformanceResponse) GetHistoryScope() string {
@@ -7283,6 +7315,9 @@ type GetTrackerPerformanceRequest struct {
 	FromDate       string                 `protobuf:"bytes,4,opt,name=from_date,json=fromDate,proto3" json:"from_date,omitempty"`
 	ToDate         string                 `protobuf:"bytes,5,opt,name=to_date,json=toDate,proto3" json:"to_date,omitempty"`
 	SnapshotTokens []string               `protobuf:"bytes,6,rep,name=snapshot_tokens,json=snapshotTokens,proto3" json:"snapshot_tokens,omitempty"`
+	GroupIds       []string               `protobuf:"bytes,7,rep,name=group_ids,json=groupIds,proto3" json:"group_ids,omitempty"`
+	InstrumentKeys []string               `protobuf:"bytes,8,rep,name=instrument_keys,json=instrumentKeys,proto3" json:"instrument_keys,omitempty"`
+	MonetaryOnly   bool                   `protobuf:"varint,9,opt,name=monetary_only,json=monetaryOnly,proto3" json:"monetary_only,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -7359,6 +7394,27 @@ func (x *GetTrackerPerformanceRequest) GetSnapshotTokens() []string {
 	return nil
 }
 
+func (x *GetTrackerPerformanceRequest) GetGroupIds() []string {
+	if x != nil {
+		return x.GroupIds
+	}
+	return nil
+}
+
+func (x *GetTrackerPerformanceRequest) GetInstrumentKeys() []string {
+	if x != nil {
+		return x.InstrumentKeys
+	}
+	return nil
+}
+
+func (x *GetTrackerPerformanceRequest) GetMonetaryOnly() bool {
+	if x != nil {
+		return x.MonetaryOnly
+	}
+	return false
+}
+
 type GetTrackerHistoryRequest struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	LedgerIds           []string               `protobuf:"bytes,1,rep,name=ledger_ids,json=ledgerIds,proto3" json:"ledger_ids,omitempty"`
@@ -7368,6 +7424,8 @@ type GetTrackerHistoryRequest struct {
 	ToDate              string                 `protobuf:"bytes,5,opt,name=to_date,json=toDate,proto3" json:"to_date,omitempty"`
 	GroupIds            []string               `protobuf:"bytes,7,rep,name=group_ids,json=groupIds,proto3" json:"group_ids,omitempty"`                                    // empty selection = all; empty ID = ungrouped
 	PerformanceFromDate string                 `protobuf:"bytes,6,opt,name=performance_from_date,json=performanceFromDate,proto3" json:"performance_from_date,omitempty"` // original range start, constant across pages
+	InstrumentKeys      []string               `protobuf:"bytes,8,rep,name=instrument_keys,json=instrumentKeys,proto3" json:"instrument_keys,omitempty"`
+	MonetaryOnly        bool                   `protobuf:"varint,9,opt,name=monetary_only,json=monetaryOnly,proto3" json:"monetary_only,omitempty"` // Group snapshots carry own monetary flows, never group TWR/XIRR.
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -7449,6 +7507,20 @@ func (x *GetTrackerHistoryRequest) GetPerformanceFromDate() string {
 		return x.PerformanceFromDate
 	}
 	return ""
+}
+
+func (x *GetTrackerHistoryRequest) GetInstrumentKeys() []string {
+	if x != nil {
+		return x.InstrumentKeys
+	}
+	return nil
+}
+
+func (x *GetTrackerHistoryRequest) GetMonetaryOnly() bool {
+	if x != nil {
+		return x.MonetaryOnly
+	}
+	return false
 }
 
 type TrackerHistoryPoint struct {
@@ -7558,6 +7630,9 @@ type GetTrackerHistoryResponse struct {
 	BasisKey              string                 `protobuf:"bytes,11,opt,name=basis_key,json=basisKey,proto3" json:"basis_key,omitempty"`
 	PerformanceSnapshot   string                 `protobuf:"bytes,12,opt,name=performance_snapshot,json=performanceSnapshot,proto3" json:"performance_snapshot,omitempty"` // short-lived signed data, not an auth token
 	ClassificationVersion int64                  `protobuf:"varint,13,opt,name=classification_version,json=classificationVersion,proto3" json:"classification_version,omitempty"`
+	InstrumentKeys        []string               `protobuf:"bytes,14,rep,name=instrument_keys,json=instrumentKeys,proto3" json:"instrument_keys,omitempty"`
+	MonetaryOnly          bool                   `protobuf:"varint,15,opt,name=monetary_only,json=monetaryOnly,proto3" json:"monetary_only,omitempty"`
+	GroupIds              []string               `protobuf:"bytes,16,rep,name=group_ids,json=groupIds,proto3" json:"group_ids,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -7681,6 +7756,27 @@ func (x *GetTrackerHistoryResponse) GetClassificationVersion() int64 {
 		return x.ClassificationVersion
 	}
 	return 0
+}
+
+func (x *GetTrackerHistoryResponse) GetInstrumentKeys() []string {
+	if x != nil {
+		return x.InstrumentKeys
+	}
+	return nil
+}
+
+func (x *GetTrackerHistoryResponse) GetMonetaryOnly() bool {
+	if x != nil {
+		return x.MonetaryOnly
+	}
+	return false
+}
+
+func (x *GetTrackerHistoryResponse) GetGroupIds() []string {
+	if x != nil {
+		return x.GroupIds
+	}
+	return nil
 }
 
 // Provider series for a card; no legacy NAV series or position is required.
@@ -8461,15 +8557,16 @@ func (x *TrackerAnalyticsPeriod) GetReason() string {
 }
 
 type GetTrackerContributionsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	LedgerIds     []string               `protobuf:"bytes,1,rep,name=ledger_ids,json=ledgerIds,proto3" json:"ledger_ids,omitempty"`
-	GroupIds      []string               `protobuf:"bytes,2,rep,name=group_ids,json=groupIds,proto3" json:"group_ids,omitempty"`
-	Currency      string                 `protobuf:"bytes,3,opt,name=currency,proto3" json:"currency,omitempty"`
-	FxPolicyKey   string                 `protobuf:"bytes,4,opt,name=fx_policy_key,json=fxPolicyKey,proto3" json:"fx_policy_key,omitempty"`
-	FromDate      string                 `protobuf:"bytes,5,opt,name=from_date,json=fromDate,proto3" json:"from_date,omitempty"`
-	ToDate        string                 `protobuf:"bytes,6,opt,name=to_date,json=toDate,proto3" json:"to_date,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	LedgerIds      []string               `protobuf:"bytes,1,rep,name=ledger_ids,json=ledgerIds,proto3" json:"ledger_ids,omitempty"`
+	GroupIds       []string               `protobuf:"bytes,2,rep,name=group_ids,json=groupIds,proto3" json:"group_ids,omitempty"`
+	Currency       string                 `protobuf:"bytes,3,opt,name=currency,proto3" json:"currency,omitempty"`
+	FxPolicyKey    string                 `protobuf:"bytes,4,opt,name=fx_policy_key,json=fxPolicyKey,proto3" json:"fx_policy_key,omitempty"`
+	FromDate       string                 `protobuf:"bytes,5,opt,name=from_date,json=fromDate,proto3" json:"from_date,omitempty"`
+	ToDate         string                 `protobuf:"bytes,6,opt,name=to_date,json=toDate,proto3" json:"to_date,omitempty"`
+	InstrumentKeys []string               `protobuf:"bytes,7,rep,name=instrument_keys,json=instrumentKeys,proto3" json:"instrument_keys,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *GetTrackerContributionsRequest) Reset() {
@@ -8542,6 +8639,13 @@ func (x *GetTrackerContributionsRequest) GetToDate() string {
 		return x.ToDate
 	}
 	return ""
+}
+
+func (x *GetTrackerContributionsRequest) GetInstrumentKeys() []string {
+	if x != nil {
+		return x.InstrumentKeys
+	}
+	return nil
 }
 
 type TrackerContribution struct {
@@ -8708,6 +8812,8 @@ type GetTrackerContributionsResponse struct {
 	Profit                *InvestmentNAVAmount   `protobuf:"bytes,12,opt,name=profit,proto3" json:"profit,omitempty"`
 	KnownProfit           *InvestmentNAVAmount   `protobuf:"bytes,13,opt,name=known_profit,json=knownProfit,proto3" json:"known_profit,omitempty"`
 	Reason                string                 `protobuf:"bytes,14,opt,name=reason,proto3" json:"reason,omitempty"`
+	InstrumentKeys        []string               `protobuf:"bytes,15,rep,name=instrument_keys,json=instrumentKeys,proto3" json:"instrument_keys,omitempty"`
+	GroupIds              []string               `protobuf:"bytes,16,rep,name=group_ids,json=groupIds,proto3" json:"group_ids,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -8838,6 +8944,20 @@ func (x *GetTrackerContributionsResponse) GetReason() string {
 		return x.Reason
 	}
 	return ""
+}
+
+func (x *GetTrackerContributionsResponse) GetInstrumentKeys() []string {
+	if x != nil {
+		return x.InstrumentKeys
+	}
+	return nil
+}
+
+func (x *GetTrackerContributionsResponse) GetGroupIds() []string {
+	if x != nil {
+		return x.GroupIds
+	}
+	return nil
 }
 
 var File_budget_v1_investment_nav_proto protoreflect.FileDescriptor
@@ -8972,7 +9092,8 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\asegment\x18\x04 \x01(\x05R\asegment\x12A\n" +
 	"\fdaily_return\x18\x05 \x01(\v2\x1e.budget.v1.InvestmentNAVAmountR\vdailyReturn\x12E\n" +
 	"\x0esegment_return\x18\x06 \x01(\v2\x1e.budget.v1.InvestmentNAVAmountR\rsegmentReturn\x124\n" +
-	"\x05index\x18\a \x01(\v2\x1e.budget.v1.InvestmentNAVAmountR\x05index\"\x84\t\n" +
+	"\x05index\x18\a \x01(\v2\x1e.budget.v1.InvestmentNAVAmountR\x05index\"\xa6\n" +
+	"\n" +
 	" GetInvestmentPerformanceResponse\x12\x1b\n" +
 	"\tfrom_date\x18\x01 \x01(\tR\bfromDate\x12\x17\n" +
 	"\ato_date\x18\x02 \x01(\tR\x06toDate\x12\x1a\n" +
@@ -9002,7 +9123,11 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\x10analytics_points\x18\x15 \x03(\v2 .budget.v1.TrackerAnalyticsPointR\x0fanalyticsPoints\x12H\n" +
 	"\x0emonthly_profit\x18\x16 \x03(\v2!.budget.v1.TrackerAnalyticsPeriodR\rmonthlyProfit\x12F\n" +
 	"\ryearly_profit\x18\x17 \x03(\v2!.budget.v1.TrackerAnalyticsPeriodR\fyearlyProfit\x121\n" +
-	"\x14analytics_convention\x18\x18 \x01(\tR\x13analyticsConvention\x12#\n" +
+	"\x14analytics_convention\x18\x18 \x01(\tR\x13analyticsConvention\x12'\n" +
+	"\x0finstrument_keys\x18\x19 \x03(\tR\x0einstrumentKeys\x125\n" +
+	"\x16classification_version\x18\x1a \x01(\x03R\x15classificationVersion\x12#\n" +
+	"\rmonetary_only\x18\x1b \x01(\bR\fmonetaryOnly\x12\x1b\n" +
+	"\tgroup_ids\x18\x1c \x03(\tR\bgroupIds\x12#\n" +
 	"\rhistory_scope\x18\x12 \x01(\tR\fhistoryScopeB\a\n" +
 	"\x05_xirr\"\xac\x02\n" +
 	"\x15TrackerBenchmarkPoint\x12\x12\n" +
@@ -9568,7 +9693,7 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\x0fmapping_version\x18\b \x01(\x03R\x0emappingVersion\"\x86\x01\n" +
 	"\x1bGetInvestmentQuotesResponse\x123\n" +
 	"\aread_at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x06readAt\x122\n" +
-	"\x06quotes\x18\x02 \x03(\v2\x1a.budget.v1.InvestmentQuoteR\x06quotes\"\xdc\x01\n" +
+	"\x06quotes\x18\x02 \x03(\v2\x1a.budget.v1.InvestmentQuoteR\x06quotes\"\xc7\x02\n" +
 	"\x1cGetTrackerPerformanceRequest\x12\x1d\n" +
 	"\n" +
 	"ledger_ids\x18\x01 \x03(\tR\tledgerIds\x12\x1a\n" +
@@ -9576,7 +9701,10 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\rfx_policy_key\x18\x03 \x01(\tR\vfxPolicyKey\x12\x1b\n" +
 	"\tfrom_date\x18\x04 \x01(\tR\bfromDate\x12\x17\n" +
 	"\ato_date\x18\x05 \x01(\tR\x06toDate\x12'\n" +
-	"\x0fsnapshot_tokens\x18\x06 \x03(\tR\x0esnapshotTokens\"\x80\x02\n" +
+	"\x0fsnapshot_tokens\x18\x06 \x03(\tR\x0esnapshotTokens\x12\x1b\n" +
+	"\tgroup_ids\x18\a \x03(\tR\bgroupIds\x12'\n" +
+	"\x0finstrument_keys\x18\b \x03(\tR\x0einstrumentKeys\x12#\n" +
+	"\rmonetary_only\x18\t \x01(\bR\fmonetaryOnly\"\xce\x02\n" +
 	"\x18GetTrackerHistoryRequest\x12\x1d\n" +
 	"\n" +
 	"ledger_ids\x18\x01 \x03(\tR\tledgerIds\x12\x1a\n" +
@@ -9585,7 +9713,9 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\tfrom_date\x18\x04 \x01(\tR\bfromDate\x12\x17\n" +
 	"\ato_date\x18\x05 \x01(\tR\x06toDate\x12\x1b\n" +
 	"\tgroup_ids\x18\a \x03(\tR\bgroupIds\x122\n" +
-	"\x15performance_from_date\x18\x06 \x01(\tR\x13performanceFromDate\"\xa3\x02\n" +
+	"\x15performance_from_date\x18\x06 \x01(\tR\x13performanceFromDate\x12'\n" +
+	"\x0finstrument_keys\x18\b \x03(\tR\x0einstrumentKeys\x12#\n" +
+	"\rmonetary_only\x18\t \x01(\bR\fmonetaryOnly\"\xa3\x02\n" +
 	"\x13TrackerHistoryPoint\x12\x12\n" +
 	"\x04date\x18\x01 \x01(\tR\x04date\x12\x14\n" +
 	"\x05state\x18\x02 \x01(\tR\x05state\x12?\n" +
@@ -9594,7 +9724,7 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\x06issues\x18\x04 \x03(\v2\x1d.budget.v1.InvestmentNAVIssueR\x06issues\x12)\n" +
 	"\x10priced_positions\x18\x05 \x01(\x05R\x0fpricedPositions\x12\x1c\n" +
 	"\tpositions\x18\x06 \x01(\x05R\tpositions\x12!\n" +
-	"\fcoverage_key\x18\a \x01(\tR\vcoverageKey\"\xab\x04\n" +
+	"\fcoverage_key\x18\a \x01(\tR\vcoverageKey\"\x96\x05\n" +
 	"\x19GetTrackerHistoryResponse\x126\n" +
 	"\x06points\x18\x01 \x03(\v2\x1e.budget.v1.TrackerHistoryPointR\x06points\x12\x1b\n" +
 	"\tnext_date\x18\x02 \x01(\tR\bnextDate\x12\x1e\n" +
@@ -9611,7 +9741,10 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	" \x01(\tR\x11reportingTimezone\x12\x1b\n" +
 	"\tbasis_key\x18\v \x01(\tR\bbasisKey\x121\n" +
 	"\x14performance_snapshot\x18\f \x01(\tR\x13performanceSnapshot\x125\n" +
-	"\x16classification_version\x18\r \x01(\x03R\x15classificationVersion\"\xc3\x02\n" +
+	"\x16classification_version\x18\r \x01(\x03R\x15classificationVersion\x12'\n" +
+	"\x0finstrument_keys\x18\x0e \x03(\tR\x0einstrumentKeys\x12#\n" +
+	"\rmonetary_only\x18\x0f \x01(\bR\fmonetaryOnly\x12\x1b\n" +
+	"\tgroup_ids\x18\x10 \x03(\tR\bgroupIds\"\xc3\x02\n" +
 	"!GetTrackerInstrumentPricesRequest\x12%\n" +
 	"\x0einstrument_key\x18\x01 \x01(\tR\rinstrumentKey\x12\x1a\n" +
 	"\bcurrency\x18\x02 \x01(\tR\bcurrency\x12\"\n" +
@@ -9695,7 +9828,7 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\tfrom_date\x18\x02 \x01(\tR\bfromDate\x12\x17\n" +
 	"\ato_date\x18\x03 \x01(\tR\x06toDate\x126\n" +
 	"\x06profit\x18\x04 \x01(\v2\x1e.budget.v1.InvestmentNAVAmountR\x06profit\x12\x16\n" +
-	"\x06reason\x18\x05 \x01(\tR\x06reason\"\xd2\x01\n" +
+	"\x06reason\x18\x05 \x01(\tR\x06reason\"\xfb\x01\n" +
 	"\x1eGetTrackerContributionsRequest\x12\x1d\n" +
 	"\n" +
 	"ledger_ids\x18\x01 \x03(\tR\tledgerIds\x12\x1b\n" +
@@ -9703,7 +9836,8 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\bcurrency\x18\x03 \x01(\tR\bcurrency\x12\"\n" +
 	"\rfx_policy_key\x18\x04 \x01(\tR\vfxPolicyKey\x12\x1b\n" +
 	"\tfrom_date\x18\x05 \x01(\tR\bfromDate\x12\x17\n" +
-	"\ato_date\x18\x06 \x01(\tR\x06toDate\"\xa0\x05\n" +
+	"\ato_date\x18\x06 \x01(\tR\x06toDate\x12'\n" +
+	"\x0finstrument_keys\x18\a \x03(\tR\x0einstrumentKeys\"\xa0\x05\n" +
 	"\x13TrackerContribution\x12\x1b\n" +
 	"\tledger_id\x18\x01 \x01(\tR\bledgerId\x12\x1f\n" +
 	"\vledger_name\x18\x02 \x01(\tR\n" +
@@ -9721,7 +9855,7 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\x10opening_quantity\x18\v \x01(\v2\x1e.budget.v1.InvestmentNAVAmountR\x0fopeningQuantity\x12I\n" +
 	"\x10closing_quantity\x18\f \x01(\v2\x1e.budget.v1.InvestmentNAVAmountR\x0fclosingQuantity\x12A\n" +
 	"\fprofit_share\x18\r \x01(\v2\x1e.budget.v1.InvestmentNAVAmountR\vprofitShare\x12\x19\n" +
-	"\bin_scope\x18\x0e \x01(\bR\ainScope\"\xcc\x04\n" +
+	"\bin_scope\x18\x0e \x01(\bR\ainScope\"\x92\x05\n" +
 	"\x1fGetTrackerContributionsResponse\x12\x1b\n" +
 	"\tfrom_date\x18\x01 \x01(\tR\bfromDate\x12\x17\n" +
 	"\ato_date\x18\x02 \x01(\tR\x06toDate\x12\x1a\n" +
@@ -9739,7 +9873,9 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\x04rows\x18\v \x03(\v2\x1e.budget.v1.TrackerContributionR\x04rows\x126\n" +
 	"\x06profit\x18\f \x01(\v2\x1e.budget.v1.InvestmentNAVAmountR\x06profit\x12A\n" +
 	"\fknown_profit\x18\r \x01(\v2\x1e.budget.v1.InvestmentNAVAmountR\vknownProfit\x12\x16\n" +
-	"\x06reason\x18\x0e \x01(\tR\x06reason2\xb1\x1a\n" +
+	"\x06reason\x18\x0e \x01(\tR\x06reason\x12'\n" +
+	"\x0finstrument_keys\x18\x0f \x03(\tR\x0einstrumentKeys\x12\x1b\n" +
+	"\tgroup_ids\x18\x10 \x03(\tR\bgroupIds2\xb1\x1a\n" +
 	"\x14InvestmentNAVService\x12y\n" +
 	"\x1aGetTrackerInstrumentPrices\x12,.budget.v1.GetTrackerInstrumentPricesRequest\x1a-.budget.v1.GetTrackerInstrumentPricesResponse\x12^\n" +
 	"\x11GetTrackerHistory\x12#.budget.v1.GetTrackerHistoryRequest\x1a$.budget.v1.GetTrackerHistoryResponse\x12p\n" +

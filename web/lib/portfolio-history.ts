@@ -1,7 +1,8 @@
 import type {GetTrackerHistoryResponse, GetInvestmentPerformanceResponse, TrackerHistoryPoint} from "@/proto/budget/v1/investment_nav_pb";
+import {analyticsNumber} from "./portfolio-analytics";
 import {Code, ConnectError} from "@connectrpc/connect";
-export type HistoryScope = {groupIds?: string[]; classificationVersion?: bigint; fxPolicyVersion: bigint; fxMode: string; ledgerIds: string[]; currency: string; fxPolicyKey: string; fromDate: string; toDate: string};
-type HistoryAPI = {getTrackerHistory(input: Omit<HistoryScope, "fxPolicyVersion" | "fxMode" | "classificationVersion"> & {performanceFromDate?: string}, options: {signal: AbortSignal}): Promise<GetTrackerHistoryResponse>};
+export type HistoryScope = {instrumentKeys?:string[];groupIds?: string[]; classificationVersion?: bigint; fxPolicyVersion: bigint; fxMode: string; ledgerIds: string[]; currency: string; fxPolicyKey: string; fromDate: string; toDate: string};
+type HistoryAPI = {getTrackerHistory(input: Omit<HistoryScope, "fxPolicyVersion" | "fxMode" | "classificationVersion"> & {performanceFromDate?: string;monetaryOnly?:boolean}, options: {signal: AbortSignal}): Promise<GetTrackerHistoryResponse>};
 export function shiftHistoryDate(date: string, days: number): string {
   const at = new Date(date + "T00:00:00Z"); at.setUTCDate(at.getUTCDate() + days); return at.toISOString().slice(0, 10);
 }
@@ -12,21 +13,23 @@ export function lastHistoryDate(): string {
 export async function loadPortfolioHistory(api: HistoryAPI, scope: HistoryScope, signal: AbortSignal, progress: (points: TrackerHistoryPoint[]) => void): Promise<TrackerHistoryPoint[]> {
   return (await historyPages(api, scope, signal, progress, false)).points;
 }
-type PerformanceAPI = HistoryAPI & {getTrackerPerformance(input: Omit<HistoryScope, "fxPolicyVersion" | "fxMode" | "classificationVersion"> & {snapshotTokens: string[]}, options: {signal: AbortSignal}): Promise<GetInvestmentPerformanceResponse>};
+type PerformanceAPI = HistoryAPI & {getTrackerPerformance(input: Omit<HistoryScope, "fxPolicyVersion" | "fxMode" | "classificationVersion"> & {snapshotTokens: string[];monetaryOnly?:boolean}, options: {signal: AbortSignal}): Promise<GetInvestmentPerformanceResponse>};
 export async function loadPortfolioPerformanceHistory(api: PerformanceAPI, scope: HistoryScope, signal: AbortSignal, progress: (points: TrackerHistoryPoint[]) => void) {
-  const result = await historyPages(api, scope, signal, progress, !scope.groupIds?.length);
+  const result = await historyPages(api, scope, signal, progress, true);
   if (!result.tokens.length) return {points: result.points, performance: undefined};
   const {fxPolicyVersion: _version, fxMode: _mode, classificationVersion: _classification, ...request} = scope;
   let performance: GetInvestmentPerformanceResponse;
-  try {performance = await api.getTrackerPerformance({...request, snapshotTokens: result.tokens}, {signal});}
+  try {performance = await api.getTrackerPerformance({...request, monetaryOnly:!!scope.groupIds?.length,snapshotTokens: result.tokens}, {signal});}
   catch (error) {if (error instanceof ConnectError && error.code === Code.FailedPrecondition) throw new Error("history_changed"); throw error;}
   signal.throwIfAborted();
-  if (performance.currency !== scope.currency || performance.fxPolicyKey !== scope.fxPolicyKey || performance.fromDate !== scope.fromDate || performance.toDate !== scope.toDate || performance.historyScope !== "recorded_securities_strategy" || performance.twrConvention !== "securities_daily_end_of_day_flows" || performance.reportingTimezone !== "Europe/Moscow") throw new Error("invalid_performance");
+  if (performance.currency !== scope.currency || performance.fxPolicyKey !== scope.fxPolicyKey || performance.fromDate !== scope.fromDate || performance.toDate !== scope.toDate || performance.historyScope !== (scope.groupIds?.length?"recorded_group_securities_strategy":"recorded_securities_strategy") || performance.twrConvention !== "securities_daily_end_of_day_flows" || performance.reportingTimezone !== "Europe/Moscow") throw new Error("invalid_performance");
+  if(!historySelectionEqual(performance.instrumentKeys,scope.instrumentKeys)||!historySelectionEqual(performance.groupIds,scope.groupIds)||performance.monetaryOnly!==!!scope.groupIds?.length)throw new Error("invalid_performance_scope");
+  if(scope.groupIds?.length&&(performance.twr||performance.xirr!==undefined||performance.twrPoints.length||performance.twrReason!=="group_returns_unavailable"||performance.xirrReason!=="group_returns_unavailable"||scope.classificationVersion!==undefined&&performance.classificationVersion!==scope.classificationVersion))throw new Error("invalid_group_performance");
   for (const amount of [performance.profit, performance.netContributions, performance.twr]) {
-    if (amount && (!/^-?[0-9]+$/.test(amount.numerator) || !/^[1-9][0-9]*$/.test(amount.denominator) || !Number.isFinite(Number(amount.numerator) / Number(amount.denominator)))) throw new Error("invalid_performance");
+    if (amount && (!/^-?[0-9]+$/.test(amount.numerator) || !/^[1-9][0-9]*$/.test(amount.denominator) || analyticsNumber(amount)===undefined)) throw new Error("invalid_performance");
   }
   if ((!performance.reason && (!performance.profit || !performance.netContributions)) || (!performance.twrReason && !performance.twr) || (!performance.xirrReason && performance.xirr === undefined) || (performance.xirr !== undefined && (!Number.isFinite(performance.xirr) || performance.xirr <= -1 || !performance.xirrAnnualized)) || !Number.isInteger(performance.xirrDays) || performance.xirrDays < 0 || performance.xirrDays > 3661) throw new Error("invalid_performance");
-  const rational = (v: {numerator: string; denominator: string} | undefined) => !v || /^-?[0-9]+$/.test(v.numerator) && /^[1-9][0-9]*$/.test(v.denominator) && Number.isFinite(Number(v.numerator) / Number(v.denominator));
+  const rational = (v: {numerator: string; denominator: string} | undefined) => !v || /^-?[0-9]+$/.test(v.numerator) && /^[1-9][0-9]*$/.test(v.denominator) && analyticsNumber(v)!==undefined;
   const first = shiftHistoryDate(scope.fromDate, -1), count = (Date.parse(scope.toDate) - Date.parse(first)) / 86400000 + 1;
   if (performance.twrPoints.length && (performance.twrPoints.length !== count || performance.twrPoints.some((p, i) => p.date !== shiftHistoryDate(first, i) || !["baseline", "calculated", "gap", "unfunded"].includes(p.state) || !Number.isInteger(p.segment) || p.segment < 0 || !rational(p.index)))) throw new Error("invalid_performance");
   if(performance.analyticsPoints.length){
@@ -50,9 +53,10 @@ async function historyPages(api: HistoryAPI, scope: HistoryScope, signal: AbortS
   let cursor = scope.fromDate, basis: string | undefined, version: bigint | undefined;
   for (let pages = 0; pages < 119; pages++) {
     signal.throwIfAborted();
-    const page = await api.getTrackerHistory({...request, fromDate: cursor, ...(performance ? {performanceFromDate: scope.fromDate} : {})}, {signal});
+    const page = await api.getTrackerHistory({...request, fromDate: cursor, ...(performance ? {performanceFromDate: scope.fromDate,monetaryOnly:!!scope.groupIds?.length} : {})}, {signal});
     signal.throwIfAborted();
     if (page.currency !== scope.currency || page.fxPolicyKey !== scope.fxPolicyKey || page.reportingTimezone !== "Europe/Moscow" || page.priceConvention !== "retrospective_close_next_utc_day_v1" || !["market", "cbr"].includes(page.fxMode) || page.fxPolicyVersion !== fxPolicyVersion || page.fxMode !== fxMode || !/^[a-f0-9]{64}$/.test(page.basisKey) || !page.points.length || page.points.length > 31) throw new Error("invalid_history");
+    if(!historySelectionEqual(page.instrumentKeys,scope.instrumentKeys)||!historySelectionEqual(page.groupIds,scope.groupIds)||page.monetaryOnly!==(performance&&!!scope.groupIds?.length))throw new Error("invalid_history_scope");
     if (scope.groupIds?.length && classificationVersion !== undefined && page.classificationVersion !== classificationVersion) throw new Error("history_changed");
     if (basis !== undefined && (basis !== page.basisKey || version !== page.fxPolicyVersion)) throw new Error("history_changed");
     basis = page.basisKey; version = page.fxPolicyVersion;
@@ -72,3 +76,5 @@ async function historyPages(api: HistoryAPI, scope: HistoryScope, signal: AbortS
 export function historyPointVisible(p: TrackerHistoryPoint): boolean {
   return !!p.knownValue && (p.pricedPositions > 0 || p.positions === 0 && p.state === "ready");
 }
+
+export function historySelectionEqual(actual:string[],expected:string[]=[]){const wanted=new Set(expected);return actual.length===wanted.size&&new Set(actual).size===actual.length&&actual.every(key=>wanted.has(key));}

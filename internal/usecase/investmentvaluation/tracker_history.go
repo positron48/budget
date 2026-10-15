@@ -14,6 +14,8 @@ type TrackerHistoryRequest struct {
 	Currency, FXPolicyKey, From, To string
 	PerformanceFrom                 string
 	GroupIDs                        []string
+	InstrumentKeys                  []string
+	MonetaryOnly                    bool
 	ContributionOnly                bool // Internal boundary valuation; never a signed performance page.
 }
 type TrackerHistoryPoint struct {
@@ -46,7 +48,15 @@ func NormalizeTrackerHistory(q TrackerHistoryRequest, now time.Time) (TrackerHis
 	if q.ContributionOnly && q.PerformanceFrom != "" {
 		return q, d.ErrInvestmentInvalid
 	}
-	if len(q.GroupIDs) > 101 || len(q.GroupIDs) > 0 && q.PerformanceFrom != "" {
+	if len(q.GroupIDs) > 101 || len(q.GroupIDs) > 0 && q.PerformanceFrom != "" && !q.MonetaryOnly {
+		return q, d.ErrInvestmentInvalid
+	}
+	var keyError error
+	q.InstrumentKeys, keyError = NormalizeQuoteKeys(q.InstrumentKeys)
+	if keyError != nil {
+		return q, keyError
+	}
+	if q.MonetaryOnly && len(q.GroupIDs) == 0 {
 		return q, d.ErrInvestmentInvalid
 	}
 	q.GroupIDs = slices.Clone(q.GroupIDs)

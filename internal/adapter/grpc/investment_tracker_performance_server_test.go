@@ -140,3 +140,65 @@ func TestTrackerMonetaryBenchmarkUsesSameSignedBaseline(t *testing.T) {
 		t.Fatal(b)
 	}
 }
+
+type groupedPerformanceStub struct{ *trackerPerformanceStub }
+
+func (r *groupedPerformanceStub) TrackerHistory(ctx context.Context, t, u string, q nav.TrackerHistoryRequest) (nav.TrackerHistory, error) {
+	h, e := r.trackerPerformanceStub.TrackerHistory(ctx, t, u, q)
+	h.ClassificationVersion = 7
+	if h.Baseline != nil {
+		h.Baseline.KnownValue = new(big.Rat)
+	}
+	values := map[string]int64{"2024-01-01": 260, "2024-01-02": 100, "2024-01-03": 0}
+	flows := map[string]int64{"2024-01-01": 212, "2024-01-02": -165, "2024-01-03": -120}
+	for i := range h.Points {
+		p := &h.Points[i]
+		p.KnownValue = big.NewRat(values[p.Date], 1)
+		p.StrategyFlow = big.NewRat(flows[p.Date], 1)
+	}
+	return h, e
+}
+func TestGroupedMonetaryAnalyticsNeverExposeAccountReturns(t *testing.T) {
+	r := &groupedPerformanceStub{&trackerPerformanceStub{basis: strings.Repeat("a", 64)}}
+	s := NewInvestmentNAVServer(r, "synthetic-key")
+	ctx := ctxutil.WithUserID(ctxutil.WithTenantID(context.Background(), "tenant"), "actor")
+	ids := []string{"11111111-1111-4111-8111-111111111111"}
+	groups := []string{"22222222-2222-4222-8222-222222222222"}
+	p, e := s.GetTrackerHistory(ctx, &pb.GetTrackerHistoryRequest{LedgerIds: ids, GroupIds: groups, MonetaryOnly: true, Currency: "RUB", FxPolicyKey: "market", FromDate: "2024-01-01", ToDate: "2024-01-03", PerformanceFromDate: "2024-01-01"})
+	if e != nil {
+		t.Fatal(e)
+	}
+	q := &pb.GetTrackerPerformanceRequest{LedgerIds: ids, GroupIds: groups, MonetaryOnly: true, Currency: "RUB", FxPolicyKey: "market", FromDate: "2024-01-01", ToDate: "2024-01-03", SnapshotTokens: []string{p.PerformanceSnapshot}}
+	a, e := s.GetTrackerPerformance(ctx, q)
+	if e != nil || a.Profit.Numerator != "73" || a.MonthlyProfit[0].Profit.Numerator != "73" || a.YearlyProfit[0].Profit.Numerator != "73" || a.Twr != nil || a.Xirr != nil || len(a.TwrPoints) != 0 || a.TwrReason != "group_returns_unavailable" || a.HistoryScope != "recorded_group_securities_strategy" || !a.MonetaryOnly || a.ClassificationVersion != 7 {
+		t.Fatal(a, e)
+	}
+	q.GroupIds = []string{"33333333-3333-4333-8333-333333333333"}
+	if _, e = s.GetTrackerPerformance(ctx, q); status.Code(e) != codes.FailedPrecondition {
+		t.Fatal("different group accepted signed facts", e)
+	}
+	q.GroupIds = groups
+	q.MonetaryOnly = false
+	if _, e = s.GetTrackerPerformance(ctx, q); status.Code(e) != codes.InvalidArgument {
+		t.Fatal("group TWR accepted", e)
+	}
+}
+func TestInstrumentSelectionCannotReuseAnotherSignedScope(t *testing.T) {
+	r := &trackerPerformanceStub{basis: strings.Repeat("a", 64)}
+	s := NewInvestmentNAVServer(r, "synthetic-key")
+	ctx := ctxutil.WithUserID(ctxutil.WithTenantID(context.Background(), "tenant"), "actor")
+	ids := []string{"11111111-1111-4111-8111-111111111111"}
+	h, e := s.GetTrackerHistory(ctx, &pb.GetTrackerHistoryRequest{LedgerIds: ids, InstrumentKeys: []string{"S"}, Currency: "RUB", FxPolicyKey: "market", FromDate: "2024-01-01", ToDate: "2024-01-02", PerformanceFromDate: "2024-01-01"})
+	if e != nil {
+		t.Fatal(e)
+	}
+	q := &pb.GetTrackerPerformanceRequest{LedgerIds: ids, InstrumentKeys: []string{"S"}, Currency: "RUB", FxPolicyKey: "market", FromDate: "2024-01-01", ToDate: "2024-01-02", SnapshotTokens: []string{h.PerformanceSnapshot}}
+	a, e := s.GetTrackerPerformance(ctx, q)
+	if e != nil || len(a.InstrumentKeys) != 1 || a.InstrumentKeys[0] != "S" {
+		t.Fatal(a, e)
+	}
+	q.InstrumentKeys = []string{"OTHER"}
+	if _, e = s.GetTrackerPerformance(ctx, q); status.Code(e) != codes.FailedPrecondition {
+		t.Fatal("wrong instrument scope accepted", e)
+	}
+}

@@ -23,6 +23,7 @@ type TrackerSnapshotDay struct {
 }
 type TrackerSnapshot struct {
 	Tenant, Actor, Basis, FXMode string
+	InstrumentScopeDigest        string
 	Request                      TrackerHistoryRequest
 	FXVersion                    int64
 	Expires                      int64
@@ -44,7 +45,9 @@ func (s *TrackerSnapshotSigner) Seal(tenant, actor string, q TrackerHistoryReque
 	if s == nil || len(data.Points) == 0 || len(data.Points) > 31 || q.PerformanceFrom == "" {
 		return "", errors.New("invalid performance page")
 	}
-	claim := TrackerSnapshot{Tenant: tenant, Actor: actor, Request: q, Basis: data.BasisKey, FXVersion: data.FXPolicyVersion, FXMode: data.FXMode, Expires: data.ReadAt.Add(15 * time.Minute).Unix()}
+	instrumentDigest := TrackerInstrumentScopeDigest(q.InstrumentKeys)
+	q.InstrumentKeys = nil
+	claim := TrackerSnapshot{InstrumentScopeDigest: instrumentDigest, Tenant: tenant, Actor: actor, Request: q, Basis: data.BasisKey, FXVersion: data.FXPolicyVersion, FXMode: data.FXMode, Expires: data.ReadAt.Add(15 * time.Minute).Unix()}
 	appendPoint := func(p TrackerHistoryPoint) {
 		d := TrackerSnapshotDay{Date: p.Date, Complete: p.State == "ready", Reset: p.Reset, FlowReason: p.FlowReason}
 		if p.KnownValue != nil {
@@ -99,4 +102,13 @@ func (s *TrackerSnapshotSigner) Open(token string, now time.Time) (TrackerSnapsh
 		return fail()
 	}
 	return claim, nil
+}
+
+func TrackerInstrumentScopeDigest(keys []string) string {
+	if len(keys) == 0 {
+		return ""
+	}
+	raw, _ := json.Marshal(keys)
+	sum := sha256.Sum256(raw)
+	return hex.EncodeToString(sum[:])
 }

@@ -77,6 +77,13 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 			groupFor[m.LedgerID+"\x00"+m.InstrumentKey] = m.GroupID
 		}
 	}
+	wantedInstruments := map[string]bool{}
+	for _, key := range q.InstrumentKeys {
+		wantedInstruments[key] = true
+	}
+	selected := func(ledger, key string) bool {
+		return (len(q.GroupIDs) == 0 || wantedGroups[groupFor[ledger+"\x00"+key]]) && (len(wantedInstruments) == 0 || wantedInstruments[key])
+	}
 	if out.Generation, e = investmentGenerationTx(ctx, tx, tenant); e != nil {
 		return out, e
 	}
@@ -129,6 +136,25 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 			}
 		}
 	}
+	if len(q.InstrumentKeys) > 0 {
+		known := map[string]bool{}
+		for _, input := range inputs {
+			for _, op := range input.Operations {
+				if op.Status != "posted" {
+					continue
+				}
+				known[op.InstrumentKey] = true
+				if op.Distribution != nil {
+					known[op.Distribution.TargetInstrumentKey] = true
+				}
+			}
+		}
+		for _, key := range q.InstrumentKeys {
+			if !known[key] {
+				return out, d.ErrInvestmentPrecondition
+			}
+		}
+	}
 	// Journal heads and immutable provider revision counters fence pagination.
 	// Intraday last-price refreshes must neither mix corrected daily candles nor
 	// continuously invalidate an otherwise unchanged historical chart.
@@ -136,10 +162,10 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 	basisKeys := map[string]bool{}
 	for _, input := range inputs {
 		for _, op := range input.Operations {
-			if op.InstrumentKey != "" {
+			if op.InstrumentKey != "" && selected(op.LedgerID, op.InstrumentKey) {
 				basisKeys[op.InstrumentKey] = true
 			}
-			if op.Distribution != nil {
+			if op.Distribution != nil && selected(op.LedgerID, op.Distribution.TargetInstrumentKey) {
 				basisKeys[op.Distribution.TargetInstrumentKey] = true
 			}
 		}
@@ -163,7 +189,8 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		Cache          json.RawMessage
 		Classification *nav.InstrumentGroups
 		GroupIDs       []string
-	}{heads, policy, points, cache, classification, q.GroupIDs})
+		InstrumentKeys []string
+	}{heads, policy, points, cache, classification, q.GroupIDs, q.InstrumentKeys})
 	first, _ := time.Parse(time.DateOnly, q.From)
 	last, _ := time.Parse(time.DateOnly, q.To)
 	end := first.AddDate(0, 0, 30)
@@ -235,10 +262,10 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 			} else {
 				s = replay.Ledgers[id].Snapshot
 			}
-			if len(q.GroupIDs) > 0 {
+			if len(q.GroupIDs) > 0 || len(q.InstrumentKeys) > 0 {
 				filtered := []d.InvestmentPosition{}
 				for _, p := range s.Positions {
-					if wantedGroups[groupFor[id+"\x00"+p.InstrumentKey]] {
+					if selected(id, p.InstrumentKey) {
 						filtered = append(filtered, p)
 					}
 				}
@@ -266,7 +293,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 	if q.PerformanceFrom != "" || q.ContributionOnly {
 		for _, input := range inputs {
 			for _, op := range input.Operations {
-				if op.Status == "posted" && (op.Kind == "security_transfer_in" || op.Kind == "security_transfer_out") && !op.OccurredAt.Before(days[0].Add(-24*time.Hour)) && !op.OccurredAt.After(days[len(days)-1]) {
+				if op.Status == "posted" && selected(op.LedgerID, op.InstrumentKey) && (op.Kind == "security_transfer_in" || op.Kind == "security_transfer_out") && !op.OccurredAt.Before(days[0].Add(-24*time.Hour)) && !op.OccurredAt.After(days[len(days)-1]) {
 					allKeys[op.InstrumentKey] = true
 				}
 			}
@@ -302,7 +329,11 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 	}
 	var strategy map[string]trackerStrategyDay
 	if q.PerformanceFrom != "" {
-		strategy, e = trackerStrategyFlows(ctx, tenant, q.LedgerIDs, inputs, market, splits, fixings, md.FXPolicyRef(policy.Key, policy.Version), q.Currency, days[0].Add(-24*time.Hour), days[len(days)-1], out.ReadAt)
+		if len(q.GroupIDs) > 0 || len(q.InstrumentKeys) > 0 {
+			strategy, e = trackerSelectionFlows(ctx, tenant, q, inputs, market, splits, fixings, md.FXPolicyRef(policy.Key, policy.Version), days[0].Add(-24*time.Hour), days[len(days)-1], out.ReadAt, selected)
+		} else {
+			strategy, e = trackerStrategyFlows(ctx, tenant, q.LedgerIDs, inputs, market, splits, fixings, md.FXPolicyRef(policy.Key, policy.Version), q.Currency, days[0].Add(-24*time.Hour), days[len(days)-1], out.ReadAt)
+		}
 		if e != nil {
 			return out, e
 		}

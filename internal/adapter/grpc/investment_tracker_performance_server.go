@@ -19,7 +19,7 @@ func (s *InvestmentNAVServer) GetTrackerPerformance(ctx context.Context, req *pb
 	if e != nil {
 		return nil, e
 	}
-	q, e := nav.NormalizeTrackerHistory(nav.TrackerHistoryRequest{LedgerIDs: req.GetLedgerIds(), Currency: req.GetCurrency(), FXPolicyKey: req.GetFxPolicyKey(), From: req.GetFromDate(), To: req.GetToDate(), PerformanceFrom: req.GetFromDate()}, time.Now().UTC())
+	q, e := nav.NormalizeTrackerHistory(nav.TrackerHistoryRequest{LedgerIDs: req.GetLedgerIds(), Currency: req.GetCurrency(), FXPolicyKey: req.GetFxPolicyKey(), From: req.GetFromDate(), To: req.GetToDate(), PerformanceFrom: req.GetFromDate(), GroupIDs: req.GetGroupIds(), InstrumentKeys: req.GetInstrumentKeys(), MonetaryOnly: req.GetMonetaryOnly()}, time.Now().UTC())
 	if e != nil {
 		return nil, investmentRPCError(e)
 	}
@@ -50,7 +50,7 @@ func (s *InvestmentNAVServer) GetTrackerPerformance(ctx context.Context, req *pb
 			return invalid()
 		}
 		p := claim.Request
-		if len(p.GroupIDs) > 0 || claim.Tenant != tenant || claim.Actor != actor || !slices.Equal(p.LedgerIDs, q.LedgerIDs) || p.Currency != q.Currency || p.FXPolicyKey != q.FXPolicyKey || p.To != q.To || p.PerformanceFrom != q.From {
+		if !slices.Equal(p.GroupIDs, q.GroupIDs) || claim.InstrumentScopeDigest != nav.TrackerInstrumentScopeDigest(q.InstrumentKeys) || p.MonetaryOnly != q.MonetaryOnly || claim.Tenant != tenant || claim.Actor != actor || !slices.Equal(p.LedgerIDs, q.LedgerIDs) || p.Currency != q.Currency || p.FXPolicyKey != q.FXPolicyKey || p.To != q.To || p.PerformanceFrom != q.From {
 			return invalid()
 		}
 		if basis == "" {
@@ -90,7 +90,17 @@ func (s *InvestmentNAVServer) GetTrackerPerformance(ctx context.Context, req *pb
 	if cursor != last.AddDate(0, 0, 1).Format(time.DateOnly) {
 		return invalid()
 	}
-	performance, e := calc.CalculatePeriod(calc.PeriodPerformanceInput{Days: days, FlowCoverage: true, ResetDates: resets})
+	analytics, e := calc.CalculateStrategyAnalytics(days, resets)
+	if e != nil {
+		return nil, status.Error(codes.Internal, "portfolio analytics unavailable")
+	}
+	var performance calc.PeriodPerformance
+	if q.MonetaryOnly {
+		last := analytics.Points[len(analytics.Points)-1]
+		performance = calc.PeriodPerformance{From: q.From, To: q.To, Profit: last.Profit, NetContributions: last.Contributions, Reason: last.Reason, FlowReason: last.FlowReason, TWR: calc.TWRResult{Reason: "group_returns_unavailable"}, XIRR: calc.XIRRResult{Reason: "group_returns_unavailable", Annualized: true, Days: len(days) - 1}}
+	} else {
+		performance, e = calc.CalculatePeriod(calc.PeriodPerformanceInput{Days: days, FlowCoverage: true, ResetDates: resets})
+	}
 	if e != nil {
 		return nil, status.Error(codes.Internal, "portfolio performance unavailable")
 	}
@@ -148,10 +158,6 @@ func (s *InvestmentNAVServer) GetTrackerPerformance(ctx context.Context, req *pb
 		}
 	}
 	out := protoInvestmentPerformance(nav.Performance{PeriodPerformance: performance, Currency: q.Currency, FXPolicyKey: q.FXPolicyKey, Generation: fresh.Generation})
-	analytics, e := calc.CalculateStrategyAnalytics(days, resets)
-	if e != nil {
-		return nil, status.Error(codes.Internal, "portfolio analytics unavailable")
-	}
 	out.AnalyticsConvention = "retrospective_cashless_strategy_v1"
 	for _, p := range analytics.Points {
 		out.AnalyticsPoints = append(out.AnalyticsPoints, &pb.TrackerAnalyticsPoint{Date: p.Date, Value: protoPerformanceAmount(p.Value), Flow: protoPerformanceAmount(p.Flow), Contributions: protoPerformanceAmount(p.Contributions), Invested: protoPerformanceAmount(p.Invested), Profit: protoPerformanceAmount(p.Profit), DailyProfit: protoPerformanceAmount(p.DailyProfit), Reason: p.Reason, FlowReason: p.FlowReason})
@@ -208,7 +214,14 @@ func (s *InvestmentNAVServer) GetTrackerPerformance(ctx context.Context, req *pb
 		}
 		out.TrackerBenchmarks = append(out.TrackerBenchmarks, line)
 	}
+	out.InstrumentKeys = q.InstrumentKeys
+	out.GroupIds = q.GroupIDs
+	out.ClassificationVersion = fresh.ClassificationVersion
+	out.MonetaryOnly = q.MonetaryOnly
 	out.HistoryScope = "recorded_securities_strategy"
+	if q.MonetaryOnly {
+		out.HistoryScope = "recorded_group_securities_strategy"
+	}
 	out.TwrConvention = "securities_daily_end_of_day_flows"
 	return out, nil
 }

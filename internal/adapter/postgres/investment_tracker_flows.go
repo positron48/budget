@@ -108,3 +108,62 @@ func trackerStrategyFlows(ctx context.Context, tenant string, ids []string, inpu
 	}
 	return out, nil
 }
+
+// Selection funding belongs to selected securities, not their parent accounts.
+// Only transfers crossing the selected boundary need a dated market value.
+func trackerSelectionFlows(ctx context.Context, tenant string, q nav.TrackerHistoryRequest, inputs map[string]investmentReplayInput, market map[string]trackerHistoryMarket, splits map[string]map[string][]d.InvestmentOperation, fixings []calc.FXFixing, policy string, after, through, readAt time.Time, selected func(string, string) bool) (map[string]trackerStrategyDay, error) {
+	ledgers := map[string]bool{}
+	for _, id := range q.LedgerIDs {
+		ledgers[id] = true
+	}
+	out := map[string]trackerStrategyDay{}
+	for _, id := range q.LedgerIDs {
+		input := inputs[id]
+		filtered := input
+		filtered.Operations = nil
+		for _, op := range input.Operations {
+			if !selected(id, op.InstrumentKey) || op.InstrumentKey == "" {
+				continue
+			}
+			if (op.Kind == "security_transfer_in" || op.Kind == "security_transfer_out") && ledgers[op.CounterpartyLedgerID] && selected(op.CounterpartyLedgerID, op.InstrumentKey) {
+				continue
+			}
+			filtered.Operations = append(filtered.Operations, op)
+		}
+		flows, e := trackerConvertedStrategyFlows(ctx, tenant, []string{id}, map[string]investmentReplayInput{id: filtered}, market, splits, fixings, policy, q.Currency, after, through, readAt)
+		if e != nil {
+			return nil, e
+		}
+		for _, f := range flows {
+			if !f.At.After(after) || f.At.After(through) {
+				continue
+			}
+			day := out[f.Date]
+			if day.value == nil {
+				day.value = new(big.Rat)
+			}
+			if f.Kind == "opening_position" {
+				day.reset = true
+			}
+			if f.Value == nil {
+				day.reason = "strategy_flow_unknown"
+			} else {
+				day.value.Add(day.value, f.Value)
+			}
+			out[f.Date] = day
+		}
+		loc, _ := time.LoadLocation("Europe/Moscow")
+		for _, op := range input.Operations {
+			if op.Status != "posted" || op.Distribution == nil || !op.OccurredAt.After(after) || op.OccurredAt.After(through) {
+				continue
+			}
+			if selected(id, op.InstrumentKey) != selected(id, op.Distribution.TargetInstrumentKey) {
+				date := op.OccurredAt.In(loc).Format(time.DateOnly)
+				day := out[date]
+				day.reason = "corporate_allocation_market_value_unknown"
+				out[date] = day
+			}
+		}
+	}
+	return out, nil
+}

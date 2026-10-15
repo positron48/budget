@@ -2,8 +2,8 @@
 
 The portfolio and `/investments/analytics` show a contribution table below the
 history chart. It uses the same accounts, inclusive period, display currency,
-FX policy and current group selection. Search filters the table; the headline
-remains the result of the selected account/group scope. Rows can be combined by
+FX policy and current group/security selection. Search filters the table; the headline
+remains the result of the selected account/group/security scope. Rows can be combined by
 security across accounts or by current group. Closed positions with a result
 remain visible; zero results can also be included. CSV retains account-level
 provenance, exact monetary fractions, quantities, classification and quality.
@@ -18,7 +18,7 @@ Transfers are valued on their recorded date. A transfer crossing groups creates
 opposite boundary flows, even when both accounts are included in the portfolio;
 combining the groups cancels those flows. Fees and payouts without an instrument
 are shown separately. They belong to the complete account result but are excluded
-from any selected group result. No whole-account funding is inherited by a group.
+from any selected group or security result. No whole-account funding is inherited by a group.
 
 The backend reads the journal, classification, both valuation boundaries and
 required transfer prices in one read-only repeatable-read snapshot. It queries
@@ -44,6 +44,8 @@ and row profit identities. It cancels requests on tenant changes and refreshes
 when ledger versions or classifications change. This endpoint neither contacts
 providers nor writes positions, trades, budget movements or tax calculations.
 
-Group period profit is available in this table. Group daily/month/year profit
-chart modes and instrument selection for the main chart remain separate work;
-group TWR/XIRR are intentionally unavailable.
+Group period profit reconciles with the selected daily/cumulative/month/year
+profit charts whenever the required evidence is complete. The optional security
+filter intersects group membership. Group TWR/XIRR are intentionally unavailable.
+An individual corporate allocation contribution can remain unknown even when
+its effect cancels inside a larger group selection.

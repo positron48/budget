@@ -25,12 +25,16 @@ func readTrackerContributions(ctx context.Context, tenant string, q nav.TrackerH
 	for _, id := range q.GroupIDs {
 		wanted[id] = true
 	}
+	instruments := map[string]bool{}
+	for _, key := range q.InstrumentKeys {
+		instruments[key] = true
+	}
 	rows := map[string]*nav.TrackerContribution{}
 	keys := map[string]bool{}
 	add := func(ledger, key string) *nav.TrackerContribution {
 		id := ledger + ":" + key
 		group := groups[id]
-		if len(wanted) > 0 && key != "" && !wanted[group] {
+		if key != "" && ((len(wanted) > 0 && !wanted[group]) || (len(instruments) > 0 && !instruments[key])) {
 			return nil
 		}
 		if r := rows[id]; r != nil {
@@ -39,7 +43,7 @@ func readTrackerContributions(ctx context.Context, tenant string, q nav.TrackerH
 		if key != "" {
 			keys[key] = true
 		}
-		r := &nav.TrackerContribution{InScope: len(wanted) == 0 || key != "", LedgerID: ledger, LedgerName: inputs[ledger].Ledger.Name, InstrumentKey: key, GroupID: group, GroupName: names[group], Flow: new(big.Rat), OpeningQuantity: new(big.Rat), ClosingQuantity: new(big.Rat), Opening: new(big.Rat), Closing: new(big.Rat)}
+		r := &nav.TrackerContribution{InScope: len(wanted) == 0 && len(instruments) == 0 || key != "", LedgerID: ledger, LedgerName: inputs[ledger].Ledger.Name, InstrumentKey: key, GroupID: group, GroupName: names[group], Flow: new(big.Rat), OpeningQuantity: new(big.Rat), ClosingQuantity: new(big.Rat), Opening: new(big.Rat), Closing: new(big.Rat)}
 		for _, boundary := range []struct {
 			point   nav.TrackerHistoryPoint
 			opening bool

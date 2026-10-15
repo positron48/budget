@@ -77,13 +77,13 @@ it.each(["source", "dates", "currency", "fraction"])("rejects a mismatched bench
 });
 
 it("loads group value history without requesting whole-account returns",async()=>{
- const api=performanceAPI();const first=page("2020-01-01","2020-01-02"),second=page("2020-01-02","");first.classificationVersion=2n;second.classificationVersion=2n;
+ const api=performanceAPI();const first=page("2020-01-01","2020-01-02"),second=page("2020-01-02","");first.classificationVersion=2n;second.classificationVersion=2n;first.groupIds=second.groupIds=["a"];first.monetaryOnly=second.monetaryOnly=true;
  api.getTrackerHistory.mockReset().mockResolvedValueOnce(first).mockResolvedValueOnce(second);
  const result=await loadPortfolioPerformanceHistory(api,{...scope,groupIds:["a"],classificationVersion:2n},new AbortController().signal,vi.fn());
- expect(result.points).toHaveLength(2);expect(result.performance).toBeUndefined();expect(api.getTrackerPerformance).not.toHaveBeenCalled();expect(api.getTrackerHistory.mock.calls[0][0].performanceFromDate).toBeUndefined();
+ expect(result.points).toHaveLength(2);expect(result.performance).toBeUndefined();expect(api.getTrackerPerformance).not.toHaveBeenCalled();expect(api.getTrackerHistory.mock.calls[0][0].performanceFromDate).toBe(scope.fromDate);expect(api.getTrackerHistory.mock.calls[0][0].monetaryOnly).toBe(true);
 });
 it("rejects group reclassification during historical pagination",async()=>{
- const api=performanceAPI(),first=page("2020-01-01","2020-01-02"),second=page("2020-01-02","");first.classificationVersion=2n;second.classificationVersion=3n;
+ const api=performanceAPI(),first=page("2020-01-01","2020-01-02"),second=page("2020-01-02","");first.classificationVersion=2n;second.classificationVersion=3n;first.groupIds=second.groupIds=["a"];first.monetaryOnly=second.monetaryOnly=true;
  api.getTrackerHistory.mockReset().mockResolvedValueOnce(first).mockResolvedValueOnce(second);
  await expect(loadPortfolioPerformanceHistory(api,{...scope,groupIds:["a"],classificationVersion:2n},new AbortController().signal,vi.fn())).rejects.toThrow("history_changed");
 });
@@ -91,4 +91,33 @@ it.each(["date","fraction","convention","missing_profit","period"])("rejects mal
  const api=performanceAPI(),p=performanceFixture();p.analyticsConvention="retrospective_cashless_strategy_v1";p.analyticsPoints=["2019-12-31","2020-01-01","2020-01-02"].map(date=>create(GetInvestmentPerformanceResponseSchema,{analyticsPoints:[{date,value:{numerator:"2",denominator:"3"},contributions:{numerator:"0",denominator:"1"},profit:{numerator:"0",denominator:"1"}}]}).analyticsPoints[0]);p.monthlyProfit=create(GetInvestmentPerformanceResponseSchema,{monthlyProfit:[{key:"2020-01",fromDate:"2020-01-01",toDate:"2020-01-02",profit:{numerator:"0",denominator:"1"}}]}).monthlyProfit;p.yearlyProfit=create(GetInvestmentPerformanceResponseSchema,{yearlyProfit:[{key:"2020",fromDate:"2020-01-01",toDate:"2020-01-02",profit:{numerator:"0",denominator:"1"}}]}).yearlyProfit;
  if(kind==="date")p.analyticsPoints[1].date="2020-01-03";if(kind==="fraction")p.analyticsPoints[1].profit!.denominator="0";if(kind==="convention")p.analyticsConvention="unknown";if(kind==="missing_profit")p.analyticsPoints[1].profit=undefined;if(kind==="period")p.monthlyProfit[0].toDate="2020-01-01";
  api.getTrackerPerformance.mockResolvedValue(p);await expect(loadPortfolioPerformanceHistory(api,scope,new AbortController().signal,vi.fn())).rejects.toThrow("invalid_analytics");
+});
+
+function selectedAPI(group = true) {
+ const api=performanceAPI();
+ const groups=group?["g"]:[],keys=["S"];
+ api.getTrackerHistory.mockReset();
+ for (const [date,next] of [["2020-01-01","2020-01-02"],["2020-01-02",""]]) {
+  const p=page(date,next);p.groupIds=groups;p.instrumentKeys=keys;p.monetaryOnly=group;p.classificationVersion=2n;p.performanceSnapshot="signed-selection";api.getTrackerHistory.mockResolvedValueOnce(p);
+ }
+ const value=performanceFixture();value.groupIds=groups;value.instrumentKeys=keys;value.monetaryOnly=group;value.classificationVersion=2n;
+ if(group){value.historyScope="recorded_group_securities_strategy";value.twr=undefined;value.xirr=undefined;value.twrReason=value.xirrReason="group_returns_unavailable";}
+ api.getTrackerPerformance.mockResolvedValue(value);
+ return {api,value,selected:{...scope,groupIds:groups,instrumentKeys:keys,classificationVersion:2n}};
+}
+it("accepts signed own-scope group profit without inventing percentage returns",async()=>{
+ const {api,selected}=selectedAPI();const result=await loadPortfolioPerformanceHistory(api,selected,new AbortController().signal,vi.fn());expect(result.performance?.profit?.numerator).toBe("-2");expect(result.performance?.twr).toBeUndefined();expect(api.getTrackerPerformance.mock.calls[0][0]).toMatchObject({groupIds:["g"],instrumentKeys:["S"],monetaryOnly:true});
+});
+it.each(["twr","xirr","points","classification","scope","mode"])("rejects broad or unsupported group result: %s",async kind=>{
+ const {api,selected,value}=selectedAPI();
+ if(kind==="twr")value.twr={...performanceFixture().twr!};if(kind==="xirr")value.xirr=0.1;if(kind==="points")value.twrPoints=create(GetInvestmentPerformanceResponseSchema,{twrPoints:[{date:"2020-01-01",state:"calculated",segment:1}]}).twrPoints;if(kind==="classification")value.classificationVersion=3n;if(kind==="scope")value.groupIds=[];if(kind==="mode")value.monetaryOnly=false;
+ await expect(loadPortfolioPerformanceHistory(api,selected,new AbortController().signal,vi.fn())).rejects.toThrow();
+});
+it("rejects a broad old-backend instrument page before showing any preview",async()=>{
+ const {api,selected}=selectedAPI(false),progress=vi.fn();api.getTrackerHistory.mockReset().mockResolvedValue(page("2020-01-01","2020-01-02"));
+ await expect(loadPortfolioPerformanceHistory(api,selected,new AbortController().signal,progress)).rejects.toThrow("invalid_history_scope");expect(progress).not.toHaveBeenCalled();expect(api.getTrackerPerformance).not.toHaveBeenCalled();
+});
+it("accepts large exact money fractions whose quotient remains finite",async()=>{
+ const {api,selected,value}=selectedAPI(false);value.profit!.numerator="1"+"0".repeat(350);value.profit!.denominator="1"+"0".repeat(349);
+ expect((await loadPortfolioPerformanceHistory(api,selected,new AbortController().signal,vi.fn())).performance?.profit).toEqual(value.profit);
 });

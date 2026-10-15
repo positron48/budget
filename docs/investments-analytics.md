@@ -1,7 +1,8 @@
 # Simple portfolio monetary analytics
 
 `/investments/analytics` shares the portfolio's account, currency, FX and period
-filters. It shows daily securities value, opening value plus net investment,
+filters, plus an optional security selection. Security and group filters intersect.
+It shows daily securities value, opening value plus net investment,
 cumulative profit, normalized returns, monthly/yearly monetary profit and CSV.
 The overview retains current portfolio totals separately from selected-period
 analytics. Both selected dates are included; profit starts at the previous day's
@@ -39,7 +40,22 @@ the chart and rejects incoherent dates, policies, fractions and period coverage.
 CSV retains exact rational money and returns, TWR segments and quality reasons,
 annualized XIRR, benchmark indices and virtual monetary values.
 
-Current group filters show classified securities value and period P&L in the
-contribution table. Whole-account flows are never inherited by a selected group.
-Cumulative/month/year chart modes currently use account scopes; group TWR/XIRR
-remain unavailable. See `investments-contributions.md` for contribution rules.
+Selected groups show their own daily value, cumulative profit and monthly/yearly
+profit, as well as the contribution table. A security selection applies across
+selected accounts; combined with groups, it includes only memberships in both.
+Purchases, sales, assigned fees and payouts belong to the selected securities.
+Unassigned expenses/payouts are excluded from every group/security selection
+and remain visible separately in the contribution table.
+
+Transfers wholly inside the selection cancel without requiring a transfer price;
+a transfer crossing its boundary requires dated market value. A corporate
+allocation crossing that boundary remains unknown without market-value evidence.
+Group TWR/XIRR remain unavailable; the group chart offers monetary modes only.
+Security selections without groups use their own signed strategy flows for
+returns. Whole-account flows and returns are never inherited by a selection.
+
+Signed pages bind the selected groups, security digest, account identities and
+monetary-only mode. The client verifies echoed filters before showing previews
+and rechecks the performance result; an older backend cannot silently broaden
+the chart. CSV includes selected keys/groups and classification version.
+See `investments-contributions.md` for contribution rules.

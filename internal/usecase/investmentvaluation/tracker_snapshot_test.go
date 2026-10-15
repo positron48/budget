@@ -34,3 +34,21 @@ func TestTrackerSnapshotTamperExpiryKeyAndPrivateSigning(t *testing.T) {
 		t.Fatal("wrong signing purpose/key accepted")
 	}
 }
+
+func TestTrackerSnapshotLargeInstrumentScopeUsesDigest(t *testing.T) {
+	now := time.Now().UTC()
+	q := TrackerHistoryRequest{LedgerIDs: []string{"L"}, Currency: "RUB", FXPolicyKey: "market", From: "2024-01-01", To: "2024-01-02", PerformanceFrom: "2024-01-01"}
+	for i := 0; i < 500; i++ {
+		q.InstrumentKeys = append(q.InstrumentKeys, fmt.Sprintf("%0198d", i))
+	}
+	data := TrackerHistory{ReadAt: now, BasisKey: strings.Repeat("a", 64), FXPolicyVersion: 1, FXMode: "market", Points: []TrackerHistoryPoint{{Date: q.From, State: "ready", KnownValue: big.NewRat(10, 1), StrategyFlow: big.NewRat(1, 1)}}}
+	signer := NewTrackerSnapshotSigner("synthetic-key")
+	token, e := signer.Seal("tenant", "actor", q, data)
+	if e != nil || len(token) > 32768 {
+		t.Fatal("large bounded scope failed", e)
+	}
+	p, e := signer.Open(token, now)
+	if e != nil || len(p.Request.InstrumentKeys) != 0 || p.InstrumentScopeDigest != TrackerInstrumentScopeDigest(q.InstrumentKeys) {
+		t.Fatal("instrument scope digest lost", e)
+	}
+}

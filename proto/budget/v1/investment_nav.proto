@@ -151,6 +151,7 @@ message GetInvestmentPerformanceResponse {
  repeated TrackerAnalyticsPeriod monthly_profit = 22;
  repeated TrackerAnalyticsPeriod yearly_profit = 23;
  string analytics_convention = 24;
+ repeated string instrument_keys = 25; int64 classification_version = 26; bool monetary_only = 27; repeated string group_ids = 28;
  string history_scope = 18; // recorded_journal, not broker reconciliation certification
 }
 
@@ -555,6 +556,7 @@ message GetTrackerPerformanceRequest {
  string from_date=4;
  string to_date=5;
  repeated string snapshot_tokens=6;
+ repeated string group_ids=7; repeated string instrument_keys=8; bool monetary_only=9;
 }
 message GetTrackerHistoryRequest {
  repeated string ledger_ids=1;
@@ -564,6 +566,7 @@ message GetTrackerHistoryRequest {
  string to_date=5;
  repeated string group_ids=7; // empty selection = all; empty ID = ungrouped
  string performance_from_date=6; // original range start, constant across pages
+ repeated string instrument_keys=8; bool monetary_only=9; // Group snapshots carry own monetary flows, never group TWR/XIRR.
 }
 message TrackerHistoryPoint {
  string date=1;
@@ -588,6 +591,7 @@ message GetTrackerHistoryResponse {
  string basis_key=11;
  string performance_snapshot=12; // short-lived signed data, not an auth token
  int64 classification_version = 13;
+ repeated string instrument_keys=14; bool monetary_only=15; repeated string group_ids=16;
 }
 
 // Provider series for a card; no legacy NAV series or position is required.
@@ -627,7 +631,7 @@ message TrackerAnalyticsPeriod {
 
 message GetTrackerContributionsRequest {
  repeated string ledger_ids=1; repeated string group_ids=2;
- string currency=3; string fx_policy_key=4; string from_date=5; string to_date=6;
+ string currency=3; string fx_policy_key=4; string from_date=5; string to_date=6; repeated string instrument_keys=7;
 }
 message TrackerContribution {
  string ledger_id=1; string ledger_name=2; string instrument_key=3;
@@ -643,5 +647,5 @@ message GetTrackerContributionsResponse {
  int64 fx_policy_version=5; string fx_mode=6; int64 classification_version=7;
  google.protobuf.Timestamp read_at=8; string basis_key=9; string convention=10;
  repeated TrackerContribution rows=11; InvestmentNAVAmount profit=12;
- InvestmentNAVAmount known_profit=13; string reason=14;
+ InvestmentNAVAmount known_profit=13; string reason=14; repeated string instrument_keys=15; repeated string group_ids=16;
 }

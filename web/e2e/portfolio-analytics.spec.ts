@@ -39,6 +39,7 @@ for(const locale of ["ru","en"]){test(`${locale} analytics charts show profit, p
   }
 
   if(method&&/^(Create|Update|Save|Delete|Commit|Post)/.test(method.name))writes++;
+  if(["GetTrackerHistory","GetTrackerPerformance","GetTrackerContributions"].includes(method?.name||""))Object.assign(data,{groupIds:input.groupIds||[],instrumentKeys:input.instrumentKeys||[],monetaryOnly:!!input.monetaryOnly});
   const body=method?Buffer.from(toBinary(method.output,create(method.output,data))):Buffer.alloc(0),head=Buffer.alloc(5);head.writeUInt32BE(body.length,1);const trailer=Buffer.from("grpc-status: 0\r\n"),tail=Buffer.alloc(5);tail[0]=0x80;tail.writeUInt32BE(trailer.length,1);await route.fulfill({status:200,contentType:"application/grpc-web+proto",body:Buffer.concat([head,body,tail,trailer])});
  });
  await page.goto("/investments/analytics?from=2024-12-30&to=2025-01-03");

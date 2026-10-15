@@ -138,6 +138,54 @@ func TestInvestmentTrackerContributionsOwnFlowsGroupsAndClosedPositions(t *testi
 	read("73", 2)
 	q.GroupIDs = []string{b}
 	read("20", 1)
+
+	q.ContributionOnly = false
+	q.PerformanceFrom = q.From
+	q.MonetaryOnly = true
+	q.GroupIDs = []string{a}
+	h, err := repo.TrackerHistory(ctx, tenant, actor, q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(h.Points) != 3 || h.Baseline == nil {
+		t.Fatal("group signed history shape")
+	}
+	expectedValues := []string{"260", "100", "0"}
+	expectedFlows := []string{"212", "-165", "-120"}
+	days := []calc.PerformanceDay{{Date: h.Baseline.Date, NAV: h.Baseline.KnownValue, Complete: true, ExternalFlow: new(big.Rat)}}
+	for i, p := range h.Points {
+		if p.State != "ready" || p.KnownValue.RatString() != expectedValues[i] || p.StrategyFlow == nil || p.StrategyFlow.RatString() != expectedFlows[i] {
+			t.Fatal("group inherited a parent-account or peer-group flow", i, p)
+		}
+		days = append(days, calc.PerformanceDay{Date: p.Date, NAV: p.KnownValue, ExternalFlow: p.StrategyFlow, Complete: p.State == "ready"})
+	}
+	analytics, err := calc.CalculateStrategyAnalytics(days, nil)
+	if err != nil || analytics.Points[3].Profit.RatString() != "73" {
+		t.Fatal(analytics, err)
+	}
+	q.GroupIDs = nil
+	q.MonetaryOnly = false
+	q.InstrumentKeys = []string{"S"}
+	h, err = repo.TrackerHistory(ctx, tenant, actor, q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if h.Points[2].KnownValue.RatString() != "240" || h.Points[2].StrategyFlow.Sign() != 0 || h.Points[0].StrategyFlow.RatString() != "262" || h.Points[1].StrategyFlow.RatString() != "-95" {
+		t.Fatal("instrument scope inherited other securities or internal transfers", h)
+	}
+	q.GroupIDs = []string{a}
+	q.MonetaryOnly = true
+	h, err = repo.TrackerHistory(ctx, tenant, actor, q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if h.Points[0].KnownValue.RatString() != "200" || h.Points[0].StrategyFlow.RatString() != "162" {
+		t.Fatal("group/instrument intersection was broadened", h)
+	}
+	q.InstrumentKeys = []string{"not-owned"}
+	if _, err = repo.TrackerHistory(ctx, tenant, actor, q); err == nil {
+		t.Fatal("unowned selection was broadened")
+	}
 	// Real planner evidence for the exact sparse SQL shape; no data is changed.
 	var plan string
 	raw := `[{"provider":"tinvest","scope":"personal","id":"` + firstInstrument + `"}]`

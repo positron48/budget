@@ -161,6 +161,17 @@ func TestInvestmentTrackerHistory100000Operations500Instruments(t *testing.T) {
 		}
 		t.Logf("100000 operations, 500 instruments, contribution boundaries through %s: %s", last, time.Since(began))
 	}
+	began = time.Now()
+	selection, err := repo.TrackerHistory(ctx, tenant, actor, nav.TrackerHistoryRequest{LedgerIDs: ids, Currency: "RUB", FXPolicyKey: policy.Key, From: from.Format(time.DateOnly), To: from.AddDate(0, 0, 30).Format(time.DateOnly), PerformanceFrom: from.Format(time.DateOnly), InstrumentKeys: []string{"S0"}})
+	if err != nil || len(selection.Points) != 31 || selection.Baseline == nil {
+		t.Fatal("selected scale history", err)
+	}
+	for _, point := range selection.Points {
+		if point.Positions != 1 || point.PricedPositions != 1 || point.State != "ready" || point.FlowReason != "" || point.StrategyFlow == nil {
+			t.Fatal("selection inherited other securities", point)
+		}
+	}
+	t.Logf("100000 operations, 500 instruments, one-security 31-day signed scope: %s", time.Since(began))
 	sparseDates, _ := json.Marshal([]time.Time{cutoffs[0].AddDate(0, 0, -1), cutoffs[30]})
 	sparsePlan, err := pool.DB.Query(ctx, "EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) "+trackerHistorySparseSeriesSQL, tenant, encoded, sparseDates)
 	if err != nil {

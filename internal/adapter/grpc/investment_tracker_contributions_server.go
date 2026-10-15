@@ -15,7 +15,7 @@ func (s *InvestmentNAVServer) GetTrackerContributions(ctx context.Context, req *
 	if e != nil {
 		return nil, e
 	}
-	q, e := nav.NormalizeTrackerHistory(nav.TrackerHistoryRequest{LedgerIDs: req.GetLedgerIds(), GroupIDs: req.GetGroupIds(), Currency: req.GetCurrency(), FXPolicyKey: req.GetFxPolicyKey(), From: req.GetFromDate(), To: req.GetToDate(), ContributionOnly: true}, time.Now().UTC())
+	q, e := nav.NormalizeTrackerHistory(nav.TrackerHistoryRequest{LedgerIDs: req.GetLedgerIds(), GroupIDs: req.GetGroupIds(), InstrumentKeys: req.GetInstrumentKeys(), Currency: req.GetCurrency(), FXPolicyKey: req.GetFxPolicyKey(), From: req.GetFromDate(), To: req.GetToDate(), ContributionOnly: true}, time.Now().UTC())
 	if e != nil {
 		return nil, investmentRPCError(e)
 	}
@@ -30,7 +30,7 @@ func (s *InvestmentNAVServer) GetTrackerContributions(ctx context.Context, req *
 	if h.Baseline == nil || len(h.Points) != 1 {
 		return nil, status.Error(codes.Internal, "contribution history unavailable")
 	}
-	out := &pb.GetTrackerContributionsResponse{FromDate: q.From, ToDate: q.To, Currency: h.Currency, FxPolicyKey: h.FXPolicyKey, FxPolicyVersion: h.FXPolicyVersion, FxMode: h.FXMode, ClassificationVersion: h.ClassificationVersion, ReadAt: optionalInvestmentTimestamp(h.ReadAt), BasisKey: h.BasisKey, Convention: "recorded_securities_pnl_attribution_v1", KnownProfit: new(pb.InvestmentNAVAmount)}
+	out := &pb.GetTrackerContributionsResponse{InstrumentKeys: q.InstrumentKeys, GroupIds: q.GroupIDs, FromDate: q.From, ToDate: q.To, Currency: h.Currency, FxPolicyKey: h.FXPolicyKey, FxPolicyVersion: h.FXPolicyVersion, FxMode: h.FXMode, ClassificationVersion: h.ClassificationVersion, ReadAt: optionalInvestmentTimestamp(h.ReadAt), BasisKey: h.BasisKey, Convention: "recorded_securities_pnl_attribution_v1", KnownProfit: new(pb.InvestmentNAVAmount)}
 	sum := new(big.Rat)
 	complete := h.Baseline.State == "ready" && h.Points[0].State == "ready"
 	for _, r := range h.Contributions {
