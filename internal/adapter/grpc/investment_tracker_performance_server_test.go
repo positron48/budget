@@ -46,6 +46,9 @@ func TestTrackerPerformanceUsesSignedChartFactsAndRechecksBasis(t *testing.T) {
 	if e != nil || result.Profit.Numerator != "100" || result.Twr.Numerator != "1" || result.Twr.Denominator != "10" || result.HistoryScope != "recorded_securities_strategy" {
 		t.Fatal(result, e)
 	}
+	if result.AnalyticsConvention != "retrospective_cashless_strategy_v1" || len(result.AnalyticsPoints) != 3 || result.AnalyticsPoints[0].Profit.Numerator != "0" || result.AnalyticsPoints[2].Profit.Numerator != "100" || len(result.MonthlyProfit) != 1 || result.MonthlyProfit[0].Profit.Numerator != "100" || len(result.YearlyProfit) != 1 {
+		t.Fatal("daily and period analytics diverged from signed profit", result)
+	}
 	request.SnapshotTokens = append(request.SnapshotTokens, page.PerformanceSnapshot)
 	if _, e = s.GetTrackerPerformance(ctx, request); status.Code(e) != codes.FailedPrecondition {
 		t.Fatal("repeated days accepted", e)
@@ -104,5 +107,36 @@ func TestTrackerPerformanceRequiresEveryPageAndMatchingScope(t *testing.T) {
 	req.FxPolicyKey = "cbr"
 	if _, e = s.GetTrackerPerformance(ctx, req); status.Code(e) != codes.FailedPrecondition {
 		t.Fatal("different FX policy accepted", e)
+	}
+}
+
+type trackerAnalyticsBenchmarkStub struct{ *trackerPerformanceStub }
+
+func (r *trackerAnalyticsBenchmarkStub) TrackerBenchmarks(_ context.Context, _ string, _ string, q nav.TrackerHistoryRequest, base string) ([]nav.TrackerBenchmark, error) {
+	first, _ := time.Parse(time.DateOnly, q.From)
+	first = first.AddDate(0, 0, -1)
+	last, _ := time.Parse(time.DateOnly, q.To)
+	b := nav.TrackerBenchmark{Key: "imoex", BaseDate: base, Title: "IMOEX", Kind: "price_index", NativeCurrency: "RUB", Provider: "moex"}
+	for day, i := first, int64(0); !day.After(last); day, i = day.AddDate(0, 0, 1), i+1 {
+		b.Points = append(b.Points, nav.TrackerBenchmarkPoint{Date: day.Format(time.DateOnly), Index: big.NewRat(100+i*10, 1)})
+	}
+	return []nav.TrackerBenchmark{b}, nil
+}
+func TestTrackerMonetaryBenchmarkUsesSameSignedBaseline(t *testing.T) {
+	r := &trackerAnalyticsBenchmarkStub{&trackerPerformanceStub{basis: strings.Repeat("a", 64)}}
+	s := NewInvestmentNAVServer(r, "synthetic-key")
+	ctx := ctxutil.WithUserID(ctxutil.WithTenantID(context.Background(), "tenant"), "actor")
+	ids := []string{"11111111-1111-4111-8111-111111111111"}
+	p, e := s.GetTrackerHistory(ctx, &pb.GetTrackerHistoryRequest{LedgerIds: ids, Currency: "RUB", FxPolicyKey: "market", FromDate: "2024-01-01", ToDate: "2024-01-02", PerformanceFromDate: "2024-01-01"})
+	if e != nil {
+		t.Fatal(e)
+	}
+	a, e := s.GetTrackerPerformance(ctx, &pb.GetTrackerPerformanceRequest{LedgerIds: ids, Currency: "RUB", FxPolicyKey: "market", FromDate: "2024-01-01", ToDate: "2024-01-02", SnapshotTokens: []string{p.PerformanceSnapshot}})
+	if e != nil || len(a.TrackerBenchmarks) != 1 {
+		t.Fatal(a, e)
+	}
+	b := a.TrackerBenchmarks[0]
+	if b.Points[0].VirtualValue.Numerator != "1000" || b.Points[2].VirtualValue.Numerator != "1200" || b.Points[2].VirtualProfit.Numerator != "200" || b.Points[2].VirtualReason != "" {
+		t.Fatal(b)
 	}
 }

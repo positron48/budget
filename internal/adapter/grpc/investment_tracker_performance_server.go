@@ -148,10 +148,63 @@ func (s *InvestmentNAVServer) GetTrackerPerformance(ctx context.Context, req *pb
 		}
 	}
 	out := protoInvestmentPerformance(nav.Performance{PeriodPerformance: performance, Currency: q.Currency, FXPolicyKey: q.FXPolicyKey, Generation: fresh.Generation})
+	analytics, e := calc.CalculateStrategyAnalytics(days, resets)
+	if e != nil {
+		return nil, status.Error(codes.Internal, "portfolio analytics unavailable")
+	}
+	out.AnalyticsConvention = "retrospective_cashless_strategy_v1"
+	for _, p := range analytics.Points {
+		out.AnalyticsPoints = append(out.AnalyticsPoints, &pb.TrackerAnalyticsPoint{Date: p.Date, Value: protoPerformanceAmount(p.Value), Flow: protoPerformanceAmount(p.Flow), Contributions: protoPerformanceAmount(p.Contributions), Invested: protoPerformanceAmount(p.Invested), Profit: protoPerformanceAmount(p.Profit), DailyProfit: protoPerformanceAmount(p.DailyProfit), Reason: p.Reason, FlowReason: p.FlowReason})
+	}
+	convertPeriods := func(periods []calc.StrategyAnalyticsPeriod) []*pb.TrackerAnalyticsPeriod {
+		result := []*pb.TrackerAnalyticsPeriod{}
+		for _, p := range periods {
+			result = append(result, &pb.TrackerAnalyticsPeriod{Key: p.Key, FromDate: p.From, ToDate: p.To, Profit: protoPerformanceAmount(p.Profit), Reason: p.Reason})
+		}
+		return result
+	}
+	out.MonthlyProfit, out.YearlyProfit = convertPeriods(analytics.Months), convertPeriods(analytics.Years)
+	analyticsByDate := map[string]calc.StrategyAnalyticsPoint{}
+	for _, p := range analytics.Points {
+		analyticsByDate[p.Date] = p
+	}
 	for _, b := range benchmarks {
+		virtual := map[string]calc.BenchmarkPoint{}
+		prices := map[string]*big.Rat{}
+		for _, p := range b.Points {
+			prices[p.Date] = p.Index
+		}
+		for i, d := range days {
+			if d.Date != b.BaseDate {
+				continue
+			}
+			if d.Complete && d.NAV != nil {
+				input := []calc.BenchmarkDay{}
+				for j := i; j < len(days); j++ {
+					price := prices[days[j].Date]
+					input = append(input, calc.BenchmarkDay{Date: days[j].Date, Price: price, ExternalFlow: days[j].ExternalFlow, HistoryReset: resets[days[j].Date]})
+				}
+				result, err := calc.VirtualStrategyValues(d.NAV, input)
+				if err != nil {
+					return nil, status.Error(codes.Internal, "benchmark simulation unavailable")
+				}
+				for _, p := range result.Points {
+					virtual[p.Date] = p
+				}
+			}
+			break
+		}
 		line := &pb.TrackerBenchmarkLine{Key: b.Key, Title: b.Title, Kind: b.Kind, NativeCurrency: b.NativeCurrency, Provider: b.Provider, SourceUrl: b.SourceURL, BaseDate: b.BaseDate, Reason: b.Reason, ReadAt: optionalInvestmentTimestamp(b.ReadAt)}
 		for _, p := range b.Points {
-			line.Points = append(line.Points, &pb.TrackerBenchmarkPoint{Date: p.Date, Index: protoPerformanceAmount(p.Index), Reason: p.Reason})
+			v, found := virtual[p.Date]
+			if !found {
+				v.Reason = "benchmark_baseline_unavailable"
+			}
+			var virtualProfit *big.Rat
+			if v.Value != nil && analyticsByDate[p.Date].Invested != nil {
+				virtualProfit = new(big.Rat).Sub(v.Value, analyticsByDate[p.Date].Invested)
+			}
+			line.Points = append(line.Points, &pb.TrackerBenchmarkPoint{Date: p.Date, Index: protoPerformanceAmount(p.Index), Reason: p.Reason, VirtualValue: protoPerformanceAmount(v.Value), VirtualReason: v.Reason, VirtualProfit: protoPerformanceAmount(virtualProfit)})
 		}
 		out.TrackerBenchmarks = append(out.TrackerBenchmarks, line)
 	}

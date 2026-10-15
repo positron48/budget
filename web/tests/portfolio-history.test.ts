@@ -66,7 +66,7 @@ it("asks to refresh after a corrected or expired signed chart snapshot",async()=
 
 it.each(["source", "dates", "currency", "fraction"])("rejects a mismatched benchmark %s", async kind => {
  const api=performanceAPI(),value=performanceFixture();
- value.trackerBenchmarks=[{ $typeName:"budget.v1.TrackerBenchmarkLine",key:"imoex",title:"IMOEX",kind:"price_index",nativeCurrency:"RUB",provider:"moex",sourceUrl:"https://www.moex.com/ru/index/IMOEX",baseDate:"2019-12-31",reason:"",points:["2019-12-31","2020-01-01","2020-01-02"].map(date=>({$typeName:"budget.v1.TrackerBenchmarkPoint",date,index:{$typeName:"budget.v1.InvestmentNAVAmount",numerator:"100",denominator:"1",decimal:"100"},reason:""}))}];
+ value.trackerBenchmarks=[{ $typeName:"budget.v1.TrackerBenchmarkLine",key:"imoex",title:"IMOEX",kind:"price_index",nativeCurrency:"RUB",provider:"moex",sourceUrl:"https://www.moex.com/ru/index/IMOEX",baseDate:"2019-12-31",reason:"",points:["2019-12-31","2020-01-01","2020-01-02"].map(date=>({$typeName:"budget.v1.TrackerBenchmarkPoint",virtualReason:"",date,index:{$typeName:"budget.v1.InvestmentNAVAmount",numerator:"100",denominator:"1",decimal:"100"},reason:""}))}];
  const line=value.trackerBenchmarks[0];
  if(kind==="source")line.sourceUrl="https://example.test";
  if(kind==="dates")line.points.pop();
@@ -86,4 +86,9 @@ it("rejects group reclassification during historical pagination",async()=>{
  const api=performanceAPI(),first=page("2020-01-01","2020-01-02"),second=page("2020-01-02","");first.classificationVersion=2n;second.classificationVersion=3n;
  api.getTrackerHistory.mockReset().mockResolvedValueOnce(first).mockResolvedValueOnce(second);
  await expect(loadPortfolioPerformanceHistory(api,{...scope,groupIds:["a"],classificationVersion:2n},new AbortController().signal,vi.fn())).rejects.toThrow("history_changed");
+});
+it.each(["date","fraction","convention","missing_profit","period"])("rejects malformed monetary analytics %s",async kind=>{
+ const api=performanceAPI(),p=performanceFixture();p.analyticsConvention="retrospective_cashless_strategy_v1";p.analyticsPoints=["2019-12-31","2020-01-01","2020-01-02"].map(date=>create(GetInvestmentPerformanceResponseSchema,{analyticsPoints:[{date,value:{numerator:"2",denominator:"3"},contributions:{numerator:"0",denominator:"1"},profit:{numerator:"0",denominator:"1"}}]}).analyticsPoints[0]);p.monthlyProfit=create(GetInvestmentPerformanceResponseSchema,{monthlyProfit:[{key:"2020-01",fromDate:"2020-01-01",toDate:"2020-01-02",profit:{numerator:"0",denominator:"1"}}]}).monthlyProfit;p.yearlyProfit=create(GetInvestmentPerformanceResponseSchema,{yearlyProfit:[{key:"2020",fromDate:"2020-01-01",toDate:"2020-01-02",profit:{numerator:"0",denominator:"1"}}]}).yearlyProfit;
+ if(kind==="date")p.analyticsPoints[1].date="2020-01-03";if(kind==="fraction")p.analyticsPoints[1].profit!.denominator="0";if(kind==="convention")p.analyticsConvention="unknown";if(kind==="missing_profit")p.analyticsPoints[1].profit=undefined;if(kind==="period")p.monthlyProfit[0].toDate="2020-01-01";
+ api.getTrackerPerformance.mockResolvedValue(p);await expect(loadPortfolioPerformanceHistory(api,scope,new AbortController().signal,vi.fn())).rejects.toThrow("invalid_analytics");
 });

@@ -1,1 +1,2 @@
-export {default} from "@/components/PortfolioTracker";
+import PortfolioTracker from "@/components/PortfolioTracker";
+export default function Page(){return <PortfolioTracker/>;}

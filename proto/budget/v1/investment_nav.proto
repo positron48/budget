@@ -146,11 +146,15 @@ message GetInvestmentPerformanceResponse {
  string reporting_timezone = 17;
  string net_contributions_reason = 19;
  repeated TrackerBenchmarkLine tracker_benchmarks = 20;
+ repeated TrackerAnalyticsPoint analytics_points = 21;
+ repeated TrackerAnalyticsPeriod monthly_profit = 22;
+ repeated TrackerAnalyticsPeriod yearly_profit = 23;
+ string analytics_convention = 24;
  string history_scope = 18; // recorded_journal, not broker reconciliation certification
 }
 
 // Price-only public comparisons; never an unlabeled index/ETF substitution.
-message TrackerBenchmarkPoint { string date = 1; InvestmentNAVAmount index = 2; string reason = 3; }
+message TrackerBenchmarkPoint { string date = 1; InvestmentNAVAmount index = 2; string reason = 3; InvestmentNAVAmount virtual_value = 4; string virtual_reason = 5; InvestmentNAVAmount virtual_profit = 6; }
 message TrackerBenchmarkLine {
  string key = 1; string title = 2; string kind = 3; string native_currency = 4;
  string provider = 5; string source_url = 6; string base_date = 7; string reason = 8;
@@ -607,4 +611,15 @@ message GetTrackerInstrumentPricesResponse {
  repeated TrackerInstrumentListing listings=9;MarketInstrument instrument=10;google.protobuf.Timestamp metadata_at=11;
  InvestmentQuote quote=12;GetMarketBondFactsResponse bond=13;MarketSourceKey source=14;bool listing_only=15;
  repeated TrackerInstrumentPricePoint points=16;string price_convention=17;string reporting_timezone=18;bool bond_limited=19;string metadata_instrument_id=20;bool metadata_enabled=21;
+}
+
+message TrackerAnalyticsPoint {
+ string date=1; InvestmentNAVAmount value=2; InvestmentNAVAmount flow=3;
+ InvestmentNAVAmount contributions=4; InvestmentNAVAmount invested=5;
+ InvestmentNAVAmount profit=6; InvestmentNAVAmount daily_profit=7;
+ string reason=8; string flow_reason=9;
+}
+message TrackerAnalyticsPeriod {
+ string key=1; string from_date=2; string to_date=3;
+ InvestmentNAVAmount profit=4; string reason=5;
 }
