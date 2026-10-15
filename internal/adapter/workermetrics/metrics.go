@@ -29,7 +29,7 @@ type Monitor struct {
 }
 
 func New(ctx context.Context, worker string, read ReadSnapshot) (*Monitor, error) {
-	if worker != "marketdata" && worker != "investmentnav" && worker != "investcbr" && worker != "alphafx" {
+	if worker != "marketdata" && worker != "investmentnav" && worker != "investcbr" && worker != "alphafx" && worker != "moexhistory" && worker != "equityhistory" {
 		return nil, errors.New("invalid worker metrics name")
 	}
 	labels := prometheus.Labels{"worker": worker}
@@ -57,7 +57,7 @@ func (m *Monitor) ObserveJob(kind, result string) {
 		return
 	}
 	switch result {
-	case "ready", "retry", "error", "persistence_error", "lease_lost", "cancelled":
+	case "ready", "empty", "retry", "error", "persistence_error", "lease_lost", "cancelled":
 		m.jobs.WithLabelValues(kind, result).Inc()
 	}
 }

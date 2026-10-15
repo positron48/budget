@@ -30,6 +30,13 @@ func MappedHistoryRanges(m Mapping, scope Scope, first, last, at time.Time, open
 		if lower.Before(p.From) {
 			lower = lower.Add(time.Second)
 		}
+		if scope.Provider == "moex" || scope.Provider == "twelvedata" {
+			// Native mappings name close eligibility, one UTC day after the raw label.
+			lower = p.From.UTC().Truncate(24 * time.Hour)
+			if lower.Equal(p.From) {
+				lower = lower.Add(-24 * time.Hour)
+			}
+		}
 		if lower.After(start) {
 			start = lower
 		}
@@ -37,6 +44,9 @@ func MappedHistoryRanges(m Mapping, scope Scope, first, last, at time.Time, open
 			upper := p.To.UTC().Truncate(time.Second)
 			if upper.Equal(p.To) {
 				upper = upper.Add(-time.Second)
+			}
+			if scope.Provider == "moex" || scope.Provider == "twelvedata" {
+				upper = upper.Add(-24 * time.Hour)
 			}
 			if upper.Before(end) {
 				end = upper

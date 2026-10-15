@@ -139,6 +139,9 @@ func (w Worker) RunOne(ctx context.Context) (resultErr error) {
 		if job.Kind == "catalog_search" {
 			return w.Queue.CompleteCatalog(ctx, job, catalog)
 		}
+		if len(observations) == 0 {
+			outcome = "empty"
+		}
 		return w.Queue.CompleteWithInstrument(ctx, job, instrument, observations)
 	}
 	code, retry, delay := failurePolicy(loadErr, job.Attempts)

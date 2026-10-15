@@ -76,7 +76,7 @@ func TestWorkerOutcomes(t *testing.T) {
 			if tc.name == "rate limit" && q.delay != time.Minute {
 				t.Fatal(q.delay)
 			}
-			want := "ready"
+			want := "empty"
 			if tc.err != nil {
 				want = "error"
 				if tc.retry {

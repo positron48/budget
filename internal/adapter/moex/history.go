@@ -32,7 +32,13 @@ func (l Listing) id(market string) string {
 	return uuid.NewSHA1(uuid.NameSpaceURL, []byte("https://iss.moex.com/stock/"+market+"/"+l.Board+"/"+l.SecurityID+"/"+l.ISIN)).String()
 }
 
-type Client struct{ http *http.Client }
+type Client struct {
+	http        *http.Client
+	requestGate func(context.Context) error
+}
+
+// SetRequestGate coordinates public ISS requests across worker replicas.
+func (c *Client) SetRequestGate(gate func(context.Context) error) { c.requestGate = gate }
 
 func New() *Client {
 	return &Client{http: &http.Client{Timeout: 20 * time.Second, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }}}
@@ -85,6 +91,11 @@ func (c *Client) get(ctx context.Context, path string, query url.Values) (map[st
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://iss.moex.com/iss/"+path+"?"+query.Encode(), nil)
 	if err != nil {
 		return nil, "", errors.New("invalid ISS request")
+	}
+	if c.requestGate != nil {
+		if err := c.requestGate(ctx); err != nil {
+			return nil, "", err
+		}
 	}
 	resp, err := c.http.Do(req)
 	if err != nil {

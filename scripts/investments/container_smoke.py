@@ -103,7 +103,7 @@ def main():
         audit_name = prefix + "-image-audit"
         names.append(audit_name)
         docker("create", "--name", audit_name, backend_id, stdout=subprocess.DEVNULL)
-        for command in ["budgetd", "marketdata", "investmentnav", "investcbr", "investfxpolicy", "investalphafx", "alphafx"]:
+        for command in ["budgetd", "marketdata", "investmentnav", "investcbr", "investfxpolicy", "investalphafx", "alphafx", "portfoliohistory"]:
             path = out / (command + ".elf")
             docker("cp", audit_name + ":/app/" + command, str(path))
             header = path.read_bytes()[:20]
@@ -214,7 +214,7 @@ def main():
         if counts.split("|")[1:] != ["2", "6", "0", "0"]:
             raise RuntimeError("unexpected financial counts after container restart and flags")
         workers = {}
-        for command in ["marketdata", "investmentnav", "investcbr", "investfxpolicy", "investalphafx", "alphafx"]:
+        for command in ["marketdata", "investmentnav", "investcbr", "investfxpolicy", "investalphafx", "alphafx", "portfoliohistory"]:
             result = docker("run", "--rm", "--network=none", "--read-only", "--cap-drop=ALL",
                             "--security-opt=no-new-privileges", "--entrypoint", "/app/" + command,
                             backend_id, "-h", check=False, stdout=log(command + "-help.log"), stderr=subprocess.STDOUT)

@@ -9,18 +9,17 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"os/user"
 	"syscall"
 	"time"
 
 	"github.com/positron48/budget/internal/adapter/postgres"
-	"github.com/positron48/budget/internal/adapter/tinvest"
 	"github.com/positron48/budget/internal/adapter/workermetrics"
 	md "github.com/positron48/budget/internal/usecase/marketdata"
 	"github.com/positron48/budget/internal/usecase/workerhealth"
 )
 
 func run() error {
+	provider := flag.String("provider", "tinvest", "tinvest, moex or twelvedata")
 	tenant := flag.String("tenant", "", "tenant UUID")
 	access := flag.String("access-scope", "", "entitlement scope, never a token")
 	register := flag.String("register-source", "", "operator provisioning: source title to enable for this tenant")
@@ -36,9 +35,12 @@ func run() error {
 	if *history && (*instrument == "" || *kind != "daily_candle" || *searchQuery != "") {
 		return errors.New("enqueue-history requires an instrument and daily_candle kind")
 	}
-	scope := md.Scope{TenantID: *tenant, Provider: "tinvest", AccessScope: *access}
+	scope := md.Scope{TenantID: *tenant, Provider: *provider, AccessScope: *access}
 	if err := md.ValidateScope(scope); err != nil {
 		return errors.New("valid tenant and access-scope are required")
+	}
+	if scope.Provider != "tinvest" && (*searchQuery != "" || *instrument != "" && *kind != "daily_candle") {
+		return errors.New("native history workers accept only mapped daily candles")
 	}
 	var request md.JobRequest
 	if *instrument != "" || *searchQuery != "" {
@@ -88,29 +90,16 @@ func run() error {
 	if err = db.Ping(ctx); err != nil {
 		return errors.New("market database unavailable")
 	}
-	var client *tinvest.Client
-	if path := os.Getenv("TINVEST_TOKEN_FILE"); path != "" {
-		client, err = tinvest.NewFromSecretFile(path)
-	} else {
-		var u *user.User
-		u, err = user.Current()
-		if err == nil {
-			client, err = tinvest.NewFromKeychain(ctx, u.Username)
-		}
-	}
-	if err != nil {
-		return errors.New("T-Invest credential unavailable; configure Keychain or TINVEST_TOKEN_FILE")
-	}
 	repo := postgres.NewMarketDataRepo(db)
+	client, err := workerProvider(ctx, repo, scope)
+	if err != nil {
+		return err
+	}
 	if *register != "" {
 		if err = repo.ConfigureSource(ctx, scope, *register, true); err != nil {
 			return errors.New("cannot provision market source")
 		}
 	}
-	client.SetRequestGate(func(ctx context.Context, key string) error {
-		return repo.WaitMarketPermit(ctx, key, 600*time.Millisecond)
-	})
-	client.SetRequestBackoff(repo.DeferMarketPermit)
 	if *instrument != "" || *searchQuery != "" {
 		if *history {
 			var jobs []md.Job
@@ -133,7 +122,14 @@ func run() error {
 		}
 	}
 	worker := md.Worker{Queue: repo, Provider: client, Scope: scope, Lease: 2 * time.Minute}
-	monitor, err := workermetrics.New(ctx, "marketdata", func(ctx context.Context) (workerhealth.Snapshot, error) {
+	workerName := "marketdata"
+	switch scope.Provider {
+	case "moex":
+		workerName = "moexhistory"
+	case "twelvedata":
+		workerName = "equityhistory"
+	}
+	monitor, err := workermetrics.New(ctx, workerName, func(ctx context.Context) (workerhealth.Snapshot, error) {
 		return repo.ReadMarketWorkerHealth(ctx, scope)
 	})
 	if err != nil {

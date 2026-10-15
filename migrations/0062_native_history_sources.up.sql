@@ -52,3 +52,12 @@ CREATE TRIGGER nav_generation_market_observations_update AFTER UPDATE ON market_
 REFERENCING OLD TABLE AS observation_old NEW TABLE AS observation_new FOR EACH STATEMENT EXECUTE FUNCTION bump_market_observation_generation_batch();
 CREATE TRIGGER nav_generation_market_observations_delete AFTER DELETE ON market_provider_observations
 REFERENCING OLD TABLE AS observation_old FOR EACH STATEMENT EXECUTE FUNCTION bump_market_observation_generation_batch();
+
+-- Shared conservative quota for native free-plan workers. Fingerprints only;
+-- credentials and source payloads never enter this table.
+CREATE TABLE IF NOT EXISTS market_provider_daily_limits (
+ credential_key TEXT NOT NULL CHECK(credential_key ~ '^[a-f0-9]{64}$'),
+ day DATE NOT NULL,
+ used INTEGER NOT NULL CHECK(used>0),
+ PRIMARY KEY(credential_key,day)
+);

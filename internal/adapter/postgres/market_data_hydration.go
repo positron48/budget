@@ -21,6 +21,8 @@ const marketHistoryDemandSQL = `WITH totals AS (
 // ScheduleMarketHistory hydrates open and closed positions from committed
 // history. The jobs themselves are a durable request checkpoint; no separate
 // cursor can falsely turn provider errors into complete market coverage.
+// Native transient terminal failures get a new job after a day; their original
+// error remains auditable. Legacy broker retry behavior is unchanged.
 func (r *MarketDataRepo) ScheduleMarketHistory(ctx context.Context, scope md.Scope, at time.Time, limit int) (int, error) {
 	if md.ValidateScope(scope) != nil || at.Year() < 1900 || at.Year() > 2200 || limit < 1 || limit > 100 {
 		return 0, md.ErrInvalid
@@ -76,17 +78,20 @@ func (r *MarketDataRepo) ScheduleMarketHistory(ctx context.Context, scope md.Sco
 		return 0, e
 	}
 	wants = append(wants, fxSeriesHistoryRanges(fxPolicies, at)...)
-	var active int
-	if err = tx.QueryRow(ctx, `SELECT count(*) FROM market_data_jobs WHERE tenant_id=$1 AND status IN ('pending','running')`, scope.TenantID).Scan(&active); err != nil {
+	var active, scoped int
+	if err = tx.QueryRow(ctx, `SELECT count(*),count(*) FILTER(WHERE provider=$2) FROM market_data_jobs WHERE tenant_id=$1 AND status IN ('pending','running')`, scope.TenantID, scope.Provider).Scan(&active, &scoped); err != nil {
 		return 0, err
 	}
 	created := 0
 	for _, want := range wants {
 		budget := min(limit-created, 100-active)
+		if scope.Provider != "tinvest" {
+			budget = min(budget, 20-scoped)
+		}
 		if budget <= 0 {
 			break
 		}
-		rows, err = tx.Query(ctx, `SELECT from_at,to_at FROM market_data_jobs WHERE tenant_id=$1 AND provider=$2 AND access_scope=$3 AND instrument_id=$4 AND kind='daily_candle' AND from_at<$6 AND to_at>$5 ORDER BY from_at,to_at`, scope.TenantID, scope.Provider, scope.AccessScope, want.InstrumentID, want.From, want.To)
+		rows, err = tx.Query(ctx, `SELECT from_at,to_at FROM market_data_jobs WHERE tenant_id=$1 AND provider=$2 AND access_scope=$3 AND instrument_id=$4 AND kind='daily_candle' AND from_at<$6 AND to_at>$5 AND ($2='tinvest' OR status<>'error' OR error_code<>'provider_temporary' OR finished_at IS NULL OR finished_at>$7::timestamptz-interval '24 hours') ORDER BY from_at,to_at`, scope.TenantID, scope.Provider, scope.AccessScope, want.InstrumentID, want.From, want.To, at)
 		if err != nil {
 			return 0, err
 		}
@@ -117,6 +122,7 @@ func (r *MarketDataRepo) ScheduleMarketHistory(ctx context.Context, scope md.Sco
 			}
 			created++
 			active++
+			scoped++
 		}
 	}
 	if err = tx.Commit(ctx); err != nil {

@@ -24,3 +24,5 @@ ALTER TABLE market_data_jobs DROP CONSTRAINT market_data_jobs_provider_check;
 ALTER TABLE market_data_jobs ADD CONSTRAINT market_data_jobs_provider_check CHECK(provider='tinvest');
 ALTER TABLE market_bond_snapshots DROP CONSTRAINT market_bond_snapshots_provider_check;
 ALTER TABLE market_bond_snapshots ADD CONSTRAINT market_bond_snapshots_provider_check CHECK(provider='tinvest');
+
+DROP TABLE IF EXISTS market_provider_daily_limits;

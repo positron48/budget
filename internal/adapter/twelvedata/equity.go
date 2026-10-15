@@ -6,12 +6,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"regexp"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -103,13 +103,24 @@ func (c *Client) EquityHistory(ctx context.Context, listing EquityListing, from,
 	// requests. Keep the caller context and a bounded per-request deadline.
 	httpClient := *c.http
 	httpClient.Timeout = time.Minute
+	if c.requestGate != nil {
+		if err := c.requestGate(ctx); err != nil {
+			return EquityAudit{}, err
+		}
+	}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return EquityAudit{}, errors.New("twelve data equity request failed")
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
-		return EquityAudit{}, fmt.Errorf("twelve data equity HTTP %d", resp.StatusCode)
+		e := providerResponseError(resp.StatusCode, resp.Header.Get("Retry-After"))
+		if resp.StatusCode == 429 && c.requestBackoff != nil {
+			if failure := c.requestBackoff(ctx, e.delay); failure != nil {
+				return EquityAudit{}, failure
+			}
+		}
+		return EquityAudit{}, e
 	}
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxBody+1))
 	if err != nil {
@@ -118,7 +129,14 @@ func (c *Client) EquityHistory(ctx context.Context, listing EquityListing, from,
 	if len(body) > maxBody {
 		return EquityAudit{}, errors.New("oversized equity response")
 	}
-	return parseEquity(body, listing, from, to, now)
+	audit, failure := parseEquity(body, listing, from, to, now)
+	var rejected responseError
+	if errors.As(failure, &rejected) && rejected.status == 429 && c.requestBackoff != nil {
+		if e := c.requestBackoff(ctx, rejected.delay); e != nil {
+			return EquityAudit{}, e
+		}
+	}
+	return audit, failure
 }
 
 // parseEquity is intentionally private: arbitrary adjusted JSON cannot be
@@ -129,9 +147,18 @@ func parseEquity(body []byte, listing EquityListing, from, to string, now time.T
 		return EquityAudit{}, err
 	}
 	var payload struct {
-		Meta   EquityMeta  `json:"meta"`
-		Values []EquityBar `json:"values"`
-		Status string      `json:"status"`
+		Meta    EquityMeta  `json:"meta"`
+		Values  []EquityBar `json:"values"`
+		Status  string      `json:"status"`
+		Code    int         `json:"code"`
+		Message string      `json:"message"`
+	}
+	if len(body) <= maxBody && json.Unmarshal(body, &payload) == nil && payload.Status != "ok" && payload.Code >= 400 && payload.Code <= 599 {
+		rejected := providerResponseError(payload.Code, "")
+		if payload.Code == 429 && strings.Contains(strings.ToLower(payload.Message), "daily") {
+			rejected.delay = now.UTC().Truncate(24 * time.Hour).Add(24 * time.Hour).Sub(now)
+		}
+		return EquityAudit{}, rejected
 	}
 	if len(body) > maxBody || json.Unmarshal(body, &payload) != nil || payload.Status != "ok" {
 		return EquityAudit{}, errors.New("invalid equity response status or JSON")

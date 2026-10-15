@@ -61,6 +61,9 @@ func (r *MarketDataRepo) ReadMarketWorkerHealth(ctx context.Context, scope md.Sc
 	if e != nil {
 		return state, e
 	}
+	if scope.Provider != "tinvest" {
+		return state, nil
+	} // Native history has no live quote contract.
 	state.QuoteStates, e = r.readMappedQuoteHealth(ctx, scope)
 	return state, e
 }

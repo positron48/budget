@@ -82,6 +82,43 @@ class ProvisionRefreshTests(unittest.TestCase):
         hidden.assert_not_called()
         self.assertTrue(report["ExistingCredentialsReused"])
 
+    def test_native_mode_adds_only_missing_key_without_exposing_it(self):
+        secret = {"type": "Opaque", "metadata": {"resourceVersion": "7", "labels": {"app.kubernetes.io/part-of": module.OWNER}},
+                  "data": {"TENANT_ID": base64.b64encode(TENANT.encode()).decode(),
+                           "TINVEST_TOKEN": "existing-token", "ALPHAVANTAGE_API_KEY": "existing-alpha"}}
+        canary = "native-key-canary"
+        with patch.object(module, "command", side_effect=[json.dumps(secret).encode(), b"updated"]) as command, \
+                patch.object(module, "hidden_key", return_value=base64.b64encode(canary.encode()).decode()) as hidden:
+            report = module.provision(["kubectl"], "budget", TENANT, native=True)
+        hidden.assert_called_once()
+        argv, _, raw = command.call_args.args
+        payload = json.loads(raw)
+        self.assertEqual(payload["data"]["TINVEST_TOKEN"], "existing-token")
+        self.assertEqual(payload["metadata"]["resourceVersion"], "7")
+        self.assertEqual(base64.b64decode(payload["data"]["TWELVEDATA_API_KEY"]).decode(), canary)
+        self.assertNotIn(canary, str(argv) + json.dumps(report))
+        self.assertEqual(report["Providers"], ["tinvest", "alphavantage", "moex", "twelvedata"])
+        self.assertTrue(report["SecretUpdated"])
+        self.assertFalse(report["DeploymentWrites"])
+
+    def test_empty_native_responses_do_not_prove_operational_updates(self):
+        for successful in (0, 1):
+            responses = self.worker_responses()
+            for worker in ("moexhistory", "equityhistory"):
+                image = "ghcr.io/example/budget-app@sha256:synthetic"
+                pod = {"metadata": {"name": worker}, "spec": {"containers": [{"image": image}]},
+                       "status": {"containerStatuses": [{"ready": True}], "conditions": [{"type": "Ready", "status": "True"}]}}
+                responses.append(json.dumps({"items": [pod]}).encode())
+                metrics = 'budget_investment_worker_snapshot_success{worker="'+worker+'"} 1\n'
+                metrics += 'budget_investment_worker_source_enabled{worker="'+worker+'"} 1\n'
+                metrics += 'budget_investment_worker_job_attempts_total{kind="daily_candle",result="empty",worker="'+worker+'"} 20\n'
+                metrics += 'budget_investment_worker_job_attempts_total{kind="daily_candle",result="ready",worker="'+worker+'"} '+str(successful)+'\n'
+                responses.append(metrics.encode())
+            with patch.object(module, "command", side_effect=responses):
+                result = module.worker_status(["kubectl"], "budget", native=True)
+            self.assertEqual(result["WorkersOperationalVerified"], bool(successful))
+            self.assertEqual(len(result["Workers"]), 5)
+
     def test_other_tenant_secret_is_never_overwritten(self):
         secret = {"type": "Opaque", "metadata": {"labels": {"app.kubernetes.io/part-of": module.OWNER}},
                   "data": {"TENANT_ID": base64.b64encode(b"different-tenant").decode()}}

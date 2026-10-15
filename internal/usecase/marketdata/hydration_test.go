@@ -5,6 +5,23 @@ import (
 	"time"
 )
 
+func TestNativeHistoryRangesUseRawLabelsBeforeEligibilityDates(t *testing.T) {
+	date := func(s string) time.Time { v, _ := time.Parse(time.DateOnly, s); return v }
+	for _, provider := range []string{"moex", "twelvedata"} {
+		scope := Scope{Provider: provider, AccessScope: "personal"}
+		m := Mapping{Periods: []MappingPeriod{{Provider: "tinvest", AccessScope: "personal", InstrumentID: "live"}}, HistoricalPeriods: []MappingPeriod{{Provider: provider, AccessScope: "personal", InstrumentID: "raw", From: date("2024-01-02"), To: date("2024-01-11")}}}
+		r := MappedHistoryRanges(m, scope, date("2024-01-02"), date("2024-01-10"), date("2024-01-15"), true)
+		if len(r) != 1 || r[0].InstrumentID != "raw" || r[0].From != date("2024-01-01") || r[0].To != date("2024-01-10").Add(-time.Second) {
+			t.Fatal(provider, r)
+		}
+		m.HistoricalPeriods[0].From = date("2024-01-02").Add(time.Hour)
+		r = MappedHistoryRanges(m, scope, date("2024-01-02"), date("2024-01-10"), date("2024-01-15"), true)
+		if len(r) != 1 || r[0].From != date("2024-01-02") {
+			t.Fatal("intraday mapping admitted earlier eligibility", provider, r)
+		}
+	}
+}
+
 func TestMappedHistoryRanges(t *testing.T) {
 	d := func(day string) time.Time { v, _ := time.Parse(time.DateOnly, day); return v }
 	scope := Scope{Provider: "tinvest", AccessScope: "personal"}

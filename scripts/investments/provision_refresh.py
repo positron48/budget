@@ -68,7 +68,7 @@ def source_tenant(path):
     return tenant
 
 
-def provision(kube, namespace, tenant):
+def provision(kube, namespace, tenant, native=False):
     raw = command(kube + ["-n", namespace, "get", "secret", SECRET, "--ignore-not-found", "-o", "json"],
                   "inspect worker credential Secret")
     current = json.loads(raw) if raw.strip() else None
@@ -83,9 +83,11 @@ def provision(kube, namespace, tenant):
     wanted_tenant = base64.b64encode(tenant.encode()).decode()
     changed = data.get("TENANT_ID") != wanted_tenant
     data["TENANT_ID"] = wanted_tenant
-    for key, prompt, maximum in (
-            ("TINVEST_TOKEN", "Read-only T-Invest token (hidden): ", 8192),
-            ("ALPHAVANTAGE_API_KEY", "Alpha Vantage API key (hidden): ", 256)):
+    required = [("TINVEST_TOKEN", "Read-only T-Invest token (hidden): ", 8192),
+                ("ALPHAVANTAGE_API_KEY", "Alpha Vantage API key (hidden): ", 256)]
+    if native:
+        required.append(("TWELVEDATA_API_KEY", "Twelve Data API key (hidden): ", 256))
+    for key, prompt, maximum in required:
         if not data.get(key):
             data[key] = hidden_key(prompt, maximum)
             changed = True
@@ -104,7 +106,7 @@ def provision(kube, namespace, tenant):
     return {"Status": "portfolio_worker_credentials_provisioned", "SecretCreated": current is None,
             "SecretUpdated": changed and current is not None, "ExistingCredentialsReused": not changed,
             "DeploymentWrites": False, "FinancialWrites": False, "CredentialsPrinted": False,
-            "Providers": ["tinvest", "alphavantage"], "WorkersReadyVerified": False}
+            "Providers": ["tinvest", "alphavantage"] + (["moex", "twelvedata"] if native else []), "WorkersReadyVerified": False}
 
 
 def metric(body, name, wanted):
@@ -128,7 +130,7 @@ def metric(body, name, wanted):
     return total if found else None
 
 
-def worker_status(kube, namespace):
+def worker_status(kube, namespace, native=False):
     deadline = time.monotonic() + 20
     def read(argv, stage):
         left = deadline - time.monotonic()
@@ -139,7 +141,10 @@ def worker_status(kube, namespace):
     app = json.loads(read(base + ["get", "deployment", "budget-app", "-o", "json"], "inspect current application image"))
     expected_image = next(c["image"] for c in app["spec"]["template"]["spec"]["containers"] if c["name"] == "budget-app")
     rows = []
-    for suffix, worker in (("marketdata", "marketdata"), ("alphafx", "alphafx"), ("cbr", "investcbr")):
+    targets = [("marketdata", "marketdata"), ("alphafx", "alphafx"), ("cbr", "investcbr")]
+    if native:
+        targets.extend([("moexhistory", "moexhistory"), ("equityhistory", "equityhistory")])
+    for suffix, worker in targets:
         name = "budget-portfolio-" + suffix
         pods = json.loads(read(base + ["get", "pods", "-l", "app=" + name, "-o", "json"], "inspect worker readiness"))["items"]
         pods = [p for p in pods if not p["metadata"].get("deletionTimestamp")]
@@ -156,7 +161,10 @@ def worker_status(kube, namespace):
                 path = "/api/v1/namespaces/" + namespace + "/pods/" + pod["metadata"]["name"] + ":9091/proxy/metrics"
                 body = read(kube + ["get", "--raw", path], "read non-financial worker diagnostics").decode()
                 row["SnapshotReadable"] = metric(body, "budget_investment_worker_snapshot_success", {"worker": worker}) == 1
-                if worker == "marketdata":
+                if worker in ("moexhistory", "equityhistory"):
+                    row["SuccessfulUpdates"] = metric(body, "budget_investment_worker_job_attempts_total", {"worker": worker, "kind": "daily_candle", "result": "ready"}) or 0
+                    row["SourceEnabled"] = metric(body, "budget_investment_worker_source_enabled", {"worker": worker}) == 1
+                elif worker == "marketdata":
                     row["SuccessfulUpdates"] = metric(body, "budget_investment_worker_job_attempts_total", {"worker": worker, "kind": "last_price", "result": "ready"}) or 0
                     row["SourceEnabled"] = metric(body, "budget_investment_worker_source_enabled", {"worker": worker}) == 1
                     row["FreshMappedQuotes"] = metric(body, "budget_investment_worker_mapped_quote_endpoints", {"worker": worker, "state": "fresh"}) or 0
@@ -171,24 +179,26 @@ def worker_status(kube, namespace):
         rows.append(row)
     verified = all(r["Ready"] and r["SnapshotReadable"] and r["SuccessfulUpdates"] > 0 for r in rows)
     verified = verified and rows[0].get("SourceEnabled") is True and rows[0].get("FreshMappedQuotes", 0) > 0 and rows[0].get("UnusableMappedQuotes") == 0 and rows[1].get("FreshFXPairs") == 2 and rows[1].get("MissingOrExpiredFXPairs") == 0
+    if native:
+        verified = verified and all(r.get("SourceEnabled") is True for r in rows[3:])
     return {"WorkersOperationalVerified": verified, "WorkersReadyVerified": all(r["Ready"] for r in rows), "Workers": rows,
             "FullQuoteCoverageVerified": False, "FinancialWrites": False}
 
 
-def wait_workers(kube, namespace, seconds):
+def wait_workers(kube, namespace, seconds, native=False):
     deadline = time.monotonic() + seconds
     next_notice = time.monotonic()
     latest = {"WorkersOperationalVerified": False}
     while True:
         try:
-            latest = worker_status(kube, namespace)
+            latest = worker_status(kube, namespace, native=native)
         except (Failure, ValueError, KeyError, StopIteration):
             latest = {"WorkersOperationalVerified": False, "DiagnosticsReadable": False}
         if latest["WorkersOperationalVerified"] or time.monotonic() >= deadline:
             return latest
         if time.monotonic() >= next_notice:
             ready = sum(r.get("Ready") is True for r in latest.get("Workers", []))
-            print("Waiting for portfolio workers: ready=" + str(ready) + "/3; provider and freshness checks pending", file=sys.stderr, flush=True)
+            print("Waiting for portfolio workers: ready=" + str(ready) + ("/5" if native else "/3") + "; provider and freshness checks pending", file=sys.stderr, flush=True)
             next_notice = time.monotonic() + 30
         time.sleep(min(5, max(0, deadline-time.monotonic())))
 
@@ -200,6 +210,7 @@ def main():
     parser.add_argument("--namespace", default="budget")
     parser.add_argument("--kubectl")
     parser.add_argument("--check-only", action="store_true", help="read readiness and successful provider updates; no Secret read/write")
+    parser.add_argument("--native", action="store_true", help="also provision and verify the native history workers")
     parser.add_argument("--wait-seconds", type=int, default=0)
     args = parser.parse_args()
     try:
@@ -209,9 +220,9 @@ def main():
             raise Failure("valid bounded worker wait and compatible mode required")
         kube = [args.kubectl] if args.kubectl else ["k3s", "kubectl"]
         tenant = source_tenant(args.scope_file)
-        result = {"Status": "portfolio_workers_checked", "FinancialWrites": False} if args.check_only else provision(kube, args.namespace, tenant)
+        result = {"Status": "portfolio_workers_checked", "FinancialWrites": False} if args.check_only else provision(kube, args.namespace, tenant, native=args.native)
         if args.check_only or args.wait_seconds:
-            result.update(wait_workers(kube, args.namespace, args.wait_seconds))
+            result.update(wait_workers(kube, args.namespace, args.wait_seconds, native=args.native))
         print(json.dumps(result, indent=2))
     except Failure as error:
         print("Worker provisioning: " + str(error), file=sys.stderr)

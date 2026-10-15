@@ -5,7 +5,7 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN for command in budgetd marketdata investmentnav investcbr investfxpolicy investalphafx alphafx; do \
+RUN for command in budgetd marketdata investmentnav investcbr investfxpolicy investalphafx alphafx portfoliohistory; do \
       CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/$command ./cmd/$command || exit 1; \
     done
 

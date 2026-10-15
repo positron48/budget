@@ -28,6 +28,8 @@ const maxBody = 4 << 20
 type Client struct {
 	token, baseURL string
 	http           *http.Client
+	requestGate    func(context.Context) error
+	requestBackoff func(context.Context, time.Duration) error
 }
 
 func (c *Client) String() string   { return "Twelve Data client (credential redacted)" }
@@ -47,7 +49,7 @@ func NewFromKeychain(ctx context.Context, account string) (*Client, error) {
 
 func newClient(token string) (*Client, error) {
 	if token == "" || strings.ContainsAny(token, "\r\n\t ") {
-		return nil, errors.New("invalid Keychain credential format")
+		return nil, errors.New("invalid twelve data credential format")
 	}
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
