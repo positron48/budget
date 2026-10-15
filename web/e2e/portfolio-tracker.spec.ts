@@ -10,7 +10,7 @@ import {TenantService} from "../proto/budget/v1/tenant_pb";
 for (const locale of ["ru", "en"]) {
   test(`${locale} simple portfolio shows holdings and payouts and saves a purchase in one step`, async ({page, context}) => {
     const ru = locale === "ru", readOnly = process.env.E2E_INVESTMENTS_READ_ONLY === "true";
-    let pendingHistory = false;
+    let pendingHistory = false, noProfiles = false;
     let releaseQuotes!: () => void, releaseRates!: () => void;
     const quotesReady = new Promise<void>(resolve => {releaseQuotes = resolve;});
     const ratesReady = new Promise<void>(resolve => {releaseRates = resolve;});
@@ -38,7 +38,7 @@ for (const locale of ["ru", "en"]) {
       if (method?.name === "ListInvestmentLedgers") data = {ledgers: [ledger]};
       if (method?.name === "GetInvestmentSnapshot") data = {snapshot: {ledger, issues:pendingHistory ? ["source_trades_pending"] : [], positions: [position, foreign], cash: [{currency: "RUB", economic: "999999"}]}};
       if (method?.name === "ListInvestmentOperations") data = {operations};
-      if (method?.name === "ListInvestmentValuationProfiles") data = {fxProfiles:[{key:"market", mode:"market", version:1n},{key:"cbr", mode:"cbr", version:1n}]};
+      if (method?.name === "ListInvestmentValuationProfiles") data = {fxProfiles:noProfiles?[]:[{key:"market", mode:"market", version:1n},{key:"cbr", mode:"cbr", version:1n}]};
       if (method?.name === "GetTrackerHistory") {
         const points: any[] = []; let date = input.fromDate;
         const shift = (day: string) => {const d = new Date(day + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10);};
@@ -153,6 +153,11 @@ for (const locale of ["ru", "en"]) {
     await expect(page.getByRole("heading",{name:ru?"Общая прибыль":"Total profit",exact:true})).toHaveCount(0);
     await page.getByRole("button", {name: ru ? "Дивиденды и купоны" : "Dividends and coupons", exact: true}).click();
     await expect(page.getByRole("table")).toContainText("100");
+    noProfiles = true;
+    await page.reload();
+    await expect(page.getByRole("table")).toContainText("ABC");
+    await expect(page.getByRole("alert").filter({hasText:ru?"источник валютных курсов":"exchange rate source"})).toBeVisible();
+    await expect(page.getByRole("status").filter({hasText:ru?"Загружаем портфель":"Loading portfolio"})).toHaveCount(0);
     await page.setViewportSize({width: 390, height: 844});
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({path: test.info().outputPath(`portfolio-tracker-${locale}-mobile.png`), fullPage: true});

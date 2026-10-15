@@ -110,7 +110,7 @@ function Tracker({tenantId,analyticsOnly=false}: {tenantId: string;analyticsOnly
     (!!policy && !!data.data && rates.isPending) ||
     (!!data.data && quoteKeys.length > 0 && marketQuotes.isPending);
   const valuationUnavailable = !profiles.isPending && !policy;
-  const valuationReady = !valuationLoading && !valuationUnavailable;
+  const valuationReady = !valuationLoading;
   const report = useMemo(() => portfolioReport(data.data?.snapshots || [], data.data?.operations || [], quotes, currency, rates.data,include), [data.data, quotes, currency, rates.data,include]);
   const positions = report.positions;
   const current = positions, held = current.filter(p => BigInt(p.quantity.numerator) !== 0n);
@@ -186,6 +186,7 @@ function Tracker({tenantId,analyticsOnly=false}: {tenantId: string;analyticsOnly
         <Link className="flex items-center justify-between px-3 text-sm text-slate-500" href={(analyticsOnly?"/investments":"/investments/analytics")+(params.toString()?"?"+params.toString():"")}>{analyticsOnly?tr("К портфелю","Back to portfolio"):tr("Аналитика","Analytics")}<ChevronRight size={15}/></Link>
         <Link className="flex items-center justify-between px-3 text-sm text-slate-500" href="/investments/instruments">{tr("Найти бумагу","Find security")}<ChevronRight size={15}/></Link>
         <Link className="flex items-center justify-between px-3 text-sm text-slate-500" href={"/investments/groups"+(params.toString()?"?"+params.toString():"")}>{tr("Группы бумаг", "Security groups")}<ChevronRight size={15}/></Link>
+        <Link className="flex items-center justify-between px-3 text-sm text-slate-500" href={"/investments/calendar?"+new URLSearchParams({account,currency,fx:fxMode})}>{tr("Календарь выплат", "Payout calendar")}<ChevronRight size={15}/></Link>
         <Link className="flex items-center justify-between px-3 text-sm text-slate-500" href="/investments/accounts">{tr("Настройки счетов", "Account settings")}<ChevronRight size={15}/></Link>
       </aside>
       <div className="min-w-0 space-y-6">
@@ -199,7 +200,7 @@ function Tracker({tenantId,analyticsOnly=false}: {tenantId: string;analyticsOnly
         {!analyticsOnly&&<nav className="flex gap-6 border-b border-slate-200 dark:border-slate-800" aria-label={tr("Разделы портфеля", "Portfolio sections")}>{[["overview", tr("Обзор", "Overview")], ["trades", tr("Сделки", "Trades")], ["payments", tr("Дивиденды и купоны", "Dividends and coupons")]].map(([id, title]) => <button key={id} onClick={() => setView(id)} className={`border-b-2 pb-3 text-sm font-medium ${view === id ? "border-emerald-600 text-emerald-700 dark:text-emerald-400" : "border-transparent text-slate-500"}`}>{title}</button>)}</nav>}
         {error && <p role="alert" className="rounded-xl bg-rose-50 p-4 text-sm text-rose-800 dark:bg-rose-950 dark:text-rose-200">{tr("Не удалось загрузить портфель. Попробуйте обновить страницу.", "Could not load the portfolio. Try refreshing the page.")}</p>}
         {(data.isPending || valuationLoading) && <p role="status" className="py-8 text-slate-500">{tr("Загружаем портфель…", "Loading portfolio…")}</p>}
-        {valuationUnavailable && <p role="alert">{tr("Не удалось загрузить источник валютных курсов. Обновите портфель.", "Could not load the exchange rate source. Refresh the portfolio.")}</p>}
+        {valuationUnavailable && <p role="alert">{tr("Для этого режима источник валютных курсов недоступен. Суммы в других валютах могут быть неизвестны.", "The exchange rate source is unavailable for this mode. Foreign-currency amounts may be unknown.")}</p>}
         {data.data && (valuationReady || view !== "overview") && groupReady && !invalidAccount && !invalidInstrument && <>
           {sourceHistoryIncomplete && <p role="status" className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">{tr("В импортированной истории остались непроведённые сделки. Количества и прибыль рассчитаны по обработанным операциям; полученные выплаты сохранены.", "Imported history contains pending trades. Quantities and profit use processed operations; received payouts are retained.")}</p>}
           {!analyticsOnly&&valuationReady&&<><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[

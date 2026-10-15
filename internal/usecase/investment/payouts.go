@@ -87,6 +87,7 @@ func normalizePayoutQuery(q PayoutQuery) (PayoutQuery, error) {
 	q.InstrumentKey = strings.TrimSpace(q.InstrumentKey)
 	return q, nil
 }
+
 func uniquePayoutStrings(v []string) []string {
 	out := []string{}
 	for _, s := range v {
@@ -96,6 +97,7 @@ func uniquePayoutStrings(v []string) []string {
 	}
 	return out
 }
+
 func (s *Service) Payouts(ctx context.Context, t, u string, q PayoutQuery) (PayoutReport, error) {
 	if e := s.authorize(ctx, t, u, false); e != nil {
 		return PayoutReport{}, e
@@ -120,6 +122,7 @@ type payoutCursor struct {
 func newPayoutTotals(currency, month string) PayoutTotals {
 	return PayoutTotals{Currency: currency, Month: month, Gross: new(big.Rat), Tax: new(big.Rat), IncomeNet: new(big.Rat), Fees: new(big.Rat), StandaloneTax: new(big.Rat), TaxRefund: new(big.Rat), PrincipalReturn: new(big.Rat), NetCash: new(big.Rat)}
 }
+
 func addPayoutTotal(t *PayoutTotals, e PayoutEntry) {
 	t.NetCash.Add(t.NetCash, e.Net)
 	switch e.Kind {
@@ -221,7 +224,7 @@ func BuildPayoutReport(tenant string, ledgers []d.InvestmentLedger, ops []d.Inve
 	out.Entries = []PayoutEntry{}
 	out.Warnings = []string{"recorded_journal_only", "coupon_cash_is_not_earned_income"}
 	for _, l := range selected {
-		if from.Before(l.StartedAt) {
+		if !l.PortfolioTracking && from.Before(l.StartedAt) {
 			out.Warnings = append(out.Warnings, "ledger_history_missing")
 			break
 		}
@@ -290,7 +293,12 @@ func BuildPayoutReport(tenant string, ledgers []d.InvestmentLedger, ops []d.Inve
 			case "tax_refund":
 				entry.Gross, entry.Tax = nil, nil
 			}
-			if o.TaxReviewRequired {
+			if l.PortfolioTracking && (o.Kind == "dividend" || o.Kind == "coupon" || o.Kind == "repo_income" || o.Kind == "cash_interest") {
+				// Tracker amounts are already recorded receipts, as in the overview.
+				entry.Net = rational(o.Amount)
+				entry.Tax, entry.Gross, entry.TaxReviewRequired = nil, nil, false
+			}
+			if o.TaxReviewRequired && !l.PortfolioTracking {
 				entry.Gross = nil
 				entry.Tax = nil
 			}

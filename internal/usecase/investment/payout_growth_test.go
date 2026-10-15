@@ -113,3 +113,25 @@ func TestPayoutGrowthPartialMissingZeroAndDecline(t *testing.T) {
 	expectPayoutRat(t, r.Growth[0].IncomeNet, "0")
 	expectPayoutRat(t, r.Growth[0].PercentChange, "-100")
 }
+
+func TestTrackerPayoutGrowthUsesRecordedAmountsBeforeCreation(t *testing.T) {
+	ledgers, _, q, now := payoutFixture()
+	q.LedgerIDs = []string{payoutLedgerID}
+	q.FromDate, q.ToDate = "2024-02-01", "2024-02-29"
+	for i := range ledgers {
+		ledgers[i].PortfolioTracking = true
+		ledgers[i].StartedAt = now
+	}
+	old := op("tracker-old", "dividend", "100", 1)
+	old.LedgerID, old.InstrumentKey, old.Tax = payoutLedgerID, "STOCK", "30"
+	old.OccurredAt = time.Date(2023, 2, 10, 12, 0, 0, 0, time.UTC)
+	current := old
+	current.ID, current.Amount, current.Tax = "tracker-current", "200", "10"
+	current.OccurredAt = old.OccurredAt.AddDate(1, 0, 0)
+	report, err := BuildPayoutReport("tenant", ledgers, []d.InvestmentOperation{old, current}, q, now)
+	if err != nil || len(report.Growth) != 1 || report.Growth[0].Status != "available" {
+		t.Fatal(err, report)
+	}
+	expectPayoutRat(t, report.Growth[0].PercentChange, "100")
+	expectPayoutRat(t, report.Totals[0].IncomeNet, "200")
+}

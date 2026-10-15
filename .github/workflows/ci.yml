@@ -166,7 +166,7 @@ jobs:
         working-directory: web
         env:
           E2E_INVESTMENTS_READ_ONLY: "true"
-        run: npx playwright test e2e/portfolio-tracker.spec.ts e2e/portfolio-accounts.spec.ts e2e/portfolio-assets.spec.ts e2e/portfolio-export.spec.ts
+        run: npx playwright test e2e/portfolio-calendar.spec.ts e2e/portfolio-tracker.spec.ts e2e/portfolio-accounts.spec.ts e2e/portfolio-assets.spec.ts e2e/portfolio-export.spec.ts
       - name: Disabled investment browser tests
         working-directory: web
         env:

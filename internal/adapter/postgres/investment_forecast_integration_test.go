@@ -283,3 +283,68 @@ func TestInvestmentForecastPersistenceLinksAndRestore(t *testing.T) {
 	}
 	assertInvestmentRollbackRefused(t, ctx, pool, "0055_investment_forecast")
 }
+
+func TestInvestmentTrackerForecastAndPayoutGrowthUseImportedHistory(t *testing.T) {
+	pool, cleanup := withPg(t)
+	defer cleanup()
+	ctx, tenant, actor := acceptanceOwner(t, pool)
+	repo := NewInvestmentRepo(pool)
+	svc := inv.NewService(repo, NewTenantRepo(pool))
+	day := time.Date(2020, 1, 1, 12, 0, 0, 0, time.UTC)
+	ledger, err := svc.CreateLedgerWithDetails(ctx, tenant, actor, d.InvestmentLedger{Name: "Tracker", StartedAt: time.Now().UTC(), PortfolioTracking: true}, uuid.NewString())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var receipt d.InvestmentOperation
+	for i, operation := range []d.InvestmentOperation{
+		{Kind: "buy", Quantity: "10", Amount: "100", OccurredAt: day, SettlementAt: day},
+		{Kind: "split", SplitNew: "2", SplitOld: "1", OccurredAt: day.AddDate(0, 0, 1)},
+		{Kind: "sell", Quantity: "20", Amount: "300", OccurredAt: day.AddDate(0, 0, 3), SettlementAt: day.AddDate(0, 0, 3)},
+		{Kind: "dividend", Amount: "100", Tax: "13", OccurredAt: day.AddDate(0, 0, 4)},
+		{Kind: "dividend", Amount: "200", Tax: "7", OccurredAt: day.AddDate(1, 0, 4)},
+	} {
+		operation.LedgerID, operation.InstrumentKey, operation.Currency = ledger.ID, "STOCK", "USD"
+		if operation.Kind == "split" {
+			operation.Currency = ""
+		}
+		receipt, err = svc.Mutate(ctx, tenant, actor, inv.Mutation{Action: "create", RequestKey: uuid.NewString(), ExpectedLedgerVersion: int64(i + 1), Operation: operation})
+		if err != nil {
+			t.Fatal(i, err)
+		}
+	}
+	event := inv.ForecastEvent{ID: uuid.NewString(), InstrumentKey: "STOCK", Kind: "dividend", Nature: "announced", Currency: "USD", PerShare: "2", PaymentDate: time.Now().UTC().Format("2006-01") + "-28", Timezone: "Europe/Moscow", EntitlementRule: "settled_by_cutoff", EntitlementAt: day.AddDate(0, 0, 2), SourceReference: "Synthetic issuer", Evidence: "Synthetic historical record cutoff", Reason: "Synthetic event"}
+	event, err = svc.SaveForecastEvent(ctx, tenant, actor, event, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	q := inv.ForecastQuery{FromMonth: time.Now().UTC().Format("2006-01"), Currency: "USD"}
+	report, err := svc.Forecast(ctx, tenant, actor, q)
+	if err != nil || len(report.Rows) != 1 || report.Rows[0].Quantity == nil || report.Rows[0].Quantity.RatString() != "20" || report.Gross.RatString() != "40" {
+		t.Fatal(err, report)
+	}
+	before, err := svc.Snapshot(ctx, tenant, actor, ledger.ID, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = svc.SaveForecastLink(ctx, tenant, actor, inv.ForecastLink{EventID: event.ID, EventVersion: event.Version, LedgerID: ledger.ID, OperationID: receipt.ID, OperationVersion: receipt.Version, Complete: true, Reason: "Synthetic statement reconciliation"}, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	report, err = svc.Forecast(ctx, tenant, actor, q)
+	if err != nil || report.Paid != 1 || report.Rows[0].ActualNet.RatString() != "200" {
+		t.Fatal(err, report)
+	}
+	after, err := svc.Snapshot(ctx, tenant, actor, ledger.ID, time.Now())
+	if err != nil || before.Ledger.Version != after.Ledger.Version || len(after.Positions) != len(before.Positions) {
+		t.Fatal("forecast changed book", err)
+	}
+	beforePositions, _ := json.Marshal(before.Positions)
+	afterPositions, _ := json.Marshal(after.Positions)
+	if string(beforePositions) != string(afterPositions) {
+		t.Fatal("forecast changed holdings")
+	}
+	growth, err := svc.Payouts(ctx, tenant, actor, inv.PayoutQuery{LedgerIDs: []string{ledger.ID}, FromDate: "2021-01-01", ToDate: "2021-01-31", Kinds: []string{"dividend", "coupon"}})
+	if err != nil || len(growth.Growth) != 1 || growth.Growth[0].PercentChange == nil || growth.Growth[0].PercentChange.RatString() != "100" {
+		t.Fatal(err, growth)
+	}
+}

@@ -77,7 +77,7 @@ func (b *payoutGrowthBuilder) build() []PayoutGrowth {
 		}
 		if status == "available" {
 			for _, l := range b.ledgers {
-				if l.StartedAt.After(previous) {
+				if !l.PortfolioTracking && l.StartedAt.After(previous) {
 					status = "incomplete_history"
 					break
 				}

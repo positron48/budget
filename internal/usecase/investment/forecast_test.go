@@ -226,3 +226,47 @@ func TestForecastBoundariesMissingAmountAndValidation(t *testing.T) {
 		t.Fatal("tenant leak", e)
 	}
 }
+
+func TestForecastTrackerImportedRightsBeforeAccountCreationAndActualAmount(t *testing.T) {
+	ledgers, ops, legs, event, q, at := forecastFixture()
+	ledgers[0].PortfolioTracking = true
+	ledgers[0].StartedAt = at // metadata creation does not truncate imported trades
+	q.TaxRate = ""
+	report, err := BuildForecast("tenant", ledgers, ops, legs, []ForecastEvent{event}, nil, q, at, nil)
+	if err != nil || len(report.Rows) != 1 || report.Rows[0].Gross == nil {
+		t.Fatal("tracker historical right lost", err, report)
+	}
+	expectPayoutRat(t, report.Rows[0].Quantity, "20")
+	payout := op("tracker-paid", "dividend", "100", 4)
+	payout.LedgerID, payout.InstrumentKey = payoutLedgerID, "STOCK"
+	payout.OccurredAt, payout.SettlementAt = at.Add(-time.Hour), at.Add(-time.Hour)
+	payout.Tax, payout.Version = "13", 1
+	ops = append(ops, payout)
+	link := ForecastLink{EventID: event.ID, LedgerID: payoutLedgerID, OperationID: payout.ID, EventVersion: 1, OperationVersion: 1, Version: 1, Complete: true}
+	report, err = BuildForecast("tenant", ledgers, ops, legs, []ForecastEvent{event}, []ForecastLink{link}, q, at, nil)
+	if err != nil || report.Paid != 1 {
+		t.Fatal(err, report)
+	}
+	expectPayoutRat(t, report.Rows[0].ActualNet, "100")
+	ledgers[0].PortfolioTracking = false
+	report, err = BuildForecast("tenant", ledgers, ops, legs, []ForecastEvent{event}, []ForecastLink{link}, q, at, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectPayoutRat(t, report.Rows[0].ActualNet, "87")
+}
+
+func TestForecastTrackerOpeningBalanceKeepsUnknownBeforeStart(t *testing.T) {
+	ledgers, ops, legs, event, q, at := forecastFixture()
+	ledgers[0].PortfolioTracking, ledgers[0].StartedAt = true, at
+	opening := ops[0]
+	opening.ID, opening.Kind, opening.InstrumentKey = "opening", "opening_position", "OTHER"
+	opening.OpeningCostKnown = true
+	opening.Note = "Synthetic opening evidence"
+	opening.AcquiredAt = opening.OccurredAt
+	ops = append(ops, opening)
+	report, err := BuildForecast("tenant", ledgers, ops, legs, []ForecastEvent{event}, nil, q, at, nil)
+	if err != nil || len(report.Rows) != 1 || report.Rows[0].Quantity != nil || !slices.Contains(report.Rows[0].Issues, "ledger_history_missing") {
+		t.Fatal("opening balance certified earlier ownership", err, report)
+	}
+}

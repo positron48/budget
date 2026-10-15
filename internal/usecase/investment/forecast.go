@@ -161,8 +161,8 @@ func NormalizeForecastQuery(q ForecastQuery) (ForecastQuery, error) {
 // each earlier movement is transformed by subsequent split ratios instead.
 // This also handles pending buys/sells across a split without counting their
 // unsafely projected split delta as settled ownership.
-func forecastQuantity(ledger d.InvestmentLedger, event ForecastEvent, at time.Time, historical bool, ops map[string]d.InvestmentOperation, legs []ForecastSecurityLeg) (*big.Rat, []string) {
-	if at.Before(ledger.StartedAt) {
+func forecastQuantity(ledger d.InvestmentLedger, event ForecastEvent, at time.Time, historical bool, startsFromZero bool, ops map[string]d.InvestmentOperation, legs []ForecastSecurityLeg) (*big.Rat, []string) {
+	if at.Before(ledger.StartedAt) && !startsFromZero {
 		return nil, []string{"ledger_history_missing"}
 	}
 	quantity := new(big.Rat)
@@ -304,6 +304,14 @@ func BuildForecast(tenant string, ledgers []d.InvestmentLedger, operations []d.I
 		}
 		ops[o.ID] = o
 	}
+	ledgerOps := map[string][]d.InvestmentOperation{}
+	for _, o := range ops {
+		ledgerOps[o.LedgerID] = append(ledgerOps[o.LedgerID], o)
+	}
+	startsFromZero := map[string]bool{}
+	for id, ledger := range selected {
+		startsFromZero[id] = RecordedTrackerStartsFromZero(ledger, ledgerOps[id])
+	}
 	type historyKey struct{ ledger, instrument string }
 	type history struct {
 		ops  map[string]d.InvestmentOperation
@@ -392,7 +400,7 @@ func BuildForecast(tenant string, ledgers []d.InvestmentLedger, operations []d.I
 				}
 			}
 			h := getHistory(historyKey{ledger.ID, event.InstrumentKey})
-			row.Quantity, row.Issues = forecastQuantityWithIssues(ledger, event, cutoff, historical, h.ops, h.legs, row.Issues)
+			row.Quantity, row.Issues = forecastQuantityWithIssues(ledger, event, cutoff, historical, startsFromZero[ledger.ID], h.ops, h.legs, row.Issues)
 			linked, complete, invalid := false, false, false
 			for _, link := range byEvent[linkKey{event.ID, ledger.ID}] {
 				if link.Cancelled {
@@ -410,7 +418,11 @@ func BuildForecast(tenant string, ledgers []d.InvestmentLedger, operations []d.I
 				if row.ActualNet == nil {
 					row.ActualNet = new(big.Rat)
 				}
-				row.ActualNet.Add(row.ActualNet, new(big.Rat).Sub(rational(o.Amount), rational(o.Tax)))
+				actual := rational(o.Amount)
+				if !ledger.PortfolioTracking {
+					actual.Sub(actual, rational(o.Tax))
+				}
+				row.ActualNet.Add(row.ActualNet, actual)
 				row.ActualOperationIDs = append(row.ActualOperationIDs, o.ID)
 				complete = complete || link.Complete
 			}
@@ -533,8 +545,8 @@ func BuildForecast(tenant string, ledgers []d.InvestmentLedger, operations []d.I
 	return out, nil
 }
 
-func forecastQuantityWithIssues(l d.InvestmentLedger, e ForecastEvent, at time.Time, historical bool, ops map[string]d.InvestmentOperation, legs []ForecastSecurityLeg, issues []string) (*big.Rat, []string) {
-	q, more := forecastQuantity(l, e, at, historical, ops, legs)
+func forecastQuantityWithIssues(l d.InvestmentLedger, e ForecastEvent, at time.Time, historical bool, startsFromZero bool, ops map[string]d.InvestmentOperation, legs []ForecastSecurityLeg, issues []string) (*big.Rat, []string) {
+	q, more := forecastQuantity(l, e, at, historical, startsFromZero, ops, legs)
 	if len(issues) > 0 {
 		q = nil
 	}
