@@ -171,3 +171,35 @@ tests:
             exp_annotations:
               summary: "Investment worker metrics unavailable"
               description: "Check the configured worker target, pod and internal scrape network."
+
+  # A missing scrape configuration produces no up series, rather than up=0.
+  - interval: 1m
+    input_series: []
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: InvestmentWorkerUnavailable
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: InvestmentWorkerUnavailable
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "Investment worker metrics unavailable"
+              description: "Check the configured worker target, pod and internal scrape network."
+  - interval: 1m
+    input_series:
+      - series: 'up{job="budget-portfolio-marketdata",instance="worker:9091"}'
+        values: '_ _ _ _ _ _ _ 1+0x5'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: InvestmentWorkerUnavailable
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "Investment worker metrics unavailable"
+              description: "Check the configured worker target, pod and internal scrape network."
+      - eval_time: 8m
+        alertname: InvestmentWorkerUnavailable
+        exp_alerts: []
