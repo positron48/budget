@@ -35,6 +35,7 @@ function Groups({tenantId}:{tenantId:string}){
   if(!result.classification)throw new Error("classification_missing");
   qc.setQueryData(portfolioGroupsKey(tenantId),{...list.data,classification:result.classification});setDraft(undefined);pending.current=undefined;
   await qc.invalidateQueries({queryKey:["investment",tenantId,"tracker-history"]});
+  await qc.invalidateQueries({queryKey:["investment",tenantId,"tracker-contributions"]});
  }catch(e){setError(e instanceof ConnectError&&e.code===Code.Aborted?tr("Группы уже изменились. Обновите данные перед повторным сохранением.","Groups changed elsewhere. Reload before saving again."):trackerError(e,ru));}finally{setBusy(false);}};
  const name=(key:string)=>catalog.data?.names.get(key)?.ticker||key.replace(/^tinvest:/,"");
  const positions=(list.data?.positions||[]).filter(p=>(!account||p.ledgerId===account)&&(!search||[name(p.instrumentKey),p.instrumentKey,p.ledgerName].some(s=>s.toLocaleLowerCase().includes(search.toLocaleLowerCase()))));

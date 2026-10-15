@@ -141,4 +141,41 @@ func TestInvestmentTrackerHistory100000Operations500Instruments(t *testing.T) {
 		}
 	}
 	t.Logf("100000 operations, 500 instruments, ten-year request, 31 valued days: %s", elapsed)
+	for _, last := range []string{from.AddDate(0, 0, 30).Format(time.DateOnly), "2024-01-08"} {
+		began = time.Now()
+		h, err := repo.TrackerHistory(ctx, tenant, actor, nav.TrackerHistoryRequest{LedgerIDs: ids, Currency: "RUB", FXPolicyKey: policy.Key, From: from.Format(time.DateOnly), To: last, ContributionOnly: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(h.Points) != 1 || h.Baseline == nil || len(h.Contributions) != 5000 {
+			t.Fatal("attribution scale shape", len(h.Points), len(h.Contributions))
+		}
+		for _, r := range h.Contributions {
+			if last == "2024-01-08" {
+				if r.Profit != nil {
+					t.Fatal("stale decade-old quote became an end valuation")
+				}
+			} else if r.Profit == nil || r.Profit.Sign() != 0 {
+				t.Fatal("flat-price exact attribution", r)
+			}
+		}
+		t.Logf("100000 operations, 500 instruments, contribution boundaries through %s: %s", last, time.Since(began))
+	}
+	sparseDates, _ := json.Marshal([]time.Time{cutoffs[0].AddDate(0, 0, -1), cutoffs[30]})
+	sparsePlan, err := pool.DB.Query(ctx, "EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) "+trackerHistorySparseSeriesSQL, tenant, encoded, sparseDates)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for sparsePlan.Next() {
+		var line string
+		if err = sparsePlan.Scan(&line); err != nil {
+			t.Fatal(err)
+		}
+		t.Log(line)
+	}
+	if err = sparsePlan.Err(); err != nil {
+		t.Fatal(err)
+	}
+	sparsePlan.Close()
+
 }

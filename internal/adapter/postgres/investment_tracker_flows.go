@@ -16,7 +16,7 @@ type trackerStrategyDay struct {
 	reset  bool
 }
 
-func trackerStrategyFlows(ctx context.Context, tenant string, ids []string, inputs map[string]investmentReplayInput, market map[string]trackerHistoryMarket, splits map[string]map[string][]d.InvestmentOperation, fixings []calc.FXFixing, policy, currency string, after, through, readAt time.Time) (map[string]trackerStrategyDay, error) {
+func trackerConvertedStrategyFlows(ctx context.Context, tenant string, ids []string, inputs map[string]investmentReplayInput, market map[string]trackerHistoryMarket, splits map[string]map[string][]d.InvestmentOperation, fixings []calc.FXFixing, policy, currency string, after, through, readAt time.Time) ([]calc.ConvertedFlow, error) {
 	loc, e := time.LoadLocation("Europe/Moscow")
 	if e != nil {
 		return nil, e
@@ -76,6 +76,14 @@ func trackerStrategyFlows(ctx context.Context, tenant string, ids []string, inpu
 		}
 		return r, e
 	})
+	if e != nil {
+		return nil, e
+	}
+	return converted, nil
+}
+
+func trackerStrategyFlows(ctx context.Context, tenant string, ids []string, inputs map[string]investmentReplayInput, market map[string]trackerHistoryMarket, splits map[string]map[string][]d.InvestmentOperation, fixings []calc.FXFixing, policy, currency string, after, through, readAt time.Time) (map[string]trackerStrategyDay, error) {
+	converted, e := trackerConvertedStrategyFlows(ctx, tenant, ids, inputs, market, splits, fixings, policy, currency, after, through, readAt)
 	if e != nil {
 		return nil, e
 	}

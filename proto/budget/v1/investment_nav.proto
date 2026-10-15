@@ -44,6 +44,7 @@ message RequestInvestmentNAVRefreshResponse { string state = 1; } // requested, 
 service InvestmentNAVService {
  rpc GetTrackerInstrumentPrices(GetTrackerInstrumentPricesRequest) returns (GetTrackerInstrumentPricesResponse);
  rpc GetTrackerHistory(GetTrackerHistoryRequest) returns (GetTrackerHistoryResponse);
+ rpc GetTrackerContributions(GetTrackerContributionsRequest) returns (GetTrackerContributionsResponse);
  rpc GetTrackerPerformance(GetTrackerPerformanceRequest) returns (GetInvestmentPerformanceResponse);
  rpc GetInvestmentLots(GetInvestmentLotsRequest) returns (GetInvestmentLotsResponse);
  rpc GetInvestmentCurrentNAV(GetInvestmentCurrentNAVRequest) returns (GetInvestmentCurrentNAVResponse);
@@ -622,4 +623,25 @@ message TrackerAnalyticsPoint {
 message TrackerAnalyticsPeriod {
  string key=1; string from_date=2; string to_date=3;
  InvestmentNAVAmount profit=4; string reason=5;
+}
+
+message GetTrackerContributionsRequest {
+ repeated string ledger_ids=1; repeated string group_ids=2;
+ string currency=3; string fx_policy_key=4; string from_date=5; string to_date=6;
+}
+message TrackerContribution {
+ string ledger_id=1; string ledger_name=2; string instrument_key=3;
+ string group_id=4; string group_name=5; string reason=6;
+ InvestmentNAVAmount opening=7; InvestmentNAVAmount closing=8;
+ InvestmentNAVAmount flow=9; InvestmentNAVAmount profit=10;
+ InvestmentNAVAmount opening_quantity=11; InvestmentNAVAmount closing_quantity=12;
+ InvestmentNAVAmount profit_share=13; // Presentation fraction rounded to twelve decimals; absent for undefined/unbounded ratios.
+ bool in_scope=14;
+}
+message GetTrackerContributionsResponse {
+ string from_date=1; string to_date=2; string currency=3; string fx_policy_key=4;
+ int64 fx_policy_version=5; string fx_mode=6; int64 classification_version=7;
+ google.protobuf.Timestamp read_at=8; string basis_key=9; string convention=10;
+ repeated TrackerContribution rows=11; InvestmentNAVAmount profit=12;
+ InvestmentNAVAmount known_profit=13; string reason=14;
 }

@@ -14,6 +14,7 @@ type TrackerHistoryRequest struct {
 	Currency, FXPolicyKey, From, To string
 	PerformanceFrom                 string
 	GroupIDs                        []string
+	ContributionOnly                bool // Internal boundary valuation; never a signed performance page.
 }
 type TrackerHistoryPoint struct {
 	Date, State, CoverageKey   string
@@ -23,6 +24,8 @@ type TrackerHistoryPoint struct {
 	StrategyFlow               *big.Rat
 	FlowReason                 string
 	Reset                      bool
+	Components                 map[string]TrackerContributionValue
+	LedgerReasons              map[string]string
 }
 type TrackerHistory struct {
 	Currency, FXPolicyKey, FXMode, NextDate, BasisKey string
@@ -31,12 +34,16 @@ type TrackerHistory struct {
 	ReadAt                                            time.Time
 	Points                                            []TrackerHistoryPoint
 	Baseline                                          *TrackerHistoryPoint
+	Contributions                                     []TrackerContribution
 }
 
 // Bound total navigation to ten years, and each DB snapshot to 31 days. History
 // always consists of completed Moscow dates, never a fabricated close for today.
 func NormalizeTrackerHistory(q TrackerHistoryRequest, now time.Time) (TrackerHistoryRequest, error) {
 	if len(q.LedgerIDs) < 1 || len(q.LedgerIDs) > 20 || q.FXPolicyKey == "" || len(q.FXPolicyKey) > 100 || (q.Currency != "RUB" && q.Currency != "USD" && q.Currency != "EUR") {
+		return q, d.ErrInvestmentInvalid
+	}
+	if q.ContributionOnly && q.PerformanceFrom != "" {
 		return q, d.ErrInvestmentInvalid
 	}
 	if len(q.GroupIDs) > 101 || len(q.GroupIDs) > 0 && q.PerformanceFrom != "" {

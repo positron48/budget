@@ -194,7 +194,7 @@ func ConvertExternalFlows(flows []ExternalFlow, currency string, location *time.
 		}
 		point := ConvertedFlow{ExternalFlow: flow, Date: flow.At.In(location).Format(time.DateOnly)}
 		if flow.Amount == nil {
-			if (flow.Reason != "cash_reconciliation_unclassified" || flow.Kind != "cash_reconciliation") && (flow.Reason != "security_transfer_market_value_missing" || (flow.Kind != "security_transfer_in" && flow.Kind != "security_transfer_out")) {
+			if (flow.Reason != "history_reset" || flow.Kind != "opening_position") && (flow.Reason != "recorded_expense_unmodeled" || flow.Kind != "unmodeled_expense") && (flow.Reason != "cash_reconciliation_unclassified" || flow.Kind != "cash_reconciliation") && (flow.Reason != "security_transfer_market_value_missing" || (flow.Kind != "security_transfer_in" && flow.Kind != "security_transfer_out")) {
 				return nil, fmt.Errorf("invalid unknown flow")
 			}
 			out = append(out, point)

@@ -87,3 +87,20 @@ func TestTrackerFlowsTransferScopeAndUnknownOpening(t *testing.T) {
 		t.Fatal(flows, e)
 	}
 }
+
+func TestTrackerUnknownFlowsKeepInstrumentAttribution(t *testing.T) {
+	at := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	opening := d.InvestmentOperation{ID: "opening", LedgerID: "L", InstrumentKey: "S", Kind: "opening_position", Status: "posted", OccurredAt: at, Currency: "RUB"}
+	flows, e := TrackerFlows([]string{"L"}, []d.InvestmentOperation{opening}, nil)
+	if e != nil || len(flows) != 1 || flows[0].InstrumentKey != "S" {
+		t.Fatal(flows, e)
+	}
+	converted, e := ConvertExternalFlows(flows, "RUB", time.UTC, func(string) (*FXResolver, error) { return nil, nil })
+	if e != nil || len(converted) != 1 || converted[0].Value != nil || converted[0].Reason != "history_reset" {
+		t.Fatal(converted, e)
+	}
+	flows[0].Reason = "unknown_untrusted_reason"
+	if _, e = ConvertExternalFlows(flows, "RUB", time.UTC, func(string) (*FXResolver, error) { return nil, nil }); e == nil {
+		t.Fatal("arbitrary unknown flow accepted")
+	}
+}

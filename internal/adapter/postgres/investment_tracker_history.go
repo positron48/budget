@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math/big"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -55,7 +56,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 	var classification *nav.InstrumentGroups
 	groupFor := map[string]string{}
 	wantedGroups := map[string]bool{}
-	if len(q.GroupIDs) > 0 {
+	if len(q.GroupIDs) > 0 || q.ContributionOnly {
 		groups, err := readInstrumentGroups(ctx, tx, tenant)
 		if err != nil {
 			return out, err
@@ -172,8 +173,12 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		out.NextDate = end.AddDate(0, 0, 1).Format(time.DateOnly)
 	}
 	calculationFirst := first
-	if q.PerformanceFrom == q.From {
+	if q.PerformanceFrom == q.From || q.ContributionOnly {
 		calculationFirst = first.AddDate(0, 0, -1)
+	}
+	if q.ContributionOnly {
+		end = last
+		out.NextDate = ""
 	}
 	days := []time.Time{}
 	states := [][]d.InvestmentSnapshot{}
@@ -183,7 +188,9 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		if err != nil {
 			return out, err
 		}
-		days = append(days, at)
+		if !q.ContributionOnly || day.Equal(calculationFirst) || day.Equal(end) {
+			days = append(days, at)
+		}
 	}
 	unitHistory := map[string][]d.InvestmentSnapshot{}
 	needsReplay := false
@@ -256,7 +263,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		}
 		states = append(states, snapshots)
 	}
-	if q.PerformanceFrom != "" {
+	if q.PerformanceFrom != "" || q.ContributionOnly {
 		for _, input := range inputs {
 			for _, op := range input.Operations {
 				if op.Status == "posted" && (op.Kind == "security_transfer_in" || op.Kind == "security_transfer_out") && !op.OccurredAt.Before(days[0].Add(-24*time.Hour)) && !op.OccurredAt.After(days[len(days)-1]) {
@@ -272,7 +279,24 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 	for key := range allKeys {
 		keys = append(keys, key)
 	}
-	market, e := readTrackerHistoryMarket(ctx, tx, tenant, keys, days[0], days[len(days)-1], out.ReadAt)
+	sparse := []time.Time{}
+	if q.ContributionOnly {
+		sparse = append(sparse, days...)
+		seen := map[string]bool{}
+		for _, input := range inputs {
+			for _, op := range input.Operations {
+				if op.Status == "posted" && (op.Kind == "security_transfer_in" || op.Kind == "security_transfer_out") && op.OccurredAt.After(days[0]) && !op.OccurredAt.After(days[len(days)-1]) {
+					date := op.OccurredAt.In(moscow).Format(time.DateOnly)
+					if !seen[date] {
+						at, _ := nav.DayCutoff(date)
+						sparse = append(sparse, at)
+						seen[date] = true
+					}
+				}
+			}
+		}
+	}
+	market, e := readTrackerHistoryMarket(ctx, tx, tenant, keys, days[0], days[len(days)-1], out.ReadAt, sparse...)
 	if e != nil {
 		return out, e
 	}
@@ -284,7 +308,11 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		}
 	}
 	for i, at := range days {
-		row := nav.TrackerHistoryPoint{Date: calculationFirst.AddDate(0, 0, i).Format(time.DateOnly), State: "ready"}
+		row := nav.TrackerHistoryPoint{Date: at.In(moscow).Format(time.DateOnly), State: "ready"}
+		if q.ContributionOnly {
+			row.Components = map[string]nav.TrackerContributionValue{}
+			row.LedgerReasons = map[string]string{}
+		}
 		components := []calc.ExactComponent{}
 		required, priced := map[string]int{}, map[string]int{}
 		amounts := map[string]calc.ExactComponent{}
@@ -292,6 +320,9 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		for _, s := range states[i] {
 			if !startsFromZero[s.Ledger.ID] && at.Before(s.Ledger.StartedAt) {
 				row.Issues = append(row.Issues, calc.QualityIssue{ComponentID: s.Ledger.ID, Code: "ledger_history_missing"})
+				if q.ContributionOnly {
+					row.LedgerReasons[s.Ledger.ID] = "ledger_history_missing"
+				}
 			}
 			for _, code := range s.Issues {
 				switch code {
@@ -299,6 +330,9 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 					continue // Cost/cash assumptions do not make known security units unpriced.
 				}
 				row.Issues = append(row.Issues, calc.QualityIssue{ComponentID: s.Ledger.ID, Code: code})
+				if q.ContributionOnly {
+					row.LedgerReasons[s.Ledger.ID] = code
+				}
 			}
 			for _, p := range s.Positions {
 				quantity, _ := new(big.Rat).SetString(p.Quantity)
@@ -315,6 +349,9 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 					quotes[p.InstrumentKey] = quote
 				}
 				id := s.Ledger.ID + ":" + p.InstrumentKey
+				if q.ContributionOnly {
+					row.Components[id] = nav.TrackerContributionValue{Quantity: new(big.Rat).Set(quantity)}
+				}
 				if quote.CleanPrice == nil || quote.State != "fresh" {
 					for _, issue := range quote.Issues {
 						row.Issues = append(row.Issues, calc.QualityIssue{ComponentID: id, Code: issue})
@@ -326,13 +363,17 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 					return out, err
 				}
 				amount := new(big.Rat).Mul(quantity, price)
-				if existing, ok := amounts[p.InstrumentKey]; ok {
+				componentKey := p.InstrumentKey
+				if q.ContributionOnly {
+					componentKey = id
+				}
+				if existing, ok := amounts[componentKey]; ok {
 					if existing.Currency != quote.Currency {
 						return out, d.ErrInvestmentPrecondition
 					}
 					amount.Add(amount, existing.Amount)
 				}
-				amounts[p.InstrumentKey] = calc.ExactComponent{ID: p.InstrumentKey, Currency: quote.Currency, Amount: amount}
+				amounts[componentKey] = calc.ExactComponent{ID: componentKey, Currency: quote.Currency, Amount: amount}
 				priced[p.InstrumentKey]++
 			}
 		}
@@ -347,9 +388,27 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		}
 		row.KnownValue = value.KnownValue
 		row.Issues = append(row.Issues, value.Issues...)
+		converted := map[string]int{}
 		for key, v := range value.ComponentValues {
+			if q.ContributionOnly {
+				c := row.Components[key]
+				c.Value = v
+				row.Components[key] = c
+				_, instrument, _ := strings.Cut(key, ":")
+				if v != nil {
+					converted[instrument]++
+				}
+				continue
+			}
 			if v != nil && priced[key] == required[key] {
 				row.PricedPositions++
+			}
+		}
+		if q.ContributionOnly {
+			for key, n := range required {
+				if converted[key] == n {
+					row.PricedPositions++
+				}
 			}
 		}
 		if len(row.Issues) > 0 || row.PricedPositions != row.Positions || !value.Complete {
@@ -384,10 +443,16 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 			out.Points = append(out.Points, row)
 		}
 	}
+	if q.ContributionOnly {
+		out.Contributions, e = readTrackerContributions(ctx, tenant, q, inputs, market, splits, fixings, md.FXPolicyRef(policy.Key, policy.Version), days[0], days[len(days)-1], out.ReadAt, out.Baseline, out.Points, classification)
+		if e != nil {
+			return out, e
+		}
+	}
 	return out, tx.Commit(ctx)
 }
 
-func readTrackerHistoryMarket(ctx context.Context, tx pgx.Tx, tenant string, keys []string, from, to, readAt time.Time) (map[string]trackerHistoryMarket, error) {
+func readTrackerHistoryMarket(ctx context.Context, tx pgx.Tx, tenant string, keys []string, from, to, readAt time.Time, sparse ...time.Time) (map[string]trackerHistoryMarket, error) {
 	result := map[string]trackerHistoryMarket{}
 	rows, e := tx.Query(ctx, `SELECT instrument_key,data FROM investment_market_mappings WHERE tenant_id=$1 AND instrument_key=ANY($2::text[])`, tenant, keys)
 	if e != nil {
@@ -418,7 +483,7 @@ func readTrackerHistoryMarket(ctx context.Context, tx pgx.Tx, tenant string, key
 	}
 	// Fetch the mapped series in one bounded statement. The transaction already
 	// selects latest corrected history; no historical knowledge cutoff is used.
-	return readTrackerHistorySeries(ctx, tx, tenant, result, from, to, readAt)
+	return readTrackerHistorySeries(ctx, tx, tenant, result, from, to, readAt, sparse...)
 }
 func historyPriceSelection(tenant string, p md.MappingPeriod, at time.Time) md.PriceSelectionRequest {
 	return md.PriceSelectionRequest{Scope: md.Scope{TenantID: tenant, Provider: p.Provider, AccessScope: p.AccessScope}, InstrumentID: p.InstrumentID, Kind: "daily_candle", SourceKind: "exchange", Adjustment: "unadjusted", At: at, Retrospective: &md.RetrospectiveDailyPolicy{Convention: md.RetrospectiveCloseNextUTCDay, MaxAge: nav.PortfolioQuoteMaxAge}}

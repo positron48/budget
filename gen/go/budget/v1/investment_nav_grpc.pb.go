@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	InvestmentNAVService_GetTrackerInstrumentPrices_FullMethodName       = "/budget.v1.InvestmentNAVService/GetTrackerInstrumentPrices"
 	InvestmentNAVService_GetTrackerHistory_FullMethodName                = "/budget.v1.InvestmentNAVService/GetTrackerHistory"
+	InvestmentNAVService_GetTrackerContributions_FullMethodName          = "/budget.v1.InvestmentNAVService/GetTrackerContributions"
 	InvestmentNAVService_GetTrackerPerformance_FullMethodName            = "/budget.v1.InvestmentNAVService/GetTrackerPerformance"
 	InvestmentNAVService_GetInvestmentLots_FullMethodName                = "/budget.v1.InvestmentNAVService/GetInvestmentLots"
 	InvestmentNAVService_GetInvestmentCurrentNAV_FullMethodName          = "/budget.v1.InvestmentNAVService/GetInvestmentCurrentNAV"
@@ -55,6 +56,7 @@ const (
 type InvestmentNAVServiceClient interface {
 	GetTrackerInstrumentPrices(ctx context.Context, in *GetTrackerInstrumentPricesRequest, opts ...grpc.CallOption) (*GetTrackerInstrumentPricesResponse, error)
 	GetTrackerHistory(ctx context.Context, in *GetTrackerHistoryRequest, opts ...grpc.CallOption) (*GetTrackerHistoryResponse, error)
+	GetTrackerContributions(ctx context.Context, in *GetTrackerContributionsRequest, opts ...grpc.CallOption) (*GetTrackerContributionsResponse, error)
 	GetTrackerPerformance(ctx context.Context, in *GetTrackerPerformanceRequest, opts ...grpc.CallOption) (*GetInvestmentPerformanceResponse, error)
 	GetInvestmentLots(ctx context.Context, in *GetInvestmentLotsRequest, opts ...grpc.CallOption) (*GetInvestmentLotsResponse, error)
 	GetInvestmentCurrentNAV(ctx context.Context, in *GetInvestmentCurrentNAVRequest, opts ...grpc.CallOption) (*GetInvestmentCurrentNAVResponse, error)
@@ -105,6 +107,16 @@ func (c *investmentNAVServiceClient) GetTrackerHistory(ctx context.Context, in *
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetTrackerHistoryResponse)
 	err := c.cc.Invoke(ctx, InvestmentNAVService_GetTrackerHistory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *investmentNAVServiceClient) GetTrackerContributions(ctx context.Context, in *GetTrackerContributionsRequest, opts ...grpc.CallOption) (*GetTrackerContributionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTrackerContributionsResponse)
+	err := c.cc.Invoke(ctx, InvestmentNAVService_GetTrackerContributions_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -377,6 +389,7 @@ func (c *investmentNAVServiceClient) GetInvestmentQuotes(ctx context.Context, in
 type InvestmentNAVServiceServer interface {
 	GetTrackerInstrumentPrices(context.Context, *GetTrackerInstrumentPricesRequest) (*GetTrackerInstrumentPricesResponse, error)
 	GetTrackerHistory(context.Context, *GetTrackerHistoryRequest) (*GetTrackerHistoryResponse, error)
+	GetTrackerContributions(context.Context, *GetTrackerContributionsRequest) (*GetTrackerContributionsResponse, error)
 	GetTrackerPerformance(context.Context, *GetTrackerPerformanceRequest) (*GetInvestmentPerformanceResponse, error)
 	GetInvestmentLots(context.Context, *GetInvestmentLotsRequest) (*GetInvestmentLotsResponse, error)
 	GetInvestmentCurrentNAV(context.Context, *GetInvestmentCurrentNAVRequest) (*GetInvestmentCurrentNAVResponse, error)
@@ -418,6 +431,9 @@ func (UnimplementedInvestmentNAVServiceServer) GetTrackerInstrumentPrices(contex
 }
 func (UnimplementedInvestmentNAVServiceServer) GetTrackerHistory(context.Context, *GetTrackerHistoryRequest) (*GetTrackerHistoryResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTrackerHistory not implemented")
+}
+func (UnimplementedInvestmentNAVServiceServer) GetTrackerContributions(context.Context, *GetTrackerContributionsRequest) (*GetTrackerContributionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTrackerContributions not implemented")
 }
 func (UnimplementedInvestmentNAVServiceServer) GetTrackerPerformance(context.Context, *GetTrackerPerformanceRequest) (*GetInvestmentPerformanceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTrackerPerformance not implemented")
@@ -550,6 +566,24 @@ func _InvestmentNAVService_GetTrackerHistory_Handler(srv interface{}, ctx contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(InvestmentNAVServiceServer).GetTrackerHistory(ctx, req.(*GetTrackerHistoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InvestmentNAVService_GetTrackerContributions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTrackerContributionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InvestmentNAVServiceServer).GetTrackerContributions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InvestmentNAVService_GetTrackerContributions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InvestmentNAVServiceServer).GetTrackerContributions(ctx, req.(*GetTrackerContributionsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1036,6 +1070,10 @@ var InvestmentNAVService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetTrackerHistory",
 			Handler:    _InvestmentNAVService_GetTrackerHistory_Handler,
+		},
+		{
+			MethodName: "GetTrackerContributions",
+			Handler:    _InvestmentNAVService_GetTrackerContributions_Handler,
 		},
 		{
 			MethodName: "GetTrackerPerformance",

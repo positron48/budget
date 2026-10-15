@@ -92,7 +92,7 @@ func TrackerFlows(ledgers []string, operations []d.InvestmentOperation, transfer
 						return nil, e
 					}
 					if v.Sign() != 0 {
-						out = append(out, ExternalFlow{OperationID: o.ID, LedgerID: o.LedgerID, Kind: "unmodeled_expense", Currency: o.Currency, At: o.OccurredAt, Reason: "recorded_expense_unmodeled"})
+						out = append(out, ExternalFlow{OperationID: o.ID, LedgerID: o.LedgerID, InstrumentKey: o.InstrumentKey, Kind: "unmodeled_expense", Currency: o.Currency, At: o.OccurredAt, Reason: "recorded_expense_unmodeled"})
 					}
 				}
 			} else {
@@ -121,7 +121,7 @@ func TrackerFlows(ledgers []string, operations []d.InvestmentOperation, transfer
 		case "security_transfer_in", "security_transfer_out":
 			transfers = append(transfers, o)
 		case "opening_position":
-			out = append(out, ExternalFlow{OperationID: o.ID, LedgerID: o.LedgerID, Kind: o.Kind, Currency: o.Currency, At: o.OccurredAt, Reason: "history_reset"})
+			out = append(out, ExternalFlow{OperationID: o.ID, LedgerID: o.LedgerID, InstrumentKey: o.InstrumentKey, Kind: o.Kind, Currency: o.Currency, At: o.OccurredAt, Reason: "history_reset"})
 		case "split", "distribution", "deposit", "withdrawal", "opening_cash", "cash_reconciliation", "transfer_in", "transfer_out", "fx", "tax", "tax_refund":
 			// Corporate units and budget cash are not strategy funding. Amounts
 			// already reported in actual settlement/payouts are not taxed again.

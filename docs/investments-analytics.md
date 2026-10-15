@@ -39,6 +39,7 @@ the chart and rejects incoherent dates, policies, fractions and period coverage.
 CSV retains exact rational money and returns, TWR segments and quality reasons,
 annualized XIRR, benchmark indices and virtual monetary values.
 
-Current group filters show classified securities value. Monetary profit and
-TWR/XIRR currently use account scopes; no whole-account flows are inherited by
-a selected group. Instrument contribution analytics remains separate work.
+Current group filters show classified securities value and period P&L in the
+contribution table. Whole-account flows are never inherited by a selected group.
+Cumulative/month/year chart modes currently use account scopes; group TWR/XIRR
+remain unavailable. See `investments-contributions.md` for contribution rules.

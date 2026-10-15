@@ -28,10 +28,26 @@ AND o.adjustment IN ('unadjusted','provider_unspecified')
 AND o.observed_at BETWEEN $3 AND $4 AND s.enabled
 ORDER BY o.provider,o.access_scope,o.instrument_id,o.observed_at,o.id LIMIT 100001`
 
+// Sparse boundary/transfer valuation uses bounded index ranges per listing and
+// cutoff, rather than reading every candle between distant dates.
+const trackerHistorySparseSeriesSQL = `WITH requested AS (
+ SELECT * FROM jsonb_to_recordset($2::jsonb) AS x(provider text,scope text,id uuid)
+), cutoffs AS (SELECT value::timestamptz at FROM jsonb_array_elements_text($3::jsonb))
+SELECT DISTINCT ON (o.id) o.provider,o.access_scope,o.instrument_id,o.id,o.data,o.revision,o.received_at
+FROM requested x CROSS JOIN cutoffs c
+CROSS JOIN LATERAL (
+ SELECT p.* FROM market_provider_observations p
+ WHERE p.tenant_id=$1 AND p.provider=x.provider AND p.access_scope=x.scope AND p.instrument_id=x.id
+ AND p.kind='daily_candle' AND p.source_kind='exchange' AND p.adjustment IN ('unadjusted','provider_unspecified')
+ AND p.observed_at BETWEEN (date_trunc('day',c.at AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')-interval '5 days' AND c.at
+ ORDER BY p.observed_at,p.id LIMIT 10001
+) o JOIN market_data_sources s ON s.tenant_id=o.tenant_id AND s.provider=o.provider AND s.access_scope=o.access_scope
+WHERE s.enabled ORDER BY o.id LIMIT 100001`
+
 // A current observation and its immutable latest revision are written together.
 // Under the caller's repeatable-read snapshot this is the same evidence as the
 // latest-revision lookup, without a round trip per paper and adjustment.
-func readTrackerHistorySeries(ctx context.Context, tx pgx.Tx, tenant string, result map[string]trackerHistoryMarket, from, to, readAt time.Time) (map[string]trackerHistoryMarket, error) {
+func readTrackerHistorySeries(ctx context.Context, tx pgx.Tx, tenant string, result map[string]trackerHistoryMarket, from, to, readAt time.Time, sparse ...time.Time) (map[string]trackerHistoryMarket, error) {
 	listings, bonds := []trackerHistorySeries{}, []trackerHistorySeries{}
 	seen, bondKeys := map[string]bool{}, map[string]bool{}
 	for _, entry := range result {
@@ -61,7 +77,15 @@ func readTrackerHistorySeries(ctx context.Context, tx pgx.Tx, tenant string, res
 		if e != nil {
 			return nil, e
 		}
-		rows, e := tx.Query(ctx, trackerHistorySeriesSQL, tenant, raw, lower, to)
+		query, args := trackerHistorySeriesSQL, []any{tenant, raw, lower, to}
+		if len(sparse) > 0 {
+			dates, err := json.Marshal(sparse)
+			if err != nil {
+				return nil, err
+			}
+			query, args = trackerHistorySparseSeriesSQL, []any{tenant, raw, dates}
+		}
+		rows, e := tx.Query(ctx, query, args...)
 		if e != nil {
 			return nil, e
 		}
