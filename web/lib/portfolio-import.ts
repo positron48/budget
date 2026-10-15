@@ -1,4 +1,4 @@
-import {Code, ConnectError, type Client} from "@connectrpc/connect";
+import {Code, ConnectError, type Client, type CallOptions} from "@connectrpc/connect";
 import {InvestmentService, type InvestmentLedger, type InvestmentImportBatch, type InvestmentOperation} from "@/proto/budget/v1/investment_pb";
 import {InvestmentImportService, type InvestmentImport, type InvestmentImportRow} from "@/proto/budget/v1/investment_import_pb";
 import {trackerError, type TrackerQuote} from "./portfolio-tracker";
@@ -54,17 +54,19 @@ export function portfolioInstrumentKey(catalog: BrokerCatalog | undefined, symbo
   return brokerKey && (!moscow || exchange === "MCX") ? brokerKey : `${symbol}@${exchange || "UNKNOWN"}`;
 }
 
-export async function loadBrokerCatalog(api: ImportAPI): Promise<BrokerCatalog> {
+export async function loadBrokerCatalog(api: ImportAPI, options?: CallOptions): Promise<BrokerCatalog> {
   const latest = new Map<string, {id: string; at: bigint}>();
   for (let offset = 0; ; offset += 200) {
-    const page = await api.listBrokerSnapshots({limit: 200, offset});
+    options?.signal?.throwIfAborted();
+    const page = await api.listBrokerSnapshots({limit: 200, offset}, options);
     for (const item of page.snapshots) if (!latest.has(item.accountId) || (latest.get(item.accountId)?.at || 0n) < (item.createdAt?.seconds || 0n)) latest.set(item.accountId, {id: item.id, at: item.createdAt?.seconds || 0n});
     if (page.snapshots.length < 200) break;
   }
   const snapshots: BrokerSnapshot[] = [];
   // Keep request concurrency bounded even for accounts with large source files.
   for (const item of latest.values()) {
-    const response = await api.getBrokerSnapshot({id: item.id});
+    options?.signal?.throwIfAborted();
+    const response = await api.getBrokerSnapshot({id: item.id}, options);
     snapshots.push(JSON.parse(new TextDecoder().decode(response.originalJson)) as BrokerSnapshot);
   }
   return brokerCatalog(snapshots);
@@ -177,10 +179,11 @@ export async function commitSimpleImport(api: InvestmentAPI, plan: SimpleImportP
   return result;
 }
 
-export async function allOperations(api: InvestmentAPI, ledgerId: string): Promise<InvestmentOperation[]> {
+export async function allOperations(api: InvestmentAPI, ledgerId: string, options?: CallOptions): Promise<InvestmentOperation[]> {
   const operations: InvestmentOperation[] = [];
   for (let offset = 0; ; offset += 200) {
-    const response = await api.listInvestmentOperations({ledgerId, limit: 200, offset});
+    options?.signal?.throwIfAborted();
+    const response = await api.listInvestmentOperations({ledgerId, limit: 200, offset}, options);
     operations.push(...response.operations);
     if (response.operations.length < 200) return operations;
   }

@@ -28,6 +28,8 @@ describe("portfolio reporting currency", () => {
     expect(positionDecimal(p.income)).toBe("900"); // supplied payout, no tax recalculation
     expect(positionDecimal(p.profit)).toBe("9400"); // 14000 -206*80 +122*90 +10*90
     expect(positionDecimal(p.realized)).toBe("2740");
+    expect(positionDecimal(p.unrealized)).toBe("5760"); // remaining economic cost includes fees and acquired accrued
+    expect(Number(positionDecimal(p.realized))+Number(positionDecimal(p.unrealized))+Number(positionDecimal(p.income))).toBe(Number(positionDecimal(p.profit)));
     expect(report.months.map(([month, amount]) => [month, positionDecimal(amount)])).toEqual([["2026-02", "900"]]);
     expect(report.missingFX).toEqual([]);
   });
@@ -42,7 +44,7 @@ describe("portfolio reporting currency", () => {
   it("does not use today's FX for a missing historical fixing or a missing acquisition date", () => {
     const rates = fx(); rates.rates = rates.rates.filter(r => !r.date);
     let report = portfolioReport([snapshot()], [buy()], quote(), "RUB", rates);
-    expect(report.positions[0].value).toBeDefined(); expect(report.positions[0].cost).toBeUndefined(); expect(report.positions[0].profit).toBeUndefined();
+    expect(report.positions[0].value).toBeDefined(); expect(report.positions[0].cost).toBeUndefined(); expect(report.positions[0].profit).toBeUndefined(); expect(report.positions[0].unrealized).toBeUndefined();
     expect(report.missingFX).toContain("2026-01-01:USD/RUB");
     const s = snapshot(); s.positions[0].lots[0].acquiredAt = undefined;
     const b = buy(); b.kind = "opening_position"; b.openingCostKnown = true; b.openingAccruedKnown = true; b.acquiredAt = undefined;

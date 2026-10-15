@@ -22,7 +22,7 @@ function reportPrincipal(op: InvestmentOperation) {
   return {amount: settlement && expected ? add(decimal(principal.amount), settlement, negate(expected)) : undefined,
     currency: principal.currency, date: principal.at ? reportingDate(principal.at.seconds) : undefined};
 }
-export type ReportPosition = TrackerPosition & {incomeComplete: boolean};
+export type ReportPosition = TrackerPosition & {incomeComplete: boolean;unrealized?:Fraction};
 export function portfolioReport(snapshots: InvestmentSnapshot[], operations: InvestmentOperation[], quotes: Map<string, TrackerQuote>, currency: string, fx?: GetInvestmentExchangeRatesResponse, include: (ledger: string, instrument: string) => boolean = () => true) {
   const rates = new Map((fx?.currency === currency ? fx.rates : []).map(r => [`${r.date}\0${r.fromCurrency}`, r.rate]));
   const holdingCosts: {ledgerId:string;key:string;cost?:Fraction}[]=[];
@@ -139,6 +139,7 @@ export function portfolioReport(snapshots: InvestmentSnapshot[], operations: Inv
       if (p.price) p.value = multiply(p.quantity, p.price);
     }
     if (!incompleteCash.has(p.key) && p.value) p.profit = add(p.value, cash.get(p.key));
+    if (!incompleteEconomicCost.has(p.key) && p.value) p.unrealized=add(p.value,negate(economicCost.get(p.key)||zero));
     if (!incompleteCash.has(p.key) && !incompleteEconomicCost.has(p.key)) p.realized = add(cash.get(p.key), economicCost.get(p.key), negate(p.income));
   }
   return {holdingCosts,positions: [...positions.values()], months: [...months].sort(([a], [b]) => a.localeCompare(b)).slice(-12), monthsComplete, missingFX: [...missingFX]};

@@ -42,6 +42,7 @@ message GetInvestmentNAVHistoryResponse { repeated InvestmentNAVPoint points = 1
 message RequestInvestmentNAVRefreshRequest { string series_key = 1; }
 message RequestInvestmentNAVRefreshResponse { string state = 1; } // requested, not calculated
 service InvestmentNAVService {
+ rpc GetTrackerInstrumentPrices(GetTrackerInstrumentPricesRequest) returns (GetTrackerInstrumentPricesResponse);
  rpc GetTrackerHistory(GetTrackerHistoryRequest) returns (GetTrackerHistoryResponse);
  rpc GetTrackerPerformance(GetTrackerPerformanceRequest) returns (GetInvestmentPerformanceResponse);
  rpc GetInvestmentLots(GetInvestmentLotsRequest) returns (GetInvestmentLotsResponse);
@@ -582,4 +583,28 @@ message GetTrackerHistoryResponse {
  string basis_key=11;
  string performance_snapshot=12; // short-lived signed data, not an auth token
  int64 classification_version = 13;
+}
+
+// Provider series for a card; no legacy NAV series or position is required.
+message GetTrackerInstrumentPricesRequest {
+ string instrument_key=1;string currency=2;string fx_policy_key=3;string from_date=4;string to_date=5;
+ string listing_id=6;string provider=7;string access_scope=8;string instrument_id=9;
+}
+message TrackerInstrumentListing {
+ string id=1;MarketSourceKey source=2;string instrument_id=3;string kind=4;string currency=5;string unit=6;
+ google.protobuf.Timestamp from=7;google.protobuf.Timestamp to=8;bool enabled=9;
+}
+message TrackerInstrumentPricePoint {
+ string date=1;string state=2;string native_currency=3;string unit=4;
+ InvestmentNAVAmount raw=5;InvestmentNAVAmount native_clean=6;InvestmentNAVAmount clean=7;
+ InvestmentNAVAmount accrued=8;InvestmentNAVAmount native_dirty=9;InvestmentNAVAmount dirty=10;
+ string source=11;string observation_id=12;int64 observation_revision=13;string candle_date=14;
+ string nominal=15;string nominal_currency=16;repeated string issues=17;
+}
+message GetTrackerInstrumentPricesResponse {
+ string instrument_key=1;string currency=2;string fx_policy_key=3;int64 fx_policy_version=4;string fx_mode=5;
+ string next_date=6;string basis_key=7;google.protobuf.Timestamp read_at=8;
+ repeated TrackerInstrumentListing listings=9;MarketInstrument instrument=10;google.protobuf.Timestamp metadata_at=11;
+ InvestmentQuote quote=12;GetMarketBondFactsResponse bond=13;MarketSourceKey source=14;bool listing_only=15;
+ repeated TrackerInstrumentPricePoint points=16;string price_convention=17;string reporting_timezone=18;bool bond_limited=19;string metadata_instrument_id=20;bool metadata_enabled=21;
 }

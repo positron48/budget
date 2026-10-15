@@ -87,7 +87,7 @@ func normalizePortfolioQuote(mapping md.Mapping, price md.SelectedPrice, at time
 			day = day.Add(-24 * time.Hour)
 		}
 		if facts != nil {
-			nominal, ok := portfolioBondNominal(facts, terms.InstrumentID, terms.Currency, day, knowledge)
+			nominal, ok := PortfolioBondNominal(facts, terms.InstrumentID, terms.Currency, day, knowledge)
 			if !ok {
 				out.State = "unavailable"
 				out.Issues = append(out.Issues, "bond_nominal_unconfirmed")
@@ -124,7 +124,9 @@ func normalizePortfolioQuote(mapping md.Mapping, price md.SelectedPrice, at time
 	return out, nil
 }
 
-func portfolioBondNominal(f *md.SavedBondFacts, instrument, currency string, day, at time.Time) (md.BondAmount, bool) {
+// PortfolioBondNominal verifies a nominal for one raw candle day. Current
+// metadata alone never supplies an earlier historical face value.
+func PortfolioBondNominal(f *md.SavedBondFacts, instrument, currency string, day, at time.Time) (md.BondAmount, bool) {
 	if f.Instrument.ID != instrument || f.Instrument.Kind != "bond" || f.ID == "" || f.Hash == "" || f.RecordedAt.IsZero() || f.RecordedAt.After(at) || f.AsOf.IsZero() || f.AsOf.After(at) || day.Before(f.From) || day.After(f.To) || day.After(f.AsOf.UTC().Truncate(24*time.Hour)) || f.Terms.Nominal == nil || f.Terms.Nominal.Currency != currency {
 		return md.BondAmount{}, false
 	}
