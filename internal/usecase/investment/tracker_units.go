@@ -57,9 +57,10 @@ func TrackerUnitHistory(ledger d.InvestmentLedger, input []d.InvestmentOperation
 	quantities := map[string]*big.Rat{}
 	redeemed := map[string]bool{}
 	ids, sequences := map[string]bool{}, map[int64]bool{}
+	startsFromZero := RecordedTrackerStartsFromZero(ledger, input)
 	appendSnapshot := func(at time.Time) {
 		s := d.InvestmentSnapshot{Ledger: ledger, AsOf: at, Positions: []d.InvestmentPosition{}}
-		if !at.Before(ledger.StartedAt) {
+		if startsFromZero || !at.Before(ledger.StartedAt) {
 			keys := []string{}
 			for key, q := range quantities {
 				if q.Sign() > 0 {

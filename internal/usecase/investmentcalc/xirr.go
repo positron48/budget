@@ -63,6 +63,25 @@ func XIRR(flows []DatedCashFlow) XIRRResult {
 		terms = append(terms, irrTerm{float64((dates[date].Unix()-dates[keys[0]].Unix())/86400) / 365, value})
 	}
 	roots, reason := irrRoots(terms)
+	if reason == "complexity_limit" {
+		// Exact cumulative cash balances can certify uniqueness without
+		// recursively isolating thousands of stationary points.
+		if direction, ok := irrCumulativeCertificate(keys, grouped); ok {
+			var root float64
+			var found bool
+			switch direction {
+			case 1:
+				root, found = irrBisect(terms, 0, math.Inf(1), 1, -1)
+			case -1:
+				root, found = irrBisect(terms, math.Inf(-1), 0, 1, -1)
+			case 0:
+				found = true
+			}
+			if found {
+				roots, reason = []float64{root}, ""
+			}
+		}
+	}
 	if reason != "" {
 		return fail(reason)
 	}
@@ -260,4 +279,37 @@ func irrSlope(terms []irrTerm, y float64) float64 {
 		total += weight
 	}
 	return derivative / total
+}
+
+// For y=log(1+r), integration by parts expresses NPV as
+// S(T)e^-yT + y integral S(t)e^-yt dt. If all proper prefixes S(t)<=0
+// and total>0, there is exactly one positive root and no negative roots.
+// Dually NPV=S(T)-y integral R(t)e^-yt dt with nonnegative future sums R
+// certifies a unique negative root when total<0. Zero total certifies y=0.
+// Loss-making projects with negative future sums remain unproved (and may
+// have multiple negative roots); never infer uniqueness from sampling.
+func irrCumulativeCertificate(keys []string, flows map[string]*big.Rat) (int, bool) {
+	total := new(big.Rat)
+	prefix := true
+	for i, key := range keys {
+		total.Add(total, flows[key])
+		if i < len(keys)-1 && total.Sign() > 0 {
+			prefix = false
+		}
+	}
+	if prefix && total.Sign() >= 0 && flows[keys[0]].Sign() < 0 {
+		return total.Sign(), true
+	}
+	suffix := new(big.Rat)
+	nonnegative := true
+	for i := len(keys) - 1; i > 0; i-- {
+		suffix.Add(suffix, flows[keys[i]])
+		if suffix.Sign() < 0 {
+			nonnegative = false
+		}
+	}
+	if nonnegative && total.Sign() <= 0 && flows[keys[len(keys)-1]].Sign() > 0 {
+		return total.Sign(), true
+	}
+	return 0, false
 }

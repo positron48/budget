@@ -124,3 +124,41 @@ func BenchmarkTrackerUnitHistory10000Operations500Instruments(b *testing.B) {
 		}
 	}
 }
+
+func TestRecordedTrackerHistoryPredatesMetadataCreation(t *testing.T) {
+	l := testLedger()
+	l.PortfolioTracking = true
+	l.StartedAt = day.AddDate(2, 0, 0)
+	buy := op("earlier-buy", "buy", "10", 1)
+	buy.Quantity, buy.InstrumentKey = "2", "HISTORY"
+	buy.OccurredAt = day.Add(time.Hour)
+	cuts := []time.Time{day.Add(-time.Hour), day.Add(2 * time.Hour)}
+	got, supported, err := TrackerUnitHistory(l, []d.InvestmentOperation{buy}, cuts)
+	if err != nil || !supported {
+		t.Fatal(supported, err)
+	}
+	if len(got[0].Positions) != 0 || positiveUnits(got[1])["HISTORY"] != "2" {
+		t.Fatal(got)
+	}
+	for i, at := range cuts {
+		replay, err := ReplayPortfolio([]d.InvestmentLedger{l}, []d.InvestmentOperation{buy}, at)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(positiveUnits(got[i]), positiveUnits(replay.Ledgers[l.ID].Snapshot)) {
+			t.Fatal("fast and full history disagree", at)
+		}
+	}
+	opening := buy
+	opening.Kind = "opening_position"
+	if RecordedTrackerStartsFromZero(l, []d.InvestmentOperation{opening}) {
+		t.Fatal("opening balance cannot prove earlier history")
+	}
+	if !RecordedTrackerStartsFromZero(l, nil) {
+		t.Fatal("empty recorded strategy starts at zero")
+	}
+	l.PortfolioTracking = false
+	if RecordedTrackerStartsFromZero(l, nil) {
+		t.Fatal("legacy cash book must retain start boundary")
+	}
+}

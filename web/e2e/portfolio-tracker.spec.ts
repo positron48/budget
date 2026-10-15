@@ -42,7 +42,11 @@ for (const locale of ["ru", "en"]) {
           points.push({date, state: partial ? "incomplete" : "ready", knownValue: {numerator: missing ? "0" : partial ? "75" : "100", denominator: "1"}, positions: 2, pricedPositions: missing ? 0 : partial ? 1 : 2, issues: partial ? [{componentId: "missing", code: "price_missing"}] : [], coverageKey: (missing ? "c" : partial ? "b" : "a").repeat(64)});
           date = shift(date);
         }
-        data = {points, nextDate: date <= input.toDate ? date : "", currency: input.currency, fxPolicyKey: input.fxPolicyKey, fxMode: input.fxPolicyKey, fxPolicyVersion: 1n, generation: 1n, basisKey: "d".repeat(64), priceConvention: "retrospective_close_next_utc_day_v1", reportingTimezone: "Europe/Moscow"};
+        data = {performanceSnapshot: "synthetic-signed-page", points, nextDate: date <= input.toDate ? date : "", currency: input.currency, fxPolicyKey: input.fxPolicyKey, fxMode: input.fxPolicyKey, fxPolicyVersion: 1n, generation: 1n, basisKey: "d".repeat(64), priceConvention: "retrospective_close_next_utc_day_v1", reportingTimezone: "Europe/Moscow"};
+      }
+      if (method?.name === "GetTrackerPerformance") {
+        expect(input.snapshotTokens.length).toBeGreaterThan(0);
+        data = {fromDate:input.fromDate,toDate:input.toDate,currency:input.currency,fxPolicyKey:input.fxPolicyKey,historyScope:"recorded_securities_strategy",twrConvention:"securities_daily_end_of_day_flows",reportingTimezone:"Europe/Moscow",profit:{numerator:"12345",denominator:"100"},netContributions:{numerator:"1000",denominator:"1"},twrReason:"discontinuous_history",xirr:0.125,xirrAnnualized:true,xirrDays:30};
       }
       if (method?.name === "GetInvestmentQuotes") data = {quotes:input.instrumentKeys.map((instrumentKey:string) => instrumentKey === foreign.instrumentKey ? {instrumentKey,currency:"USD",state:"fresh",cleanPrice:{numerator:"110",denominator:"1"},priceAt:{seconds:BigInt(Math.floor(Date.now()/1000)-60)},source:"tinvest/personal"} : {instrumentKey,state:"unavailable"})};
       if (method?.name === "GetInvestmentExchangeRates") {
@@ -82,7 +86,11 @@ for (const locale of ["ru", "en"]) {
     const history = page.getByRole("region", {name: ru ? "История портфеля" : "Portfolio history", exact: true});
     await expect(history.getByRole("img")).toBeVisible();
     await expect(history.locator("polyline[stroke-dasharray]")).toHaveCount(2);
-    await expect(history.getByRole("status")).toContainText(ru ? "Оценка неполная" : "Valuation is partial");
+    await expect(history.getByRole("status").filter({hasText: ru ? "Оценка неполная" : "Valuation is partial"})).toBeVisible();
+    const returns = history.locator('[aria-label="' + (ru ? "Доходность за период" : "Period performance") + '"]');
+    await expect(returns).toContainText(/123[,.]45/);
+    await expect(returns).toContainText(/12[,.]5/);
+    await expect(returns).toContainText("—");
     const pendingCSV = page.waitForEvent("download"); await history.getByRole("button", {name: "CSV", exact: true}).click();
     const file = await pendingCSV, csv = await readFile((await file.path())!, "utf8");
     expect(csv).toContain('"price_convention"'); expect(csv).toContain('"retrospective_close_next_utc_day_v1"'); expect(csv).toContain('"incomplete"');

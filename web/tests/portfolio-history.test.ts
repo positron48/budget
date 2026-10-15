@@ -1,7 +1,8 @@
 import {describe,it,expect,vi} from "vitest";
 import {create} from "@bufbuild/protobuf";
-import {GetTrackerHistoryResponseSchema, TrackerHistoryPointSchema} from "@/proto/budget/v1/investment_nav_pb";
-import {loadPortfolioHistory,historyPointVisible,type HistoryScope} from "@/lib/portfolio-history";
+import {Code,ConnectError} from "@connectrpc/connect";
+import {GetTrackerHistoryResponseSchema, TrackerHistoryPointSchema, GetInvestmentPerformanceResponseSchema} from "@/proto/budget/v1/investment_nav_pb";
+import {loadPortfolioHistory,loadPortfolioPerformanceHistory,historyPointVisible,type HistoryScope} from "@/lib/portfolio-history";
 const scope:HistoryScope={ledgerIds:["ledger"],currency:"RUB",fxPolicyKey:"market",fxPolicyVersion:1n,fxMode:"market",fromDate:"2020-01-01",toDate:"2020-01-02"};
 function page(date:string,nextDate:string,generation=1n){return create(GetTrackerHistoryResponseSchema,{currency:"RUB",fxPolicyKey:"market",fxPolicyVersion:1n,fxMode:"market",reportingTimezone:"Europe/Moscow",priceConvention:"retrospective_close_next_utc_day_v1",generation,basisKey:"d".repeat(64),nextDate,points:[{date,state:"ready",knownValue:{numerator:"2",denominator:"3"},positions:1,pricedPositions:1,coverageKey:"a".repeat(64)}]});}
 describe("tracker historical page coherence",()=>{
@@ -23,4 +24,42 @@ describe("tracker historical page coherence",()=>{
   p.pricedPositions=1;expect(historyPointVisible(p)).toBe(true);
   p.positions=p.pricedPositions=0;p.state="ready";expect(historyPointVisible(p)).toBe(true);
  });
+});
+
+function performanceFixture() {return create(GetInvestmentPerformanceResponseSchema,{currency:"RUB",fxPolicyKey:"market",fromDate:scope.fromDate,toDate:scope.toDate,historyScope:"recorded_securities_strategy",twrConvention:"securities_daily_end_of_day_flows",reportingTimezone:"Europe/Moscow",profit:{numerator:"-2",denominator:"3"},netContributions:{numerator:"10",denominator:"1"},twr:{numerator:"-1",denominator:"10"},xirr:0.1,xirrAnnualized:true,xirrDays:2});}
+function performanceAPI() {
+ const first=page("2020-01-01","2020-01-02"),second=page("2020-01-02","");first.performanceSnapshot="signed-first";second.performanceSnapshot="signed-second";
+ return {getTrackerHistory:vi.fn().mockResolvedValueOnce(first).mockResolvedValueOnce(second),getTrackerPerformance:vi.fn().mockResolvedValue(performanceFixture())};
+}
+describe("cashless tracker performance",()=>{
+ it("uses every chart page and retains the root period across pagination",async()=>{
+  const api=performanceAPI();const result=await loadPortfolioPerformanceHistory(api,scope,new AbortController().signal,vi.fn());
+  expect(result.performance?.profit?.numerator).toBe("-2");expect(api.getTrackerPerformance.mock.calls[0][0].snapshotTokens).toEqual(["signed-first","signed-second"]);
+  expect(api.getTrackerHistory.mock.calls[1][0].performanceFromDate).toBe(scope.fromDate);
+ });
+ it("keeps the chart without inventing returns from unsigned old pages",async()=>{
+  const api=performanceAPI();api.getTrackerHistory.mockReset().mockResolvedValueOnce(page("2020-01-01","2020-01-02")).mockResolvedValueOnce(page("2020-01-02",""));
+  const result=await loadPortfolioPerformanceHistory(api,scope,new AbortController().signal,vi.fn());expect(result.points).toHaveLength(2);expect(result.performance).toBeUndefined();expect(api.getTrackerPerformance).not.toHaveBeenCalled();
+ });
+ it.each(["currency","timezone","fraction","infinity","annualized","missing_profit","missing_return"])("rejects malformed %s",async kind=>{
+  const api=performanceAPI(),value=performanceFixture();
+  if(kind==="currency")value.currency="USD";
+  if(kind==="timezone")value.reportingTimezone="UTC";
+  if(kind==="fraction")value.profit!.denominator="0";
+  if(kind==="infinity")value.xirr=Infinity;
+  if(kind==="annualized")value.xirrAnnualized=false;
+  if(kind==="missing_profit")value.profit=undefined;
+  if(kind==="missing_return")value.twr=undefined;
+  api.getTrackerPerformance.mockResolvedValue(value);
+  await expect(loadPortfolioPerformanceHistory(api,scope,new AbortController().signal,vi.fn())).rejects.toThrow("invalid_performance");
+ });
+ it("preserves explicit unknown returns rather than showing zero",async()=>{
+  const api=performanceAPI(),value=performanceFixture();value.twr=undefined;value.xirr=undefined;value.twrReason="gap";value.xirrReason="unknown_flow";api.getTrackerPerformance.mockResolvedValue(value);
+  const result=await loadPortfolioPerformanceHistory(api,scope,new AbortController().signal,vi.fn());expect(result.performance?.twr).toBeUndefined();expect(result.performance?.xirr).toBeUndefined();
+ });
+});
+
+it("asks to refresh after a corrected or expired signed chart snapshot",async()=>{
+ const api=performanceAPI();api.getTrackerPerformance.mockRejectedValue(new ConnectError("snapshot changed",Code.FailedPrecondition));
+ await expect(loadPortfolioPerformanceHistory(api,scope,new AbortController().signal,vi.fn())).rejects.toThrow("history_changed");
 });

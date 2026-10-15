@@ -234,7 +234,7 @@ func main() {
 
 		// Assets
 		marketRepo := postgres.NewMarketDataRepo(db)
-		budgetv1.RegisterInvestmentNAVServiceServer(server, grpcadapter.NewInvestmentNAVServer(marketRepo))
+		budgetv1.RegisterInvestmentNAVServiceServer(server, grpcadapter.NewInvestmentNAVServer(marketRepo, cfg.JWTSignKey))
 		marketSvc := marketdata.NewService(marketRepo, tenantRepo)
 		budgetv1.RegisterMarketDataServiceServer(server, grpcadapter.NewMarketDataServer(marketSvc, marketdata.NewMappingService(marketRepo, tenantRepo)))
 		investmentRepo := postgres.NewInvestmentRepo(db)

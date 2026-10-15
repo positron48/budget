@@ -29,6 +29,22 @@ func nativePortfolioHistory(ops []d.InvestmentOperation) bool {
 	return true
 }
 
+// RecordedTrackerStartsFromZero describes a trade-only recorded strategy,
+// not a statement about a broker's unimported history. The metadata creation
+// date must not hide earlier imported trades. Opening balances and legacy
+// connected books retain their unknown-before-start contract.
+func RecordedTrackerStartsFromZero(ledger d.InvestmentLedger, ops []d.InvestmentOperation) bool {
+	if !ledger.PortfolioTracking || !nativePortfolioHistory(ops) {
+		return false
+	}
+	for _, op := range ops {
+		if op.Status != "voided" && op.Kind == "opening_position" {
+			return false
+		}
+	}
+	return true
+}
+
 type nativePortfolioBook struct {
 	currency, nominal                  string
 	lots                               []RemainingLot

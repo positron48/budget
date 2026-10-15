@@ -43,6 +43,7 @@ message RequestInvestmentNAVRefreshRequest { string series_key = 1; }
 message RequestInvestmentNAVRefreshResponse { string state = 1; } // requested, not calculated
 service InvestmentNAVService {
  rpc GetTrackerHistory(GetTrackerHistoryRequest) returns (GetTrackerHistoryResponse);
+ rpc GetTrackerPerformance(GetTrackerPerformanceRequest) returns (GetInvestmentPerformanceResponse);
  rpc GetInvestmentLots(GetInvestmentLotsRequest) returns (GetInvestmentLotsResponse);
  rpc GetInvestmentCurrentNAV(GetInvestmentCurrentNAVRequest) returns (GetInvestmentCurrentNAVResponse);
  rpc GetInvestmentNAVVariant(GetInvestmentNAVVariantRequest) returns (GetInvestmentNAVVariantResponse);
@@ -532,12 +533,21 @@ message GetInvestmentQuotesResponse {
  google.protobuf.Timestamp read_at=1; repeated InvestmentQuote quotes=2;
 }
 
+message GetTrackerPerformanceRequest {
+ repeated string ledger_ids=1;
+ string currency=2;
+ string fx_policy_key=3;
+ string from_date=4;
+ string to_date=5;
+ repeated string snapshot_tokens=6;
+}
 message GetTrackerHistoryRequest {
  repeated string ledger_ids=1;
  string currency=2;
  string fx_policy_key=3;
  string from_date=4;
  string to_date=5;
+ string performance_from_date=6; // original range start, constant across pages
 }
 message TrackerHistoryPoint {
  string date=1;
@@ -560,4 +570,5 @@ message GetTrackerHistoryResponse {
  string price_convention=9;
  string reporting_timezone=10;
  string basis_key=11;
+ string performance_snapshot=12; // short-lived signed data, not an auth token
 }

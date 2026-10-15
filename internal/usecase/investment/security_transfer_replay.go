@@ -322,8 +322,9 @@ func replayPortfolio(ledgers []d.InvestmentLedger, operations []d.InvestmentOper
 	traceCount := 0
 	for _, id := range ids {
 		l := accounts[id]
+		startsFromZero := RecordedTrackerStartsFromZero(l, inputs[id])
 		at := asOf
-		if at.Before(l.StartedAt) {
+		if !startsFromZero && at.Before(l.StartedAt) {
 			at = l.StartedAt
 		}
 		result, e := replay(l, inputs[id], at, replayOptions{receipt: resolve, order: acquisitionOrder, sequences: sequences, origins: origins})
@@ -336,7 +337,7 @@ func replayPortfolio(ledgers []d.InvestmentLedger, operations []d.InvestmentOper
 				return out, e
 			}
 		}
-		if asOf.Before(l.StartedAt) {
+		if !startsFromZero && asOf.Before(l.StartedAt) {
 			result.LotHistory = nil
 			result.ExactLots = map[string][]RemainingLot{}
 			result.ExactPositions = map[string]PositionBookValues{}

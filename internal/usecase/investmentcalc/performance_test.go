@@ -146,8 +146,13 @@ func TestXIRRLongHistoryAndComplexityBound(t *testing.T) {
 		conventional[i].Amount = performanceNumber(amount)
 	}
 	result = XIRR(conventional)
+	if result.Rate == nil || *result.Rate != 0 {
+		t.Fatal("certified exact break-even", result)
+	}
+	conventional[len(conventional)-1].Amount = performanceNumber("-101")
+	result = XIRR(conventional)
 	if result.Rate != nil || result.Reason != "complexity_limit" {
-		t.Fatal(result)
+		t.Fatal("uncertified complexity must remain undefined", result)
 	}
 	// time.Duration cannot span this interval; calendar offsets must not saturate.
 	result = XIRR([]DatedCashFlow{{"1900-01-01", performanceNumber("-100")}, {"2200-01-01", performanceNumber("110")}})

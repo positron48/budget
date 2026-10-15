@@ -37,11 +37,16 @@ type InvestmentNAVRepo interface {
 
 type InvestmentNAVServer struct {
 	pb.UnimplementedInvestmentNAVServiceServer
-	repo InvestmentNAVRepo
+	repo          InvestmentNAVRepo
+	trackerSigner *nav.TrackerSnapshotSigner
 }
 
-func NewInvestmentNAVServer(repo InvestmentNAVRepo) *InvestmentNAVServer {
-	return &InvestmentNAVServer{repo: repo}
+func NewInvestmentNAVServer(repo InvestmentNAVRepo, snapshotKey ...string) *InvestmentNAVServer {
+	s := &InvestmentNAVServer{repo: repo}
+	if len(snapshotKey) > 0 {
+		s.trackerSigner = nav.NewTrackerSnapshotSigner(snapshotKey[0])
+	}
+	return s
 }
 func (s *InvestmentNAVServer) ListInvestmentNAVSeries(ctx context.Context, req *pb.ListInvestmentNAVSeriesRequest) (*pb.ListInvestmentNAVSeriesResponse, error) {
 	tenant, actor, e := assetContext(ctx)

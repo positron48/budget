@@ -19,9 +19,12 @@ func (s *InvestmentNAVServer) GetTrackerHistory(ctx context.Context, req *pb.Get
 	if e != nil {
 		return nil, e
 	}
-	q, e := nav.NormalizeTrackerHistory(nav.TrackerHistoryRequest{LedgerIDs: req.GetLedgerIds(), Currency: req.GetCurrency(), FXPolicyKey: req.GetFxPolicyKey(), From: req.GetFromDate(), To: req.GetToDate()}, time.Now().UTC())
+	q, e := nav.NormalizeTrackerHistory(nav.TrackerHistoryRequest{LedgerIDs: req.GetLedgerIds(), Currency: req.GetCurrency(), FXPolicyKey: req.GetFxPolicyKey(), From: req.GetFromDate(), To: req.GetToDate(), PerformanceFrom: req.GetPerformanceFromDate()}, time.Now().UTC())
 	if e != nil {
 		return nil, investmentRPCError(e)
+	}
+	if q.PerformanceFrom != "" && s.trackerSigner == nil {
+		return nil, status.Error(codes.Unavailable, "portfolio performance unavailable")
 	}
 	repo, ok := s.repo.(trackerHistoryRepo)
 	if !ok {
@@ -38,6 +41,13 @@ func (s *InvestmentNAVServer) GetTrackerHistory(ctx context.Context, req *pb.Get
 			row.Issues = append(row.Issues, &pb.InvestmentNAVIssue{ComponentId: issue.ComponentID, Code: issue.Code})
 		}
 		out.Points = append(out.Points, row)
+	}
+	if q.PerformanceFrom != "" {
+		token, err := s.trackerSigner.Seal(tenant, actor, q, result)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "portfolio snapshot unavailable")
+		}
+		out.PerformanceSnapshot = token
 	}
 	return out, nil
 }

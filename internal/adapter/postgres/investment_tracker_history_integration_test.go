@@ -19,7 +19,7 @@ func TestInvestmentTrackerHistoryUsesActualDailyPositionsAndMarketFX(t *testing.
 	repo := NewMarketDataRepo(pool)
 	svc := inv.NewService(NewInvestmentRepo(pool), NewTenantRepo(pool))
 	day := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
-	l, e := svc.CreateLedgerWithDetails(ctx, tenant, actor, d.InvestmentLedger{Name: "History", StartedAt: day.Add(-24 * time.Hour), PortfolioTracking: true}, "tracker")
+	l, e := svc.CreateLedgerWithDetails(ctx, tenant, actor, d.InvestmentLedger{Name: "History", StartedAt: day.AddDate(5, 0, 0), PortfolioTracking: true}, "tracker")
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -100,6 +100,25 @@ func TestInvestmentTrackerHistoryUsesActualDailyPositionsAndMarketFX(t *testing.
 	}
 	if r.Points[6].State != "ready" || r.Points[6].KnownValue.Sign() != 0 || r.Points[6].Positions != 0 {
 		t.Fatal("closed security or payouts counted in value", r.Points[6])
+	}
+	performanceRequest := q
+	performanceRequest.To = "2020-01-03"
+	performanceRequest.PerformanceFrom = q.From
+	performanceHistory, e := repo.TrackerHistory(ctx, tenant, actor, performanceRequest)
+	if e != nil || performanceHistory.Baseline == nil || performanceHistory.Baseline.Date != "2019-12-31" || performanceHistory.Baseline.State != "ready" || performanceHistory.Baseline.KnownValue.Sign() != 0 {
+		t.Fatal("performance baseline", performanceHistory, e)
+	}
+	for i, want := range []string{"1600", "0", "-800"} {
+		if performanceHistory.Points[i].StrategyFlow == nil || performanceHistory.Points[i].StrategyFlow.RatString() != want {
+			t.Fatal("securities flows need no funding and include sales/payouts", i, performanceHistory.Points[i])
+		}
+	}
+	fullPageRequest := q
+	fullPageRequest.To = "2020-02-10"
+	fullPageRequest.PerformanceFrom = q.From
+	fullPage, e := repo.TrackerHistory(ctx, tenant, actor, fullPageRequest)
+	if e != nil || len(fullPage.Points) != 31 || fullPage.Baseline == nil || fullPage.NextDate != "2020-02-01" {
+		t.Fatal("baseline must not consume a chart page slot", fullPage, e)
 	}
 	basis := r.BasisKey
 	if _, e = repo.SaveObservations(ctx, scope, []md.Observation{{InstrumentID: instrument.ID, Kind: "last_price", At: day, SourceKind: "exchange", Adjustment: "unadjusted", PriceUnit: "provider_unspecified", Price: "9999", Complete: true}}); e != nil {

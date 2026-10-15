@@ -76,6 +76,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		fixings = append(fixings, p.Fixing())
 	}
 	inputs := map[string]investmentReplayInput{}
+	startsFromZero := map[string]bool{}
 	splits := map[string]map[string][]d.InvestmentOperation{}
 	count := 0
 	for _, id := range q.LedgerIDs {
@@ -95,6 +96,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 			return out, d.ErrInvestmentLimit
 		}
 		inputs[id] = investmentReplayInput{Ledger: l, Operations: ops}
+		startsFromZero[id] = inv.RecordedTrackerStartsFromZero(l, ops)
 		splits[id] = map[string][]d.InvestmentOperation{}
 		for _, op := range ops {
 			if op.Kind == "split" && op.Status == "posted" {
@@ -143,10 +145,14 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 	} else if end.Before(last) {
 		out.NextDate = end.AddDate(0, 0, 1).Format(time.DateOnly)
 	}
+	calculationFirst := first
+	if q.PerformanceFrom == q.From {
+		calculationFirst = first.AddDate(0, 0, -1)
+	}
 	days := []time.Time{}
 	states := [][]d.InvestmentSnapshot{}
 	allKeys := map[string]bool{}
-	for day := first; !day.After(end); day = day.AddDate(0, 0, 1) {
+	for day := calculationFirst; !day.After(end); day = day.AddDate(0, 0, 1) {
 		at, err := nav.DayCutoff(day.Format(time.DateOnly))
 		if err != nil {
 			return out, err
@@ -157,7 +163,12 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 	needsReplay := false
 	for _, id := range q.LedgerIDs {
 		input := inputs[id]
-		history, supported, err := inv.TrackerUnitHistory(input.Ledger, input.Operations, days)
+		history, supported, err := inv.TrackerUnitHistory(input.Ledger, input.Operations, days[:min(31, len(days))])
+		if err == nil && supported && len(days) > 31 {
+			tail, _, e := inv.TrackerUnitHistory(input.Ledger, input.Operations, days[31:])
+			err = e
+			history = append(history, tail...)
+		}
 		if err != nil {
 			return out, err
 		}
@@ -210,6 +221,15 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		}
 		states = append(states, snapshots)
 	}
+	if q.PerformanceFrom != "" {
+		for _, input := range inputs {
+			for _, op := range input.Operations {
+				if op.Status == "posted" && (op.Kind == "security_transfer_in" || op.Kind == "security_transfer_out") && !op.OccurredAt.Before(days[0].Add(-24*time.Hour)) && !op.OccurredAt.After(days[len(days)-1]) {
+					allKeys[op.InstrumentKey] = true
+				}
+			}
+		}
+	}
 	if len(allKeys) > 500 {
 		return out, d.ErrInvestmentLimit
 	}
@@ -221,14 +241,21 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 	if e != nil {
 		return out, e
 	}
+	var strategy map[string]trackerStrategyDay
+	if q.PerformanceFrom != "" {
+		strategy, e = trackerStrategyFlows(ctx, tenant, q.LedgerIDs, inputs, market, splits, fixings, md.FXPolicyRef(policy.Key, policy.Version), q.Currency, days[0].Add(-24*time.Hour), days[len(days)-1], out.ReadAt)
+		if e != nil {
+			return out, e
+		}
+	}
 	for i, at := range days {
-		row := nav.TrackerHistoryPoint{Date: first.AddDate(0, 0, i).Format(time.DateOnly), State: "ready"}
+		row := nav.TrackerHistoryPoint{Date: calculationFirst.AddDate(0, 0, i).Format(time.DateOnly), State: "ready"}
 		components := []calc.ExactComponent{}
 		required, priced := map[string]int{}, map[string]int{}
 		amounts := map[string]calc.ExactComponent{}
 		quotes := map[string]nav.PortfolioQuote{}
 		for _, s := range states[i] {
-			if at.Before(s.Ledger.StartedAt) {
+			if !startsFromZero[s.Ledger.ID] && at.Before(s.Ledger.StartedAt) {
 				row.Issues = append(row.Issues, calc.QualityIssue{ComponentID: s.Ledger.ID, Code: "ledger_history_missing"})
 			}
 			for _, code := range s.Issues {
@@ -299,7 +326,28 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		}
 		sort.Strings(issueKeys)
 		row.CoverageKey = investmentHash(issueKeys)
-		out.Points = append(out.Points, row)
+		if q.PerformanceFrom != "" {
+			flow := strategy[row.Date]
+			row.StrategyFlow = new(big.Rat)
+			row.FlowReason = flow.reason
+			row.Reset = flow.reset
+			if flow.value != nil {
+				row.StrategyFlow.Set(flow.value)
+			}
+			for _, issue := range row.Issues {
+				if issue.Code == "source_trades_pending" {
+					row.FlowReason = "source_trades_pending"
+				}
+			}
+			if row.FlowReason != "" {
+				row.StrategyFlow = nil
+			}
+		}
+		if row.Date < q.From {
+			out.Baseline = &row
+		} else {
+			out.Points = append(out.Points, row)
+		}
 	}
 	return out, tx.Commit(ctx)
 }

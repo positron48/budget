@@ -1,0 +1,138 @@
+package grpcadapter
+
+import (
+	"context"
+	"math"
+	"math/big"
+	"slices"
+	"time"
+
+	pb "github.com/positron48/budget/gen/go/budget/v1"
+	calc "github.com/positron48/budget/internal/usecase/investmentcalc"
+	nav "github.com/positron48/budget/internal/usecase/investmentvaluation"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+func (s *InvestmentNAVServer) GetTrackerPerformance(ctx context.Context, req *pb.GetTrackerPerformanceRequest) (*pb.GetInvestmentPerformanceResponse, error) {
+	tenant, actor, e := assetContext(ctx)
+	if e != nil {
+		return nil, e
+	}
+	q, e := nav.NormalizeTrackerHistory(nav.TrackerHistoryRequest{LedgerIDs: req.GetLedgerIds(), Currency: req.GetCurrency(), FXPolicyKey: req.GetFxPolicyKey(), From: req.GetFromDate(), To: req.GetToDate(), PerformanceFrom: req.GetFromDate()}, time.Now().UTC())
+	if e != nil {
+		return nil, investmentRPCError(e)
+	}
+	repo, ok := s.repo.(trackerHistoryRepo)
+	if !ok || s.trackerSigner == nil {
+		return nil, status.Error(codes.Unavailable, "portfolio performance unavailable")
+	}
+	if len(req.GetSnapshotTokens()) < 1 || len(req.GetSnapshotTokens()) > 119 {
+		return nil, status.Error(codes.InvalidArgument, "portfolio snapshots required")
+	}
+	start, _ := time.Parse(time.DateOnly, q.From)
+	cursor := start.AddDate(0, 0, -1).Format(time.DateOnly)
+	days := []calc.PerformanceDay{}
+	resets := map[string]bool{}
+	basis, mode := "", ""
+	version := int64(0)
+	size := 0
+	invalid := func() (*pb.GetInvestmentPerformanceResponse, error) {
+		return nil, status.Error(codes.FailedPrecondition, "portfolio snapshot changed; refresh history")
+	}
+	for _, token := range req.GetSnapshotTokens() {
+		size += len(token)
+		if size > 3<<20 {
+			return nil, status.Error(codes.InvalidArgument, "portfolio snapshot limit")
+		}
+		claim, e := s.trackerSigner.Open(token, time.Now().UTC())
+		if e != nil {
+			return invalid()
+		}
+		p := claim.Request
+		if claim.Tenant != tenant || claim.Actor != actor || !slices.Equal(p.LedgerIDs, q.LedgerIDs) || p.Currency != q.Currency || p.FXPolicyKey != q.FXPolicyKey || p.To != q.To || p.PerformanceFrom != q.From {
+			return invalid()
+		}
+		if basis == "" {
+			basis, mode, version = claim.Basis, claim.FXMode, claim.FXVersion
+		} else if basis != claim.Basis || version != claim.FXVersion || mode != claim.FXMode {
+			return invalid()
+		}
+		for _, d := range claim.Days {
+			if d.Date != cursor || d.Date > q.To || len(days) > 3661 {
+				return invalid()
+			}
+			var value, flow *big.Rat
+			if d.Value != "" {
+				value, ok = new(big.Rat).SetString(d.Value)
+				if !ok || value.Sign() < 0 {
+					return invalid()
+				}
+			}
+			if d.Flow != "" && d.FlowReason == "" {
+				flow, ok = new(big.Rat).SetString(d.Flow)
+				if !ok {
+					return invalid()
+				}
+			}
+			days = append(days, calc.PerformanceDay{Date: d.Date, NAV: value, ExternalFlow: flow, Complete: d.Complete})
+			if d.Reset && d.Date >= q.From {
+				resets[d.Date] = true
+			}
+			date, e := time.Parse(time.DateOnly, cursor)
+			if e != nil {
+				return invalid()
+			}
+			cursor = date.AddDate(0, 0, 1).Format(time.DateOnly)
+		}
+	}
+	last, _ := time.Parse(time.DateOnly, q.To)
+	if cursor != last.AddDate(0, 0, 1).Format(time.DateOnly) {
+		return invalid()
+	}
+	// Recheck current membership, selected ledger identities and scoped market
+	// basis. A signed old value is never silently used after a correction.
+	check := q
+	check.From = q.To
+	check.PerformanceFrom = ""
+	fresh, e := repo.TrackerHistory(ctx, tenant, actor, check)
+	if e != nil {
+		return nil, investmentRPCError(e)
+	}
+	if fresh.BasisKey != basis || fresh.FXPolicyVersion != version || fresh.FXMode != mode {
+		return invalid()
+	}
+	performance, e := calc.CalculatePeriod(calc.PeriodPerformanceInput{Days: days, FlowCoverage: true, ResetDates: resets})
+	if e != nil {
+		return nil, status.Error(codes.Internal, "portfolio performance unavailable")
+	}
+	// Percentages are presented to twelve decimals; exact monetary values and
+	// all source daily factors remain independent of display precision.
+	round := func(v *big.Rat) *big.Rat {
+		if v == nil {
+			return nil
+		}
+		f, _ := v.Float64()
+		if math.IsInf(f, 0) || math.IsNaN(f) || math.Abs(f) > 1e12 {
+			return nil
+		}
+		out, _ := new(big.Rat).SetString(v.FloatString(12))
+		return out
+	}
+	performance.TWR.Return = round(performance.TWR.Return)
+	if performance.TWR.Return == nil && performance.TWR.Reason == "" {
+		performance.TWR.Reason = "numerical_range"
+	}
+	for i := range performance.TWR.Points {
+		p := &performance.TWR.Points[i]
+		p.DailyReturn = round(p.DailyReturn)
+		p.SegmentReturn = round(p.SegmentReturn)
+		if p.State == "calculated" && (p.DailyReturn == nil || p.SegmentReturn == nil) {
+			p.State, p.Reason = "gap", "numerical_range"
+		}
+	}
+	out := protoInvestmentPerformance(nav.Performance{PeriodPerformance: performance, Currency: q.Currency, FXPolicyKey: q.FXPolicyKey, Generation: fresh.Generation})
+	out.HistoryScope = "recorded_securities_strategy"
+	out.TwrConvention = "securities_daily_end_of_day_flows"
+	return out, nil
+}
