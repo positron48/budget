@@ -3,6 +3,7 @@ package grpcadapter
 import (
 	"context"
 	"errors"
+	"math/big"
 
 	pb "github.com/positron48/budget/gen/go/budget/v1"
 	d "github.com/positron48/budget/internal/domain"
@@ -31,9 +32,22 @@ func (s *InvestmentNAVServer) GetInvestmentExchangeRates(ctx context.Context, re
 		}
 		return nil, marketRPCError(e)
 	}
-	out := &pb.GetInvestmentExchangeRatesResponse{Currency: result.Currency, FxPolicyKey: result.PolicyKey, PolicyVersion: result.PolicyVersion, Mode: result.Mode, ReadAt: optionalInvestmentTimestamp(result.ReadAt)}
+	out := &pb.GetInvestmentExchangeRatesResponse{Currency: result.Currency, FxPolicyKey: result.PolicyKey, PolicyVersion: result.PolicyVersion, Mode: result.Mode, ReadAt: optionalInvestmentTimestamp(result.ReadAt), Source: result.Source, TimeConvention: result.TimeConvention}
 	for _, rate := range result.Rates {
 		out.Rates = append(out.Rates, &pb.InvestmentExchangeRate{Date: rate.Date, FromCurrency: rate.From, Rate: protoPerformanceAmount(rate.Rate)})
+		if rate.Date != "" || rate.Rate == nil {
+			continue
+		}
+		for _, leg := range rate.CurrentLegs {
+			var observed *big.Rat
+			for _, fixing := range result.FXFixings {
+				if fixing.ID == leg.ID && fixing.Revision == leg.Revision && fixing.Policy == leg.Policy {
+					observed, _ = new(big.Rat).SetString(fixing.Rate)
+					break
+				}
+			}
+			out.CurrentFxLegs = append(out.CurrentFxLegs, &pb.InvestmentCurrentFXLeg{NativeCurrency: rate.From, Id: leg.ID, Revision: leg.Revision, FromCurrency: leg.From, ToCurrency: leg.To, Policy: leg.Policy, Inverse: leg.Inverse, AsOf: optionalInvestmentTimestamp(leg.At), AvailableAt: optionalInvestmentTimestamp(leg.AvailableAt), ValidUntil: optionalInvestmentTimestamp(leg.ValidUntil), ObservedRate: protoPerformanceAmount(observed)})
+		}
 	}
 	return out, nil
 }

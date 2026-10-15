@@ -51,6 +51,38 @@ func TestPortfolioExchangeRatesAuthorizeAndTranslateHistoricalDates(t *testing.T
 	if report.Rates[0].Rate != nil || report.Rates[1].Rate == nil || report.Rates[1].Rate.RatString() != "80" {
 		t.Fatal(report.Rates)
 	}
+	// Fresh evidence is returned from the same authorized snapshot as the rates.
+	freshAt := time.Now().UTC().Add(-time.Hour).Truncate(time.Second)
+	fresh := point
+	fresh.At, fresh.AvailableAt, fresh.ValidUntil = freshAt, freshAt, freshAt.Add(24*time.Hour)
+	fresh.RecordReference = "synthetic/current-usd"
+	eur := fresh
+	eur.From, eur.Rate, eur.RecordReference = "EUR", "100", "synthetic/current-eur"
+	if _, e := repo.SaveFXPoints(ctx, tenant, p.Key, 1, []md.FXPoint{fresh, eur}); e != nil {
+		t.Fatal(e)
+	}
+	current, e := repo.InvestmentExchangeRates(ctx, tenant, actor, p.Key, "RUB", []string{"USD", "EUR"}, nil)
+	if e != nil || current.Source != p.Source || current.TimeConvention != p.TimeConvention || len(current.Rates) != 2 {
+		t.Fatal(current, e)
+	}
+	for _, rate := range current.Rates {
+		want := "80"
+		if rate.From == "EUR" {
+			want = "100"
+		}
+		if rate.Rate == nil || rate.Rate.RatString() != want || len(rate.CurrentLegs) != 1 || !rate.CurrentLegs[0].AvailableAt.Equal(freshAt) {
+			t.Fatal(rate)
+		}
+		found := false
+		for _, fixing := range current.FXFixings {
+			if fixing.ID == rate.CurrentLegs[0].ID && fixing.Revision == rate.CurrentLegs[0].Revision && fixing.Rate == want {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatal("current FX evidence missing original fixing")
+		}
+	}
 	if _, e = repo.InvestmentExchangeRates(ctx, foreign, actor, p.Key, "RUB", []string{"USD"}, nil); !errors.Is(e, d.ErrInvestmentForbidden) {
 		t.Fatal("cross-tenant rates", e)
 	}

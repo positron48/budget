@@ -59,3 +59,47 @@ func TestExchangeRateDatesRejectFutureAndMalformedDates(t *testing.T) {
 		t.Fatal("unbounded dates accepted")
 	}
 }
+
+func TestReportingCurrentFXEvidenceRetainsInverseAndCrossPaths(t *testing.T) {
+	at := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	now := at.Add(48 * time.Hour)
+	fixings := []calc.FXFixing{
+		{ID: "usd", Revision: 2, Policy: "market@1", From: "USD", To: "RUB", Rate: "80", At: at, AvailableAt: at.Add(24 * time.Hour), ValidUntil: at.Add(96 * time.Hour)},
+		{ID: "eur", Revision: 3, Policy: "market@1", From: "EUR", To: "RUB", Rate: "100", At: at, AvailableAt: at.Add(24 * time.Hour), ValidUntil: at.Add(96 * time.Hour)},
+	}
+	rates, err := ReportingExchangeRates(fixings, "market@1", "USD", []string{"EUR", "RUB", "USD"}, []string{"2020-01-02"}, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, rate := range rates {
+		if rate.Date != "" {
+			if len(rate.CurrentLegs) != 0 {
+				t.Fatal("historical response grew current evidence", rate)
+			}
+			continue
+		}
+		switch rate.From {
+		case "EUR":
+			if rate.Rate.RatString() != "5/4" || len(rate.CurrentLegs) != 2 || rate.CurrentLegs[0].ID != "eur" || rate.CurrentLegs[0].Inverse || rate.CurrentLegs[1].ID != "usd" || !rate.CurrentLegs[1].Inverse {
+				t.Fatal("cross path lost source evidence", rate)
+			}
+		case "RUB":
+			if rate.Rate.RatString() != "1/80" || len(rate.CurrentLegs) != 1 || !rate.CurrentLegs[0].Inverse || !rate.CurrentLegs[0].AvailableAt.Equal(at.Add(24*time.Hour)) || !rate.CurrentLegs[0].At.Equal(at) {
+				t.Fatal("inverse path changed fixing time", rate)
+			}
+		case "USD":
+			if rate.Rate.RatString() != "1" || len(rate.CurrentLegs) != 0 {
+				t.Fatal("identity rate invented evidence", rate)
+			}
+		}
+	}
+	expired, err := ReportingExchangeRates(fixings, "market@1", "RUB", []string{"USD", "EUR"}, nil, at.Add(96*time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, rate := range expired {
+		if rate.Rate != nil || len(rate.CurrentLegs) != 0 {
+			t.Fatal("expired current evidence revived", rate)
+		}
+	}
+}

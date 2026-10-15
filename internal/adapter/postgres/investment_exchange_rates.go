@@ -32,6 +32,7 @@ func (r *MarketDataRepo) InvestmentExchangeRates(ctx context.Context, tenant, ac
 	for _, point := range points {
 		fixings = append(fixings, point.Fixing())
 	}
+	out.Source, out.TimeConvention, out.FXFixings = policy.Source, policy.TimeConvention, fixings
 	out.Rates, e = nav.ReportingExchangeRates(fixings, md.FXPolicyRef(policy.Key, policy.Version), currency, sources, dates, out.ReadAt)
 	if e != nil {
 		return out, e

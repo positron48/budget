@@ -19,7 +19,10 @@ for(const locale of ["ru","en"]){test(`${locale} analytics charts show profit, p
   if(method?.name==="GetInvestmentSnapshot")data={snapshot:{ledger:ledgers.find(l=>l.id===input.ledgerId),positions:[{instrumentKey:key,currency:"RUB",quantity:qty,costBasis:"principal",lots:[{originId:input.ledgerId+"buy",quantity:qty,cleanCost:String(Number(qty)*100),acquiredAccrued:"0",acquiredAt:{seconds:at}}]}]}};
   if(method?.name==="ListInvestmentOperations")data={operations:[{id:input.ledgerId+"buy",ledgerId:input.ledgerId,kind:"buy",status:"posted",instrumentKey:key,currency:"RUB",amount:String(Number(qty)*100),quantity:qty,fee:"0",accrued:"0",occurredAt:{seconds:at}},{id:input.ledgerId+"div",ledgerId:input.ledgerId,kind:"dividend",status:"posted",instrumentKey:key,currency:"RUB",amount:String(Number(qty)*5),occurredAt:{seconds:at+86400n}}]};
   if(method?.name==="ListInvestmentValuationProfiles")data={fxProfiles:[{key:"market",mode:"market",version:1n}]};
-  if(method?.name==="GetInvestmentExchangeRates")data={currency:input.currency,fxPolicyKey:"market",policyVersion:1n,mode:"market",readAt:{seconds:BigInt(Math.floor(Date.now()/1000))},rates:["",...input.dates].map((date:string)=>({date,fromCurrency:"RUB",rate:{numerator:"1",denominator:"1"}}))};
+  if(method?.name==="GetInvestmentExchangeRates"){
+   const now=BigInt(Math.floor(Date.now()/1000)),sources=input.fromCurrencies.length?input.fromCurrencies:["RUB"];
+   data={currency:input.currency,fxPolicyKey:"market",policyVersion:1n,mode:"market",source:"alphavantage",timeConvention:"Retrospective next-day close",readAt:{seconds:now},rates:["",...input.dates].flatMap((date:string)=>sources.map((fromCurrency:string)=>({date,fromCurrency,rate:{numerator:"1",denominator:"1"}}))),currentFxLegs:sources.filter((c:string)=>c!==input.currency).map((c:string)=>({nativeCurrency:c,id:"synthetic-"+c,revision:1n,fromCurrency:c,toCurrency:input.currency,policy:"market@1",observedRate:{numerator:"1",denominator:"1"},asOf:{seconds:now-86400n},availableAt:{seconds:now-3600n},validUntil:{seconds:now+86400n}}))};
+  }
   if(method?.name==="GetInvestmentQuotes")data={quotes:[{instrumentKey:key,currency:"RUB",state:"fresh",cleanPrice:{numerator:"120",denominator:"1"},priceAt:{seconds:BigInt(Math.floor(Date.now()/1000)-60)},source:"tinvest/personal"}]};
   if(method?.name==="ListBrokerSnapshots")data={snapshots:[{id:"snapshot",accountId:"broker",createdAt:{seconds:at}}]};
   if(method?.name==="GetBrokerSnapshot")data={originalJson:new TextEncoder().encode(JSON.stringify({fetched_at:new Date().toISOString(),operations:[{ticker:"ABC",instrumentUid:uid,name:"Synthetic security"}]}))};
@@ -45,6 +48,8 @@ for(const locale of ["ru","en"]){test(`${locale} analytics charts show profit, p
  });
  await page.goto("/investments/analytics?from=2024-12-30&to=2025-01-03");
  await expect(page.getByRole("heading",{name:ru?"Аналитика портфеля":"Portfolio analytics",exact:true})).toBeVisible();
+ const fx=page.getByRole("region",{name:ru?"Валютные курсы портфеля":"Portfolio exchange rates",exact:true});
+ await expect(fx).toContainText("USD/RUB: 1");await expect(fx).toContainText("EUR/RUB: 1");await expect(fx).toContainText("Alpha Vantage");await expect(fx).toContainText(ru?"Для оценки с":"Eligible from");await expect(fx).toContainText(ru?"ретроспективная оценка":"retrospective valuation");
  const history=page.getByRole("region",{name:ru?"История портфеля":"Portfolio history",exact:true});
  await expect(history.getByRole("img",{name:ru?"Стоимость и чистые вложения":"Value and net investment",exact:true})).toBeVisible();
  await history.getByRole("button",{name:ru?"Прибыль":"Profit",exact:true}).click();await expect(history.getByRole("img",{name:ru?"Накопленная прибыль":"Cumulative profit",exact:true})).toBeVisible();

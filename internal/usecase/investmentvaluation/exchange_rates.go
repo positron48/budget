@@ -10,11 +10,14 @@ import (
 )
 
 type ExchangeRate struct {
-	Date, From string
-	Rate       *big.Rat
+	Date, From  string
+	Rate        *big.Rat
+	CurrentLegs []calc.FXLeg
 }
 type ExchangeRates struct {
 	Currency, PolicyKey, Mode string
+	Source, TimeConvention    string
+	FXFixings                 []calc.FXFixing
 	PolicyVersion             int64
 	ReadAt                    time.Time
 	Rates                     []ExchangeRate
@@ -73,6 +76,9 @@ func ReportingExchangeRates(fixings []calc.FXFixing, policy string, target strin
 			point := ExchangeRate{Date: date, From: from}
 			if rate, ok := resolver.Resolve(from, target); ok {
 				point.Rate = rate.Rate
+				if date == "" {
+					point.CurrentLegs = rate.Legs
+				}
 			}
 			out = append(out, point)
 		}
