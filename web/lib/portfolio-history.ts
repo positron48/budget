@@ -16,7 +16,7 @@ export async function loadPortfolioHistory(api: HistoryAPI, scope: HistoryScope,
 type PerformanceAPI = HistoryAPI & {getTrackerPerformance(input: Omit<HistoryScope, "fxPolicyVersion" | "fxMode" | "classificationVersion"> & {snapshotTokens: string[];monetaryOnly?:boolean}, options: {signal: AbortSignal}): Promise<GetInvestmentPerformanceResponse>};
 export async function loadPortfolioPerformanceHistory(api: PerformanceAPI, scope: HistoryScope, signal: AbortSignal, progress: (points: TrackerHistoryPoint[]) => void) {
   const result = await historyPages(api, scope, signal, progress, true);
-  if (!result.tokens.length) return {points: result.points, performance: undefined};
+  if (!result.tokens.length) return {points: result.points, basisKey:result.basisKey, performance: undefined};
   const {fxPolicyVersion: _version, fxMode: _mode, classificationVersion: _classification, ...request} = scope;
   let performance: GetInvestmentPerformanceResponse;
   try {performance = await api.getTrackerPerformance({...request, monetaryOnly:!!scope.groupIds?.length,snapshotTokens: result.tokens}, {signal});}
@@ -44,9 +44,9 @@ export async function loadPortfolioPerformanceHistory(api: PerformanceAPI, scope
     if (!expected || seen.has(line.key) || [line.provider, line.nativeCurrency, line.kind, line.sourceUrl].some((s, i) => s !== expected[i]) || line.baseDate < first || line.baseDate > scope.toDate || line.points.length !== count || line.points.some((p, i) => p.date !== shiftHistoryDate(first, i) || ![p.index,p.virtualValue,p.virtualProfit].every(rational) || p.virtualValue&&BigInt(p.virtualValue.numerator)<0n || p.virtualValue&&p.virtualReason!=="" || p.index && (p.reason !== "" || Number(p.index.numerator) / Number(p.index.denominator) <= 0))) throw new Error("invalid_performance");
     seen.add(line.key);
   }
-  return {points: result.points, performance};
+  return {points: result.points, basisKey:result.basisKey, performance};
 }
-async function historyPages(api: HistoryAPI, scope: HistoryScope, signal: AbortSignal, progress: (points: TrackerHistoryPoint[]) => void, performance: boolean): Promise<{points: TrackerHistoryPoint[]; tokens: string[]}> {
+async function historyPages(api: HistoryAPI, scope: HistoryScope, signal: AbortSignal, progress: (points: TrackerHistoryPoint[]) => void, performance: boolean): Promise<{points: TrackerHistoryPoint[]; tokens: string[];basisKey:string}> {
   const {fxPolicyVersion, fxMode, classificationVersion, ...request} = scope;
   const result: TrackerHistoryPoint[] = [];
   const tokens: string[] = []; let hasSnapshots = true;
@@ -66,7 +66,7 @@ async function historyPages(api: HistoryAPI, scope: HistoryScope, signal: AbortS
       result.push(point); cursor = shiftHistoryDate(cursor, 1);
     }
     progress([...result]);
-    if (!page.nextDate) {if (cursor !== shiftHistoryDate(scope.toDate, 1)) throw new Error("truncated_history"); return {points: result, tokens: hasSnapshots ? tokens : []};}
+    if (!page.nextDate) {if (cursor !== shiftHistoryDate(scope.toDate, 1)) throw new Error("truncated_history"); return {points: result, tokens: hasSnapshots ? tokens : [],basisKey:basis};}
     if (page.nextDate !== cursor || cursor > scope.toDate) throw new Error("invalid_history_cursor");
   }
   throw new Error("history_limit");

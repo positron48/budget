@@ -38,3 +38,18 @@ func TestTrackerGroupsAreAUnionWithoutInheritedAccountFlows(t *testing.T) {
 		t.Fatal("malformed group accepted")
 	}
 }
+
+func TestTrackerBreakdownRetainsOriginalRangeAndRejectsInvalidDays(t *testing.T) {
+	now := time.Date(2026, 1, 10, 8, 0, 0, 0, time.UTC)
+	q := TrackerHistoryRequest{LedgerIDs: []string{"11111111-1111-4111-8111-111111111111"}, Currency: "RUB", FXPolicyKey: "market", From: "2026-01-01", To: "2026-01-09", DetailDate: "2026-01-02"}
+	if got, e := NormalizeTrackerHistory(q, now); e != nil || got.From != q.From || got.To != q.To {
+		t.Fatal(got, e)
+	}
+	for _, mutate := range []func(*TrackerHistoryRequest){func(q *TrackerHistoryRequest) { q.DetailDate = "2025-12-31" }, func(q *TrackerHistoryRequest) { q.DetailDate = "2026-01-10" }, func(q *TrackerHistoryRequest) { q.DetailDate = "2026-01-0x" }, func(q *TrackerHistoryRequest) { q.PerformanceFrom = q.From }, func(q *TrackerHistoryRequest) { q.ContributionOnly = true }} {
+		bad := q
+		mutate(&bad)
+		if _, e := NormalizeTrackerHistory(bad, now); e == nil {
+			t.Fatal("invalid breakdown accepted")
+		}
+	}
+}

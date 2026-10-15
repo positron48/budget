@@ -7,6 +7,8 @@ import (
 	md "github.com/positron48/budget/internal/usecase/marketdata"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"math/big"
+	"sort"
 	"time"
 )
 
@@ -19,7 +21,7 @@ func (s *InvestmentNAVServer) GetTrackerHistory(ctx context.Context, req *pb.Get
 	if e != nil {
 		return nil, e
 	}
-	q, e := nav.NormalizeTrackerHistory(nav.TrackerHistoryRequest{LedgerIDs: req.GetLedgerIds(), Currency: req.GetCurrency(), FXPolicyKey: req.GetFxPolicyKey(), From: req.GetFromDate(), To: req.GetToDate(), PerformanceFrom: req.GetPerformanceFromDate(), GroupIDs: req.GetGroupIds(), InstrumentKeys: req.GetInstrumentKeys(), MonetaryOnly: req.GetMonetaryOnly()}, time.Now().UTC())
+	q, e := nav.NormalizeTrackerHistory(nav.TrackerHistoryRequest{DetailDate: req.GetDetailDate(), LedgerIDs: req.GetLedgerIds(), Currency: req.GetCurrency(), FXPolicyKey: req.GetFxPolicyKey(), From: req.GetFromDate(), To: req.GetToDate(), PerformanceFrom: req.GetPerformanceFromDate(), GroupIDs: req.GetGroupIds(), InstrumentKeys: req.GetInstrumentKeys(), MonetaryOnly: req.GetMonetaryOnly()}, time.Now().UTC())
 	if e != nil {
 		return nil, investmentRPCError(e)
 	}
@@ -34,11 +36,31 @@ func (s *InvestmentNAVServer) GetTrackerHistory(ctx context.Context, req *pb.Get
 	if e != nil {
 		return nil, investmentRPCError(e)
 	}
-	out := &pb.GetTrackerHistoryResponse{InstrumentKeys: q.InstrumentKeys, GroupIds: q.GroupIDs, MonetaryOnly: q.MonetaryOnly, ClassificationVersion: result.ClassificationVersion, Currency: result.Currency, BasisKey: result.BasisKey, FxPolicyKey: result.FXPolicyKey, FxPolicyVersion: result.FXPolicyVersion, FxMode: result.FXMode, NextDate: result.NextDate, Generation: result.Generation, ReadAt: optionalInvestmentTimestamp(result.ReadAt), PriceConvention: md.RetrospectiveCloseNextUTCDay, ReportingTimezone: "Europe/Moscow"}
+	out := &pb.GetTrackerHistoryResponse{DetailsIncluded: q.DetailDate != "", InstrumentKeys: q.InstrumentKeys, GroupIds: q.GroupIDs, MonetaryOnly: q.MonetaryOnly, ClassificationVersion: result.ClassificationVersion, Currency: result.Currency, BasisKey: result.BasisKey, FxPolicyKey: result.FXPolicyKey, FxPolicyVersion: result.FXPolicyVersion, FxMode: result.FXMode, NextDate: result.NextDate, Generation: result.Generation, ReadAt: optionalInvestmentTimestamp(result.ReadAt), PriceConvention: md.RetrospectiveCloseNextUTCDay, ReportingTimezone: "Europe/Moscow"}
 	for _, p := range result.Points {
 		row := &pb.TrackerHistoryPoint{Date: p.Date, State: p.State, CoverageKey: p.CoverageKey, KnownValue: protoPerformanceAmount(p.KnownValue), PricedPositions: int32(p.PricedPositions), Positions: int32(p.Positions)}
 		for _, issue := range p.Issues {
 			row.Issues = append(row.Issues, &pb.InvestmentNAVIssue{ComponentId: issue.ComponentID, Code: issue.Code})
+		}
+		for _, detail := range p.Details {
+			row.Details = append(row.Details, &pb.TrackerValueDetail{LedgerId: detail.LedgerID, LedgerName: detail.LedgerName, InstrumentKey: detail.InstrumentKey, NativeCurrency: detail.Currency, Quantity: protoPerformanceAmount(detail.Quantity), UnitPrice: protoPerformanceAmount(detail.Price), NativeValue: protoPerformanceAmount(detail.NativeValue), Value: protoPerformanceAmount(detail.Value), FxRate: protoPerformanceAmount(detail.FXRate), PriceAt: optionalInvestmentTimestamp(detail.PriceAt), PriceSource: detail.Source, MappingVersion: detail.MappingVersion, Issues: detail.Issues})
+		}
+		currencies := []string{}
+		for currency := range p.DetailFX {
+			currencies = append(currencies, currency)
+		}
+		sort.Strings(currencies)
+		for _, currency := range currencies {
+			for _, leg := range p.DetailFX[currency] {
+				var observed *big.Rat
+				for _, fixing := range p.DetailFixings {
+					if fixing.ID == leg.ID && fixing.Revision == leg.Revision && fixing.Policy == leg.Policy {
+						observed, _ = new(big.Rat).SetString(fixing.Rate)
+						break
+					}
+				}
+				row.FxLegs = append(row.FxLegs, &pb.InvestmentCurrentFXLeg{ObservedRate: protoPerformanceAmount(observed), NativeCurrency: currency, Id: leg.ID, Revision: leg.Revision, FromCurrency: leg.From, ToCurrency: leg.To, Policy: leg.Policy, Inverse: leg.Inverse, AsOf: optionalInvestmentTimestamp(leg.At), AvailableAt: optionalInvestmentTimestamp(leg.AvailableAt), ValidUntil: optionalInvestmentTimestamp(leg.ValidUntil)})
+			}
 		}
 		out.Points = append(out.Points, row)
 	}

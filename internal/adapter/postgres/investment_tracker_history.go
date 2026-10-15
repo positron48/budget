@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
 	"sort"
 	"strings"
@@ -207,6 +208,12 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		end = last
 		out.NextDate = ""
 	}
+	if q.DetailDate != "" {
+		calculationFirst, _ = time.Parse(time.DateOnly, q.DetailDate)
+		end = calculationFirst
+		out.NextDate = ""
+	}
+	captureComponents := q.ContributionOnly || q.DetailDate != ""
 	days := []time.Time{}
 	states := [][]d.InvestmentSnapshot{}
 	allKeys := map[string]bool{}
@@ -340,7 +347,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 	}
 	for i, at := range days {
 		row := nav.TrackerHistoryPoint{Date: at.In(moscow).Format(time.DateOnly), State: "ready"}
-		if q.ContributionOnly {
+		if captureComponents {
 			row.Components = map[string]nav.TrackerContributionValue{}
 			row.LedgerReasons = map[string]string{}
 		}
@@ -348,10 +355,11 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		required, priced := map[string]int{}, map[string]int{}
 		amounts := map[string]calc.ExactComponent{}
 		quotes := map[string]nav.PortfolioQuote{}
+		details := map[string]*nav.TrackerValueDetail{}
 		for _, s := range states[i] {
 			if !startsFromZero[s.Ledger.ID] && at.Before(s.Ledger.StartedAt) {
 				row.Issues = append(row.Issues, calc.QualityIssue{ComponentID: s.Ledger.ID, Code: "ledger_history_missing"})
-				if q.ContributionOnly {
+				if captureComponents {
 					row.LedgerReasons[s.Ledger.ID] = "ledger_history_missing"
 				}
 			}
@@ -361,7 +369,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 					continue // Cost/cash assumptions do not make known security units unpriced.
 				}
 				row.Issues = append(row.Issues, calc.QualityIssue{ComponentID: s.Ledger.ID, Code: code})
-				if q.ContributionOnly {
+				if captureComponents {
 					row.LedgerReasons[s.Ledger.ID] = code
 				}
 			}
@@ -380,8 +388,15 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 					quotes[p.InstrumentKey] = quote
 				}
 				id := s.Ledger.ID + ":" + p.InstrumentKey
-				if q.ContributionOnly {
+				if captureComponents {
 					row.Components[id] = nav.TrackerContributionValue{Quantity: new(big.Rat).Set(quantity)}
+				}
+				if q.DetailDate != "" {
+					detail := &nav.TrackerValueDetail{LedgerID: s.Ledger.ID, LedgerName: s.Ledger.Name, InstrumentKey: p.InstrumentKey, Quantity: new(big.Rat).Set(quantity), Currency: quote.Currency, Source: quote.Source, PriceAt: quote.At, MappingVersion: quote.MappingVersion, Issues: append([]string{}, quote.Issues...)}
+					if detail.Currency == "" {
+						detail.Currency = p.Currency
+					}
+					details[id] = detail
 				}
 				if quote.CleanPrice == nil || quote.State != "fresh" {
 					for _, issue := range quote.Issues {
@@ -394,8 +409,12 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 					return out, err
 				}
 				amount := new(big.Rat).Mul(quantity, price)
+				if detail := details[id]; detail != nil {
+					detail.Price = new(big.Rat).Set(price)
+					detail.NativeValue = new(big.Rat).Set(amount)
+				}
 				componentKey := p.InstrumentKey
-				if q.ContributionOnly {
+				if captureComponents {
 					componentKey = id
 				}
 				if existing, ok := amounts[componentKey]; ok {
@@ -421,7 +440,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		row.Issues = append(row.Issues, value.Issues...)
 		converted := map[string]int{}
 		for key, v := range value.ComponentValues {
-			if q.ContributionOnly {
+			if captureComponents {
 				c := row.Components[key]
 				c.Value = v
 				row.Components[key] = c
@@ -435,11 +454,47 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 				row.PricedPositions++
 			}
 		}
-		if q.ContributionOnly {
+		if captureComponents {
 			for key, n := range required {
 				if converted[key] == n {
 					row.PricedPositions++
 				}
+			}
+		}
+		if q.DetailDate != "" {
+			row.DetailFX = value.FXPaths
+			wantedFixings := map[string]bool{}
+			for _, legs := range value.FXPaths {
+				for _, leg := range legs {
+					wantedFixings[leg.ID+":"+fmt.Sprint(leg.Revision)] = true
+				}
+			}
+			for _, fixing := range fixings {
+				if wantedFixings[fixing.ID+":"+fmt.Sprint(fixing.Revision)] {
+					row.DetailFixings = append(row.DetailFixings, fixing)
+				}
+			}
+			ids := make([]string, 0, len(details))
+			for id := range details {
+				ids = append(ids, id)
+			}
+			sort.Strings(ids)
+			for _, id := range ids {
+				detail := details[id]
+				detail.Value = row.Components[id].Value
+				if detail.NativeValue != nil && detail.Value != nil {
+					if detail.NativeValue.Sign() != 0 {
+						detail.FXRate = new(big.Rat).Quo(detail.Value, detail.NativeValue)
+					} else if detail.Currency == q.Currency {
+						detail.FXRate = big.NewRat(1, 1)
+					}
+				}
+				for _, issue := range row.Issues {
+					if issue.ComponentID == id || issue.ComponentID == detail.LedgerID {
+						detail.Issues = append(detail.Issues, issue.Code)
+					}
+				}
+				row.Details = append(row.Details, *detail)
 			}
 		}
 		if len(row.Issues) > 0 || row.PricedPositions != row.Positions || !value.Complete {

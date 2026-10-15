@@ -566,7 +566,15 @@ message GetTrackerHistoryRequest {
  string to_date=5;
  repeated string group_ids=7; // empty selection = all; empty ID = ungrouped
  string performance_from_date=6; // original range start, constant across pages
+ string detail_date=10; // One-day breakdown; from/to retain the original chart basis.
  repeated string instrument_keys=8; bool monetary_only=9; // Group snapshots carry own monetary flows, never group TWR/XIRR.
+}
+message TrackerValueDetail {
+ string ledger_id=1; string ledger_name=2; string instrument_key=3; string native_currency=4;
+ InvestmentNAVAmount quantity=5; InvestmentNAVAmount unit_price=6; InvestmentNAVAmount native_value=7;
+ InvestmentNAVAmount value=8; InvestmentNAVAmount fx_rate=9;
+ google.protobuf.Timestamp price_at=10; string price_source=11; int64 mapping_version=12;
+ repeated string issues=13;
 }
 message TrackerHistoryPoint {
  string date=1;
@@ -576,6 +584,7 @@ message TrackerHistoryPoint {
  int32 priced_positions=5;
  int32 positions=6;
  string coverage_key=7;
+ repeated TrackerValueDetail details=9; repeated InvestmentCurrentFXLeg fx_legs=10;
 }
 message GetTrackerHistoryResponse {
  repeated TrackerHistoryPoint points=1;
@@ -591,7 +600,7 @@ message GetTrackerHistoryResponse {
  string basis_key=11;
  string performance_snapshot=12; // short-lived signed data, not an auth token
  int64 classification_version = 13;
- repeated string instrument_keys=14; bool monetary_only=15; repeated string group_ids=16;
+ repeated string instrument_keys=14; bool monetary_only=15; repeated string group_ids=16; bool details_included=17;
 }
 
 // Provider series for a card; no legacy NAV series or position is required.

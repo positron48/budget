@@ -101,6 +101,35 @@ func TestInvestmentTrackerHistoryUsesActualDailyPositionsAndMarketFX(t *testing.
 	if r.Points[6].State != "ready" || r.Points[6].KnownValue.Sign() != 0 || r.Points[6].Positions != 0 {
 		t.Fatal("closed security or payouts counted in value", r.Points[6])
 	}
+	for i, date := range []string{"2020-01-01", "2020-01-02", "2020-01-04", "2020-01-06", "2020-01-07"} {
+		detailRequest := q
+		detailRequest.DetailDate = date
+		details, err := repo.TrackerHistory(ctx, tenant, actor, detailRequest)
+		index := []int{0, 1, 3, 5, 6}[i]
+		if err != nil || details.BasisKey != r.BasisKey || len(details.Points) != 1 || details.Points[0].Date != date || details.Points[0].State != r.Points[index].State || details.Points[0].KnownValue.Cmp(r.Points[index].KnownValue) != 0 || details.NextDate != "" {
+			t.Fatal("breakdown changed original chart basis or value", date, details, err)
+		}
+		p := details.Points[0]
+		if index == 6 {
+			if len(p.Details) != 0 {
+				t.Fatal("closed security in breakdown")
+			}
+			continue
+		}
+		if len(p.Details) != 1 || p.Details[0].LedgerID != l.ID || p.Details[0].InstrumentKey != "S" {
+			t.Fatal("breakdown identities", p.Details)
+		}
+		d := p.Details[0]
+		if index == 1 && (d.Quantity.RatString() != "4" || d.Price.RatString() != "6" || d.NativeValue.RatString() != "24" || d.FXRate.RatString() != "90" || d.Value.RatString() != "2160" || len(p.DetailFX["USD"]) != 1 || len(p.DetailFixings) != 1 || p.DetailFixings[0].Rate != "90") {
+			t.Fatal("split rebasing or dated FX missing", d)
+		}
+		if index == 3 && (d.Price != nil || d.Value != nil || len(d.Issues) == 0) {
+			t.Fatal("incomplete candle became a priced component", d)
+		}
+		if index == 5 && (d.NativeValue == nil || d.Value != nil || d.FXRate != nil || len(d.Issues) == 0) {
+			t.Fatal("missing FX became current-rate fallback", d)
+		}
+	}
 	performanceRequest := q
 	performanceRequest.To = "2020-01-03"
 	performanceRequest.PerformanceFrom = q.From

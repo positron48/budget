@@ -59,3 +59,20 @@ monetary-only mode. The client verifies echoed filters before showing previews
 and rechecks the performance result; an older backend cannot silently broaden
 the chart. CSV includes selected keys/groups and classification version.
 See `investments-contributions.md` for contribution rules.
+
+A valuation point opens a lazy breakdown, also available from a date selector
+and keyboard. It shows each account/security quantity, split-rebased clean unit
+price, native amount, effective FX and reporting-currency value. Selected FX
+legs retain original pair/rate, inverse direction, revision, fixing timestamp,
+rule eligibility and exclusive validity end. Dates describe retrospective
+valuation eligibility, not historical publication-time evidence. Cash and
+accrued interest remain excluded from this clean securities chart.
+
+`GetTrackerHistory.detail_date` returns one breakdown within the original
+from/to range. It does not sign a new performance page or write financial data.
+The original range and filters retain the chart's journal/market basis. The
+client checks that basis, policy, scope, quality, exact native and converted
+identities, FX path and component total before display. Missing price/FX stays
+unknown; empty and closed accounts remain zero without invented components.
+If the basis changes, the breakdown asks for a chart refresh. Ordinary paged
+history stays compact and does not carry every day's position breakdown.

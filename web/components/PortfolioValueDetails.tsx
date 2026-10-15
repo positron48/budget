@@ -1,0 +1,24 @@
+"use client";
+import {useState} from "react";
+import {useQuery} from "@tanstack/react-query";
+import {useClients} from "@/app/providers";
+import {loadPortfolioValueDetails} from "@/lib/portfolio-value-details";
+import type {HistoryScope} from "@/lib/portfolio-history";
+import type {TrackerHistoryPoint} from "@/proto/budget/v1/investment_nav_pb";
+import {positionDecimal,type Fraction} from "@/lib/investment-positions";
+import {tenantRequestScope} from "@/lib/tenant-request-scope";
+export default function PortfolioValueDetails({tenantId,scope,basisKey,points,date,onDateChange,instrumentNames,ru}:{tenantId:string;scope:HistoryScope;basisKey:string;points:TrackerHistoryPoint[];date:string;onDateChange:(date:string)=>void;instrumentNames?:Map<string,string>;ru:boolean}){
+ const tr=(r:string,e:string)=>ru?r:e,{investmentNAV:api}=useClients(),[opened,setOpened]=useState(false);
+ const point=points.find(p=>p.date===date)||points.at(-1),active=!!date||opened;
+ const value=useQuery({queryKey:["investment",tenantId,"tracker-value-details",scope,basisKey,point?.date],enabled:active&&!!point&&!!basisKey,retry:false,staleTime:60000,queryFn:async({signal})=>{const task=tenantRequestScope(tenantId,signal);try{return await task.run(options=>loadPortfolioValueDetails(api,scope,basisKey,point!,options.signal));}finally{task.dispose();}}});
+ const amount=(v?:Fraction)=>v?positionDecimal(v,12).replace(/(\.\d*?[1-9])0+$|\.0+$/,"$1"):"—",stamp=(t?:{seconds:bigint})=>t?new Date(Number(t.seconds)*1000).toISOString().replace("T"," ").replace(".000Z"," UTC"):"—";
+ return <div className="rounded-xl border border-slate-200 p-3 text-xs dark:border-slate-700" aria-label={tr("Расшифровка стоимости","Valuation breakdown")}>
+ <button className="text-left font-medium" aria-expanded={active} onClick={()=>{if(active){onDateChange("");setOpened(false);}else setOpened(true);}}>{tr("Исходные суммы и использованный курс","Native amounts and applied FX")}</button>
+ {active&&<div className="mt-3 space-y-3"><label>{tr("Дата оценки","Valuation date")}<select className="ml-2 max-w-full rounded border bg-transparent p-1 dark:border-slate-700" aria-label={tr("Дата оценки","Valuation date")} value={point?.date||""} onChange={e=>onDateChange(e.target.value)}>{points.map(p=><option key={p.date}>{p.date}</option>)}</select></label>
+ <p className="text-slate-500">{tr("Чистая стоимость на конец дня по Москве: количество × цена с учётом проведённых сплитов × курс этой даты. НКД и свободные деньги не входят. Дата допуска цены указана по правилу ретроспективной оценки, а не как время публикации.","Clean value at Moscow day-end: quantity × price after recorded splits × dated FX. Accrued interest and uninvested cash are excluded. Price eligibility follows the retrospective rule and does not establish publication time.")}</p>
+ {value.isFetching?<p role="status">{tr("Загружаем расшифровку…","Loading breakdown…")}</p>:value.error?<p role="alert">{value.error.message==="history_changed"?tr("История изменилась. Обновите график перед расшифровкой.","History changed. Refresh the chart before inspecting it."):tr("Не удалось проверить расшифровку. Обновите график.","Could not verify the breakdown. Refresh the chart.")}</p>:value.data&&<><p className="font-semibold">{value.data.state==="ready"?tr("Стоимость","Value"):tr("Известная часть","Known portion")}: {amount(value.data.knownValue)} {scope.currency}</p><ul className="max-h-96 space-y-3 overflow-auto">{value.data.details.map(r=><li key={r.ledgerId+":"+r.instrumentKey} className="break-words rounded-lg bg-slate-50 p-3 dark:bg-slate-800"><p className="font-medium">{instrumentNames?.get(r.instrumentKey)||r.instrumentKey} · {r.ledgerName}</p><p className="mt-1 tabular-nums">{amount(r.quantity)} × {amount(r.unitPrice)} {r.nativeCurrency} = {amount(r.nativeValue)} {r.nativeCurrency}</p><p className="tabular-nums">{tr("Курс","FX")}: {r.fxRate?amount(r.fxRate):r.nativeValue?.numerator==="0"?tr("для нулевой суммы не нужен","not needed for zero"):"—"} → {amount(r.value)} {scope.currency}</p><p className="mt-1 text-slate-500">{tr("Дата допуска цены","Price eligible at")}: {stamp(r.priceAt)} · {r.priceSource||"—"}</p>{r.issues.length>0&&<p className="mt-1 text-amber-600">{tr("Оценка неполная","Valuation incomplete")}: {r.issues.join(", ")}</p>}</li>)}</ul>
+ {value.data.fxLegs.length>0&&<details><summary className="cursor-pointer">{tr("Источники валютного курса","FX evidence")}</summary><ul className="mt-2 space-y-2">{value.data.fxLegs.map((l,i)=><li key={i} className="break-words">{l.fromCurrency}/{l.toCurrency}: {amount(l.observedRate)}{l.inverse?tr(" · обратный курс"," · inverse"):""} · {l.policy}<br/>{tr("Дата курса","Fixing date")}: {stamp(l.asOf)}; {tr("допуск по правилу","rule eligibility")}: {stamp(l.availableAt)}<br/>{tr("Действует до","Valid until")}: {stamp(l.validUntil)}<br/>{l.id} · rev {l.revision.toString()}</li>)}</ul></details>}
+ </>}
+ </div>}
+ </div>;
+}

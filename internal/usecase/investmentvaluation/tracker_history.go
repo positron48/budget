@@ -13,6 +13,7 @@ type TrackerHistoryRequest struct {
 	LedgerIDs                       []string
 	Currency, FXPolicyKey, From, To string
 	PerformanceFrom                 string
+	DetailDate                      string // One-day breakdown within the original fenced chart range.
 	GroupIDs                        []string
 	InstrumentKeys                  []string
 	MonetaryOnly                    bool
@@ -28,6 +29,9 @@ type TrackerHistoryPoint struct {
 	Reset                      bool
 	Components                 map[string]TrackerContributionValue
 	LedgerReasons              map[string]string
+	Details                    []TrackerValueDetail
+	DetailFX                   map[string][]calc.FXLeg
+	DetailFixings              []calc.FXFixing
 }
 type TrackerHistory struct {
 	Currency, FXPolicyKey, FXMode, NextDate, BasisKey string
@@ -44,6 +48,14 @@ type TrackerHistory struct {
 func NormalizeTrackerHistory(q TrackerHistoryRequest, now time.Time) (TrackerHistoryRequest, error) {
 	if len(q.LedgerIDs) < 1 || len(q.LedgerIDs) > 20 || q.FXPolicyKey == "" || len(q.FXPolicyKey) > 100 || (q.Currency != "RUB" && q.Currency != "USD" && q.Currency != "EUR") {
 		return q, d.ErrInvestmentInvalid
+	}
+	if q.DetailDate != "" && (q.DetailDate < q.From || q.DetailDate > q.To || q.ContributionOnly || q.PerformanceFrom != "") {
+		return q, d.ErrInvestmentInvalid
+	}
+	if q.DetailDate != "" {
+		if day, e := time.Parse(time.DateOnly, q.DetailDate); e != nil || day.Format(time.DateOnly) != q.DetailDate {
+			return q, d.ErrInvestmentInvalid
+		}
 	}
 	if q.ContributionOnly && q.PerformanceFrom != "" {
 		return q, d.ErrInvestmentInvalid
@@ -96,4 +108,13 @@ func NormalizeTrackerHistory(q TrackerHistoryRequest, now time.Time) (TrackerHis
 		}
 	}
 	return q, nil
+}
+
+// Values describe the exact clean valuation after recorded split rebasing.
+type TrackerValueDetail struct {
+	LedgerID, LedgerName, InstrumentKey, Currency, Source string
+	Quantity, Price, NativeValue, Value, FXRate           *big.Rat
+	PriceAt                                               time.Time
+	MappingVersion                                        int64
+	Issues                                                []string
 }
