@@ -12,13 +12,15 @@ import (
 
 // BondFacts is provider evidence, not confirmed historical pricing terms or
 // the owner's entitlement to a payout. Missing amounts stay nil; known zero is explicit.
-type BondAmount struct{ Amount, Currency string }
-type BondTerms struct {
-	Nominal, InitialNominal, CurrentAccrued *BondAmount
-	Maturity, CallDate, Placement           time.Time
-	Floating, Perpetual, Amortizing         *bool
-	CouponFrequency                         *int32
-}
+type (
+	BondAmount struct{ Amount, Currency string }
+	BondTerms  struct {
+		Nominal, InitialNominal, CurrentAccrued *BondAmount
+		Maturity, CallDate, Placement           time.Time
+		Floating, Perpetual, Amortizing         *bool
+		CouponFrequency                         *int32
+	}
+)
 type BondCoupon struct {
 	Number                    int64
 	Date, FixDate, Start, End time.Time
@@ -37,6 +39,9 @@ type BondEvent struct {
 type BondAccrued struct {
 	Date                    time.Time
 	Value, Percent, Nominal *string
+	// Empty means the provider did not establish the monetary unit of Value.
+	// Omit it from legacy snapshot JSON so historical payload hashes remain valid.
+	ValueCurrency string `json:",omitempty"`
 }
 type BondFacts struct {
 	Instrument     Instrument
@@ -55,6 +60,7 @@ type SavedBondFacts struct {
 func validBondTime(at time.Time, required bool) bool {
 	return !required && at.IsZero() || !at.IsZero() && at.Year() >= 1900 && at.Year() <= 2200 && at.Nanosecond()%1000 == 0
 }
+
 func validBondNumber(s string, positive bool) bool {
 	if !decimalPattern.MatchString(s) {
 		return false
@@ -62,9 +68,11 @@ func validBondNumber(s string, positive bool) bool {
 	v, ok := new(big.Rat).SetString(s)
 	return ok && (v.Sign() > 0 || !positive && v.Sign() == 0)
 }
+
 func validBondAmount(v *BondAmount, positive bool) bool {
 	return v == nil || validBondNumber(v.Amount, positive) && len(v.Currency) == 3 && stringsCurrency(v.Currency)
 }
+
 func stringsCurrency(c string) bool {
 	for _, v := range c {
 		if v < 'A' || v > 'Z' {
@@ -100,7 +108,7 @@ func NormalizeBondFacts(f BondFacts) (BondFacts, error) {
 	seen = map[string]bool{}
 	for _, p := range f.Accrued {
 		key := p.Date.UTC().Format(time.RFC3339Nano)
-		if seen[key] || !validBondTime(p.Date, true) || p.Date.Before(f.From) || p.Date.After(f.To) || !validOptionalBondNumber(p.Value) || !validOptionalBondNumber(p.Percent) || !validOptionalBondNumber(p.Nominal) {
+		if seen[key] || !validBondTime(p.Date, true) || p.Date.Before(f.From) || p.Date.After(f.To) || !validOptionalBondNumber(p.Value) || !validOptionalBondNumber(p.Percent) || !validOptionalBondNumber(p.Nominal) || p.ValueCurrency != "" && (p.Value == nil || len(p.ValueCurrency) != 3 || !stringsCurrency(p.ValueCurrency)) {
 			return f, ErrInvalid
 		}
 		seen[key] = true

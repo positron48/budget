@@ -2,14 +2,44 @@ package marketdata
 
 import (
 	"context"
+	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 )
+
+func TestBondAccruedCurrencyValidationAndLegacyJSON(t *testing.T) {
+	value := "5"
+	f := bondFixture()
+	f.Accrued = []BondAccrued{{Date: f.From, Value: &value}}
+	raw, err := json.Marshal(f)
+	if err != nil || strings.Contains(string(raw), "ValueCurrency") {
+		t.Fatalf("legacy snapshot encoding changed: %s %v", raw, err)
+	}
+	for _, currency := range []string{"", "RUB", "USD"} {
+		f.Accrued[0].ValueCurrency = currency
+		if _, err := NormalizeBondFacts(f); err != nil {
+			t.Fatal(currency, err)
+		}
+	}
+	for _, currency := range []string{"rub", "US", "USDD"} {
+		f.Accrued[0].ValueCurrency = currency
+		if _, err := NormalizeBondFacts(f); err == nil {
+			t.Fatal("invalid currency accepted", currency)
+		}
+	}
+	f.Accrued[0].ValueCurrency = "USD"
+	f.Accrued[0].Value = nil
+	if _, err := NormalizeBondFacts(f); err == nil {
+		t.Fatal("currency without amount accepted")
+	}
+}
 
 func bondFixture() BondFacts {
 	at := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	return BondFacts{Instrument: Instrument{ID: "11111111-1111-4111-8111-111111111111", Name: "Bond", Ticker: "TEST", Kind: "bond", Currency: "RUB", Detailed: true}, From: at, To: at.AddDate(0, 0, 30), AsOf: at, Terms: BondTerms{Nominal: &BondAmount{"0", "RUB"}}}
 }
+
 func TestBondFactsValidation(t *testing.T) {
 	f := bondFixture()
 	if _, err := NormalizeBondFacts(f); err != nil {
@@ -52,6 +82,7 @@ type bondProviderStub struct {
 func (p bondProviderStub) LoadBondFacts(context.Context, JobRequest) (BondFacts, error) {
 	return p.facts, p.err
 }
+
 func TestBondWorkerDispatch(t *testing.T) {
 	for _, fail := range []bool{false, true} {
 		q := &bondQueueStub{fakeQueue: fakeQueue{job: Job{JobRequest: JobRequest{Kind: "bond_facts"}}}}

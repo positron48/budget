@@ -56,7 +56,7 @@ func TestPortfolioQuoteTracksAmortizedNominalFromCompletedProviderJob(t *testing
 		t.Fatal("unconfirmed nominal reported healthy", health, e)
 	}
 	request := md.JobRequest{Kind: "bond_facts", InstrumentID: id, From: day, To: day.AddDate(0, 0, 30)}
-	for attempt := 0; attempt < 2; attempt++ {
+	for attempt := 0; attempt < 3; attempt++ {
 		q := request
 		q.To = q.To.AddDate(0, 0, attempt)
 		if _, e = repo.Enqueue(ctx, scope, q); e != nil {
@@ -68,8 +68,12 @@ func TestPortfolioQuoteTracksAmortizedNominalFromCompletedProviderJob(t *testing
 		}
 		nominal := "800"
 		accrued := "5"
-		facts := md.BondFacts{Instrument: md.Instrument{ID: id, Ticker: "TEST", Name: "Synthetic amortizing bond", Kind: "bond", Currency: "RUB", Detailed: true}, From: q.From, To: q.To, AsOf: now, Terms: md.BondTerms{Nominal: &md.BondAmount{Amount: nominal, Currency: "USD"}}, Accrued: []md.BondAccrued{{Date: day, Nominal: &nominal, Value: &accrued}}}
+		facts := md.BondFacts{Instrument: md.Instrument{ID: id, Ticker: "TEST", Name: "Synthetic amortizing bond", Kind: "bond", Currency: "RUB", Detailed: true}, From: q.From, To: q.To, AsOf: now, Terms: md.BondTerms{Nominal: &md.BondAmount{Amount: nominal, Currency: "USD"}}, Accrued: []md.BondAccrued{{Date: day, Nominal: &nominal, Value: &accrued, ValueCurrency: "USD"}}}
 		if attempt == 1 {
+			facts.Accrued[0].ValueCurrency = ""
+			facts.Terms.CurrentAccrued = &md.BondAmount{Amount: "5", Currency: "RUB"}
+		}
+		if attempt == 2 {
 			facts.Accrued[0].Nominal = nil
 		}
 		if e = repo.CompleteBondFacts(ctx, job, facts); e != nil {
@@ -85,17 +89,20 @@ func TestPortfolioQuoteTracksAmortizedNominalFromCompletedProviderJob(t *testing
 		if attempt == 0 && (actual.Quotes[0].CleanPrice == nil || actual.Quotes[0].CleanPrice.RatString() != "760" || actual.Quotes[0].Currency != "USD") {
 			t.Fatal("amortization/native currency/per-security terms lost", actual)
 		}
-		if attempt == 1 && actual.Quotes[0].CleanPrice != nil {
+		if attempt == 1 && (actual.Quotes[0].Accrued != nil || !actual.Quotes[0].AccruedAt.IsZero() || actual.Quotes[0].CleanPrice == nil || actual.Quotes[0].CleanPrice.RatString() != "760") {
+			t.Fatal("unknown accrued currency borrowed nominal unit or changed clean value", actual)
+		}
+		if attempt == 2 && actual.Quotes[0].CleanPrice != nil {
 			t.Fatal("new incomplete evidence revived earlier nominal", actual)
 		}
 		health, e = repo.ReadMarketWorkerHealth(ctx, scope)
 		if e != nil {
 			t.Fatal(e)
 		}
-		if attempt == 0 && (health.QuoteStates["fresh"] != 1 || health.QuoteStates["missing"] != 0) {
+		if attempt < 2 && (health.QuoteStates["fresh"] != 1 || health.QuoteStates["missing"] != 0) {
 			t.Fatal("usable quote missing from health", health)
 		}
-		if attempt == 1 && (health.QuoteStates["fresh"] != 0 || health.QuoteStates["missing"] != 1) {
+		if attempt == 2 && (health.QuoteStates["fresh"] != 0 || health.QuoteStates["missing"] != 1) {
 			t.Fatal("completed provider jobs mistaken for usable nominal", health)
 		}
 	}

@@ -19,7 +19,11 @@ Prices, sources, dates and exact rational values can be exported to CSV.
 Bond prices default to percent of nominal. Per-security clean money uses nominal
 valid on the candle date; dirty money requires dated accrued interest. Today's
 nominal or accrued interest never fills missing historical evidence. Latest bond
-terms and dated history are displayed separately. Coupon and event records are
+terms and dated history are displayed separately. A currency-less provider accrued
+quotation does not inherit the nominal currency. It needs an explicit amount
+currency, or an exact same-UTC-day match with the explicitly denominated current
+ACI. Otherwise accrued and dirty prices remain unavailable while clean prices
+remain usable; no FX conversion is inferred. Legacy snapshots retain their hashes. Coupon and event records are
 provider observations, not confirmation of personal entitlement, currency
 conversion terms or complete future cash flows. Yield to maturity is not computed.
 The terms panel shows provider records within one year around the current date,

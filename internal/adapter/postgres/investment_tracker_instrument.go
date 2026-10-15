@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math/big"
+	"time"
+
 	"github.com/jackc/pgx/v5"
 	d "github.com/positron48/budget/internal/domain"
 	calc "github.com/positron48/budget/internal/usecase/investmentcalc"
 	nav "github.com/positron48/budget/internal/usecase/investmentvaluation"
 	md "github.com/positron48/budget/internal/usecase/marketdata"
-	"math/big"
-	"time"
 )
 
 // A card needs no legacy NAV registration or owned position. A direct catalog
@@ -304,6 +305,7 @@ func (r *MarketDataRepo) TrackerInstrumentPrices(ctx context.Context, tenant, ac
 	}
 	return out, tx.Commit(ctx)
 }
+
 func readTrackerInstrumentMetadata(ctx context.Context, tx pgx.Tx, s md.Scope, id string) (*md.Instrument, time.Time, error) {
 	var raw []byte
 	var at time.Time
@@ -320,6 +322,7 @@ func readTrackerInstrumentMetadata(ctx context.Context, tx pgx.Tx, s md.Scope, i
 	}
 	return &i, at, nil
 }
+
 func trackerDatedAccrued(facts []md.SavedBondFacts, id, currency string, day, readAt time.Time) *big.Rat {
 	var latest *md.SavedBondFacts
 	for i := range facts {
@@ -328,7 +331,7 @@ func trackerDatedAccrued(facts []md.SavedBondFacts, id, currency string, day, re
 			latest = f
 		}
 	}
-	if latest == nil || latest.Terms.Nominal == nil || latest.Terms.Nominal.Currency != currency {
+	if latest == nil {
 		return nil
 	}
 	var result *big.Rat
@@ -336,6 +339,21 @@ func trackerDatedAccrued(facts []md.SavedBondFacts, id, currency string, day, re
 		if p.Date.UTC().Truncate(24*time.Hour).Equal(day) && p.Value != nil {
 			v, ok := new(big.Rat).SetString(*p.Value)
 			if !ok || v.Sign() < 0 || result != nil && result.Cmp(v) != 0 {
+				return nil
+			}
+			unit := p.ValueCurrency
+			// GetAccruedInterests uses a currency-less Quotation. Nominal's
+			// currency does not establish its unit, particularly for replacement
+			// bonds settled in RUB. Only corroborate today's exact amount with
+			// the explicitly denominated current ACI; never carry it backwards.
+			if unit == "" && day.Equal(latest.AsOf.UTC().Truncate(24*time.Hour)) && latest.Terms.CurrentAccrued != nil {
+				current := latest.Terms.CurrentAccrued
+				amount, valid := new(big.Rat).SetString(current.Amount)
+				if valid && amount.Cmp(v) == 0 {
+					unit = current.Currency
+				}
+			}
+			if unit == "" || unit != currency {
 				return nil
 			}
 			result = v

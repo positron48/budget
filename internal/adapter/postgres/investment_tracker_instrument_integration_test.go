@@ -2,13 +2,14 @@ package postgres
 
 import (
 	"errors"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/google/uuid"
 	d "github.com/positron48/budget/internal/domain"
 	nav "github.com/positron48/budget/internal/usecase/investmentvaluation"
 	md "github.com/positron48/budget/internal/usecase/marketdata"
-	"strings"
-	"testing"
-	"time"
 )
 
 func TestInvestmentTrackerInstrumentWithoutHoldingsAndHistoricalFX(t *testing.T) {
@@ -104,6 +105,7 @@ func TestInvestmentTrackerInstrumentWithoutHoldingsAndHistoricalFX(t *testing.T)
 		t.Fatal("card wrote trades", count, e)
 	}
 }
+
 func TestInvestmentTrackerInstrumentBondUsesDatedNominalAndAccrued(t *testing.T) {
 	pool, done := withPg(t)
 	defer done()
@@ -145,7 +147,7 @@ func TestInvestmentTrackerInstrumentBondUsesDatedNominalAndAccrued(t *testing.T)
 		t.Fatal(e)
 	}
 	n1, n2, v1, v2 := "1000", "900", "2", "3"
-	facts := md.BondFacts{Instrument: i, From: request.From, To: request.To, AsOf: time.Now().UTC().Truncate(time.Microsecond), Terms: md.BondTerms{Nominal: &md.BondAmount{Amount: "9999", Currency: "USD"}, CurrentAccrued: &md.BondAmount{Amount: "99", Currency: "USD"}}, Accrued: []md.BondAccrued{{Date: day, Nominal: &n1, Value: &v1}, {Date: day.AddDate(0, 0, 1), Nominal: &n2, Value: &v2}}}
+	facts := md.BondFacts{Instrument: i, From: request.From, To: request.To, AsOf: time.Now().UTC().Truncate(time.Microsecond), Terms: md.BondTerms{Nominal: &md.BondAmount{Amount: "9999", Currency: "USD"}, CurrentAccrued: &md.BondAmount{Amount: "99", Currency: "USD"}}, Accrued: []md.BondAccrued{{Date: day, Nominal: &n1, Value: &v1, ValueCurrency: "USD"}, {Date: day.AddDate(0, 0, 1), Nominal: &n2, Value: &v2, ValueCurrency: "USD"}}}
 	if e = repo.CompleteBondFacts(ctx, job, facts); e != nil {
 		t.Fatal(e)
 	}
@@ -164,6 +166,7 @@ func TestInvestmentTrackerInstrumentBondUsesDatedNominalAndAccrued(t *testing.T)
 		t.Fatal("settlement currency replaced dated nominal currency", r, e)
 	}
 	facts.Accrued[0].Value = nil
+	facts.Accrued[0].ValueCurrency = ""
 	facts.To = facts.To.AddDate(0, 0, 1)
 	request.To = facts.To
 	if _, e = repo.Enqueue(ctx, scope, request); e != nil {
@@ -180,5 +183,4 @@ func TestInvestmentTrackerInstrumentBondUsesDatedNominalAndAccrued(t *testing.T)
 	if e != nil || r.Points[0].Dirty != nil || r.Points[0].Accrued != nil || r.Points[0].Clean.RatString() != "900" {
 		t.Fatal("missing dated accrued revived older/current value", r, e)
 	}
-
 }
