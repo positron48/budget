@@ -24,6 +24,16 @@ export const authStore = {
     if (typeof window === "undefined") return undefined;
     return window.localStorage.getItem(REFRESH_KEY) ?? undefined;
   },
+  // Cache/request identity only. The backend still authenticates every RPC.
+  getActor(): string | undefined {
+    try {
+      const parts = this.getAccess()?.split(".");
+      if (parts?.length !== 3) return undefined;
+      const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+      const claims = JSON.parse(atob(payload.padEnd(Math.ceil(payload.length / 4) * 4, "=")));
+      return typeof claims?.sub === "string" && claims.sub ? claims.sub : undefined;
+    } catch { return undefined; }
+  },
   getTenant(): string | undefined {
     if (typeof window === "undefined") return undefined;
     const selected = window.localStorage.getItem(TENANT_KEY);

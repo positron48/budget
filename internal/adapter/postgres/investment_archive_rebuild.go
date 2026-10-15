@@ -81,9 +81,31 @@ func restoreArchiveProjections(ctx context.Context, tx pgx.Tx, tenant string) er
 		if p.ID != v.id || p.Version != v.version {
 			return d.ErrInvestmentPrecondition
 		}
-		normalized, err := nav.NormalizePortfolio(nav.PortfolioInput{ID: p.ID, Name: p.Name, LedgerIDs: p.LedgerIDs, Currency: p.Currency, FXPolicyKey: p.FXPolicyKey, ConventionKey: p.ConventionKey, From: p.From, To: p.To, ExpectedVersion: p.Version, RequestKey: "archive-restore", Archived: p.Archived, AutoExtend: p.AutoExtend})
+		normalized, err := nav.NormalizePortfolio(nav.PortfolioInput{TrackerSelection: p.TrackerSelection, ID: p.ID, Name: p.Name, LedgerIDs: p.LedgerIDs, Currency: p.Currency, FXPolicyKey: p.FXPolicyKey, ConventionKey: p.ConventionKey, From: p.From, To: p.To, ExpectedVersion: p.Version, RequestKey: "archive-restore", Archived: p.Archived, AutoExtend: p.AutoExtend})
 		if err != nil {
 			return d.ErrInvestmentPrecondition
+		}
+		if p.TrackerSelection {
+			if p.SeriesKey != "" {
+				return d.ErrInvestmentPrecondition
+			}
+			var count int
+			if err = tx.QueryRow(ctx, `SELECT count(*) FROM investment_ledgers WHERE tenant_id=$1 AND id=ANY($2::uuid[])`, tenant, p.LedgerIDs).Scan(&count); err != nil {
+				return err
+			}
+			if count != len(p.LedgerIDs) {
+				return d.ErrInvestmentPrecondition
+			}
+			if !p.Archived {
+				var member bool
+				if err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM user_tenants WHERE tenant_id=$1 AND user_id=$2 AND role IN ('owner','admin','member'))`, tenant, v.actor).Scan(&member); err != nil {
+					return err
+				}
+				if !member {
+					return d.ErrInvestmentPrecondition
+				}
+			}
+			continue
 		}
 		q := nav.Request{TenantID: tenant, UserID: v.actor, LedgerIDs: normalized.LedgerIDs, Currency: p.Currency, FXPolicyKey: p.FXPolicyKey, ConventionKey: p.ConventionKey}
 		key, _, err := navSeries(q)

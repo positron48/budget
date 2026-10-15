@@ -195,7 +195,7 @@ def main():
         query = "SELECT (SELECT version FROM schema_migrations), (SELECT count(*) FROM investment_ledgers), (SELECT count(*) FROM investment_operations), (SELECT count(*) FROM investment_payout_events), (SELECT count(*) FROM investment_payout_links);"
         counts = run("docker", "exec", pg, "psql", "-U", "budget", "-d", "budget", "-At", "-c", query,
                      capture_output=True).stdout.strip()
-        if counts.split("|")[1:] != ["2", "6", "2", "2"]:
+        if counts.split("|")[1:] != ["4", "6", "2", "2"]:
             raise RuntimeError("unexpected persisted row counts after feature/read-only checks")
         report = {"status": "passed", "scope": "disposable local authenticated full stack; no production or broker calls",
                   "backend_sha256": hashlib.sha256((out / "budgetd").read_bytes()).hexdigest(),

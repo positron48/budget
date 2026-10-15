@@ -1,9 +1,10 @@
 package investmentvaluation
 
 import (
-	d "github.com/positron48/budget/internal/domain"
 	"testing"
 	"time"
+
+	d "github.com/positron48/budget/internal/domain"
 )
 
 func TestPortfolioCoverageGapKeepsOtherCash(t *testing.T) {
@@ -21,6 +22,7 @@ func TestPortfolioCoverageGapKeepsOtherCash(t *testing.T) {
 		t.Fatal("unverified pre-opening money accepted")
 	}
 }
+
 func TestNormalizePortfolioRejectsDuplicateAccounts(t *testing.T) {
 	id := "11111111-1111-4111-8111-111111111111"
 	input := PortfolioInput{Name: " Portfolio ", LedgerIDs: []string{id}, Currency: "RUB", FXPolicyKey: "market", ConventionKey: "reviewed", From: "2024-01-01", To: "2024-01-02", RequestKey: "create"}
@@ -48,6 +50,22 @@ func TestLastCompletedMoscowDate(t *testing.T) {
 		}
 		if got := LastCompletedDate(at); got != tc.want {
 			t.Fatal(tc.instant, got, tc.want)
+		}
+	}
+}
+
+func TestTrackerSelectionContainsOnlyAccountReferences(t *testing.T) {
+	p := PortfolioInput{TrackerSelection: true, Name: " Brokers ", LedgerIDs: []string{"22222222-2222-4222-8222-222222222222", "11111111-1111-4111-8111-111111111111"}, RequestKey: "selection"}
+	n, err := NormalizePortfolio(p)
+	if err != nil || n.Name != "Brokers" || n.LedgerIDs[0] != p.LedgerIDs[1] {
+		t.Fatal(n, err)
+	}
+	for _, mutate := range []func(*PortfolioInput){func(v *PortfolioInput) { v.Currency = "RUB" }, func(v *PortfolioInput) { v.FXPolicyKey = "market" }, func(v *PortfolioInput) { v.AutoExtend = true }, func(v *PortfolioInput) { v.From = "2024-01-01" }, func(v *PortfolioInput) { v.LedgerIDs = append(v.LedgerIDs, v.LedgerIDs[0]) }} {
+		bad := p
+		bad.LedgerIDs = append([]string{}, p.LedgerIDs...)
+		mutate(&bad)
+		if _, err := NormalizePortfolio(bad); err == nil {
+			t.Fatal("selection accepted valuation configuration or duplicate", bad)
 		}
 	}
 }

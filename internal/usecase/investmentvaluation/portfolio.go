@@ -10,6 +10,7 @@ import (
 )
 
 type PortfolioInput struct {
+	TrackerSelection                               bool `json:",omitempty"`
 	AutoExtend                                     bool `json:",omitempty"`
 	Archived                                       bool `json:",omitempty"`
 	ID, Name                                       string
@@ -19,6 +20,7 @@ type PortfolioInput struct {
 	RequestKey                                     string
 }
 type Portfolio struct {
+	TrackerSelection                                          bool `json:",omitempty"`
 	AutoExtend                                                bool `json:",omitempty"`
 	Archived                                                  bool `json:",omitempty"`
 	ID, Name                                                  string
@@ -38,7 +40,7 @@ type PortfolioOptions struct {
 
 func NormalizePortfolio(p PortfolioInput) (PortfolioInput, error) {
 	p.Name = strings.TrimSpace(p.Name)
-	if !conventionText(p.Name, 200) || !conventionText(p.RequestKey, 200) || p.ExpectedVersion < 0 || !ValidConventionKey(p.ConventionKey) || !conventionText(p.FXPolicyKey, 100) || len(p.LedgerIDs) < 1 || len(p.LedgerIDs) > 20 || (p.Currency != "RUB" && p.Currency != "USD" && p.Currency != "EUR") {
+	if !conventionText(p.Name, 200) || !conventionText(p.RequestKey, 200) || p.ExpectedVersion < 0 || len(p.LedgerIDs) < 1 || len(p.LedgerIDs) > 20 || p.ExpectedVersion == 1<<63-1 {
 		return p, d.ErrInvestmentInvalid
 	}
 	if p.ID != "" {
@@ -54,6 +56,15 @@ func NormalizePortfolio(p PortfolioInput) (PortfolioInput, error) {
 		if parsed, e := uuid.Parse(id); e != nil || parsed.String() != id || i > 0 && p.LedgerIDs[i-1] == id {
 			return p, d.ErrInvestmentInvalid
 		}
+	}
+	if p.TrackerSelection {
+		if p.AutoExtend || p.Currency != "" || p.FXPolicyKey != "" || p.ConventionKey != "" || p.From != "" || p.To != "" {
+			return p, d.ErrInvestmentInvalid
+		}
+		return p, nil
+	}
+	if !ValidConventionKey(p.ConventionKey) || !conventionText(p.FXPolicyKey, 100) || (p.Currency != "RUB" && p.Currency != "USD" && p.Currency != "EUR") {
+		return p, d.ErrInvestmentInvalid
 	}
 	from, e := DayCutoff(p.From)
 	if e != nil {

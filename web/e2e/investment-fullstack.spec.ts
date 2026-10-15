@@ -4,6 +4,7 @@ import {createClient,Code} from "@connectrpc/connect";
 import {createGrpcWebTransport} from "@connectrpc/connect-web";
 import {randomUUID} from "node:crypto";
 import {AuthService} from "../proto/budget/v1/auth_pb";
+import {InvestmentNAVService} from "../proto/budget/v1/investment_nav_pb";
 import {InvestmentService} from "../proto/budget/v1/investment_pb";
 import {portfolioReport} from "../lib/portfolio-report";
 import {positionDecimal} from "../lib/investment-positions";
@@ -20,14 +21,14 @@ for(const locale of ["ru","en"])test(`${locale} simple portfolio ${phase}`,async
  if(phase==="write"){const r=await auth.register({email,password,name:"Disposable smoke",locale,tenantName:`Fullstack ${locale}`});tokens=r.tokens!;tenantId=r.tenant!.id;}
  else{const r=await auth.login({email,password});tokens=r.tokens!;tenantId=r.memberships[0].tenant!.id;}
  const transport=createGrpcWebTransport({baseUrl:baseURL+"/grpc",interceptors:[next=>async req=>{req.header.set("Authorization","Bearer "+tokens.accessToken);req.header.set("x-tenant-id",tenantId);return next(req)}]});
- const api=createClient(InvestmentService,transport);
+ const api=createClient(InvestmentService,transport),nav=createClient(InvestmentNAVService,transport);
  await context.addCookies([{name:"NEXT_LOCALE",value:locale,url:baseURL}]);
  await page.addInitScript(({access,refresh,tenant})=>{localStorage.setItem("budget/access",access);localStorage.setItem("budget/refresh",refresh);localStorage.setItem("budget/tenant",tenant)},{access:tokens.accessToken,refresh:tokens.refreshToken,tenant:tenantId});
  if(phase==="disabled"){
   await expect(api.listInvestmentLedgers({})).rejects.toMatchObject({code:Code.Unavailable});
   expect((await page.goto("/investments"))?.status()).toBe(404);return;
  }
- let ledger=(await api.listInvestmentLedgers({})).ledgers[0];
+ let ledger=(await api.listInvestmentLedgers({})).ledgers.find(l=>l.name===`Portfolio ${locale}`)!;
  if(phase==="write"){
   const outsider=await auth.register({email:`outsider-${runId}-${locale}@example.test`,password,name:"Outsider",locale});
   const denied=createClient(InvestmentService,createGrpcWebTransport({baseUrl:baseURL+"/grpc",interceptors:[next=>async req=>{req.header.set("Authorization","Bearer "+outsider.tokens!.accessToken);req.header.set("x-tenant-id",tenantId);return next(req)}]}));
@@ -41,6 +42,7 @@ for(const locale of ["ru","en"])test(`${locale} simple portfolio ${phase}`,async
    const saved={...request,previewHash:preview.previewHash};
    const first=await api.saveInvestmentOperation(saved),retry=await api.saveInvestmentOperation(saved);expect(retry.operation!.id).toBe(first.operation!.id);
   }
+  await api.createInvestmentLedger({name:`Secondary ${locale}`,defaultCurrency:"RUB",requestKey:randomUUID()});
  }
  const state=(await api.getInvestmentSnapshot({ledgerId:ledger.id})).snapshot!;
  expect(state.ledger!.portfolioTracking).toBe(true);expect(state.cash).toHaveLength(0);
@@ -56,6 +58,17 @@ for(const locale of ["ru","en"])test(`${locale} simple portfolio ${phase}`,async
   await expect(page.getByRole("button",{name:ru?"Добавить операцию":"Add operation",exact:true})).toHaveCount(0);
   await expect(api.createInvestmentLedger({name:"Denied",requestKey:randomUUID()})).rejects.toMatchObject({code:Code.FailedPrecondition});
  }
+ await page.getByText(ru?"Выбрать несколько счетов":"Select multiple accounts",{exact:true}).click();
+ if(phase==="write"){
+  await page.getByRole("group",{name:ru?"Счета в портфеле":"Portfolio accounts",exact:true}).getByLabel(`Secondary ${locale}`,{exact:true}).uncheck();
+  await page.getByLabel(ru?"Название набора счетов":"Account set name",{exact:true}).fill(`Primary ${locale}`);
+  await page.getByRole("button",{name:ru?"Сохранить набор":"Save account set",exact:true}).click();
+ }
+ await expect(page.getByRole("button",{name:`Primary ${locale}`,exact:true})).toBeVisible();
+ await page.getByRole("button",{name:`Primary ${locale}`,exact:true}).click();
+ const sets=(await nav.listInvestmentPortfolios({})).portfolios;
+ expect(sets).toHaveLength(1);expect(sets[0].trackerSelection).toBe(true);expect(sets[0].ledgerIds).toEqual([ledger.id]);expect(sets[0].seriesKey).toBe("");
+ if(phase==="readonly")await expect(page.getByRole("button",{name:ru?"Сохранить набор":"Save account set",exact:true})).toHaveCount(0);
  await page.goto(`/investments/calendar?account=${ledger.id}&month=2024-01`);
  await expect(page.getByRole("heading",{name:ru?"Календарь выплат":"Payout calendar",exact:true})).toBeVisible();
  await expect(page.getByRole("heading",{name:ru?"План по месяцам":"Monthly plan",exact:true})).toBeVisible();

@@ -33,3 +33,16 @@ it("aborts with the parent task and releases completed tasks",async()=>{
  await expect(task.run(async()=>42)).resolves.toBe(42);parent.abort();
  await expect(task.run(async()=>43)).rejects.toMatchObject({name:"AbortError"});task.dispose();
 });
+
+it("pins private requests to their actor without putting a token in the cache scope",async()=>{
+ const token=(sub:string)=>"header."+btoa(JSON.stringify({sub,tenant_id:"first"}))+".signature";
+ authStore.set({tenantId:"first",accessToken:token("one")});
+ const task=tenantRequestScope("first",undefined,"one");
+ authStore.set({accessToken:"header."+btoa(JSON.stringify({sub:"one",tenant_id:"first",iat:2}))+".signature"});
+ expect(task.signal.aborted).toBe(false);
+ await expect(task.run(async()=>"same user after refresh")).resolves.toBe("same user after refresh");
+ authStore.set({accessToken:token("two")});
+ expect(task.signal.aborted).toBe(true);
+ await expect(task.run(async()=>"private response")).rejects.toThrow("Tenant request cancelled");
+ task.dispose();
+});

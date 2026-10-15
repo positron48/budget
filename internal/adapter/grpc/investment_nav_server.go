@@ -48,6 +48,7 @@ func NewInvestmentNAVServer(repo InvestmentNAVRepo, snapshotKey ...string) *Inve
 	}
 	return s
 }
+
 func (s *InvestmentNAVServer) ListInvestmentNAVSeries(ctx context.Context, req *pb.ListInvestmentNAVSeriesRequest) (*pb.ListInvestmentNAVSeriesResponse, error) {
 	tenant, actor, e := assetContext(ctx)
 	if e != nil {
@@ -66,6 +67,7 @@ func (s *InvestmentNAVServer) ListInvestmentNAVSeries(ctx context.Context, req *
 	}
 	return out, nil
 }
+
 func (s *InvestmentNAVServer) GetInvestmentNAVHistory(ctx context.Context, req *pb.GetInvestmentNAVHistoryRequest) (*pb.GetInvestmentNAVHistoryResponse, error) {
 	tenant, actor, e := assetContext(ctx)
 	if e != nil {
@@ -81,6 +83,7 @@ func (s *InvestmentNAVServer) GetInvestmentNAVHistory(ctx context.Context, req *
 	}
 	return out, nil
 }
+
 func protoNAVPoint(v nav.DailyNAV) *pb.InvestmentNAVPoint {
 	out := &pb.InvestmentNAVPoint{Date: v.Date, State: v.State, Generation: v.Generation, ComputedAt: optionalInvestmentTimestamp(v.ComputedAt)}
 	// Defense in depth: even an accidental stale Result from storage cannot leak
@@ -103,6 +106,7 @@ func protoNAVPoint(v nav.DailyNAV) *pb.InvestmentNAVPoint {
 	}
 	return out
 }
+
 func (s *InvestmentNAVServer) RequestInvestmentNAVRefresh(ctx context.Context, req *pb.RequestInvestmentNAVRefreshRequest) (*pb.RequestInvestmentNAVRefreshResponse, error) {
 	tenant, actor, e := assetContext(ctx)
 	if e != nil {
@@ -115,19 +119,21 @@ func (s *InvestmentNAVServer) RequestInvestmentNAVRefresh(ctx context.Context, r
 }
 
 func protoInvestmentPortfolio(p nav.Portfolio) *pb.InvestmentPortfolio {
-	return &pb.InvestmentPortfolio{AutoExtend: p.AutoExtend, Archived: p.Archived, Id: p.ID, Name: p.Name, LedgerIds: p.LedgerIDs, Currency: p.Currency, FxPolicyKey: p.FXPolicyKey, ConventionKey: p.ConventionKey, FromDate: p.From, ToDate: p.To, SeriesKey: p.SeriesKey, Version: p.Version, UpdatedAt: optionalInvestmentTimestamp(p.UpdatedAt)}
+	return &pb.InvestmentPortfolio{TrackerSelection: p.TrackerSelection, AutoExtend: p.AutoExtend, Archived: p.Archived, Id: p.ID, Name: p.Name, LedgerIds: p.LedgerIDs, Currency: p.Currency, FxPolicyKey: p.FXPolicyKey, ConventionKey: p.ConventionKey, FromDate: p.From, ToDate: p.To, SeriesKey: p.SeriesKey, Version: p.Version, UpdatedAt: optionalInvestmentTimestamp(p.UpdatedAt)}
 }
+
 func (s *InvestmentNAVServer) SaveInvestmentPortfolio(ctx context.Context, req *pb.SaveInvestmentPortfolioRequest) (*pb.SaveInvestmentPortfolioResponse, error) {
 	tenant, actor, e := assetContext(ctx)
 	if e != nil {
 		return nil, e
 	}
-	p, e := s.repo.SaveInvestmentPortfolio(ctx, tenant, actor, nav.PortfolioInput{AutoExtend: req.GetAutoExtend(), Archived: req.GetArchived(), ID: req.GetId(), Name: req.GetName(), LedgerIDs: req.GetLedgerIds(), Currency: req.GetCurrency(), FXPolicyKey: req.GetFxPolicyKey(), ConventionKey: req.GetConventionKey(), From: req.GetFromDate(), To: req.GetToDate(), ExpectedVersion: req.GetExpectedVersion(), RequestKey: req.GetRequestKey()})
+	p, e := s.repo.SaveInvestmentPortfolio(ctx, tenant, actor, nav.PortfolioInput{TrackerSelection: req.GetTrackerSelection(), AutoExtend: req.GetAutoExtend(), Archived: req.GetArchived(), ID: req.GetId(), Name: req.GetName(), LedgerIDs: req.GetLedgerIds(), Currency: req.GetCurrency(), FXPolicyKey: req.GetFxPolicyKey(), ConventionKey: req.GetConventionKey(), From: req.GetFromDate(), To: req.GetToDate(), ExpectedVersion: req.GetExpectedVersion(), RequestKey: req.GetRequestKey()})
 	if e != nil {
 		return nil, investmentRPCError(e)
 	}
 	return &pb.SaveInvestmentPortfolioResponse{Portfolio: protoInvestmentPortfolio(p)}, nil
 }
+
 func (s *InvestmentNAVServer) ListInvestmentPortfolios(ctx context.Context, req *pb.ListInvestmentPortfoliosRequest) (*pb.ListInvestmentPortfoliosResponse, error) {
 	tenant, actor, e := assetContext(ctx)
 	if e != nil {
@@ -146,6 +152,7 @@ func (s *InvestmentNAVServer) ListInvestmentPortfolios(ctx context.Context, req 
 	}
 	return out, nil
 }
+
 func (s *InvestmentNAVServer) ListInvestmentValuationProfiles(ctx context.Context, req *pb.ListInvestmentValuationProfilesRequest) (*pb.ListInvestmentValuationProfilesResponse, error) {
 	tenant, actor, e := assetContext(ctx)
 	if e != nil {
@@ -189,6 +196,7 @@ func protoPerformanceAmount(value *big.Rat) *pb.InvestmentNAVAmount {
 	}
 	return &pb.InvestmentNAVAmount{Numerator: value.Num().String(), Denominator: value.Denom().String(), Decimal: value.FloatString(12)}
 }
+
 func (s *InvestmentNAVServer) GetInvestmentPerformance(ctx context.Context, req *pb.GetInvestmentPerformanceRequest) (*pb.GetInvestmentPerformanceResponse, error) {
 	tenant, actor, e := assetContext(ctx)
 	if e != nil {
@@ -200,6 +208,7 @@ func (s *InvestmentNAVServer) GetInvestmentPerformance(ctx context.Context, req 
 	}
 	return protoInvestmentPerformance(result), nil
 }
+
 func protoInvestmentPerformance(result nav.Performance) *pb.GetInvestmentPerformanceResponse {
 	out := &pb.GetInvestmentPerformanceResponse{FromDate: result.From, ToDate: result.To, Currency: result.Currency, FxPolicyKey: result.FXPolicyKey, Generation: result.Generation, Reason: result.Reason, NetContributionsReason: result.FlowReason, TwrReason: result.TWR.Reason, XirrReason: result.XIRR.Reason, XirrDays: int32(result.XIRR.Days), XirrAnnualized: true, TwrConvention: "daily_end_of_day_flows", ReportingTimezone: "Europe/Moscow", HistoryScope: "recorded_journal"}
 	if result.Reason == "" {
@@ -233,6 +242,7 @@ func protoInvestmentPerformance(result nav.Performance) *pb.GetInvestmentPerform
 func protoBenchmark(p nav.SavedBenchmarkProfile) *pb.InvestmentBenchmark {
 	return &pb.InvestmentBenchmark{Key: p.Key, Title: p.Title, Kind: p.Kind, NativeCurrency: p.Currency, Version: p.Version}
 }
+
 func (s *InvestmentNAVServer) ListInvestmentBenchmarks(ctx context.Context, req *pb.ListInvestmentBenchmarksRequest) (*pb.ListInvestmentBenchmarksResponse, error) {
 	tenant, actor, e := assetContext(ctx)
 	if e != nil {
@@ -251,6 +261,7 @@ func (s *InvestmentNAVServer) ListInvestmentBenchmarks(ctx context.Context, req 
 	}
 	return out, nil
 }
+
 func (s *InvestmentNAVServer) GetInvestmentBenchmarkComparison(ctx context.Context, req *pb.GetInvestmentBenchmarkComparisonRequest) (*pb.GetInvestmentBenchmarkComparisonResponse, error) {
 	tenant, actor, e := assetContext(ctx)
 	if e != nil {

@@ -53,7 +53,8 @@ func (r *MarketDataRepo) SaveInvestmentPortfolio(ctx context.Context, tenant, ac
 		id = uuid.NewString()
 	} else {
 		var version int64
-		e = tx.QueryRow(ctx, `SELECT version FROM investment_portfolios WHERE tenant_id=$1 AND actor_id=$2 AND id=$3 FOR UPDATE`, tenant, actor, id).Scan(&version)
+		var data []byte
+		e = tx.QueryRow(ctx, `SELECT version,data FROM investment_portfolios WHERE tenant_id=$1 AND actor_id=$2 AND id=$3 FOR UPDATE`, tenant, actor, id).Scan(&version, &data)
 		if errors.Is(e, pgx.ErrNoRows) {
 			return out, d.ErrInvestmentNotFound
 		}
@@ -63,8 +64,12 @@ func (r *MarketDataRepo) SaveInvestmentPortfolio(ctx context.Context, tenant, ac
 		if version != p.ExpectedVersion {
 			return out, d.ErrInvestmentConflict
 		}
+		var current nav.Portfolio
+		if json.Unmarshal(data, &current) != nil || current.TrackerSelection != p.TrackerSelection {
+			return out, d.ErrInvestmentPrecondition
+		}
 	}
-	if !p.Archived {
+	if !p.Archived && !p.TrackerSelection {
 		profile, e := readPriceConventions(ctx, tx, tenant, p.ConventionKey)
 		if e != nil {
 			return out, e
@@ -88,10 +93,22 @@ func (r *MarketDataRepo) SaveInvestmentPortfolio(ctx context.Context, tenant, ac
 			return out, d.ErrInvestmentPrecondition
 		}
 	}
+	if p.TrackerSelection {
+		var count int
+		if e = tx.QueryRow(ctx, `SELECT count(*) FROM investment_ledgers WHERE tenant_id=$1 AND id=ANY($2::uuid[])`, tenant, p.LedgerIDs).Scan(&count); e != nil {
+			return out, e
+		}
+		if count != len(p.LedgerIDs) {
+			return out, d.ErrInvestmentPrecondition
+		}
+	}
 	q := nav.Request{TenantID: tenant, UserID: actor, LedgerIDs: p.LedgerIDs, Currency: p.Currency, FXPolicyKey: p.FXPolicyKey, ConventionKey: p.ConventionKey}
-	key, _, e := navSeries(q)
-	if e != nil {
-		return out, e
+	key := ""
+	if !p.TrackerSelection {
+		key, _, e = navSeries(q)
+		if e != nil {
+			return out, e
+		}
 	}
 	if p.Archived && p.AutoExtend {
 		var completedTo string
@@ -103,7 +120,7 @@ func (r *MarketDataRepo) SaveInvestmentPortfolio(ctx context.Context, tenant, ac
 			p.To = completedTo
 		}
 	}
-	out = nav.Portfolio{AutoExtend: p.AutoExtend, Archived: p.Archived, ID: id, Name: p.Name, LedgerIDs: p.LedgerIDs, Currency: p.Currency, FXPolicyKey: p.FXPolicyKey, ConventionKey: p.ConventionKey, From: p.From, To: p.To, SeriesKey: key, Version: p.ExpectedVersion + 1, UpdatedAt: time.Now().UTC().Truncate(time.Microsecond)}
+	out = nav.Portfolio{TrackerSelection: p.TrackerSelection, AutoExtend: p.AutoExtend, Archived: p.Archived, ID: id, Name: p.Name, LedgerIDs: p.LedgerIDs, Currency: p.Currency, FXPolicyKey: p.FXPolicyKey, ConventionKey: p.ConventionKey, From: p.From, To: p.To, SeriesKey: key, Version: p.ExpectedVersion + 1, UpdatedAt: time.Now().UTC().Truncate(time.Microsecond)}
 	raw, e := json.Marshal(out)
 	if e != nil {
 		return out, e
@@ -114,13 +131,15 @@ func (r *MarketDataRepo) SaveInvestmentPortfolio(ctx context.Context, tenant, ac
 	if _, e = tx.Exec(ctx, `INSERT INTO investment_portfolio_revisions(tenant_id,actor_id,portfolio_id,version,data) VALUES($1,$2,$3,$4,$5)`, tenant, actor, id, out.Version, raw); e != nil {
 		return out, e
 	}
-	if !p.Archived {
+	if !p.Archived && !p.TrackerSelection {
 		if _, e = enqueueDailyNAV(ctx, tx, q, p.From, p.To, true); e != nil {
 			return out, e
 		}
 	}
-	if e = reconcilePortfolioWatches(ctx, tx, tenant, actor); e != nil {
-		return out, e
+	if !p.TrackerSelection {
+		if e = reconcilePortfolioWatches(ctx, tx, tenant, actor); e != nil {
+			return out, e
+		}
 	}
 	if _, e = tx.Exec(ctx, `INSERT INTO investment_portfolio_requests(tenant_id,actor_id,request_key,payload_hash,response) VALUES($1,$2,$3,$4,$5)`, tenant, actor, p.RequestKey, hash, raw); e != nil {
 		return out, e

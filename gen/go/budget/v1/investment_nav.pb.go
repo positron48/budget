@@ -639,22 +639,24 @@ func (x *RequestInvestmentNAVRefreshResponse) GetState() string {
 }
 
 type InvestmentPortfolio struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AutoExtend    bool                   `protobuf:"varint,13,opt,name=auto_extend,json=autoExtend,proto3" json:"auto_extend,omitempty"`
-	Archived      bool                   `protobuf:"varint,12,opt,name=archived,proto3" json:"archived,omitempty"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	LedgerIds     []string               `protobuf:"bytes,3,rep,name=ledger_ids,json=ledgerIds,proto3" json:"ledger_ids,omitempty"`
-	Currency      string                 `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency,omitempty"`
-	FxPolicyKey   string                 `protobuf:"bytes,5,opt,name=fx_policy_key,json=fxPolicyKey,proto3" json:"fx_policy_key,omitempty"`
-	ConventionKey string                 `protobuf:"bytes,6,opt,name=convention_key,json=conventionKey,proto3" json:"convention_key,omitempty"`
-	FromDate      string                 `protobuf:"bytes,7,opt,name=from_date,json=fromDate,proto3" json:"from_date,omitempty"`
-	ToDate        string                 `protobuf:"bytes,8,opt,name=to_date,json=toDate,proto3" json:"to_date,omitempty"`
-	SeriesKey     string                 `protobuf:"bytes,9,opt,name=series_key,json=seriesKey,proto3" json:"series_key,omitempty"`
-	Version       int64                  `protobuf:"varint,10,opt,name=version,proto3" json:"version,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Reference-only saved account selection; no valuation series or copied positions.
+	TrackerSelection bool                   `protobuf:"varint,14,opt,name=tracker_selection,json=trackerSelection,proto3" json:"tracker_selection,omitempty"`
+	AutoExtend       bool                   `protobuf:"varint,13,opt,name=auto_extend,json=autoExtend,proto3" json:"auto_extend,omitempty"`
+	Archived         bool                   `protobuf:"varint,12,opt,name=archived,proto3" json:"archived,omitempty"`
+	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name             string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	LedgerIds        []string               `protobuf:"bytes,3,rep,name=ledger_ids,json=ledgerIds,proto3" json:"ledger_ids,omitempty"`
+	Currency         string                 `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency,omitempty"`
+	FxPolicyKey      string                 `protobuf:"bytes,5,opt,name=fx_policy_key,json=fxPolicyKey,proto3" json:"fx_policy_key,omitempty"`
+	ConventionKey    string                 `protobuf:"bytes,6,opt,name=convention_key,json=conventionKey,proto3" json:"convention_key,omitempty"`
+	FromDate         string                 `protobuf:"bytes,7,opt,name=from_date,json=fromDate,proto3" json:"from_date,omitempty"`
+	ToDate           string                 `protobuf:"bytes,8,opt,name=to_date,json=toDate,proto3" json:"to_date,omitempty"`
+	SeriesKey        string                 `protobuf:"bytes,9,opt,name=series_key,json=seriesKey,proto3" json:"series_key,omitempty"`
+	Version          int64                  `protobuf:"varint,10,opt,name=version,proto3" json:"version,omitempty"`
+	UpdatedAt        *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *InvestmentPortfolio) Reset() {
@@ -685,6 +687,13 @@ func (x *InvestmentPortfolio) ProtoReflect() protoreflect.Message {
 // Deprecated: Use InvestmentPortfolio.ProtoReflect.Descriptor instead.
 func (*InvestmentPortfolio) Descriptor() ([]byte, []int) {
 	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *InvestmentPortfolio) GetTrackerSelection() bool {
+	if x != nil {
+		return x.TrackerSelection
+	}
+	return false
 }
 
 func (x *InvestmentPortfolio) GetAutoExtend() bool {
@@ -779,21 +788,22 @@ func (x *InvestmentPortfolio) GetUpdatedAt() *timestamppb.Timestamp {
 }
 
 type SaveInvestmentPortfolioRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	AutoExtend      bool                   `protobuf:"varint,12,opt,name=auto_extend,json=autoExtend,proto3" json:"auto_extend,omitempty"`
-	Archived        bool                   `protobuf:"varint,11,opt,name=archived,proto3" json:"archived,omitempty"`
-	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name            string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	LedgerIds       []string               `protobuf:"bytes,3,rep,name=ledger_ids,json=ledgerIds,proto3" json:"ledger_ids,omitempty"`
-	Currency        string                 `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency,omitempty"`
-	FxPolicyKey     string                 `protobuf:"bytes,5,opt,name=fx_policy_key,json=fxPolicyKey,proto3" json:"fx_policy_key,omitempty"`
-	ConventionKey   string                 `protobuf:"bytes,6,opt,name=convention_key,json=conventionKey,proto3" json:"convention_key,omitempty"`
-	FromDate        string                 `protobuf:"bytes,7,opt,name=from_date,json=fromDate,proto3" json:"from_date,omitempty"`
-	ToDate          string                 `protobuf:"bytes,8,opt,name=to_date,json=toDate,proto3" json:"to_date,omitempty"`
-	ExpectedVersion int64                  `protobuf:"varint,9,opt,name=expected_version,json=expectedVersion,proto3" json:"expected_version,omitempty"`
-	RequestKey      string                 `protobuf:"bytes,10,opt,name=request_key,json=requestKey,proto3" json:"request_key,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	TrackerSelection bool                   `protobuf:"varint,13,opt,name=tracker_selection,json=trackerSelection,proto3" json:"tracker_selection,omitempty"`
+	AutoExtend       bool                   `protobuf:"varint,12,opt,name=auto_extend,json=autoExtend,proto3" json:"auto_extend,omitempty"`
+	Archived         bool                   `protobuf:"varint,11,opt,name=archived,proto3" json:"archived,omitempty"`
+	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name             string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	LedgerIds        []string               `protobuf:"bytes,3,rep,name=ledger_ids,json=ledgerIds,proto3" json:"ledger_ids,omitempty"`
+	Currency         string                 `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency,omitempty"`
+	FxPolicyKey      string                 `protobuf:"bytes,5,opt,name=fx_policy_key,json=fxPolicyKey,proto3" json:"fx_policy_key,omitempty"`
+	ConventionKey    string                 `protobuf:"bytes,6,opt,name=convention_key,json=conventionKey,proto3" json:"convention_key,omitempty"`
+	FromDate         string                 `protobuf:"bytes,7,opt,name=from_date,json=fromDate,proto3" json:"from_date,omitempty"`
+	ToDate           string                 `protobuf:"bytes,8,opt,name=to_date,json=toDate,proto3" json:"to_date,omitempty"`
+	ExpectedVersion  int64                  `protobuf:"varint,9,opt,name=expected_version,json=expectedVersion,proto3" json:"expected_version,omitempty"`
+	RequestKey       string                 `protobuf:"bytes,10,opt,name=request_key,json=requestKey,proto3" json:"request_key,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *SaveInvestmentPortfolioRequest) Reset() {
@@ -824,6 +834,13 @@ func (x *SaveInvestmentPortfolioRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use SaveInvestmentPortfolioRequest.ProtoReflect.Descriptor instead.
 func (*SaveInvestmentPortfolioRequest) Descriptor() ([]byte, []int) {
 	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *SaveInvestmentPortfolioRequest) GetTrackerSelection() bool {
+	if x != nil {
+		return x.TrackerSelection
+	}
+	return false
 }
 
 func (x *SaveInvestmentPortfolioRequest) GetAutoExtend() bool {
@@ -9210,8 +9227,9 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\n" +
 	"series_key\x18\x01 \x01(\tR\tseriesKey\";\n" +
 	"#RequestInvestmentNAVRefreshResponse\x12\x14\n" +
-	"\x05state\x18\x01 \x01(\tR\x05state\"\xa6\x03\n" +
-	"\x13InvestmentPortfolio\x12\x1f\n" +
+	"\x05state\x18\x01 \x01(\tR\x05state\"\xd3\x03\n" +
+	"\x13InvestmentPortfolio\x12+\n" +
+	"\x11tracker_selection\x18\x0e \x01(\bR\x10trackerSelection\x12\x1f\n" +
 	"\vauto_extend\x18\r \x01(\bR\n" +
 	"autoExtend\x12\x1a\n" +
 	"\barchived\x18\f \x01(\bR\barchived\x12\x0e\n" +
@@ -9229,8 +9247,9 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\aversion\x18\n" +
 	" \x01(\x03R\aversion\x129\n" +
 	"\n" +
-	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x89\x03\n" +
-	"\x1eSaveInvestmentPortfolioRequest\x12\x1f\n" +
+	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xb6\x03\n" +
+	"\x1eSaveInvestmentPortfolioRequest\x12+\n" +
+	"\x11tracker_selection\x18\r \x01(\bR\x10trackerSelection\x12\x1f\n" +
 	"\vauto_extend\x18\f \x01(\bR\n" +
 	"autoExtend\x12\x1a\n" +
 	"\barchived\x18\v \x01(\bR\barchived\x12\x0e\n" +

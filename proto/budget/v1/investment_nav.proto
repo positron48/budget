@@ -80,6 +80,8 @@ service InvestmentNAVService {
 
 
 message InvestmentPortfolio {
+ // Reference-only saved account selection; no valuation series or copied positions.
+ bool tracker_selection = 14;
  bool auto_extend = 13;
  bool archived = 12;
  string id = 1;
@@ -95,6 +97,7 @@ message InvestmentPortfolio {
  google.protobuf.Timestamp updated_at = 11;
 }
 message SaveInvestmentPortfolioRequest {
+ bool tracker_selection = 13;
  bool auto_extend = 12;
  bool archived = 11;
  string id = 1;
