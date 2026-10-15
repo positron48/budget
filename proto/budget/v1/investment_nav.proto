@@ -541,6 +541,10 @@ message GetInvestmentExchangeRatesRequest {
 }
 message InvestmentExchangeRate {
  string date=1; string from_currency=2; InvestmentNAVAmount rate=3; // absent when unavailable or expired
+ // Current rows only: latest earlier observation of the same source pair/path.
+ // Retrospective comparison, not a verified exchange session/publication time.
+ InvestmentNAVAmount previous_rate=4;
+ repeated InvestmentCurrentFXLeg previous_fx_legs=5;
 }
 message GetInvestmentExchangeRatesResponse {
  string currency=1; string fx_policy_key=2; int64 policy_version=3; string mode=4;

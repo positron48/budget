@@ -76,3 +76,18 @@ func TestCurrentExchangeRatesRPCExposesObservedInverseEvidence(t *testing.T) {
 		t.Fatal("original fixing replaced by converted or read time", observed)
 	}
 }
+
+func TestCurrentExchangeRatesRPCSeparatesPreviousEvidenceFromDatedRows(t *testing.T) {
+	at := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	previous := calc.FXFixing{ID: "previous", Revision: 2, Policy: "alpha@1", From: "USD", To: "RUB", Rate: "75", At: at, AvailableAt: at.Add(time.Hour), ValidUntil: at.Add(24 * time.Hour)}
+	leg := calc.FXLeg{ID: previous.ID, Revision: previous.Revision, Policy: previous.Policy, From: previous.From, To: previous.To, At: previous.At, AvailableAt: previous.AvailableAt, ValidUntil: previous.ValidUntil}
+	row := nav.ExchangeRate{From: "USD", Rate: big.NewRat(80, 1), PreviousRate: big.NewRat(75, 1), PreviousLegs: []calc.FXLeg{leg}}
+	dated := row
+	dated.Date = "2026-01-01"
+	repo := &ratesRepoStub{result: &nav.ExchangeRates{Currency: "RUB", PolicyKey: "alpha", PolicyVersion: 1, FXFixings: []calc.FXFixing{previous}, Rates: []nav.ExchangeRate{row, dated}}}
+	ctx := ctxutil.WithUserID(ctxutil.WithTenantID(context.Background(), "tenant"), "actor")
+	out, err := NewInvestmentNAVServer(repo).GetInvestmentExchangeRates(ctx, &pb.GetInvestmentExchangeRatesRequest{})
+	if err != nil || out.Rates[0].PreviousRate.GetNumerator() != "75" || len(out.Rates[0].PreviousFxLegs) != 1 || out.Rates[0].PreviousFxLegs[0].ObservedRate.GetNumerator() != "75" || out.Rates[1].PreviousRate != nil || len(out.CurrentFxLegs) != 0 {
+		t.Fatal(out, err)
+	}
+}

@@ -103,3 +103,38 @@ func TestReportingCurrentFXEvidenceRetainsInverseAndCrossPaths(t *testing.T) {
 		}
 	}
 }
+
+func TestCurrentFXComparisonUsesPreviousComparableObservation(t *testing.T) {
+	at := time.Date(2026, 10, 12, 0, 0, 0, 0, time.UTC)
+	point := func(id, from, to, value string, day int) calc.FXFixing {
+		return calc.FXFixing{ID: id, Revision: 1, Policy: "market@1", From: from, To: to, Rate: value, At: at.Add(time.Duration(day) * 24 * time.Hour), AvailableAt: at.Add(time.Duration(day+1) * 24 * time.Hour), ValidUntil: at.Add(time.Duration(day+5) * 24 * time.Hour)}
+	}
+	old, current := point("old", "USD", "RUB", "80", 0), point("current", "USD", "RUB", "84", 2)
+	rates, err := ReportingExchangeRates([]calc.FXFixing{old, current}, "market@1", "RUB", []string{"USD"}, nil, at.Add(80*time.Hour))
+	if err != nil || rates[0].PreviousRate == nil || rates[0].PreviousRate.RatString() != "80" || len(rates[0].PreviousLegs) != 1 || rates[0].PreviousLegs[0].ID != "old" {
+		t.Fatal(rates, err)
+	}
+	// Changing the pair orientation must retain the original inverse evidence.
+	rates, err = ReportingExchangeRates([]calc.FXFixing{old, current}, "market@1", "USD", []string{"RUB"}, nil, at.Add(80*time.Hour))
+	if err != nil || rates[0].PreviousRate.RatString() != "1/80" || !rates[0].PreviousLegs[0].Inverse {
+		t.Fatal(rates, err)
+	}
+	// A withdrawn latest predecessor must not revive an even older observation.
+	withdrawn := point("withdrawn", "USD", "RUB", "", 1)
+	withdrawn.Withdrawn = true
+	rates, err = ReportingExchangeRates([]calc.FXFixing{old, withdrawn, current}, "market@1", "RUB", []string{"USD"}, nil, at.Add(80*time.Hour))
+	if err != nil || rates[0].PreviousRate != nil {
+		t.Fatal("withdrawn predecessor revived", rates, err)
+	}
+	// Two-legged comparisons require matching observation dates, not arbitrary older legs.
+	eurOld, eurCurrent := point("eur-old", "EUR", "RUB", "100", 0), point("eur-current", "EUR", "RUB", "105", 2)
+	rates, err = ReportingExchangeRates([]calc.FXFixing{old, current, eurOld, eurCurrent}, "market@1", "USD", []string{"EUR"}, nil, at.Add(80*time.Hour))
+	if err != nil || rates[0].PreviousRate == nil || rates[0].PreviousRate.RatString() != "5/4" || len(rates[0].PreviousLegs) != 2 {
+		t.Fatal(rates, err)
+	}
+	eurOld.At = eurOld.At.Add(time.Hour)
+	rates, err = ReportingExchangeRates([]calc.FXFixing{old, current, eurOld, eurCurrent}, "market@1", "USD", []string{"EUR"}, nil, at.Add(80*time.Hour))
+	if err != nil || rates[0].PreviousRate != nil {
+		t.Fatal("noncomparable cross accepted", rates, err)
+	}
+}

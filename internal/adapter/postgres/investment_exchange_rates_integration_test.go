@@ -58,7 +58,10 @@ func TestPortfolioExchangeRatesAuthorizeAndTranslateHistoricalDates(t *testing.T
 	fresh.RecordReference = "synthetic/current-usd"
 	eur := fresh
 	eur.From, eur.Rate, eur.RecordReference = "EUR", "100", "synthetic/current-eur"
-	if _, e := repo.SaveFXPoints(ctx, tenant, p.Key, 1, []md.FXPoint{fresh, eur}); e != nil {
+	previous := fresh
+	previous.At, previous.AvailableAt, previous.ValidUntil = freshAt.Add(-24*time.Hour), freshAt.Add(-24*time.Hour), freshAt
+	previous.Rate, previous.RecordReference = "75", "synthetic/previous-usd"
+	if _, e := repo.SaveFXPoints(ctx, tenant, p.Key, 1, []md.FXPoint{previous, fresh, eur}); e != nil {
 		t.Fatal(e)
 	}
 	current, e := repo.InvestmentExchangeRates(ctx, tenant, actor, p.Key, "RUB", []string{"USD", "EUR"}, nil)
@@ -72,6 +75,12 @@ func TestPortfolioExchangeRatesAuthorizeAndTranslateHistoricalDates(t *testing.T
 		}
 		if rate.Rate == nil || rate.Rate.RatString() != want || len(rate.CurrentLegs) != 1 || !rate.CurrentLegs[0].AvailableAt.Equal(freshAt) {
 			t.Fatal(rate)
+		}
+		if rate.From == "USD" && (rate.PreviousRate == nil || rate.PreviousRate.RatString() != "75" || len(rate.PreviousLegs) != 1 || !rate.PreviousLegs[0].At.Equal(previous.At)) {
+			t.Fatal("previous observation missing", rate)
+		}
+		if rate.From == "EUR" && rate.PreviousRate != nil {
+			t.Fatal("missing predecessor invented", rate)
 		}
 		found := false
 		for _, fixing := range current.FXFixings {

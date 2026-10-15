@@ -6985,12 +6985,16 @@ func (x *GetInvestmentExchangeRatesRequest) GetDates() []string {
 }
 
 type InvestmentExchangeRate struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Date          string                 `protobuf:"bytes,1,opt,name=date,proto3" json:"date,omitempty"`
-	FromCurrency  string                 `protobuf:"bytes,2,opt,name=from_currency,json=fromCurrency,proto3" json:"from_currency,omitempty"`
-	Rate          *InvestmentNAVAmount   `protobuf:"bytes,3,opt,name=rate,proto3" json:"rate,omitempty"` // absent when unavailable or expired
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Date         string                 `protobuf:"bytes,1,opt,name=date,proto3" json:"date,omitempty"`
+	FromCurrency string                 `protobuf:"bytes,2,opt,name=from_currency,json=fromCurrency,proto3" json:"from_currency,omitempty"`
+	Rate         *InvestmentNAVAmount   `protobuf:"bytes,3,opt,name=rate,proto3" json:"rate,omitempty"` // absent when unavailable or expired
+	// Current rows only: latest earlier observation of the same source pair/path.
+	// Retrospective comparison, not a verified exchange session/publication time.
+	PreviousRate   *InvestmentNAVAmount      `protobuf:"bytes,4,opt,name=previous_rate,json=previousRate,proto3" json:"previous_rate,omitempty"`
+	PreviousFxLegs []*InvestmentCurrentFXLeg `protobuf:"bytes,5,rep,name=previous_fx_legs,json=previousFxLegs,proto3" json:"previous_fx_legs,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *InvestmentExchangeRate) Reset() {
@@ -7040,6 +7044,20 @@ func (x *InvestmentExchangeRate) GetFromCurrency() string {
 func (x *InvestmentExchangeRate) GetRate() *InvestmentNAVAmount {
 	if x != nil {
 		return x.Rate
+	}
+	return nil
+}
+
+func (x *InvestmentExchangeRate) GetPreviousRate() *InvestmentNAVAmount {
+	if x != nil {
+		return x.PreviousRate
+	}
+	return nil
+}
+
+func (x *InvestmentExchangeRate) GetPreviousFxLegs() []*InvestmentCurrentFXLeg {
+	if x != nil {
+		return x.PreviousFxLegs
 	}
 	return nil
 }
@@ -9882,11 +9900,13 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\rfx_policy_key\x18\x01 \x01(\tR\vfxPolicyKey\x12\x1a\n" +
 	"\bcurrency\x18\x02 \x01(\tR\bcurrency\x12'\n" +
 	"\x0ffrom_currencies\x18\x03 \x03(\tR\x0efromCurrencies\x12\x14\n" +
-	"\x05dates\x18\x04 \x03(\tR\x05dates\"\x85\x01\n" +
+	"\x05dates\x18\x04 \x03(\tR\x05dates\"\x97\x02\n" +
 	"\x16InvestmentExchangeRate\x12\x12\n" +
 	"\x04date\x18\x01 \x01(\tR\x04date\x12#\n" +
 	"\rfrom_currency\x18\x02 \x01(\tR\ffromCurrency\x122\n" +
-	"\x04rate\x18\x03 \x01(\v2\x1e.budget.v1.InvestmentNAVAmountR\x04rate\"\x99\x03\n" +
+	"\x04rate\x18\x03 \x01(\v2\x1e.budget.v1.InvestmentNAVAmountR\x04rate\x12C\n" +
+	"\rprevious_rate\x18\x04 \x01(\v2\x1e.budget.v1.InvestmentNAVAmountR\fpreviousRate\x12K\n" +
+	"\x10previous_fx_legs\x18\x05 \x03(\v2!.budget.v1.InvestmentCurrentFXLegR\x0epreviousFxLegs\"\x99\x03\n" +
 	"\"GetInvestmentExchangeRatesResponse\x12\x1a\n" +
 	"\bcurrency\x18\x01 \x01(\tR\bcurrency\x12\"\n" +
 	"\rfx_policy_key\x18\x02 \x01(\tR\vfxPolicyKey\x12%\n" +
@@ -10421,123 +10441,125 @@ var file_budget_v1_investment_nav_proto_depIdxs = []int32{
 	0,   // 148: budget.v1.GetInvestmentNAVVariantResponse.series:type_name -> budget.v1.InvestmentNAVSeries
 	0,   // 149: budget.v1.PrepareInvestmentNAVVariantResponse.series:type_name -> budget.v1.InvestmentNAVSeries
 	2,   // 150: budget.v1.InvestmentExchangeRate.rate:type_name -> budget.v1.InvestmentNAVAmount
-	100, // 151: budget.v1.GetInvestmentExchangeRatesResponse.read_at:type_name -> google.protobuf.Timestamp
-	81,  // 152: budget.v1.GetInvestmentExchangeRatesResponse.rates:type_name -> budget.v1.InvestmentExchangeRate
-	66,  // 153: budget.v1.GetInvestmentExchangeRatesResponse.current_fx_legs:type_name -> budget.v1.InvestmentCurrentFXLeg
-	2,   // 154: budget.v1.InvestmentQuote.clean_price:type_name -> budget.v1.InvestmentNAVAmount
-	100, // 155: budget.v1.InvestmentQuote.price_at:type_name -> google.protobuf.Timestamp
-	100, // 156: budget.v1.GetInvestmentQuotesResponse.read_at:type_name -> google.protobuf.Timestamp
-	84,  // 157: budget.v1.GetInvestmentQuotesResponse.quotes:type_name -> budget.v1.InvestmentQuote
-	2,   // 158: budget.v1.TrackerValueDetail.quantity:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 159: budget.v1.TrackerValueDetail.unit_price:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 160: budget.v1.TrackerValueDetail.native_value:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 161: budget.v1.TrackerValueDetail.value:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 162: budget.v1.TrackerValueDetail.fx_rate:type_name -> budget.v1.InvestmentNAVAmount
-	100, // 163: budget.v1.TrackerValueDetail.price_at:type_name -> google.protobuf.Timestamp
-	2,   // 164: budget.v1.TrackerHistoryPoint.known_value:type_name -> budget.v1.InvestmentNAVAmount
-	1,   // 165: budget.v1.TrackerHistoryPoint.issues:type_name -> budget.v1.InvestmentNAVIssue
-	88,  // 166: budget.v1.TrackerHistoryPoint.details:type_name -> budget.v1.TrackerValueDetail
-	66,  // 167: budget.v1.TrackerHistoryPoint.fx_legs:type_name -> budget.v1.InvestmentCurrentFXLeg
-	89,  // 168: budget.v1.GetTrackerHistoryResponse.points:type_name -> budget.v1.TrackerHistoryPoint
-	100, // 169: budget.v1.GetTrackerHistoryResponse.read_at:type_name -> google.protobuf.Timestamp
-	103, // 170: budget.v1.TrackerInstrumentListing.source:type_name -> budget.v1.MarketSourceKey
-	100, // 171: budget.v1.TrackerInstrumentListing.from:type_name -> google.protobuf.Timestamp
-	100, // 172: budget.v1.TrackerInstrumentListing.to:type_name -> google.protobuf.Timestamp
-	2,   // 173: budget.v1.TrackerInstrumentPricePoint.raw:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 174: budget.v1.TrackerInstrumentPricePoint.native_clean:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 175: budget.v1.TrackerInstrumentPricePoint.clean:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 176: budget.v1.TrackerInstrumentPricePoint.accrued:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 177: budget.v1.TrackerInstrumentPricePoint.native_dirty:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 178: budget.v1.TrackerInstrumentPricePoint.dirty:type_name -> budget.v1.InvestmentNAVAmount
-	100, // 179: budget.v1.GetTrackerInstrumentPricesResponse.read_at:type_name -> google.protobuf.Timestamp
-	92,  // 180: budget.v1.GetTrackerInstrumentPricesResponse.listings:type_name -> budget.v1.TrackerInstrumentListing
-	101, // 181: budget.v1.GetTrackerInstrumentPricesResponse.instrument:type_name -> budget.v1.MarketInstrument
-	100, // 182: budget.v1.GetTrackerInstrumentPricesResponse.metadata_at:type_name -> google.protobuf.Timestamp
-	84,  // 183: budget.v1.GetTrackerInstrumentPricesResponse.quote:type_name -> budget.v1.InvestmentQuote
-	104, // 184: budget.v1.GetTrackerInstrumentPricesResponse.bond:type_name -> budget.v1.GetMarketBondFactsResponse
-	103, // 185: budget.v1.GetTrackerInstrumentPricesResponse.source:type_name -> budget.v1.MarketSourceKey
-	93,  // 186: budget.v1.GetTrackerInstrumentPricesResponse.points:type_name -> budget.v1.TrackerInstrumentPricePoint
-	2,   // 187: budget.v1.TrackerAnalyticsPoint.value:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 188: budget.v1.TrackerAnalyticsPoint.flow:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 189: budget.v1.TrackerAnalyticsPoint.contributions:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 190: budget.v1.TrackerAnalyticsPoint.invested:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 191: budget.v1.TrackerAnalyticsPoint.profit:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 192: budget.v1.TrackerAnalyticsPoint.daily_profit:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 193: budget.v1.TrackerAnalyticsPeriod.profit:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 194: budget.v1.TrackerContribution.opening:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 195: budget.v1.TrackerContribution.closing:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 196: budget.v1.TrackerContribution.flow:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 197: budget.v1.TrackerContribution.profit:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 198: budget.v1.TrackerContribution.opening_quantity:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 199: budget.v1.TrackerContribution.closing_quantity:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 200: budget.v1.TrackerContribution.profit_share:type_name -> budget.v1.InvestmentNAVAmount
-	100, // 201: budget.v1.GetTrackerContributionsResponse.read_at:type_name -> google.protobuf.Timestamp
-	98,  // 202: budget.v1.GetTrackerContributionsResponse.rows:type_name -> budget.v1.TrackerContribution
-	2,   // 203: budget.v1.GetTrackerContributionsResponse.profit:type_name -> budget.v1.InvestmentNAVAmount
-	2,   // 204: budget.v1.GetTrackerContributionsResponse.known_profit:type_name -> budget.v1.InvestmentNAVAmount
-	91,  // 205: budget.v1.InvestmentNAVService.GetTrackerInstrumentPrices:input_type -> budget.v1.GetTrackerInstrumentPricesRequest
-	87,  // 206: budget.v1.InvestmentNAVService.GetTrackerHistory:input_type -> budget.v1.GetTrackerHistoryRequest
-	97,  // 207: budget.v1.InvestmentNAVService.GetTrackerContributions:input_type -> budget.v1.GetTrackerContributionsRequest
-	86,  // 208: budget.v1.InvestmentNAVService.GetTrackerPerformance:input_type -> budget.v1.GetTrackerPerformanceRequest
-	67,  // 209: budget.v1.InvestmentNAVService.GetInvestmentLots:input_type -> budget.v1.GetInvestmentLotsRequest
-	72,  // 210: budget.v1.InvestmentNAVService.GetInvestmentCurrentNAV:input_type -> budget.v1.GetInvestmentCurrentNAVRequest
-	76,  // 211: budget.v1.InvestmentNAVService.GetInvestmentNAVVariant:input_type -> budget.v1.GetInvestmentNAVVariantRequest
-	77,  // 212: budget.v1.InvestmentNAVService.PrepareInvestmentNAVVariant:input_type -> budget.v1.PrepareInvestmentNAVVariantRequest
-	73,  // 213: budget.v1.InvestmentNAVService.ExportInvestmentSeries:input_type -> budget.v1.ExportInvestmentSeriesRequest
-	74,  // 214: budget.v1.InvestmentNAVService.GetInvestmentOverview:input_type -> budget.v1.GetInvestmentOverviewRequest
-	75,  // 215: budget.v1.InvestmentNAVService.GetInvestmentProfit:input_type -> budget.v1.GetInvestmentProfitRequest
-	26,  // 216: budget.v1.InvestmentNAVService.ListInvestmentBenchmarks:input_type -> budget.v1.ListInvestmentBenchmarksRequest
-	28,  // 217: budget.v1.InvestmentNAVService.GetInvestmentBenchmarkComparison:input_type -> budget.v1.GetInvestmentBenchmarkComparisonRequest
-	20,  // 218: budget.v1.InvestmentNAVService.GetInvestmentPerformance:input_type -> budget.v1.GetInvestmentPerformanceRequest
-	18,  // 219: budget.v1.InvestmentNAVService.GetInvestmentNAVSeries:input_type -> budget.v1.GetInvestmentNAVSeriesRequest
-	49,  // 220: budget.v1.InvestmentNAVService.GetInvestmentInstrumentPrices:input_type -> budget.v1.GetInvestmentInstrumentPricesRequest
-	43,  // 221: budget.v1.InvestmentNAVService.GetInvestmentPositions:input_type -> budget.v1.GetInvestmentPositionsRequest
-	47,  // 222: budget.v1.InvestmentNAVService.GetInvestmentInstrument:input_type -> budget.v1.GetInvestmentInstrumentRequest
-	39,  // 223: budget.v1.InvestmentNAVService.GetInvestmentCompositionHistory:input_type -> budget.v1.GetInvestmentCompositionHistoryRequest
-	35,  // 224: budget.v1.InvestmentNAVService.GetInvestmentGroups:input_type -> budget.v1.GetInvestmentGroupsRequest
-	37,  // 225: budget.v1.InvestmentNAVService.SaveInvestmentGroups:input_type -> budget.v1.SaveInvestmentGroupsRequest
-	11,  // 226: budget.v1.InvestmentNAVService.SaveInvestmentPortfolio:input_type -> budget.v1.SaveInvestmentPortfolioRequest
-	13,  // 227: budget.v1.InvestmentNAVService.ListInvestmentPortfolios:input_type -> budget.v1.ListInvestmentPortfoliosRequest
-	16,  // 228: budget.v1.InvestmentNAVService.ListInvestmentValuationProfiles:input_type -> budget.v1.ListInvestmentValuationProfilesRequest
-	4,   // 229: budget.v1.InvestmentNAVService.ListInvestmentNAVSeries:input_type -> budget.v1.ListInvestmentNAVSeriesRequest
-	6,   // 230: budget.v1.InvestmentNAVService.GetInvestmentNAVHistory:input_type -> budget.v1.GetInvestmentNAVHistoryRequest
-	8,   // 231: budget.v1.InvestmentNAVService.RequestInvestmentNAVRefresh:input_type -> budget.v1.RequestInvestmentNAVRefreshRequest
-	80,  // 232: budget.v1.InvestmentNAVService.GetInvestmentExchangeRates:input_type -> budget.v1.GetInvestmentExchangeRatesRequest
-	83,  // 233: budget.v1.InvestmentNAVService.GetInvestmentQuotes:input_type -> budget.v1.GetInvestmentQuotesRequest
-	94,  // 234: budget.v1.InvestmentNAVService.GetTrackerInstrumentPrices:output_type -> budget.v1.GetTrackerInstrumentPricesResponse
-	90,  // 235: budget.v1.InvestmentNAVService.GetTrackerHistory:output_type -> budget.v1.GetTrackerHistoryResponse
-	99,  // 236: budget.v1.InvestmentNAVService.GetTrackerContributions:output_type -> budget.v1.GetTrackerContributionsResponse
-	22,  // 237: budget.v1.InvestmentNAVService.GetTrackerPerformance:output_type -> budget.v1.GetInvestmentPerformanceResponse
-	71,  // 238: budget.v1.InvestmentNAVService.GetInvestmentLots:output_type -> budget.v1.GetInvestmentLotsResponse
-	64,  // 239: budget.v1.InvestmentNAVService.GetInvestmentCurrentNAV:output_type -> budget.v1.GetInvestmentCurrentNAVResponse
-	78,  // 240: budget.v1.InvestmentNAVService.GetInvestmentNAVVariant:output_type -> budget.v1.GetInvestmentNAVVariantResponse
-	79,  // 241: budget.v1.InvestmentNAVService.PrepareInvestmentNAVVariant:output_type -> budget.v1.PrepareInvestmentNAVVariantResponse
-	61,  // 242: budget.v1.InvestmentNAVService.ExportInvestmentSeries:output_type -> budget.v1.ExportInvestmentSeriesResponse
-	60,  // 243: budget.v1.InvestmentNAVService.GetInvestmentOverview:output_type -> budget.v1.GetInvestmentOverviewResponse
-	58,  // 244: budget.v1.InvestmentNAVService.GetInvestmentProfit:output_type -> budget.v1.GetInvestmentProfitResponse
-	27,  // 245: budget.v1.InvestmentNAVService.ListInvestmentBenchmarks:output_type -> budget.v1.ListInvestmentBenchmarksResponse
-	30,  // 246: budget.v1.InvestmentNAVService.GetInvestmentBenchmarkComparison:output_type -> budget.v1.GetInvestmentBenchmarkComparisonResponse
-	22,  // 247: budget.v1.InvestmentNAVService.GetInvestmentPerformance:output_type -> budget.v1.GetInvestmentPerformanceResponse
-	19,  // 248: budget.v1.InvestmentNAVService.GetInvestmentNAVSeries:output_type -> budget.v1.GetInvestmentNAVSeriesResponse
-	53,  // 249: budget.v1.InvestmentNAVService.GetInvestmentInstrumentPrices:output_type -> budget.v1.GetInvestmentInstrumentPricesResponse
-	46,  // 250: budget.v1.InvestmentNAVService.GetInvestmentPositions:output_type -> budget.v1.GetInvestmentPositionsResponse
-	48,  // 251: budget.v1.InvestmentNAVService.GetInvestmentInstrument:output_type -> budget.v1.GetInvestmentInstrumentResponse
-	42,  // 252: budget.v1.InvestmentNAVService.GetInvestmentCompositionHistory:output_type -> budget.v1.GetInvestmentCompositionHistoryResponse
-	36,  // 253: budget.v1.InvestmentNAVService.GetInvestmentGroups:output_type -> budget.v1.GetInvestmentGroupsResponse
-	38,  // 254: budget.v1.InvestmentNAVService.SaveInvestmentGroups:output_type -> budget.v1.SaveInvestmentGroupsResponse
-	12,  // 255: budget.v1.InvestmentNAVService.SaveInvestmentPortfolio:output_type -> budget.v1.SaveInvestmentPortfolioResponse
-	14,  // 256: budget.v1.InvestmentNAVService.ListInvestmentPortfolios:output_type -> budget.v1.ListInvestmentPortfoliosResponse
-	17,  // 257: budget.v1.InvestmentNAVService.ListInvestmentValuationProfiles:output_type -> budget.v1.ListInvestmentValuationProfilesResponse
-	5,   // 258: budget.v1.InvestmentNAVService.ListInvestmentNAVSeries:output_type -> budget.v1.ListInvestmentNAVSeriesResponse
-	7,   // 259: budget.v1.InvestmentNAVService.GetInvestmentNAVHistory:output_type -> budget.v1.GetInvestmentNAVHistoryResponse
-	9,   // 260: budget.v1.InvestmentNAVService.RequestInvestmentNAVRefresh:output_type -> budget.v1.RequestInvestmentNAVRefreshResponse
-	82,  // 261: budget.v1.InvestmentNAVService.GetInvestmentExchangeRates:output_type -> budget.v1.GetInvestmentExchangeRatesResponse
-	85,  // 262: budget.v1.InvestmentNAVService.GetInvestmentQuotes:output_type -> budget.v1.GetInvestmentQuotesResponse
-	234, // [234:263] is the sub-list for method output_type
-	205, // [205:234] is the sub-list for method input_type
-	205, // [205:205] is the sub-list for extension type_name
-	205, // [205:205] is the sub-list for extension extendee
-	0,   // [0:205] is the sub-list for field type_name
+	2,   // 151: budget.v1.InvestmentExchangeRate.previous_rate:type_name -> budget.v1.InvestmentNAVAmount
+	66,  // 152: budget.v1.InvestmentExchangeRate.previous_fx_legs:type_name -> budget.v1.InvestmentCurrentFXLeg
+	100, // 153: budget.v1.GetInvestmentExchangeRatesResponse.read_at:type_name -> google.protobuf.Timestamp
+	81,  // 154: budget.v1.GetInvestmentExchangeRatesResponse.rates:type_name -> budget.v1.InvestmentExchangeRate
+	66,  // 155: budget.v1.GetInvestmentExchangeRatesResponse.current_fx_legs:type_name -> budget.v1.InvestmentCurrentFXLeg
+	2,   // 156: budget.v1.InvestmentQuote.clean_price:type_name -> budget.v1.InvestmentNAVAmount
+	100, // 157: budget.v1.InvestmentQuote.price_at:type_name -> google.protobuf.Timestamp
+	100, // 158: budget.v1.GetInvestmentQuotesResponse.read_at:type_name -> google.protobuf.Timestamp
+	84,  // 159: budget.v1.GetInvestmentQuotesResponse.quotes:type_name -> budget.v1.InvestmentQuote
+	2,   // 160: budget.v1.TrackerValueDetail.quantity:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 161: budget.v1.TrackerValueDetail.unit_price:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 162: budget.v1.TrackerValueDetail.native_value:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 163: budget.v1.TrackerValueDetail.value:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 164: budget.v1.TrackerValueDetail.fx_rate:type_name -> budget.v1.InvestmentNAVAmount
+	100, // 165: budget.v1.TrackerValueDetail.price_at:type_name -> google.protobuf.Timestamp
+	2,   // 166: budget.v1.TrackerHistoryPoint.known_value:type_name -> budget.v1.InvestmentNAVAmount
+	1,   // 167: budget.v1.TrackerHistoryPoint.issues:type_name -> budget.v1.InvestmentNAVIssue
+	88,  // 168: budget.v1.TrackerHistoryPoint.details:type_name -> budget.v1.TrackerValueDetail
+	66,  // 169: budget.v1.TrackerHistoryPoint.fx_legs:type_name -> budget.v1.InvestmentCurrentFXLeg
+	89,  // 170: budget.v1.GetTrackerHistoryResponse.points:type_name -> budget.v1.TrackerHistoryPoint
+	100, // 171: budget.v1.GetTrackerHistoryResponse.read_at:type_name -> google.protobuf.Timestamp
+	103, // 172: budget.v1.TrackerInstrumentListing.source:type_name -> budget.v1.MarketSourceKey
+	100, // 173: budget.v1.TrackerInstrumentListing.from:type_name -> google.protobuf.Timestamp
+	100, // 174: budget.v1.TrackerInstrumentListing.to:type_name -> google.protobuf.Timestamp
+	2,   // 175: budget.v1.TrackerInstrumentPricePoint.raw:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 176: budget.v1.TrackerInstrumentPricePoint.native_clean:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 177: budget.v1.TrackerInstrumentPricePoint.clean:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 178: budget.v1.TrackerInstrumentPricePoint.accrued:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 179: budget.v1.TrackerInstrumentPricePoint.native_dirty:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 180: budget.v1.TrackerInstrumentPricePoint.dirty:type_name -> budget.v1.InvestmentNAVAmount
+	100, // 181: budget.v1.GetTrackerInstrumentPricesResponse.read_at:type_name -> google.protobuf.Timestamp
+	92,  // 182: budget.v1.GetTrackerInstrumentPricesResponse.listings:type_name -> budget.v1.TrackerInstrumentListing
+	101, // 183: budget.v1.GetTrackerInstrumentPricesResponse.instrument:type_name -> budget.v1.MarketInstrument
+	100, // 184: budget.v1.GetTrackerInstrumentPricesResponse.metadata_at:type_name -> google.protobuf.Timestamp
+	84,  // 185: budget.v1.GetTrackerInstrumentPricesResponse.quote:type_name -> budget.v1.InvestmentQuote
+	104, // 186: budget.v1.GetTrackerInstrumentPricesResponse.bond:type_name -> budget.v1.GetMarketBondFactsResponse
+	103, // 187: budget.v1.GetTrackerInstrumentPricesResponse.source:type_name -> budget.v1.MarketSourceKey
+	93,  // 188: budget.v1.GetTrackerInstrumentPricesResponse.points:type_name -> budget.v1.TrackerInstrumentPricePoint
+	2,   // 189: budget.v1.TrackerAnalyticsPoint.value:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 190: budget.v1.TrackerAnalyticsPoint.flow:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 191: budget.v1.TrackerAnalyticsPoint.contributions:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 192: budget.v1.TrackerAnalyticsPoint.invested:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 193: budget.v1.TrackerAnalyticsPoint.profit:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 194: budget.v1.TrackerAnalyticsPoint.daily_profit:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 195: budget.v1.TrackerAnalyticsPeriod.profit:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 196: budget.v1.TrackerContribution.opening:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 197: budget.v1.TrackerContribution.closing:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 198: budget.v1.TrackerContribution.flow:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 199: budget.v1.TrackerContribution.profit:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 200: budget.v1.TrackerContribution.opening_quantity:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 201: budget.v1.TrackerContribution.closing_quantity:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 202: budget.v1.TrackerContribution.profit_share:type_name -> budget.v1.InvestmentNAVAmount
+	100, // 203: budget.v1.GetTrackerContributionsResponse.read_at:type_name -> google.protobuf.Timestamp
+	98,  // 204: budget.v1.GetTrackerContributionsResponse.rows:type_name -> budget.v1.TrackerContribution
+	2,   // 205: budget.v1.GetTrackerContributionsResponse.profit:type_name -> budget.v1.InvestmentNAVAmount
+	2,   // 206: budget.v1.GetTrackerContributionsResponse.known_profit:type_name -> budget.v1.InvestmentNAVAmount
+	91,  // 207: budget.v1.InvestmentNAVService.GetTrackerInstrumentPrices:input_type -> budget.v1.GetTrackerInstrumentPricesRequest
+	87,  // 208: budget.v1.InvestmentNAVService.GetTrackerHistory:input_type -> budget.v1.GetTrackerHistoryRequest
+	97,  // 209: budget.v1.InvestmentNAVService.GetTrackerContributions:input_type -> budget.v1.GetTrackerContributionsRequest
+	86,  // 210: budget.v1.InvestmentNAVService.GetTrackerPerformance:input_type -> budget.v1.GetTrackerPerformanceRequest
+	67,  // 211: budget.v1.InvestmentNAVService.GetInvestmentLots:input_type -> budget.v1.GetInvestmentLotsRequest
+	72,  // 212: budget.v1.InvestmentNAVService.GetInvestmentCurrentNAV:input_type -> budget.v1.GetInvestmentCurrentNAVRequest
+	76,  // 213: budget.v1.InvestmentNAVService.GetInvestmentNAVVariant:input_type -> budget.v1.GetInvestmentNAVVariantRequest
+	77,  // 214: budget.v1.InvestmentNAVService.PrepareInvestmentNAVVariant:input_type -> budget.v1.PrepareInvestmentNAVVariantRequest
+	73,  // 215: budget.v1.InvestmentNAVService.ExportInvestmentSeries:input_type -> budget.v1.ExportInvestmentSeriesRequest
+	74,  // 216: budget.v1.InvestmentNAVService.GetInvestmentOverview:input_type -> budget.v1.GetInvestmentOverviewRequest
+	75,  // 217: budget.v1.InvestmentNAVService.GetInvestmentProfit:input_type -> budget.v1.GetInvestmentProfitRequest
+	26,  // 218: budget.v1.InvestmentNAVService.ListInvestmentBenchmarks:input_type -> budget.v1.ListInvestmentBenchmarksRequest
+	28,  // 219: budget.v1.InvestmentNAVService.GetInvestmentBenchmarkComparison:input_type -> budget.v1.GetInvestmentBenchmarkComparisonRequest
+	20,  // 220: budget.v1.InvestmentNAVService.GetInvestmentPerformance:input_type -> budget.v1.GetInvestmentPerformanceRequest
+	18,  // 221: budget.v1.InvestmentNAVService.GetInvestmentNAVSeries:input_type -> budget.v1.GetInvestmentNAVSeriesRequest
+	49,  // 222: budget.v1.InvestmentNAVService.GetInvestmentInstrumentPrices:input_type -> budget.v1.GetInvestmentInstrumentPricesRequest
+	43,  // 223: budget.v1.InvestmentNAVService.GetInvestmentPositions:input_type -> budget.v1.GetInvestmentPositionsRequest
+	47,  // 224: budget.v1.InvestmentNAVService.GetInvestmentInstrument:input_type -> budget.v1.GetInvestmentInstrumentRequest
+	39,  // 225: budget.v1.InvestmentNAVService.GetInvestmentCompositionHistory:input_type -> budget.v1.GetInvestmentCompositionHistoryRequest
+	35,  // 226: budget.v1.InvestmentNAVService.GetInvestmentGroups:input_type -> budget.v1.GetInvestmentGroupsRequest
+	37,  // 227: budget.v1.InvestmentNAVService.SaveInvestmentGroups:input_type -> budget.v1.SaveInvestmentGroupsRequest
+	11,  // 228: budget.v1.InvestmentNAVService.SaveInvestmentPortfolio:input_type -> budget.v1.SaveInvestmentPortfolioRequest
+	13,  // 229: budget.v1.InvestmentNAVService.ListInvestmentPortfolios:input_type -> budget.v1.ListInvestmentPortfoliosRequest
+	16,  // 230: budget.v1.InvestmentNAVService.ListInvestmentValuationProfiles:input_type -> budget.v1.ListInvestmentValuationProfilesRequest
+	4,   // 231: budget.v1.InvestmentNAVService.ListInvestmentNAVSeries:input_type -> budget.v1.ListInvestmentNAVSeriesRequest
+	6,   // 232: budget.v1.InvestmentNAVService.GetInvestmentNAVHistory:input_type -> budget.v1.GetInvestmentNAVHistoryRequest
+	8,   // 233: budget.v1.InvestmentNAVService.RequestInvestmentNAVRefresh:input_type -> budget.v1.RequestInvestmentNAVRefreshRequest
+	80,  // 234: budget.v1.InvestmentNAVService.GetInvestmentExchangeRates:input_type -> budget.v1.GetInvestmentExchangeRatesRequest
+	83,  // 235: budget.v1.InvestmentNAVService.GetInvestmentQuotes:input_type -> budget.v1.GetInvestmentQuotesRequest
+	94,  // 236: budget.v1.InvestmentNAVService.GetTrackerInstrumentPrices:output_type -> budget.v1.GetTrackerInstrumentPricesResponse
+	90,  // 237: budget.v1.InvestmentNAVService.GetTrackerHistory:output_type -> budget.v1.GetTrackerHistoryResponse
+	99,  // 238: budget.v1.InvestmentNAVService.GetTrackerContributions:output_type -> budget.v1.GetTrackerContributionsResponse
+	22,  // 239: budget.v1.InvestmentNAVService.GetTrackerPerformance:output_type -> budget.v1.GetInvestmentPerformanceResponse
+	71,  // 240: budget.v1.InvestmentNAVService.GetInvestmentLots:output_type -> budget.v1.GetInvestmentLotsResponse
+	64,  // 241: budget.v1.InvestmentNAVService.GetInvestmentCurrentNAV:output_type -> budget.v1.GetInvestmentCurrentNAVResponse
+	78,  // 242: budget.v1.InvestmentNAVService.GetInvestmentNAVVariant:output_type -> budget.v1.GetInvestmentNAVVariantResponse
+	79,  // 243: budget.v1.InvestmentNAVService.PrepareInvestmentNAVVariant:output_type -> budget.v1.PrepareInvestmentNAVVariantResponse
+	61,  // 244: budget.v1.InvestmentNAVService.ExportInvestmentSeries:output_type -> budget.v1.ExportInvestmentSeriesResponse
+	60,  // 245: budget.v1.InvestmentNAVService.GetInvestmentOverview:output_type -> budget.v1.GetInvestmentOverviewResponse
+	58,  // 246: budget.v1.InvestmentNAVService.GetInvestmentProfit:output_type -> budget.v1.GetInvestmentProfitResponse
+	27,  // 247: budget.v1.InvestmentNAVService.ListInvestmentBenchmarks:output_type -> budget.v1.ListInvestmentBenchmarksResponse
+	30,  // 248: budget.v1.InvestmentNAVService.GetInvestmentBenchmarkComparison:output_type -> budget.v1.GetInvestmentBenchmarkComparisonResponse
+	22,  // 249: budget.v1.InvestmentNAVService.GetInvestmentPerformance:output_type -> budget.v1.GetInvestmentPerformanceResponse
+	19,  // 250: budget.v1.InvestmentNAVService.GetInvestmentNAVSeries:output_type -> budget.v1.GetInvestmentNAVSeriesResponse
+	53,  // 251: budget.v1.InvestmentNAVService.GetInvestmentInstrumentPrices:output_type -> budget.v1.GetInvestmentInstrumentPricesResponse
+	46,  // 252: budget.v1.InvestmentNAVService.GetInvestmentPositions:output_type -> budget.v1.GetInvestmentPositionsResponse
+	48,  // 253: budget.v1.InvestmentNAVService.GetInvestmentInstrument:output_type -> budget.v1.GetInvestmentInstrumentResponse
+	42,  // 254: budget.v1.InvestmentNAVService.GetInvestmentCompositionHistory:output_type -> budget.v1.GetInvestmentCompositionHistoryResponse
+	36,  // 255: budget.v1.InvestmentNAVService.GetInvestmentGroups:output_type -> budget.v1.GetInvestmentGroupsResponse
+	38,  // 256: budget.v1.InvestmentNAVService.SaveInvestmentGroups:output_type -> budget.v1.SaveInvestmentGroupsResponse
+	12,  // 257: budget.v1.InvestmentNAVService.SaveInvestmentPortfolio:output_type -> budget.v1.SaveInvestmentPortfolioResponse
+	14,  // 258: budget.v1.InvestmentNAVService.ListInvestmentPortfolios:output_type -> budget.v1.ListInvestmentPortfoliosResponse
+	17,  // 259: budget.v1.InvestmentNAVService.ListInvestmentValuationProfiles:output_type -> budget.v1.ListInvestmentValuationProfilesResponse
+	5,   // 260: budget.v1.InvestmentNAVService.ListInvestmentNAVSeries:output_type -> budget.v1.ListInvestmentNAVSeriesResponse
+	7,   // 261: budget.v1.InvestmentNAVService.GetInvestmentNAVHistory:output_type -> budget.v1.GetInvestmentNAVHistoryResponse
+	9,   // 262: budget.v1.InvestmentNAVService.RequestInvestmentNAVRefresh:output_type -> budget.v1.RequestInvestmentNAVRefreshResponse
+	82,  // 263: budget.v1.InvestmentNAVService.GetInvestmentExchangeRates:output_type -> budget.v1.GetInvestmentExchangeRatesResponse
+	85,  // 264: budget.v1.InvestmentNAVService.GetInvestmentQuotes:output_type -> budget.v1.GetInvestmentQuotesResponse
+	236, // [236:265] is the sub-list for method output_type
+	207, // [207:236] is the sub-list for method input_type
+	207, // [207:207] is the sub-list for extension type_name
+	207, // [207:207] is the sub-list for extension extendee
+	0,   // [0:207] is the sub-list for field type_name
 }
 
 func init() { file_budget_v1_investment_nav_proto_init() }

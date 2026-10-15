@@ -22,6 +22,7 @@ for(const locale of ["ru","en"]){test(`${locale} analytics charts show profit, p
   if(method?.name==="GetInvestmentExchangeRates"){
    const now=BigInt(Math.floor(Date.now()/1000)),sources=input.fromCurrencies.length?input.fromCurrencies:["RUB"];
    data={currency:input.currency,fxPolicyKey:"market",policyVersion:1n,mode:"market",source:"alphavantage",timeConvention:"Retrospective next-day close",readAt:{seconds:now},rates:["",...input.dates].flatMap((date:string)=>sources.map((fromCurrency:string)=>({date,fromCurrency,rate:{numerator:"1",denominator:"1"}}))),currentFxLegs:sources.filter((c:string)=>c!==input.currency).map((c:string)=>({nativeCurrency:c,id:"synthetic-"+c,revision:1n,fromCurrency:c,toCurrency:input.currency,policy:"market@1",observedRate:{numerator:"1",denominator:"1"},asOf:{seconds:now-86400n},availableAt:{seconds:now-3600n},validUntil:{seconds:now+86400n}}))};
+   if(input.currency==="RUB") for(const row of data.rates) if(row.date===""&&row.fromCurrency!=="RUB") {row.previousRate={numerator:"4",denominator:"5"};row.previousFxLegs=[{nativeCurrency:row.fromCurrency,id:"previous-"+row.fromCurrency,revision:2n,fromCurrency:row.fromCurrency,toCurrency:"RUB",policy:"market@1",observedRate:row.previousRate,asOf:{seconds:now-172800n},availableAt:{seconds:now-90000n},validUntil:{seconds:now-86400n}}];}
   }
   if(method?.name==="GetInvestmentQuotes")data={quotes:[{instrumentKey:key,currency:"RUB",state:"fresh",cleanPrice:{numerator:"120",denominator:"1"},priceAt:{seconds:BigInt(Math.floor(Date.now()/1000)-60)},source:"tinvest/personal"}]};
   if(method?.name==="ListBrokerSnapshots")data={snapshots:[{id:"snapshot",accountId:"broker",createdAt:{seconds:at}}]};
@@ -50,6 +51,7 @@ for(const locale of ["ru","en"]){test(`${locale} analytics charts show profit, p
  await expect(page.getByRole("heading",{name:ru?"Аналитика портфеля":"Portfolio analytics",exact:true})).toBeVisible();
  const fx=page.getByRole("region",{name:ru?"Валютные курсы портфеля":"Portfolio exchange rates",exact:true});
  await expect(fx).toContainText("USD/RUB: 1");await expect(fx).toContainText("EUR/RUB: 1");await expect(fx).toContainText("Alpha Vantage");await expect(fx).toContainText(ru?"Для оценки с":"Eligible from");await expect(fx).toContainText(ru?"ретроспективная оценка":"retrospective valuation");
+ await expect(fx).toContainText(ru?"К предыдущему наблюдению":"Vs previous observation");await expect(fx).toContainText(ru?/\+0,2 RUB \(\+25\s*%/:/\+0\.2 RUB \(\+25\s*%/);await expect(fx).toContainText(ru?"База сравнения":"Comparison basis");
  const history=page.getByRole("region",{name:ru?"История портфеля":"Portfolio history",exact:true});
  await expect(history.getByRole("img",{name:ru?"Стоимость и чистые вложения":"Value and net investment",exact:true})).toBeVisible();
  await history.getByRole("button",{name:ru?"Прибыль":"Profit",exact:true}).click();await expect(history.getByRole("img",{name:ru?"Накопленная прибыль":"Cumulative profit",exact:true})).toBeVisible();
