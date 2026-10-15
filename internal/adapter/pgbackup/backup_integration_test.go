@@ -14,13 +14,16 @@ import (
 	"github.com/positron48/budget/internal/usecase/asset"
 	inv "github.com/positron48/budget/internal/usecase/investment"
 	md "github.com/positron48/budget/internal/usecase/marketdata"
+	"github.com/positron48/budget/migrations"
 	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
 	"io"
+	"io/fs"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -255,7 +258,21 @@ func TestBudgetFullBackupRestoresJointDocumentsAndSnapshot(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if manifest.State.Migration.Version != 61 || manifest.State.Migration.Dirty || len(manifest.State.Tables) < 50 {
+	migrationFiles, err := fs.Glob(migrations.FS, "*.up.sql")
+	if err != nil || len(migrationFiles) == 0 {
+		t.Fatal("embedded migration inventory missing", err)
+	}
+	var latestVersion int64
+	for _, name := range migrationFiles {
+		version, err := strconv.ParseInt(strings.SplitN(name, "_", 2)[0], 10, 64)
+		if err != nil {
+			t.Fatal("invalid embedded migration filename", err)
+		}
+		if version > latestVersion {
+			latestVersion = version
+		}
+	}
+	if manifest.State.Migration.Version != latestVersion || manifest.State.Migration.Dirty || len(manifest.State.Tables) < 50 {
 		t.Fatal("missing full schema evidence")
 	}
 	for _, file := range []string{"manifest.json", "database.dump"} {

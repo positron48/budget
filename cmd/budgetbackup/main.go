@@ -16,7 +16,7 @@ import (
 func run() error {
 	mode := flag.String("mode", "", "backup, verify, restore or rehearse-upgrade (writes only to a separate new database)")
 	from := flag.Int64("upgrade-from", 11, "expected clean source schema for rehearsal")
-	to := flag.Int64("upgrade-to", 61, "expected clean target schema for rehearsal")
+	to := flag.Int64("upgrade-to", 62, "expected clean target schema for rehearsal")
 	dir := flag.String("directory", "", "private backup directory; new for backup, existing for verify/restore")
 	expected := flag.String("expected-manifest-sha", "", "reviewed manifest SHA256; required for restore")
 	target := flag.String("target-name", "", "new database name beginning budget_restore_")

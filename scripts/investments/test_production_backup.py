@@ -125,6 +125,7 @@ class ProductionBackupAcceptance(unittest.TestCase):
         cls.root = Path(cls.temp.name)
         cls.binary = Path(os.environ["BUDGET_BACKUP_BINARY"]).resolve()
         cls.sha = hashlib.sha256(cls.binary.read_bytes()).hexdigest()
+        cls.latest_schema = max(int(p.name.split("_")[0]) for p in (ROOT / "migrations").glob("*.up.sql"))
         cls.container = "budget-operator-test-" + uuid.uuid4().hex
         try:
             cls.docker("run", "-d", "--name", cls.container, "-p", "127.0.0.1::5432",
@@ -279,13 +280,13 @@ INSERT INTO asset_snapshots(tenant_id,account_id,currency_code,amount_minor,as_o
         report = json.loads(result.stdout)
         self.assertEqual("isolated_upgrade_verified", report["Status"])
         self.assertEqual(11, report["SourceSchemaVersion"])
-        self.assertEqual(61, report["SchemaVersion"])
+        self.assertEqual(self.latest_schema, report["SchemaVersion"])
         self.assertEqual(19, report["PreservedTables"])
         self.assertEqual(5, report["PreservedRows"])
         self.assertTrue(report["RestartVerified"])
         self.assertEqual("11|f", self.sql("SELECT version,dirty FROM schema_migrations"))
         self.assertEqual(before, self.sql("SELECT to_jsonb(u)::text FROM users u"))
-        self.assertEqual("61|f", self.sql("SELECT version,dirty FROM schema_migrations", report["RestoreDatabase"]))
+        self.assertEqual(str(self.latest_schema)+"|f", self.sql("SELECT version,dirty FROM schema_migrations", report["RestoreDatabase"]))
         self.assertEqual("9007199254740993", self.sql("SELECT amount_minor FROM asset_snapshots", report["RestoreDatabase"]))
         self.assertEqual(0o600, (out / "restore-report.json").stat().st_mode & 0o777)
 
