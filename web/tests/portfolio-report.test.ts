@@ -110,3 +110,12 @@ it("retains an acquisition origin outside the selected group without calling a d
  const p=portfolioReport([s],[source,distribution],quotes,"RUB",fx(),(_ledger,key)=>key==="NEW").positions[0];
  expect(positionDecimal(p.cost)).toBe("8000");expect(p.profit).toBeUndefined();
 });
+
+it("keeps exact per-account values and original quote currency without replaying cash twice",()=>{
+ const first=snapshot(),second=snapshot();second.ledger!.id="two";second.ledger!.name="Second";
+ second.positions[0].quantity="2";second.positions[0].lots[0].originId="second-buy";second.positions[0].lots[0].quantity="2";second.positions[0].lots[0].cleanCost="202";
+ const purchase=buy(),other=buy();other.id="second-buy";other.ledgerId="two";
+ const report=portfolioReport([first,second],[purchase,other],quote(),"RUB",fx());
+ expect(report.holdingCosts.map(h=>[h.ledgerId,positionDecimal(h.value),h.priceCurrency])).toEqual([["one","14000","USD"],["two","28000","USD"]]);
+ expect(positionDecimal(report.positions[0].value)).toBe("42000");
+});

@@ -22,10 +22,11 @@ function reportPrincipal(op: InvestmentOperation) {
   return {amount: settlement && expected ? add(decimal(principal.amount), settlement, negate(expected)) : undefined,
     currency: principal.currency, date: principal.at ? reportingDate(principal.at.seconds) : undefined};
 }
-export type ReportPosition = TrackerPosition & {incomeComplete: boolean;unrealized?:Fraction};
+export type ReportPosition = TrackerPosition & {incomeComplete: boolean;unrealized?:Fraction;priceCurrency?:string};
+export type ReportHolding = {ledgerId:string;key:string;quantity:Fraction;cost?:Fraction;value?:Fraction;priceCurrency?:string};
 export function portfolioReport(snapshots: InvestmentSnapshot[], operations: InvestmentOperation[], quotes: Map<string, TrackerQuote>, currency: string, fx?: GetInvestmentExchangeRatesResponse, include: (ledger: string, instrument: string) => boolean = () => true) {
   const rates = new Map((fx?.currency === currency ? fx.rates : []).map(r => [`${r.date}\0${r.fromCurrency}`, r.rate]));
-  const holdingCosts: {ledgerId:string;key:string;cost?:Fraction}[]=[];
+  const holdingCosts: ReportHolding[]=[];
   const missingFX = new Set<string>(), positions = new Map<string, ReportPosition>();
   const cash = new Map<string, Fraction>(), economicCost = new Map<string, Fraction>();
   const incompleteCash = new Set<string>(), incompleteCost = new Set<string>(), incompleteEconomicCost = new Set<string>();
@@ -54,7 +55,7 @@ export function portfolioReport(snapshots: InvestmentSnapshot[], operations: Inv
     p.quantity = add(p.quantity, quantity);
     if (s.ledger?.name && !p.accounts.includes(s.ledger.name)) p.accounts.push(s.ledger.name);
     if (!BigInt(quantity.numerator)) continue;
-    if (!holding.lots.length) {holdingCosts.push({ledgerId:s.ledger?.id||"",key:p.key});incompleteCost.add(p.key); incompleteEconomicCost.add(p.key); continue;}
+    if (!holding.lots.length) {holdingCosts.push({ledgerId:s.ledger?.id||"",key:p.key,quantity});incompleteCost.add(p.key); incompleteEconomicCost.add(p.key); continue;}
     let holdingCost:Fraction|undefined=zero;
     for (const lot of holding.lots) {
       const origin = byID.get(lot.acquisitionOperationId || lot.originId);
@@ -76,7 +77,7 @@ export function portfolioReport(snapshots: InvestmentSnapshot[], operations: Inv
       holdingCost=pure&&holdingCost!==undefined?add(holdingCost,pure):undefined;
       if (economic) economicCost.set(p.key, add(economicCost.get(p.key), economic)); else incompleteEconomicCost.add(p.key);
     }
-    holdingCosts.push({ledgerId:s.ledger?.id||"",key:p.key,cost:holdingCost});
+    holdingCosts.push({ledgerId:s.ledger?.id||"",key:p.key,quantity,cost:holdingCost});
   }
   const addCash = (key: string, amount: Fraction | undefined, from: string, date: string | undefined, negative = false) => {
     const converted = convert(amount, from, date);
@@ -134,6 +135,7 @@ export function portfolioReport(snapshots: InvestmentSnapshot[], operations: Inv
     if (!BigInt(p.quantity.numerator)) p.value = zero;
     else if (quote) {
       const nativeCurrency = quote[0].slice(quote[0].lastIndexOf("\0") + 1);
+      p.priceCurrency = nativeCurrency;
       p.price = convert(quote[1].price, nativeCurrency, "");
       p.quoteAt = quote[1].at; p.quoteSource = quote[1].source; p.name = quote[1].name; p.ticker = quote[1].ticker;
       if (p.price) p.value = multiply(p.quantity, p.price);
@@ -142,5 +144,6 @@ export function portfolioReport(snapshots: InvestmentSnapshot[], operations: Inv
     if (!incompleteEconomicCost.has(p.key) && p.value) p.unrealized=add(p.value,negate(economicCost.get(p.key)||zero));
     if (!incompleteCash.has(p.key) && !incompleteEconomicCost.has(p.key)) p.realized = add(cash.get(p.key), economicCost.get(p.key), negate(p.income));
   }
+  for(const h of holdingCosts){const p=positions.get(h.key);h.priceCurrency=p?.priceCurrency;h.value=p?.price?multiply(h.quantity,p.price):undefined;}
   return {holdingCosts,positions: [...positions.values()], months: [...months].sort(([a], [b]) => a.localeCompare(b)).slice(-12), monthsComplete, missingFX: [...missingFX]};
 }

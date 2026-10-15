@@ -10,7 +10,7 @@ import {TenantService} from "../proto/budget/v1/tenant_pb";
 for (const locale of ["ru", "en"]) {
   test(`${locale} simple portfolio shows holdings and payouts and saves a purchase in one step`, async ({page, context}) => {
     const ru = locale === "ru", readOnly = process.env.E2E_INVESTMENTS_READ_ONLY === "true";
-    let pendingHistory = false, noProfiles = false;
+    let pendingHistory = false, noProfiles = false, missingForeignPrice = false;
     let releaseQuotes!: () => void, releaseRates!: () => void;
     const quotesReady = new Promise<void>(resolve => {releaseQuotes = resolve;});
     const ratesReady = new Promise<void>(resolve => {releaseRates = resolve;});
@@ -57,7 +57,7 @@ for (const locale of ["ru", "en"]) {
         data.twrPoints=dates.map((date,i)=>({date,state:i===2?"gap":i>2?"baseline":i===0?"baseline":"calculated",segment:i===2?0:i>2?2:1,index:i===2?undefined:{numerator:i===1?"105":"100",denominator:"1"}}));
         data.trackerBenchmarks=[{key:"imoex",title:"IMOEX",kind:"price_index",nativeCurrency:"RUB",provider:"moex",sourceUrl:"https://www.moex.com/ru/index/IMOEX"},{key:"spy",title:"SPY · S&P 500 ETF proxy",kind:"etf_price_proxy",nativeCurrency:"USD",provider:"twelvedata",sourceUrl:"https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-sp-500-etf-trust-spy"}].map(b=>({...b,baseDate:start,points:dates.map((date,i)=>({date,index:{numerator:String(100+i),denominator:"1"}}))}));
       }
-      if (method?.name === "GetInvestmentQuotes") data = {quotes:input.instrumentKeys.map((instrumentKey:string) => instrumentKey === foreign.instrumentKey ? {instrumentKey,currency:"USD",state:"fresh",cleanPrice:{numerator:"110",denominator:"1"},priceAt:{seconds:BigInt(Math.floor(Date.now()/1000)-60)},source:"tinvest/personal"} : {instrumentKey,state:"unavailable"})};
+      if (method?.name === "GetInvestmentQuotes") data = {quotes:input.instrumentKeys.map((instrumentKey:string) => instrumentKey === foreign.instrumentKey && !missingForeignPrice ? {instrumentKey,currency:"USD",state:"fresh",cleanPrice:{numerator:"110",denominator:"1"},priceAt:{seconds:BigInt(Math.floor(Date.now()/1000)-60)},source:"tinvest/personal"} : {instrumentKey,state:"unavailable"})};
       if (method?.name === "GetInvestmentExchangeRates") {
         const current = input.fxPolicyKey === "market" ? 100 : 90, historical = input.fxPolicyKey === "market" ? 80 : 70;
         data = {currency:input.currency, fxPolicyKey:input.fxPolicyKey, policyVersion:1n, mode:input.fxPolicyKey, readAt:{seconds:BigInt(Math.floor(Date.now()/1000))}, rates:["", ...input.dates].flatMap((date:string) => ["RUB","USD"].map(fromCurrency => ({date,fromCurrency,rate:{numerator:String(fromCurrency === input.currency ? 1 : fromCurrency === "USD" ? date ? historical : current : 1), denominator:String(fromCurrency === input.currency || fromCurrency === "USD" ? 1 : date ? historical : current)}})))};
@@ -96,6 +96,24 @@ for (const locale of ["ru", "en"]) {
     const value = page.locator("section").filter({has: page.getByRole("heading", {name: ru ? "Стоимость портфеля" : "Portfolio value", exact: true})});
     await expect(value).toContainText(/23[\s,.]?200/);
     await expect(page.locator("section").filter({has:page.getByRole("heading",{name:ru?"Вложено в бумаги":"Cost of holdings",exact:true})})).toContainText(/17[\s,.]?000/);
+    const holdings=page.locator("section").filter({has:page.getByRole("heading",{name:ru?"Мои активы":"My holdings",exact:true})}),table=holdings.getByRole("table");
+    const abc=table.locator("tbody tr").filter({has:page.getByRole("link",{name:"ABC",exact:true})});
+    await expect(abc.locator("td").last()).toContainText(/5[,.]2\s?%/);
+    await expect(abc.locator("td").nth(4)).toContainText((ru?"Нереализованная":"Unrealized")+": 200 RUB");
+    await table.getByRole("button",{name:ru?/^Стоимость/:/^Value/}).click();await expect(table.locator("tbody tr").first()).toContainText("US");
+    await table.getByRole("button",{name:ru?/^Стоимость/:/^Value/}).click();await expect(table.locator("tbody tr").first()).toContainText("ABC");
+    await holdings.getByRole("textbox",{name:ru?"Поиск в позициях":"Search holdings",exact:true}).fill("Example");await expect(table.locator("tbody tr")).toHaveCount(1);await expect(value).toContainText(/23[\s,.]?200/);
+    await holdings.getByRole("textbox").fill("no-match");await expect(table.locator("tbody tr")).toHaveCount(0);await expect(holdings).toContainText(ru?"Ничего не найдено":"No holdings match");await holdings.getByRole("textbox").fill("");
+    await abc.locator("summary").click();await expect(abc.locator("details")).toContainText("Broker");await expect(abc.locator("details")).toContainText(/1[\s,.]?200 RUB/);
+    const allocation=page.locator("section").filter({has:page.getByRole("heading",{name:ru?"Состав портфеля":"Portfolio allocation",exact:true})});
+    await allocation.getByRole("combobox",{name:ru?"Распределение по":"Allocation by",exact:true}).selectOption("currency");await expect(allocation.locator("li")).toContainText(["USD","RUB"]);await expect(allocation).toContainText(/5[,.]2\s?%/);
+    await allocation.getByRole("combobox",{name:ru?"База долей":"Allocation basis",exact:true}).selectOption("cost");await expect(allocation).toContainText(/5[,.]9\s?%/);
+    await allocation.getByRole("combobox",{name:ru?"Распределение по":"Allocation by",exact:true}).selectOption("account");await expect(allocation.locator("li")).toContainText(["Broker"]);
+    await allocation.getByRole("combobox",{name:ru?"Распределение по":"Allocation by",exact:true}).selectOption("type");await expect(allocation.locator("li")).toContainText([ru?"Акции":"Shares"]);
+    await allocation.getByRole("combobox",{name:ru?"База долей":"Allocation basis",exact:true}).selectOption("value");
+    missingForeignPrice=true;await page.getByRole("button",{name:ru?"Обновить портфель":"Refresh portfolio",exact:true}).click();await expect(allocation.getByRole("status")).toContainText(ru?"Доли только в известной части":"Weights refer only to the known portion");await expect(table.getByRole("columnheader",{name:ru?"Доля известной части":"Known-portion weight",exact:true})).toBeVisible();
+    const us=table.locator("tbody tr").filter({has:page.getByRole("link",{name:"US",exact:true})});await expect(us.locator("td").last()).toHaveText("—");
+    missingForeignPrice=false;await page.getByRole("button",{name:ru?"Обновить портфель":"Refresh portfolio",exact:true}).click();await expect(value).toContainText(/23[\s,.]?200/);await allocation.getByRole("combobox",{name:ru?"Распределение по":"Allocation by",exact:true}).selectOption("security");
     await page.getByRole("combobox",{name:ru?"Источник валютного курса":"Exchange rate source",exact:true}).selectOption("cbr");
     await expect(value).toContainText(/21[\s,.]?000/);
     await page.getByRole("combobox",{name:ru?"Источник валютного курса":"Exchange rate source",exact:true}).selectOption("market");
