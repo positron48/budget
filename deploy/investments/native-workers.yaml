@@ -1,0 +1,146 @@
+# Native historical prices only; enable after schema62, catalog and credential review.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: budget-investment-moexhistory
+spec:
+  # Operator enables only after schema, backup, policies and scope review.
+  replicas: 0
+  selector:
+    matchLabels:
+      app: budget-investment-moexhistory
+  template:
+    metadata:
+      labels:
+        app: budget-investment-moexhistory
+        app.kubernetes.io/part-of: budget-investment-workers
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9091"
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          # Replace with the CI-produced image digest before activation.
+          image: budget-app:investment-candidate
+          command: ["/app/marketdata"]
+          args: ["-provider", "moex", "-tenant", "$(INVESTMENT_TENANT_ID)", "-access-scope", "$(INVESTMENT_ACCESS_SCOPE)"]
+          envFrom:
+            - configMapRef:
+                name: budget-investment-worker-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: budget-investment-db
+                  key: DATABASE_URL
+            - name: INVESTMENT_METRICS_ADDR
+              value: 0.0.0.0:9091
+          ports:
+            - name: metrics
+              containerPort: 9091
+          readinessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: budget-investment-equityhistory
+spec:
+  # Operator enables only after schema, backup, policies and scope review.
+  replicas: 0
+  selector:
+    matchLabels:
+      app: budget-investment-equityhistory
+  template:
+    metadata:
+      labels:
+        app: budget-investment-equityhistory
+        app.kubernetes.io/part-of: budget-investment-workers
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9091"
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          # Replace with the CI-produced image digest before activation.
+          image: budget-app:investment-candidate
+          command: ["/app/marketdata"]
+          args: ["-provider", "twelvedata", "-tenant", "$(INVESTMENT_TENANT_ID)", "-access-scope", "$(INVESTMENT_ACCESS_SCOPE)"]
+          envFrom:
+            - configMapRef:
+                name: budget-investment-worker-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: budget-investment-db
+                  key: DATABASE_URL
+            - name: INVESTMENT_METRICS_ADDR
+              value: 0.0.0.0:9091
+            - name: TWELVEDATA_KEY_FILE
+              value: /var/run/twelvedata/token
+          ports:
+            - name: metrics
+              containerPort: 9091
+          readinessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: twelvedata
+              mountPath: /var/run/twelvedata
+              readOnly: true
+      volumes:
+        - name: twelvedata
+          secret:
+            secretName: budget-twelvedata-readonly
+            defaultMode: 0440
+            items:
+              - key: token
+                path: token

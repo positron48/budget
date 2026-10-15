@@ -27,7 +27,7 @@ groups:
           summary: "Watched investment valuations incomplete"
           description: "Expected completed daily points are missing, obsolete or incomplete. Inspect valuation quality and provider coverage; ready jobs alone are insufficient."
       - alert: InvestmentWorkerUnavailable
-        expr: up{job=~"budget-investment-.*"} == 0
+        expr: up{job=~"budget-(investment|portfolio)-.*"} == 0
         for: 5m
         labels:
           severity: warning

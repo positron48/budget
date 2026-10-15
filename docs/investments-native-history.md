@@ -31,7 +31,7 @@ a broker UID or overwrite its current quote schedule.
 
 MOEX covers shares/funds and bonds. Bond candles retain that session's nominal
 and nominal currency. Twelve Data currently covers USD common shares/REITs on
-NYSE/XNYS and NASDAQ/XNGS, explicitly requesting `adjust=none`. Daily labels use
+NYSE/XNYS and NASDAQ/XNGS, plus NYSE/ARCX ETFs, explicitly requesting `adjust=none`. Daily labels use
 the approved retrospective rule: a completed raw date becomes eligible on the
 next UTC day. This is not verified calendar or publication-time evidence.
 
@@ -67,3 +67,13 @@ coverage. `scripts/investments/provision_refresh.py --native` adds only the miss
 Twelve Data key through a hidden prompt and can verify all five workers. It
 preserves existing keys and does not deploy. Services are released through GitOps;
 readiness, nonempty provider updates and financial/product acceptance are separate.
+
+The inactive `deploy/investments` Kustomize template includes native MOEX and
+Twelve Data deployments with zero replicas. They use the reviewed image digest,
+tenant/access-scope configuration and existing database Secret when enabled by
+an operator overlay. The Twelve Data template mounts a `budget-twelvedata-readonly`
+Secret's `token` as a read-only file; no inline credential is included. Deployment
+names and Secret references can be adapted in GitOps. The provisioning helper
+accepts reviewed clean tracker scopes at schema 61 (before upgrade) or 62 (after
+upgrade), so adding the missing key can precede deployment and five-worker
+verification can follow it. Other schemas and dirty migrations are rejected.

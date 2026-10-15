@@ -155,3 +155,19 @@ tests:
       - eval_time: 40m
         alertname: InvestmentMarketFXDegraded
         exp_alerts: []
+
+  - interval: 1m
+    input_series:
+      - series: 'up{job="budget-portfolio-equityhistory",instance="equity:9091"}'
+        values: '0+0x10'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: InvestmentWorkerUnavailable
+        exp_alerts:
+          - exp_labels:
+              job: budget-portfolio-equityhistory
+              instance: equity:9091
+              severity: warning
+            exp_annotations:
+              summary: "Investment worker metrics unavailable"
+              description: "Check the configured worker target, pod and internal scrape network."

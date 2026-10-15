@@ -3,6 +3,7 @@ import importlib.util
 import json
 from pathlib import Path
 import subprocess
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -13,6 +14,33 @@ TENANT = "00000000-0000-4000-8000-000000000001"
 
 
 class ProvisionRefreshTests(unittest.TestCase):
+    def test_reviewed_scope_accepts_legacy_and_native_history_schemas(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "scope.json"
+            report = {
+                "Status": "portfolio_scope_backed_up",
+                "SourceWrites": False,
+                "Scope": {
+                    "TenantID": TENANT,
+                    "SchemaDirty": False,
+                    "SchemaVersion": 61,
+                    "Accounts": [{"PortfolioTracking": True}],
+                },
+            }
+            for version in (61, 62):
+                with self.subTest(version=version):
+                    report["Scope"]["SchemaVersion"] = version
+                    path.write_text(json.dumps(report))
+                    path.chmod(0o600)
+                    self.assertEqual(TENANT, module.source_tenant(path))
+            for version, dirty in ((60, False), (63, False), (62, True)):
+                with self.subTest(version=version, dirty=dirty):
+                    report["Scope"]["SchemaVersion"] = version
+                    report["Scope"]["SchemaDirty"] = dirty
+                    path.write_text(json.dumps(report))
+                    with self.assertRaises(module.Failure):
+                        module.source_tenant(path)
+
     def worker_responses(self, unusable=0, alpha_success=1):
         image="ghcr.io/example/budget-app@sha256:synthetic"
         app={"spec":{"template":{"spec":{"containers":[{"name":"budget-app","image":image}]}}}}
