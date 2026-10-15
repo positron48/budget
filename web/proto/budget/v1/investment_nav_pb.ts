@@ -4782,6 +4782,10 @@ export const InvestmentNAVService: GenService<{
     output: typeof GetTrackerContributionsResponseSchema;
   },
   /**
+   * The cashless tracker and recorded-journal APIs share the financial result format; history_scope identifies the model.
+   * buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+   * buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
+   *
    * @generated from rpc budget.v1.InvestmentNAVService.GetTrackerPerformance
    */
   getTrackerPerformance: {
@@ -4862,6 +4866,9 @@ export const InvestmentNAVService: GenService<{
     output: typeof GetInvestmentBenchmarkComparisonResponseSchema;
   },
   /**
+   * Shared result format with GetTrackerPerformance; keep the existing wire contract.
+   * buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+   *
    * @generated from rpc budget.v1.InvestmentNAVService.GetInvestmentPerformance
    */
   getInvestmentPerformance: {

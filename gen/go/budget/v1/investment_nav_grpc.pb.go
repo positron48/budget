@@ -57,6 +57,9 @@ type InvestmentNAVServiceClient interface {
 	GetTrackerInstrumentPrices(ctx context.Context, in *GetTrackerInstrumentPricesRequest, opts ...grpc.CallOption) (*GetTrackerInstrumentPricesResponse, error)
 	GetTrackerHistory(ctx context.Context, in *GetTrackerHistoryRequest, opts ...grpc.CallOption) (*GetTrackerHistoryResponse, error)
 	GetTrackerContributions(ctx context.Context, in *GetTrackerContributionsRequest, opts ...grpc.CallOption) (*GetTrackerContributionsResponse, error)
+	// The cashless tracker and recorded-journal APIs share the financial result format; history_scope identifies the model.
+	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
 	GetTrackerPerformance(ctx context.Context, in *GetTrackerPerformanceRequest, opts ...grpc.CallOption) (*GetInvestmentPerformanceResponse, error)
 	GetInvestmentLots(ctx context.Context, in *GetInvestmentLotsRequest, opts ...grpc.CallOption) (*GetInvestmentLotsResponse, error)
 	GetInvestmentCurrentNAV(ctx context.Context, in *GetInvestmentCurrentNAVRequest, opts ...grpc.CallOption) (*GetInvestmentCurrentNAVResponse, error)
@@ -67,6 +70,8 @@ type InvestmentNAVServiceClient interface {
 	GetInvestmentProfit(ctx context.Context, in *GetInvestmentProfitRequest, opts ...grpc.CallOption) (*GetInvestmentProfitResponse, error)
 	ListInvestmentBenchmarks(ctx context.Context, in *ListInvestmentBenchmarksRequest, opts ...grpc.CallOption) (*ListInvestmentBenchmarksResponse, error)
 	GetInvestmentBenchmarkComparison(ctx context.Context, in *GetInvestmentBenchmarkComparisonRequest, opts ...grpc.CallOption) (*GetInvestmentBenchmarkComparisonResponse, error)
+	// Shared result format with GetTrackerPerformance; keep the existing wire contract.
+	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
 	GetInvestmentPerformance(ctx context.Context, in *GetInvestmentPerformanceRequest, opts ...grpc.CallOption) (*GetInvestmentPerformanceResponse, error)
 	GetInvestmentNAVSeries(ctx context.Context, in *GetInvestmentNAVSeriesRequest, opts ...grpc.CallOption) (*GetInvestmentNAVSeriesResponse, error)
 	GetInvestmentInstrumentPrices(ctx context.Context, in *GetInvestmentInstrumentPricesRequest, opts ...grpc.CallOption) (*GetInvestmentInstrumentPricesResponse, error)
@@ -390,6 +395,9 @@ type InvestmentNAVServiceServer interface {
 	GetTrackerInstrumentPrices(context.Context, *GetTrackerInstrumentPricesRequest) (*GetTrackerInstrumentPricesResponse, error)
 	GetTrackerHistory(context.Context, *GetTrackerHistoryRequest) (*GetTrackerHistoryResponse, error)
 	GetTrackerContributions(context.Context, *GetTrackerContributionsRequest) (*GetTrackerContributionsResponse, error)
+	// The cashless tracker and recorded-journal APIs share the financial result format; history_scope identifies the model.
+	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
 	GetTrackerPerformance(context.Context, *GetTrackerPerformanceRequest) (*GetInvestmentPerformanceResponse, error)
 	GetInvestmentLots(context.Context, *GetInvestmentLotsRequest) (*GetInvestmentLotsResponse, error)
 	GetInvestmentCurrentNAV(context.Context, *GetInvestmentCurrentNAVRequest) (*GetInvestmentCurrentNAVResponse, error)
@@ -400,6 +408,8 @@ type InvestmentNAVServiceServer interface {
 	GetInvestmentProfit(context.Context, *GetInvestmentProfitRequest) (*GetInvestmentProfitResponse, error)
 	ListInvestmentBenchmarks(context.Context, *ListInvestmentBenchmarksRequest) (*ListInvestmentBenchmarksResponse, error)
 	GetInvestmentBenchmarkComparison(context.Context, *GetInvestmentBenchmarkComparisonRequest) (*GetInvestmentBenchmarkComparisonResponse, error)
+	// Shared result format with GetTrackerPerformance; keep the existing wire contract.
+	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
 	GetInvestmentPerformance(context.Context, *GetInvestmentPerformanceRequest) (*GetInvestmentPerformanceResponse, error)
 	GetInvestmentNAVSeries(context.Context, *GetInvestmentNAVSeriesRequest) (*GetInvestmentNAVSeriesResponse, error)
 	GetInvestmentInstrumentPrices(context.Context, *GetInvestmentInstrumentPricesRequest) (*GetInvestmentInstrumentPricesResponse, error)

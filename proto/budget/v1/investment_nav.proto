@@ -45,6 +45,9 @@ service InvestmentNAVService {
  rpc GetTrackerInstrumentPrices(GetTrackerInstrumentPricesRequest) returns (GetTrackerInstrumentPricesResponse);
  rpc GetTrackerHistory(GetTrackerHistoryRequest) returns (GetTrackerHistoryResponse);
  rpc GetTrackerContributions(GetTrackerContributionsRequest) returns (GetTrackerContributionsResponse);
+ // The cashless tracker and recorded-journal APIs share the financial result format; history_scope identifies the model.
+ // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+ // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
  rpc GetTrackerPerformance(GetTrackerPerformanceRequest) returns (GetInvestmentPerformanceResponse);
  rpc GetInvestmentLots(GetInvestmentLotsRequest) returns (GetInvestmentLotsResponse);
  rpc GetInvestmentCurrentNAV(GetInvestmentCurrentNAVRequest) returns (GetInvestmentCurrentNAVResponse);
@@ -55,6 +58,8 @@ service InvestmentNAVService {
  rpc GetInvestmentProfit(GetInvestmentProfitRequest) returns (GetInvestmentProfitResponse);
  rpc ListInvestmentBenchmarks(ListInvestmentBenchmarksRequest) returns (ListInvestmentBenchmarksResponse);
  rpc GetInvestmentBenchmarkComparison(GetInvestmentBenchmarkComparisonRequest) returns (GetInvestmentBenchmarkComparisonResponse);
+ // Shared result format with GetTrackerPerformance; keep the existing wire contract.
+ // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
  rpc GetInvestmentPerformance(GetInvestmentPerformanceRequest) returns (GetInvestmentPerformanceResponse);
  rpc GetInvestmentNAVSeries(GetInvestmentNAVSeriesRequest) returns (GetInvestmentNAVSeriesResponse);
  rpc GetInvestmentInstrumentPrices(GetInvestmentInstrumentPricesRequest) returns (GetInvestmentInstrumentPricesResponse);
