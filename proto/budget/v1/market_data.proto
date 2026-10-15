@@ -114,6 +114,7 @@ message InvestmentMarketMapping {
  string instrument_key = 1;
  int64 version = 2;
  repeated InvestmentMarketPeriod periods = 3;
+ repeated InvestmentMarketPeriod historical_periods = 7; // Independent raw historical schedule; absent retains legacy current-period fallback.
  string actor_id = 4;
  string reason = 5;
  google.protobuf.Timestamp recorded_at = 6;
@@ -126,6 +127,8 @@ message SaveInvestmentMarketMappingRequest {
  string request_key = 3;
  string reason = 4;
  repeated InvestmentMarketPeriod periods = 5; // empty revokes while retaining history
+ bool replace_historical = 6; // False preserves the existing historical schedule.
+ repeated InvestmentMarketPeriod historical_periods = 7;
 }
 message SaveInvestmentMarketMappingResponse { InvestmentMarketMapping mapping = 1; }
 message GetMarketBondFactsRequest {

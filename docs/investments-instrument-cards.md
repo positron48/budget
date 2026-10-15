@@ -31,3 +31,7 @@ Queued requests and pagination are cancelled when the tenant or selected price
 scope changes. Automatic loading waits for a coherent chart response, polls jobs
 for at most two minutes, and does not claim that a completed job proves full
 price coverage. The user can retry source loading manually.
+
+Cards also link to the [reviewed source picker](investments-price-sources.md).
+Current and native historical schedules remain independent; opening a listing
+never creates this mapping implicitly.

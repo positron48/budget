@@ -1367,15 +1367,16 @@ func (x *InvestmentMarketPeriod) GetEvidence() string {
 }
 
 type InvestmentMarketMapping struct {
-	state         protoimpl.MessageState    `protogen:"open.v1"`
-	InstrumentKey string                    `protobuf:"bytes,1,opt,name=instrument_key,json=instrumentKey,proto3" json:"instrument_key,omitempty"`
-	Version       int64                     `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
-	Periods       []*InvestmentMarketPeriod `protobuf:"bytes,3,rep,name=periods,proto3" json:"periods,omitempty"`
-	ActorId       string                    `protobuf:"bytes,4,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
-	Reason        string                    `protobuf:"bytes,5,opt,name=reason,proto3" json:"reason,omitempty"`
-	RecordedAt    *timestamppb.Timestamp    `protobuf:"bytes,6,opt,name=recorded_at,json=recordedAt,proto3" json:"recorded_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState    `protogen:"open.v1"`
+	InstrumentKey     string                    `protobuf:"bytes,1,opt,name=instrument_key,json=instrumentKey,proto3" json:"instrument_key,omitempty"`
+	Version           int64                     `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
+	Periods           []*InvestmentMarketPeriod `protobuf:"bytes,3,rep,name=periods,proto3" json:"periods,omitempty"`
+	HistoricalPeriods []*InvestmentMarketPeriod `protobuf:"bytes,7,rep,name=historical_periods,json=historicalPeriods,proto3" json:"historical_periods,omitempty"` // Independent raw historical schedule; absent retains legacy current-period fallback.
+	ActorId           string                    `protobuf:"bytes,4,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
+	Reason            string                    `protobuf:"bytes,5,opt,name=reason,proto3" json:"reason,omitempty"`
+	RecordedAt        *timestamppb.Timestamp    `protobuf:"bytes,6,opt,name=recorded_at,json=recordedAt,proto3" json:"recorded_at,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *InvestmentMarketMapping) Reset() {
@@ -1425,6 +1426,13 @@ func (x *InvestmentMarketMapping) GetVersion() int64 {
 func (x *InvestmentMarketMapping) GetPeriods() []*InvestmentMarketPeriod {
 	if x != nil {
 		return x.Periods
+	}
+	return nil
+}
+
+func (x *InvestmentMarketMapping) GetHistoricalPeriods() []*InvestmentMarketPeriod {
+	if x != nil {
+		return x.HistoricalPeriods
 	}
 	return nil
 }
@@ -1539,14 +1547,16 @@ func (x *GetInvestmentMarketMappingResponse) GetMapping() *InvestmentMarketMappi
 }
 
 type SaveInvestmentMarketMappingRequest struct {
-	state           protoimpl.MessageState    `protogen:"open.v1"`
-	InstrumentKey   string                    `protobuf:"bytes,1,opt,name=instrument_key,json=instrumentKey,proto3" json:"instrument_key,omitempty"`
-	ExpectedVersion int64                     `protobuf:"varint,2,opt,name=expected_version,json=expectedVersion,proto3" json:"expected_version,omitempty"` // 0 creates; nonzero replaces the entire schedule
-	RequestKey      string                    `protobuf:"bytes,3,opt,name=request_key,json=requestKey,proto3" json:"request_key,omitempty"`
-	Reason          string                    `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
-	Periods         []*InvestmentMarketPeriod `protobuf:"bytes,5,rep,name=periods,proto3" json:"periods,omitempty"` // empty revokes while retaining history
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state             protoimpl.MessageState    `protogen:"open.v1"`
+	InstrumentKey     string                    `protobuf:"bytes,1,opt,name=instrument_key,json=instrumentKey,proto3" json:"instrument_key,omitempty"`
+	ExpectedVersion   int64                     `protobuf:"varint,2,opt,name=expected_version,json=expectedVersion,proto3" json:"expected_version,omitempty"` // 0 creates; nonzero replaces the entire schedule
+	RequestKey        string                    `protobuf:"bytes,3,opt,name=request_key,json=requestKey,proto3" json:"request_key,omitempty"`
+	Reason            string                    `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
+	Periods           []*InvestmentMarketPeriod `protobuf:"bytes,5,rep,name=periods,proto3" json:"periods,omitempty"`                                               // empty revokes while retaining history
+	ReplaceHistorical bool                      `protobuf:"varint,6,opt,name=replace_historical,json=replaceHistorical,proto3" json:"replace_historical,omitempty"` // False preserves the existing historical schedule.
+	HistoricalPeriods []*InvestmentMarketPeriod `protobuf:"bytes,7,rep,name=historical_periods,json=historicalPeriods,proto3" json:"historical_periods,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *SaveInvestmentMarketMappingRequest) Reset() {
@@ -1610,6 +1620,20 @@ func (x *SaveInvestmentMarketMappingRequest) GetReason() string {
 func (x *SaveInvestmentMarketMappingRequest) GetPeriods() []*InvestmentMarketPeriod {
 	if x != nil {
 		return x.Periods
+	}
+	return nil
+}
+
+func (x *SaveInvestmentMarketMappingRequest) GetReplaceHistorical() bool {
+	if x != nil {
+		return x.ReplaceHistorical
+	}
+	return false
+}
+
+func (x *SaveInvestmentMarketMappingRequest) GetHistoricalPeriods() []*InvestmentMarketPeriod {
+	if x != nil {
+		return x.HistoricalPeriods
 	}
 	return nil
 }
@@ -2783,11 +2807,12 @@ const file_budget_v1_market_data_proto_rawDesc = "" +
 	"\x04from\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
 	"\x02to\x18\n" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x12\x1a\n" +
-	"\bevidence\x18\v \x01(\tR\bevidence\"\x87\x02\n" +
+	"\bevidence\x18\v \x01(\tR\bevidence\"\xd9\x02\n" +
 	"\x17InvestmentMarketMapping\x12%\n" +
 	"\x0einstrument_key\x18\x01 \x01(\tR\rinstrumentKey\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\x03R\aversion\x12;\n" +
-	"\aperiods\x18\x03 \x03(\v2!.budget.v1.InvestmentMarketPeriodR\aperiods\x12\x19\n" +
+	"\aperiods\x18\x03 \x03(\v2!.budget.v1.InvestmentMarketPeriodR\aperiods\x12P\n" +
+	"\x12historical_periods\x18\a \x03(\v2!.budget.v1.InvestmentMarketPeriodR\x11historicalPeriods\x12\x19\n" +
 	"\bactor_id\x18\x04 \x01(\tR\aactorId\x12\x16\n" +
 	"\x06reason\x18\x05 \x01(\tR\x06reason\x12;\n" +
 	"\vrecorded_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
@@ -2795,14 +2820,16 @@ const file_budget_v1_market_data_proto_rawDesc = "" +
 	"!GetInvestmentMarketMappingRequest\x12%\n" +
 	"\x0einstrument_key\x18\x01 \x01(\tR\rinstrumentKey\"b\n" +
 	"\"GetInvestmentMarketMappingResponse\x12<\n" +
-	"\amapping\x18\x01 \x01(\v2\".budget.v1.InvestmentMarketMappingR\amapping\"\xec\x01\n" +
+	"\amapping\x18\x01 \x01(\v2\".budget.v1.InvestmentMarketMappingR\amapping\"\xed\x02\n" +
 	"\"SaveInvestmentMarketMappingRequest\x12%\n" +
 	"\x0einstrument_key\x18\x01 \x01(\tR\rinstrumentKey\x12)\n" +
 	"\x10expected_version\x18\x02 \x01(\x03R\x0fexpectedVersion\x12\x1f\n" +
 	"\vrequest_key\x18\x03 \x01(\tR\n" +
 	"requestKey\x12\x16\n" +
 	"\x06reason\x18\x04 \x01(\tR\x06reason\x12;\n" +
-	"\aperiods\x18\x05 \x03(\v2!.budget.v1.InvestmentMarketPeriodR\aperiods\"c\n" +
+	"\aperiods\x18\x05 \x03(\v2!.budget.v1.InvestmentMarketPeriodR\aperiods\x12-\n" +
+	"\x12replace_historical\x18\x06 \x01(\bR\x11replaceHistorical\x12P\n" +
+	"\x12historical_periods\x18\a \x03(\v2!.budget.v1.InvestmentMarketPeriodR\x11historicalPeriods\"c\n" +
 	"#SaveInvestmentMarketMappingResponse\x12<\n" +
 	"\amapping\x18\x01 \x01(\v2\".budget.v1.InvestmentMarketMappingR\amapping\"\xd0\x01\n" +
 	"\x19GetMarketBondFactsRequest\x122\n" +
@@ -3020,83 +3047,85 @@ var file_budget_v1_market_data_proto_depIdxs = []int32{
 	33, // 25: budget.v1.InvestmentMarketPeriod.from:type_name -> google.protobuf.Timestamp
 	33, // 26: budget.v1.InvestmentMarketPeriod.to:type_name -> google.protobuf.Timestamp
 	17, // 27: budget.v1.InvestmentMarketMapping.periods:type_name -> budget.v1.InvestmentMarketPeriod
-	33, // 28: budget.v1.InvestmentMarketMapping.recorded_at:type_name -> google.protobuf.Timestamp
-	18, // 29: budget.v1.GetInvestmentMarketMappingResponse.mapping:type_name -> budget.v1.InvestmentMarketMapping
-	17, // 30: budget.v1.SaveInvestmentMarketMappingRequest.periods:type_name -> budget.v1.InvestmentMarketPeriod
-	18, // 31: budget.v1.SaveInvestmentMarketMappingResponse.mapping:type_name -> budget.v1.InvestmentMarketMapping
-	0,  // 32: budget.v1.GetMarketBondFactsRequest.source:type_name -> budget.v1.MarketSourceKey
-	33, // 33: budget.v1.GetMarketBondFactsRequest.from:type_name -> google.protobuf.Timestamp
-	33, // 34: budget.v1.GetMarketBondFactsRequest.to:type_name -> google.protobuf.Timestamp
-	24, // 35: budget.v1.MarketBondTerms.nominal:type_name -> budget.v1.MarketBondAmount
-	24, // 36: budget.v1.MarketBondTerms.initial_nominal:type_name -> budget.v1.MarketBondAmount
-	24, // 37: budget.v1.MarketBondTerms.current_accrued:type_name -> budget.v1.MarketBondAmount
-	33, // 38: budget.v1.MarketBondTerms.maturity:type_name -> google.protobuf.Timestamp
-	33, // 39: budget.v1.MarketBondTerms.call_date:type_name -> google.protobuf.Timestamp
-	33, // 40: budget.v1.MarketBondTerms.placement:type_name -> google.protobuf.Timestamp
-	33, // 41: budget.v1.MarketBondCoupon.date:type_name -> google.protobuf.Timestamp
-	33, // 42: budget.v1.MarketBondCoupon.fix_date:type_name -> google.protobuf.Timestamp
-	33, // 43: budget.v1.MarketBondCoupon.start:type_name -> google.protobuf.Timestamp
-	33, // 44: budget.v1.MarketBondCoupon.end:type_name -> google.protobuf.Timestamp
-	24, // 45: budget.v1.MarketBondCoupon.pay:type_name -> budget.v1.MarketBondAmount
-	33, // 46: budget.v1.MarketBondEvent.date:type_name -> google.protobuf.Timestamp
-	33, // 47: budget.v1.MarketBondEvent.fix_date:type_name -> google.protobuf.Timestamp
-	33, // 48: budget.v1.MarketBondEvent.pay_date:type_name -> google.protobuf.Timestamp
-	33, // 49: budget.v1.MarketBondEvent.actual_pay_date:type_name -> google.protobuf.Timestamp
-	33, // 50: budget.v1.MarketBondEvent.start:type_name -> google.protobuf.Timestamp
-	33, // 51: budget.v1.MarketBondEvent.end:type_name -> google.protobuf.Timestamp
-	24, // 52: budget.v1.MarketBondEvent.pay:type_name -> budget.v1.MarketBondAmount
-	33, // 53: budget.v1.MarketBondAccrued.date:type_name -> google.protobuf.Timestamp
-	33, // 54: budget.v1.GetMarketBondFactsResponse.recorded_at:type_name -> google.protobuf.Timestamp
-	33, // 55: budget.v1.GetMarketBondFactsResponse.as_of:type_name -> google.protobuf.Timestamp
-	33, // 56: budget.v1.GetMarketBondFactsResponse.from:type_name -> google.protobuf.Timestamp
-	33, // 57: budget.v1.GetMarketBondFactsResponse.to:type_name -> google.protobuf.Timestamp
-	0,  // 58: budget.v1.GetMarketBondFactsResponse.source:type_name -> budget.v1.MarketSourceKey
-	25, // 59: budget.v1.GetMarketBondFactsResponse.terms:type_name -> budget.v1.MarketBondTerms
-	26, // 60: budget.v1.GetMarketBondFactsResponse.coupons:type_name -> budget.v1.MarketBondCoupon
-	27, // 61: budget.v1.GetMarketBondFactsResponse.events:type_name -> budget.v1.MarketBondEvent
-	28, // 62: budget.v1.GetMarketBondFactsResponse.accrued:type_name -> budget.v1.MarketBondAccrued
-	0,  // 63: budget.v1.GetMarketDividendFactsRequest.source:type_name -> budget.v1.MarketSourceKey
-	33, // 64: budget.v1.GetMarketDividendFactsRequest.from:type_name -> google.protobuf.Timestamp
-	33, // 65: budget.v1.GetMarketDividendFactsRequest.to:type_name -> google.protobuf.Timestamp
-	24, // 66: budget.v1.MarketDividend.dividend_net:type_name -> budget.v1.MarketBondAmount
-	24, // 67: budget.v1.MarketDividend.close_price:type_name -> budget.v1.MarketBondAmount
-	33, // 68: budget.v1.MarketDividend.payment_date:type_name -> google.protobuf.Timestamp
-	33, // 69: budget.v1.MarketDividend.declared_date:type_name -> google.protobuf.Timestamp
-	33, // 70: budget.v1.MarketDividend.last_buy_date:type_name -> google.protobuf.Timestamp
-	33, // 71: budget.v1.MarketDividend.record_date:type_name -> google.protobuf.Timestamp
-	33, // 72: budget.v1.MarketDividend.created_at:type_name -> google.protobuf.Timestamp
-	33, // 73: budget.v1.GetMarketDividendFactsResponse.recorded_at:type_name -> google.protobuf.Timestamp
-	33, // 74: budget.v1.GetMarketDividendFactsResponse.as_of:type_name -> google.protobuf.Timestamp
-	33, // 75: budget.v1.GetMarketDividendFactsResponse.from:type_name -> google.protobuf.Timestamp
-	33, // 76: budget.v1.GetMarketDividendFactsResponse.to:type_name -> google.protobuf.Timestamp
-	14, // 77: budget.v1.GetMarketDividendFactsResponse.instrument:type_name -> budget.v1.MarketInstrument
-	0,  // 78: budget.v1.GetMarketDividendFactsResponse.source:type_name -> budget.v1.MarketSourceKey
-	31, // 79: budget.v1.GetMarketDividendFactsResponse.dividends:type_name -> budget.v1.MarketDividend
-	30, // 80: budget.v1.MarketDataService.GetMarketDividendFacts:input_type -> budget.v1.GetMarketDividendFactsRequest
-	10, // 81: budget.v1.MarketDataService.RequestMarketHistory:input_type -> budget.v1.RequestMarketHistoryRequest
-	23, // 82: budget.v1.MarketDataService.GetMarketBondFacts:input_type -> budget.v1.GetMarketBondFactsRequest
-	19, // 83: budget.v1.MarketDataService.GetInvestmentMarketMapping:input_type -> budget.v1.GetInvestmentMarketMappingRequest
-	21, // 84: budget.v1.MarketDataService.SaveInvestmentMarketMapping:input_type -> budget.v1.SaveInvestmentMarketMappingRequest
-	15, // 85: budget.v1.MarketDataService.SearchMarketInstruments:input_type -> budget.v1.SearchMarketInstrumentsRequest
-	2,  // 86: budget.v1.MarketDataService.ListMarketSources:input_type -> budget.v1.ListMarketSourcesRequest
-	5,  // 87: budget.v1.MarketDataService.GetMarketHistory:input_type -> budget.v1.GetMarketHistoryRequest
-	7,  // 88: budget.v1.MarketDataService.RequestMarketRefresh:input_type -> budget.v1.RequestMarketRefreshRequest
-	12, // 89: budget.v1.MarketDataService.GetMarketDataJob:input_type -> budget.v1.GetMarketDataJobRequest
-	32, // 90: budget.v1.MarketDataService.GetMarketDividendFacts:output_type -> budget.v1.GetMarketDividendFactsResponse
-	11, // 91: budget.v1.MarketDataService.RequestMarketHistory:output_type -> budget.v1.RequestMarketHistoryResponse
-	29, // 92: budget.v1.MarketDataService.GetMarketBondFacts:output_type -> budget.v1.GetMarketBondFactsResponse
-	20, // 93: budget.v1.MarketDataService.GetInvestmentMarketMapping:output_type -> budget.v1.GetInvestmentMarketMappingResponse
-	22, // 94: budget.v1.MarketDataService.SaveInvestmentMarketMapping:output_type -> budget.v1.SaveInvestmentMarketMappingResponse
-	16, // 95: budget.v1.MarketDataService.SearchMarketInstruments:output_type -> budget.v1.SearchMarketInstrumentsResponse
-	3,  // 96: budget.v1.MarketDataService.ListMarketSources:output_type -> budget.v1.ListMarketSourcesResponse
-	6,  // 97: budget.v1.MarketDataService.GetMarketHistory:output_type -> budget.v1.GetMarketHistoryResponse
-	9,  // 98: budget.v1.MarketDataService.RequestMarketRefresh:output_type -> budget.v1.RequestMarketRefreshResponse
-	13, // 99: budget.v1.MarketDataService.GetMarketDataJob:output_type -> budget.v1.GetMarketDataJobResponse
-	90, // [90:100] is the sub-list for method output_type
-	80, // [80:90] is the sub-list for method input_type
-	80, // [80:80] is the sub-list for extension type_name
-	80, // [80:80] is the sub-list for extension extendee
-	0,  // [0:80] is the sub-list for field type_name
+	17, // 28: budget.v1.InvestmentMarketMapping.historical_periods:type_name -> budget.v1.InvestmentMarketPeriod
+	33, // 29: budget.v1.InvestmentMarketMapping.recorded_at:type_name -> google.protobuf.Timestamp
+	18, // 30: budget.v1.GetInvestmentMarketMappingResponse.mapping:type_name -> budget.v1.InvestmentMarketMapping
+	17, // 31: budget.v1.SaveInvestmentMarketMappingRequest.periods:type_name -> budget.v1.InvestmentMarketPeriod
+	17, // 32: budget.v1.SaveInvestmentMarketMappingRequest.historical_periods:type_name -> budget.v1.InvestmentMarketPeriod
+	18, // 33: budget.v1.SaveInvestmentMarketMappingResponse.mapping:type_name -> budget.v1.InvestmentMarketMapping
+	0,  // 34: budget.v1.GetMarketBondFactsRequest.source:type_name -> budget.v1.MarketSourceKey
+	33, // 35: budget.v1.GetMarketBondFactsRequest.from:type_name -> google.protobuf.Timestamp
+	33, // 36: budget.v1.GetMarketBondFactsRequest.to:type_name -> google.protobuf.Timestamp
+	24, // 37: budget.v1.MarketBondTerms.nominal:type_name -> budget.v1.MarketBondAmount
+	24, // 38: budget.v1.MarketBondTerms.initial_nominal:type_name -> budget.v1.MarketBondAmount
+	24, // 39: budget.v1.MarketBondTerms.current_accrued:type_name -> budget.v1.MarketBondAmount
+	33, // 40: budget.v1.MarketBondTerms.maturity:type_name -> google.protobuf.Timestamp
+	33, // 41: budget.v1.MarketBondTerms.call_date:type_name -> google.protobuf.Timestamp
+	33, // 42: budget.v1.MarketBondTerms.placement:type_name -> google.protobuf.Timestamp
+	33, // 43: budget.v1.MarketBondCoupon.date:type_name -> google.protobuf.Timestamp
+	33, // 44: budget.v1.MarketBondCoupon.fix_date:type_name -> google.protobuf.Timestamp
+	33, // 45: budget.v1.MarketBondCoupon.start:type_name -> google.protobuf.Timestamp
+	33, // 46: budget.v1.MarketBondCoupon.end:type_name -> google.protobuf.Timestamp
+	24, // 47: budget.v1.MarketBondCoupon.pay:type_name -> budget.v1.MarketBondAmount
+	33, // 48: budget.v1.MarketBondEvent.date:type_name -> google.protobuf.Timestamp
+	33, // 49: budget.v1.MarketBondEvent.fix_date:type_name -> google.protobuf.Timestamp
+	33, // 50: budget.v1.MarketBondEvent.pay_date:type_name -> google.protobuf.Timestamp
+	33, // 51: budget.v1.MarketBondEvent.actual_pay_date:type_name -> google.protobuf.Timestamp
+	33, // 52: budget.v1.MarketBondEvent.start:type_name -> google.protobuf.Timestamp
+	33, // 53: budget.v1.MarketBondEvent.end:type_name -> google.protobuf.Timestamp
+	24, // 54: budget.v1.MarketBondEvent.pay:type_name -> budget.v1.MarketBondAmount
+	33, // 55: budget.v1.MarketBondAccrued.date:type_name -> google.protobuf.Timestamp
+	33, // 56: budget.v1.GetMarketBondFactsResponse.recorded_at:type_name -> google.protobuf.Timestamp
+	33, // 57: budget.v1.GetMarketBondFactsResponse.as_of:type_name -> google.protobuf.Timestamp
+	33, // 58: budget.v1.GetMarketBondFactsResponse.from:type_name -> google.protobuf.Timestamp
+	33, // 59: budget.v1.GetMarketBondFactsResponse.to:type_name -> google.protobuf.Timestamp
+	0,  // 60: budget.v1.GetMarketBondFactsResponse.source:type_name -> budget.v1.MarketSourceKey
+	25, // 61: budget.v1.GetMarketBondFactsResponse.terms:type_name -> budget.v1.MarketBondTerms
+	26, // 62: budget.v1.GetMarketBondFactsResponse.coupons:type_name -> budget.v1.MarketBondCoupon
+	27, // 63: budget.v1.GetMarketBondFactsResponse.events:type_name -> budget.v1.MarketBondEvent
+	28, // 64: budget.v1.GetMarketBondFactsResponse.accrued:type_name -> budget.v1.MarketBondAccrued
+	0,  // 65: budget.v1.GetMarketDividendFactsRequest.source:type_name -> budget.v1.MarketSourceKey
+	33, // 66: budget.v1.GetMarketDividendFactsRequest.from:type_name -> google.protobuf.Timestamp
+	33, // 67: budget.v1.GetMarketDividendFactsRequest.to:type_name -> google.protobuf.Timestamp
+	24, // 68: budget.v1.MarketDividend.dividend_net:type_name -> budget.v1.MarketBondAmount
+	24, // 69: budget.v1.MarketDividend.close_price:type_name -> budget.v1.MarketBondAmount
+	33, // 70: budget.v1.MarketDividend.payment_date:type_name -> google.protobuf.Timestamp
+	33, // 71: budget.v1.MarketDividend.declared_date:type_name -> google.protobuf.Timestamp
+	33, // 72: budget.v1.MarketDividend.last_buy_date:type_name -> google.protobuf.Timestamp
+	33, // 73: budget.v1.MarketDividend.record_date:type_name -> google.protobuf.Timestamp
+	33, // 74: budget.v1.MarketDividend.created_at:type_name -> google.protobuf.Timestamp
+	33, // 75: budget.v1.GetMarketDividendFactsResponse.recorded_at:type_name -> google.protobuf.Timestamp
+	33, // 76: budget.v1.GetMarketDividendFactsResponse.as_of:type_name -> google.protobuf.Timestamp
+	33, // 77: budget.v1.GetMarketDividendFactsResponse.from:type_name -> google.protobuf.Timestamp
+	33, // 78: budget.v1.GetMarketDividendFactsResponse.to:type_name -> google.protobuf.Timestamp
+	14, // 79: budget.v1.GetMarketDividendFactsResponse.instrument:type_name -> budget.v1.MarketInstrument
+	0,  // 80: budget.v1.GetMarketDividendFactsResponse.source:type_name -> budget.v1.MarketSourceKey
+	31, // 81: budget.v1.GetMarketDividendFactsResponse.dividends:type_name -> budget.v1.MarketDividend
+	30, // 82: budget.v1.MarketDataService.GetMarketDividendFacts:input_type -> budget.v1.GetMarketDividendFactsRequest
+	10, // 83: budget.v1.MarketDataService.RequestMarketHistory:input_type -> budget.v1.RequestMarketHistoryRequest
+	23, // 84: budget.v1.MarketDataService.GetMarketBondFacts:input_type -> budget.v1.GetMarketBondFactsRequest
+	19, // 85: budget.v1.MarketDataService.GetInvestmentMarketMapping:input_type -> budget.v1.GetInvestmentMarketMappingRequest
+	21, // 86: budget.v1.MarketDataService.SaveInvestmentMarketMapping:input_type -> budget.v1.SaveInvestmentMarketMappingRequest
+	15, // 87: budget.v1.MarketDataService.SearchMarketInstruments:input_type -> budget.v1.SearchMarketInstrumentsRequest
+	2,  // 88: budget.v1.MarketDataService.ListMarketSources:input_type -> budget.v1.ListMarketSourcesRequest
+	5,  // 89: budget.v1.MarketDataService.GetMarketHistory:input_type -> budget.v1.GetMarketHistoryRequest
+	7,  // 90: budget.v1.MarketDataService.RequestMarketRefresh:input_type -> budget.v1.RequestMarketRefreshRequest
+	12, // 91: budget.v1.MarketDataService.GetMarketDataJob:input_type -> budget.v1.GetMarketDataJobRequest
+	32, // 92: budget.v1.MarketDataService.GetMarketDividendFacts:output_type -> budget.v1.GetMarketDividendFactsResponse
+	11, // 93: budget.v1.MarketDataService.RequestMarketHistory:output_type -> budget.v1.RequestMarketHistoryResponse
+	29, // 94: budget.v1.MarketDataService.GetMarketBondFacts:output_type -> budget.v1.GetMarketBondFactsResponse
+	20, // 95: budget.v1.MarketDataService.GetInvestmentMarketMapping:output_type -> budget.v1.GetInvestmentMarketMappingResponse
+	22, // 96: budget.v1.MarketDataService.SaveInvestmentMarketMapping:output_type -> budget.v1.SaveInvestmentMarketMappingResponse
+	16, // 97: budget.v1.MarketDataService.SearchMarketInstruments:output_type -> budget.v1.SearchMarketInstrumentsResponse
+	3,  // 98: budget.v1.MarketDataService.ListMarketSources:output_type -> budget.v1.ListMarketSourcesResponse
+	6,  // 99: budget.v1.MarketDataService.GetMarketHistory:output_type -> budget.v1.GetMarketHistoryResponse
+	9,  // 100: budget.v1.MarketDataService.RequestMarketRefresh:output_type -> budget.v1.RequestMarketRefreshResponse
+	13, // 101: budget.v1.MarketDataService.GetMarketDataJob:output_type -> budget.v1.GetMarketDataJobResponse
+	92, // [92:102] is the sub-list for method output_type
+	82, // [82:92] is the sub-list for method input_type
+	82, // [82:82] is the sub-list for extension type_name
+	82, // [82:82] is the sub-list for extension extendee
+	0,  // [0:82] is the sub-list for field type_name
 }
 
 func init() { file_budget_v1_market_data_proto_init() }

@@ -24,7 +24,11 @@ func (r *mappingRPCRepo) SaveMapping(_ context.Context, t, u string, c md.Mappin
 	r.change = c
 	r.tenant = t
 	r.actor = u
-	return md.Mapping{InstrumentKey: c.InstrumentKey, Periods: c.Periods, Version: 4, ActorID: u, Reason: c.Reason}, r.err
+	out := md.Mapping{InstrumentKey: c.InstrumentKey, Periods: c.Periods, Version: 4, ActorID: u, Reason: c.Reason}
+	if c.HistoricalPeriods != nil {
+		out.HistoricalPeriods = *c.HistoricalPeriods
+	}
+	return out, r.err
 }
 func (r *mappingRPCRepo) GetMapping(context.Context, string, string) (md.Mapping, error) {
 	return md.Mapping{Version: 4, Periods: r.change.Periods}, r.err
@@ -65,5 +69,32 @@ func TestMappingRPCValidationAuthorizationAndExactTerms(t *testing.T) {
 	repo.err = md.ErrConflict
 	if _, err = server.SaveInvestmentMarketMapping(ctx, req); status.Code(err) != codes.Aborted {
 		t.Fatal(err)
+	}
+}
+
+func TestMappingRPCHistoricalScheduleIsExplicitAndIndependent(t *testing.T) {
+	const id = "11111111-1111-4111-8111-111111111111"
+	ctx := ctxutil.WithUserID(ctxutil.WithTenantID(context.Background(), id), id)
+	repo := &mappingRPCRepo{}
+	server := NewMarketDataServer(nil, md.NewMappingService(repo, mappingRPCRole(d.TenantRoleOwner)))
+	period := &pb.InvestmentMarketPeriod{Source: &pb.MarketSourceKey{Provider: "moex", AccessScope: "personal"}, InstrumentId: id, Kind: "share", Currency: "RUB", Unit: "currency_per_unit", From: timestamppb.New(time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)), Evidence: "Reviewed native listing"}
+	q := &pb.SaveInvestmentMarketMappingRequest{InstrumentKey: "S", RequestKey: "native-history", Reason: "Reviewed", Periods: []*pb.InvestmentMarketPeriod{period}, HistoricalPeriods: []*pb.InvestmentMarketPeriod{period}}
+	if _, e := server.SaveInvestmentMarketMapping(ctx, q); status.Code(e) != codes.InvalidArgument {
+		t.Fatal("implicit historical mutation accepted", e)
+	}
+	q.ReplaceHistorical = true
+	out, e := server.SaveInvestmentMarketMapping(ctx, q)
+	if e != nil || repo.change.HistoricalPeriods == nil || len(*repo.change.HistoricalPeriods) != 1 || len(out.Mapping.HistoricalPeriods) != 1 || out.Mapping.HistoricalPeriods[0].Source.Provider != "moex" {
+		t.Fatal(out, e)
+	}
+	q.HistoricalPeriods = nil
+	q.RequestKey = "clear-native-history"
+	if _, e := server.SaveInvestmentMarketMapping(ctx, q); e != nil || repo.change.HistoricalPeriods == nil || len(*repo.change.HistoricalPeriods) != 0 {
+		t.Fatal("explicit clear lost", e)
+	}
+	q.ReplaceHistorical = false
+	q.RequestKey = "preserve-native-history"
+	if _, e := server.SaveInvestmentMarketMapping(ctx, q); e != nil || repo.change.HistoricalPeriods != nil {
+		t.Fatal("legacy current-only request changed history", e)
 	}
 }
