@@ -39,6 +39,11 @@ Analytics derive from these same facts. The client checks daily values against
 the chart and rejects incoherent dates, policies, fractions and period coverage.
 CSV retains exact rational money and returns, TWR segments and quality reasons,
 annualized XIRR, benchmark indices and virtual monetary values.
+When only part of a daily valuation is known, the value chart shows that portion
+with a dashed line. It breaks at gaps and changes in priced-position coverage.
+The partial value never substitutes for complete value, profit, TWR or XIRR.
+Exports with history points append exact known value, valuation state, position
+coverage and quality reasons; incomplete full-value fields remain empty.
 
 Selected groups show their own daily value, cumulative profit and monthly/yearly
 profit, as well as the contribution table. A security selection applies across
