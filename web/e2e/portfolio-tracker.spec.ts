@@ -11,6 +11,9 @@ for (const locale of ["ru", "en"]) {
   test(`${locale} simple portfolio shows holdings and payouts and saves a purchase in one step`, async ({page, context}) => {
     const ru = locale === "ru", readOnly = process.env.E2E_INVESTMENTS_READ_ONLY === "true";
     let pendingHistory = false;
+    let releaseQuotes!: () => void, releaseRates!: () => void;
+    const quotesReady = new Promise<void>(resolve => {releaseQuotes = resolve;});
+    const ratesReady = new Promise<void>(resolve => {releaseRates = resolve;});
     const calls: {method: string; input: any}[] = [], errors: string[] = [];
     page.on("pageerror", e => errors.push(e.message));
     await context.addCookies([{name: "NEXT_LOCALE", value: locale, url: test.info().project.use.baseURL as string}]);
@@ -28,6 +31,8 @@ for (const locale of ["ru", "en"]) {
       const bytes = route.request().postDataBuffer()!;
       const input = method ? fromBinary(method.input, bytes.subarray(5, 5 + bytes.readUInt32BE(1))) as any : {};
       if (method) calls.push({method: method.name, input});
+      if (method?.name === "GetInvestmentQuotes") await quotesReady;
+      if (method?.name === "GetInvestmentExchangeRates") await ratesReady;
       let data: any = {};
       if (method?.name === "ListMyTenants") data = {memberships: [{tenant: {id: "tenant", name: "Synthetic"}, role: 1}]};
       if (method?.name === "ListInvestmentLedgers") data = {ledgers: [ledger]};
@@ -72,6 +77,21 @@ for (const locale of ["ru", "en"]) {
       await route.fulfill({status: 200, contentType: "application/grpc-web+proto", body: Buffer.concat([header, body, end, trailer])});
     });
     await page.goto("/investments");
+    const loading = page.getByRole("status").filter({hasText:ru ? "Загружаем портфель" : "Loading portfolio"});
+    await expect(loading).toBeVisible();
+    await expect.poll(() => calls.some(c => c.method === "GetInvestmentQuotes")).toBe(true);
+    await expect.poll(() => calls.some(c => c.method === "GetInvestmentExchangeRates")).toBe(true);
+    const costHeading = page.getByRole("heading", {name:ru ? "Вложено в бумаги" : "Cost of holdings", exact:true});
+    await expect(costHeading).toHaveCount(0);
+    await page.getByRole("button", {name:ru ? "Сделки" : "Trades", exact:true}).click();
+    await expect(page.getByRole("table")).toContainText(ru ? "Покупка" : "Buy");
+    await page.getByRole("button", {name:ru ? "Обзор" : "Overview", exact:true}).click();
+    releaseQuotes();
+    await expect(loading).toBeVisible();
+    await expect(costHeading).toHaveCount(0);
+    releaseRates();
+    await expect(loading).toHaveCount(0);
+    await expect(costHeading).toBeVisible();
     await expect(page.getByRole("heading", {name: ru ? "Мой портфель" : "My portfolio", exact: true})).toBeVisible();
     const value = page.locator("section").filter({has: page.getByRole("heading", {name: ru ? "Стоимость портфеля" : "Portfolio value", exact: true})});
     await expect(value).toContainText(/23[\s,.]?200/);
