@@ -75,3 +75,15 @@ it.each(["source", "dates", "currency", "fraction"])("rejects a mismatched bench
  api.getTrackerPerformance.mockResolvedValue(value);
  await expect(loadPortfolioPerformanceHistory(api,scope,new AbortController().signal,vi.fn())).rejects.toThrow("invalid_performance");
 });
+
+it("loads group value history without requesting whole-account returns",async()=>{
+ const api=performanceAPI();const first=page("2020-01-01","2020-01-02"),second=page("2020-01-02","");first.classificationVersion=2n;second.classificationVersion=2n;
+ api.getTrackerHistory.mockReset().mockResolvedValueOnce(first).mockResolvedValueOnce(second);
+ const result=await loadPortfolioPerformanceHistory(api,{...scope,groupIds:["a"],classificationVersion:2n},new AbortController().signal,vi.fn());
+ expect(result.points).toHaveLength(2);expect(result.performance).toBeUndefined();expect(api.getTrackerPerformance).not.toHaveBeenCalled();expect(api.getTrackerHistory.mock.calls[0][0].performanceFromDate).toBeUndefined();
+});
+it("rejects group reclassification during historical pagination",async()=>{
+ const api=performanceAPI(),first=page("2020-01-01","2020-01-02"),second=page("2020-01-02","");first.classificationVersion=2n;second.classificationVersion=3n;
+ api.getTrackerHistory.mockReset().mockResolvedValueOnce(first).mockResolvedValueOnce(second);
+ await expect(loadPortfolioPerformanceHistory(api,{...scope,groupIds:["a"],classificationVersion:2n},new AbortController().signal,vi.fn())).rejects.toThrow("history_changed");
+});

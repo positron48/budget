@@ -52,6 +52,30 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 	if e != nil {
 		return out, e
 	}
+	var classification *nav.InstrumentGroups
+	groupFor := map[string]string{}
+	wantedGroups := map[string]bool{}
+	if len(q.GroupIDs) > 0 {
+		groups, err := readInstrumentGroups(ctx, tx, tenant)
+		if err != nil {
+			return out, err
+		}
+		classification = &groups
+		out.ClassificationVersion = groups.Version
+		valid := map[string]bool{"": true}
+		for _, g := range groups.Groups {
+			valid[g.ID] = true
+		}
+		for _, id := range q.GroupIDs {
+			if !valid[id] {
+				return out, d.ErrInvestmentPrecondition
+			}
+			wantedGroups[id] = true
+		}
+		for _, m := range groups.Memberships {
+			groupFor[m.LedgerID+"\x00"+m.InstrumentKey] = m.GroupID
+		}
+	}
 	if out.Generation, e = investmentGenerationTx(ctx, tx, tenant); e != nil {
 		return out, e
 	}
@@ -132,11 +156,13 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		heads = append(heads, inputs[id].Ledger)
 	}
 	out.BasisKey = investmentHash(struct {
-		Heads  []d.InvestmentLedger
-		Policy md.SavedFXPolicy
-		Points []md.SavedFXPoint
-		Cache  json.RawMessage
-	}{heads, policy, points, cache})
+		Heads          []d.InvestmentLedger
+		Policy         md.SavedFXPolicy
+		Points         []md.SavedFXPoint
+		Cache          json.RawMessage
+		Classification *nav.InstrumentGroups
+		GroupIDs       []string
+	}{heads, policy, points, cache, classification, q.GroupIDs})
 	first, _ := time.Parse(time.DateOnly, q.From)
 	last, _ := time.Parse(time.DateOnly, q.To)
 	end := first.AddDate(0, 0, 30)
@@ -201,6 +227,15 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 				s = history[i]
 			} else {
 				s = replay.Ledgers[id].Snapshot
+			}
+			if len(q.GroupIDs) > 0 {
+				filtered := []d.InvestmentPosition{}
+				for _, p := range s.Positions {
+					if wantedGroups[groupFor[id+"\x00"+p.InstrumentKey]] {
+						filtered = append(filtered, p)
+					}
+				}
+				s.Positions = filtered
 			}
 			for j := range s.Positions {
 				s.Positions[j].Lots = nil

@@ -19,7 +19,7 @@ func (s *InvestmentNAVServer) GetTrackerHistory(ctx context.Context, req *pb.Get
 	if e != nil {
 		return nil, e
 	}
-	q, e := nav.NormalizeTrackerHistory(nav.TrackerHistoryRequest{LedgerIDs: req.GetLedgerIds(), Currency: req.GetCurrency(), FXPolicyKey: req.GetFxPolicyKey(), From: req.GetFromDate(), To: req.GetToDate(), PerformanceFrom: req.GetPerformanceFromDate()}, time.Now().UTC())
+	q, e := nav.NormalizeTrackerHistory(nav.TrackerHistoryRequest{LedgerIDs: req.GetLedgerIds(), Currency: req.GetCurrency(), FXPolicyKey: req.GetFxPolicyKey(), From: req.GetFromDate(), To: req.GetToDate(), PerformanceFrom: req.GetPerformanceFromDate(), GroupIDs: req.GetGroupIds()}, time.Now().UTC())
 	if e != nil {
 		return nil, investmentRPCError(e)
 	}
@@ -34,7 +34,7 @@ func (s *InvestmentNAVServer) GetTrackerHistory(ctx context.Context, req *pb.Get
 	if e != nil {
 		return nil, investmentRPCError(e)
 	}
-	out := &pb.GetTrackerHistoryResponse{Currency: result.Currency, BasisKey: result.BasisKey, FxPolicyKey: result.FXPolicyKey, FxPolicyVersion: result.FXPolicyVersion, FxMode: result.FXMode, NextDate: result.NextDate, Generation: result.Generation, ReadAt: optionalInvestmentTimestamp(result.ReadAt), PriceConvention: md.RetrospectiveCloseNextUTCDay, ReportingTimezone: "Europe/Moscow"}
+	out := &pb.GetTrackerHistoryResponse{ClassificationVersion: result.ClassificationVersion, Currency: result.Currency, BasisKey: result.BasisKey, FxPolicyKey: result.FXPolicyKey, FxPolicyVersion: result.FXPolicyVersion, FxMode: result.FXMode, NextDate: result.NextDate, Generation: result.Generation, ReadAt: optionalInvestmentTimestamp(result.ReadAt), PriceConvention: md.RetrospectiveCloseNextUTCDay, ReportingTimezone: "Europe/Moscow"}
 	for _, p := range result.Points {
 		row := &pb.TrackerHistoryPoint{Date: p.Date, State: p.State, CoverageKey: p.CoverageKey, KnownValue: protoPerformanceAmount(p.KnownValue), PricedPositions: int32(p.PricedPositions), Positions: int32(p.Positions)}
 		for _, issue := range p.Issues {

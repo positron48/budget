@@ -1,7 +1,7 @@
 import type {GetTrackerHistoryResponse, GetInvestmentPerformanceResponse, TrackerHistoryPoint} from "@/proto/budget/v1/investment_nav_pb";
 import {Code, ConnectError} from "@connectrpc/connect";
-export type HistoryScope = {fxPolicyVersion: bigint; fxMode: string; ledgerIds: string[]; currency: string; fxPolicyKey: string; fromDate: string; toDate: string};
-type HistoryAPI = {getTrackerHistory(input: Omit<HistoryScope, "fxPolicyVersion" | "fxMode"> & {performanceFromDate?: string}, options: {signal: AbortSignal}): Promise<GetTrackerHistoryResponse>};
+export type HistoryScope = {groupIds?: string[]; classificationVersion?: bigint; fxPolicyVersion: bigint; fxMode: string; ledgerIds: string[]; currency: string; fxPolicyKey: string; fromDate: string; toDate: string};
+type HistoryAPI = {getTrackerHistory(input: Omit<HistoryScope, "fxPolicyVersion" | "fxMode" | "classificationVersion"> & {performanceFromDate?: string}, options: {signal: AbortSignal}): Promise<GetTrackerHistoryResponse>};
 export function shiftHistoryDate(date: string, days: number): string {
   const at = new Date(date + "T00:00:00Z"); at.setUTCDate(at.getUTCDate() + days); return at.toISOString().slice(0, 10);
 }
@@ -12,11 +12,11 @@ export function lastHistoryDate(): string {
 export async function loadPortfolioHistory(api: HistoryAPI, scope: HistoryScope, signal: AbortSignal, progress: (points: TrackerHistoryPoint[]) => void): Promise<TrackerHistoryPoint[]> {
   return (await historyPages(api, scope, signal, progress, false)).points;
 }
-type PerformanceAPI = HistoryAPI & {getTrackerPerformance(input: Omit<HistoryScope, "fxPolicyVersion" | "fxMode"> & {snapshotTokens: string[]}, options: {signal: AbortSignal}): Promise<GetInvestmentPerformanceResponse>};
+type PerformanceAPI = HistoryAPI & {getTrackerPerformance(input: Omit<HistoryScope, "fxPolicyVersion" | "fxMode" | "classificationVersion"> & {snapshotTokens: string[]}, options: {signal: AbortSignal}): Promise<GetInvestmentPerformanceResponse>};
 export async function loadPortfolioPerformanceHistory(api: PerformanceAPI, scope: HistoryScope, signal: AbortSignal, progress: (points: TrackerHistoryPoint[]) => void) {
-  const result = await historyPages(api, scope, signal, progress, true);
+  const result = await historyPages(api, scope, signal, progress, !scope.groupIds?.length);
   if (!result.tokens.length) return {points: result.points, performance: undefined};
-  const {fxPolicyVersion: _version, fxMode: _mode, ...request} = scope;
+  const {fxPolicyVersion: _version, fxMode: _mode, classificationVersion: _classification, ...request} = scope;
   let performance: GetInvestmentPerformanceResponse;
   try {performance = await api.getTrackerPerformance({...request, snapshotTokens: result.tokens}, {signal});}
   catch (error) {if (error instanceof ConnectError && error.code === Code.FailedPrecondition) throw new Error("history_changed"); throw error;}
@@ -38,7 +38,7 @@ export async function loadPortfolioPerformanceHistory(api: PerformanceAPI, scope
   return {points: result.points, performance};
 }
 async function historyPages(api: HistoryAPI, scope: HistoryScope, signal: AbortSignal, progress: (points: TrackerHistoryPoint[]) => void, performance: boolean): Promise<{points: TrackerHistoryPoint[]; tokens: string[]}> {
-  const {fxPolicyVersion, fxMode, ...request} = scope;
+  const {fxPolicyVersion, fxMode, classificationVersion, ...request} = scope;
   const result: TrackerHistoryPoint[] = [];
   const tokens: string[] = []; let hasSnapshots = true;
   let cursor = scope.fromDate, basis: string | undefined, version: bigint | undefined;
@@ -47,6 +47,7 @@ async function historyPages(api: HistoryAPI, scope: HistoryScope, signal: AbortS
     const page = await api.getTrackerHistory({...request, fromDate: cursor, ...(performance ? {performanceFromDate: scope.fromDate} : {})}, {signal});
     signal.throwIfAborted();
     if (page.currency !== scope.currency || page.fxPolicyKey !== scope.fxPolicyKey || page.reportingTimezone !== "Europe/Moscow" || page.priceConvention !== "retrospective_close_next_utc_day_v1" || !["market", "cbr"].includes(page.fxMode) || page.fxPolicyVersion !== fxPolicyVersion || page.fxMode !== fxMode || !/^[a-f0-9]{64}$/.test(page.basisKey) || !page.points.length || page.points.length > 31) throw new Error("invalid_history");
+    if (scope.groupIds?.length && classificationVersion !== undefined && page.classificationVersion !== classificationVersion) throw new Error("history_changed");
     if (basis !== undefined && (basis !== page.basisKey || version !== page.fxPolicyVersion)) throw new Error("history_changed");
     basis = page.basisKey; version = page.fxPolicyVersion;
     if (performance) {if (!page.performanceSnapshot) hasSnapshots = false; else {if (page.performanceSnapshot.length > 32768) throw new Error("invalid_performance"); tokens.push(page.performanceSnapshot);}}

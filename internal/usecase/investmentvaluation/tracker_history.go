@@ -13,6 +13,7 @@ type TrackerHistoryRequest struct {
 	LedgerIDs                       []string
 	Currency, FXPolicyKey, From, To string
 	PerformanceFrom                 string
+	GroupIDs                        []string
 }
 type TrackerHistoryPoint struct {
 	Date, State, CoverageKey   string
@@ -26,6 +27,7 @@ type TrackerHistoryPoint struct {
 type TrackerHistory struct {
 	Currency, FXPolicyKey, FXMode, NextDate, BasisKey string
 	FXPolicyVersion, Generation                       int64
+	ClassificationVersion                             int64
 	ReadAt                                            time.Time
 	Points                                            []TrackerHistoryPoint
 	Baseline                                          *TrackerHistoryPoint
@@ -36,6 +38,23 @@ type TrackerHistory struct {
 func NormalizeTrackerHistory(q TrackerHistoryRequest, now time.Time) (TrackerHistoryRequest, error) {
 	if len(q.LedgerIDs) < 1 || len(q.LedgerIDs) > 20 || q.FXPolicyKey == "" || len(q.FXPolicyKey) > 100 || (q.Currency != "RUB" && q.Currency != "USD" && q.Currency != "EUR") {
 		return q, d.ErrInvestmentInvalid
+	}
+	if len(q.GroupIDs) > 101 || len(q.GroupIDs) > 0 && q.PerformanceFrom != "" {
+		return q, d.ErrInvestmentInvalid
+	}
+	q.GroupIDs = slices.Clone(q.GroupIDs)
+	slices.Sort(q.GroupIDs)
+	q.GroupIDs = slices.Compact(q.GroupIDs)
+	if len(q.GroupIDs) == 0 {
+		q.GroupIDs = nil
+	}
+	for _, id := range q.GroupIDs {
+		if id != "" {
+			u, e := uuid.Parse(id)
+			if e != nil || u.String() != id {
+				return q, d.ErrInvestmentInvalid
+			}
+		}
 	}
 	q.LedgerIDs = slices.Clone(q.LedgerIDs)
 	slices.Sort(q.LedgerIDs)

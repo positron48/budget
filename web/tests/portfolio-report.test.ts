@@ -90,3 +90,21 @@ describe("portfolio reporting currency", () => {
     expect(positionDecimal(p.quantity)).toBe("0"); expect(positionDecimal(p.profit)).toBe("900");
   });
 });
+
+it("classifies the same instrument independently by account and unions without double counting",()=>{
+ const first=buy(),second=buy();second.id="buy-two";second.ledgerId="two";
+ const one=snapshot(),two=snapshot();two.ledger!.id="two";two.positions[0].quantity="2";two.positions[0].lots[0].originId="buy-two";two.positions[0].lots[0].cleanCost="202";two.positions[0].lots[0].acquiredAccrued="4";
+ const include=(ledger:string)=>ledger==="two";
+ const report=portfolioReport([one,two],[first,second],quote(),"RUB",fx(),include);
+ expect(positionDecimal(report.positions[0].quantity)).toBe("2");expect(positionDecimal(report.positions[0].cost)).toBe("16000");
+ const both=portfolioReport([one,two],[first,second],quote(),"RUB",fx(),()=>true);
+ expect(positionDecimal(both.positions[0].quantity)).toBe("3");expect(positionDecimal(both.positions[0].cost)).toBe("24000");
+});
+it("retains an acquisition origin outside the selected group without calling a distribution free profit",()=>{
+ const source=buy();source.instrumentKey="OLD";
+ const s=snapshot();s.positions[0].instrumentKey="NEW";
+ const distribution=create(InvestmentOperationSchema,{id:"distribution",ledgerId:"one",status:"posted",kind:"distribution",instrumentKey:"OLD",occurredAt:at("2026-02-01"),distribution:{targetInstrumentKey:"NEW"}});
+ const quotes=new Map([["NEW\0USD",{price:decimal("140")!,at:1}]]);
+ const p=portfolioReport([s],[source,distribution],quotes,"RUB",fx(),(_ledger,key)=>key==="NEW").positions[0];
+ expect(positionDecimal(p.cost)).toBe("8000");expect(p.profit).toBeUndefined();
+});

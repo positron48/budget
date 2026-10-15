@@ -23,8 +23,9 @@ function reportPrincipal(op: InvestmentOperation) {
     currency: principal.currency, date: principal.at ? reportingDate(principal.at.seconds) : undefined};
 }
 export type ReportPosition = TrackerPosition & {incomeComplete: boolean};
-export function portfolioReport(snapshots: InvestmentSnapshot[], operations: InvestmentOperation[], quotes: Map<string, TrackerQuote>, currency: string, fx?: GetInvestmentExchangeRatesResponse) {
+export function portfolioReport(snapshots: InvestmentSnapshot[], operations: InvestmentOperation[], quotes: Map<string, TrackerQuote>, currency: string, fx?: GetInvestmentExchangeRatesResponse, include: (ledger: string, instrument: string) => boolean = () => true) {
   const rates = new Map((fx?.currency === currency ? fx.rates : []).map(r => [`${r.date}\0${r.fromCurrency}`, r.rate]));
+  const holdingCosts: {ledgerId:string;key:string;cost?:Fraction}[]=[];
   const missingFX = new Set<string>(), positions = new Map<string, ReportPosition>();
   const cash = new Map<string, Fraction>(), economicCost = new Map<string, Fraction>();
   const incompleteCash = new Set<string>(), incompleteCost = new Set<string>(), incompleteEconomicCost = new Set<string>();
@@ -47,12 +48,14 @@ export function portfolioReport(snapshots: InvestmentSnapshot[], operations: Inv
   const posted = operations.filter(o => o.status === "posted" && o.occurredAt && o.occurredAt.seconds <= now);
   const byID = new Map(posted.map(o => [o.id, o]));
   for (const s of snapshots) for (const holding of s.positions) {
+    if (!include(s.ledger?.id || "", holding.instrumentKey)) continue;
     const p = get(holding.instrumentKey), quantity = decimal(holding.quantity);
     if (!quantity) {incompleteCost.add(p.key); incompleteCash.add(p.key); continue;}
     p.quantity = add(p.quantity, quantity);
     if (s.ledger?.name && !p.accounts.includes(s.ledger.name)) p.accounts.push(s.ledger.name);
     if (!BigInt(quantity.numerator)) continue;
-    if (!holding.lots.length) {incompleteCost.add(p.key); incompleteEconomicCost.add(p.key); continue;}
+    if (!holding.lots.length) {holdingCosts.push({ledgerId:s.ledger?.id||"",key:p.key});incompleteCost.add(p.key); incompleteEconomicCost.add(p.key); continue;}
+    let holdingCost:Fraction|undefined=zero;
     for (const lot of holding.lots) {
       const origin = byID.get(lot.acquisitionOperationId || lot.originId);
       const clean = decimal(lot.cleanCost), accrued = decimal(lot.acquiredAccrued);
@@ -70,15 +73,22 @@ export function portfolioReport(snapshots: InvestmentSnapshot[], operations: Inv
       const interestCost = accruedShare ? convert(multiply(decimal(f?.accrued?.amount || origin?.accrued || "") || zero, accruedShare), f?.accrued?.currency || origin?.currency || lot.currency || holding.currency, f?.accrued?.at ? reportingDate(f.accrued.at.seconds) : date) : undefined;
       const economic = pure && feeCost && interestCost ? add(pure, feeCost, interestCost) : undefined;
       if (pure) p.cost = add(p.cost, pure); else incompleteCost.add(p.key);
+      holdingCost=pure&&holdingCost!==undefined?add(holdingCost,pure):undefined;
       if (economic) economicCost.set(p.key, add(economicCost.get(p.key), economic)); else incompleteEconomicCost.add(p.key);
     }
+    holdingCosts.push({ledgerId:s.ledger?.id||"",key:p.key,cost:holdingCost});
   }
   const addCash = (key: string, amount: Fraction | undefined, from: string, date: string | undefined, negative = false) => {
     const converted = convert(amount, from, date);
     if (!converted) {incompleteCash.add(key); return;}
     cash.set(key, add(cash.get(key), negative ? negate(converted) : converted));
   };
+  // A distributed target can be selected while its original security belongs
+  // to another group. Until this report owns cost-allocation cash projections,
+  // it must not present the newly received security as a free profit.
+  for (const op of posted) if (op.distribution?.targetInstrumentKey && include(op.ledgerId, op.distribution.targetInstrumentKey)) incompleteCash.add(op.distribution.targetInstrumentKey);
   for (const op of posted) {
+    if (!include(op.ledgerId, op.instrumentKey)) continue;
     if (["deposit", "withdrawal", "tax", "tax_refund", "opening_cash", "cash_reconciliation", "fx", "transfer_in", "transfer_out"].includes(op.kind)) continue;
     if (!op.instrumentKey && !payoutKinds.has(op.kind) && op.kind !== "fee") continue;
     const p = get(op.instrumentKey), date = reportingDate(op.occurredAt?.seconds);
@@ -131,5 +141,5 @@ export function portfolioReport(snapshots: InvestmentSnapshot[], operations: Inv
     if (!incompleteCash.has(p.key) && p.value) p.profit = add(p.value, cash.get(p.key));
     if (!incompleteCash.has(p.key) && !incompleteEconomicCost.has(p.key)) p.realized = add(cash.get(p.key), economicCost.get(p.key), negate(p.income));
   }
-  return {positions: [...positions.values()], months: [...months].sort(([a], [b]) => a.localeCompare(b)).slice(-12), monthsComplete, missingFX: [...missingFX]};
+  return {holdingCosts,positions: [...positions.values()], months: [...months].sort(([a], [b]) => a.localeCompare(b)).slice(-12), monthsComplete, missingFX: [...missingFX]};
 }

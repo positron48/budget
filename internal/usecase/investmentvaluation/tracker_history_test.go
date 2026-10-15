@@ -19,3 +19,22 @@ func TestTrackerHistoryBoundsAndCompletedDates(t *testing.T) {
 		}
 	}
 }
+
+func TestTrackerGroupsAreAUnionWithoutInheritedAccountFlows(t *testing.T) {
+	now := time.Date(2026, 1, 10, 8, 0, 0, 0, time.UTC)
+	id := "11111111-1111-4111-8111-111111111111"
+	q := TrackerHistoryRequest{LedgerIDs: []string{id}, Currency: "RUB", FXPolicyKey: "market", From: "2026-01-01", To: "2026-01-09", GroupIDs: []string{id, "", id}}
+	normalized, e := NormalizeTrackerHistory(q, now)
+	if e != nil || len(normalized.GroupIDs) != 2 || len(q.GroupIDs) != 3 {
+		t.Fatal(normalized, e)
+	}
+	q.PerformanceFrom = q.From
+	if _, e = NormalizeTrackerHistory(q, now); e == nil {
+		t.Fatal("group inherited whole-account strategy flows")
+	}
+	q.PerformanceFrom = ""
+	q.GroupIDs = []string{"not-a-group-id"}
+	if _, e = NormalizeTrackerHistory(q, now); e == nil {
+		t.Fatal("malformed group accepted")
+	}
+}

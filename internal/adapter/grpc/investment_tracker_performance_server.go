@@ -50,7 +50,7 @@ func (s *InvestmentNAVServer) GetTrackerPerformance(ctx context.Context, req *pb
 			return invalid()
 		}
 		p := claim.Request
-		if claim.Tenant != tenant || claim.Actor != actor || !slices.Equal(p.LedgerIDs, q.LedgerIDs) || p.Currency != q.Currency || p.FXPolicyKey != q.FXPolicyKey || p.To != q.To || p.PerformanceFrom != q.From {
+		if len(p.GroupIDs) > 0 || claim.Tenant != tenant || claim.Actor != actor || !slices.Equal(p.LedgerIDs, q.LedgerIDs) || p.Currency != q.Currency || p.FXPolicyKey != q.FXPolicyKey || p.To != q.To || p.PerformanceFrom != q.From {
 			return invalid()
 		}
 		if basis == "" {

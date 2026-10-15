@@ -13,10 +13,12 @@ for(const locale of ["ru","en"]){
    const header=Buffer.alloc(5);header[0]=128;header.writeUInt32BE(trailer.length,1);
    await route.fulfill({status:200,contentType:"application/grpc-web+proto",body:Buffer.concat([Buffer.alloc(5),header,trailer])});
   });
-  await page.goto("/investments");
+  for(const target of ["/investments","/investments/groups"]){
+  await page.goto(target);
   await expect(page.getByRole("button",{name:locale==="ru"?"Повторить проверку доступа":"Retry access check",exact:true})).toBeVisible();
   await expect(page.locator('a[href="/investments"]')).toHaveCount(0);
   await expect(page.locator('input[type="file"]')).toHaveCount(0);
+  }
   expect(investmentCalls.length).toBeGreaterThan(0);
   expect(investmentCalls.every(path=>path.endsWith("/InvestmentService/ListInvestmentLedgers")||path.endsWith(".InvestmentService/ListInvestmentLedgers"))).toBe(true);
  });

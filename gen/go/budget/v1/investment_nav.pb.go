@@ -7310,6 +7310,7 @@ type GetTrackerHistoryRequest struct {
 	FxPolicyKey         string                 `protobuf:"bytes,3,opt,name=fx_policy_key,json=fxPolicyKey,proto3" json:"fx_policy_key,omitempty"`
 	FromDate            string                 `protobuf:"bytes,4,opt,name=from_date,json=fromDate,proto3" json:"from_date,omitempty"`
 	ToDate              string                 `protobuf:"bytes,5,opt,name=to_date,json=toDate,proto3" json:"to_date,omitempty"`
+	GroupIds            []string               `protobuf:"bytes,7,rep,name=group_ids,json=groupIds,proto3" json:"group_ids,omitempty"`                                    // empty selection = all; empty ID = ungrouped
 	PerformanceFromDate string                 `protobuf:"bytes,6,opt,name=performance_from_date,json=performanceFromDate,proto3" json:"performance_from_date,omitempty"` // original range start, constant across pages
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
@@ -7378,6 +7379,13 @@ func (x *GetTrackerHistoryRequest) GetToDate() string {
 		return x.ToDate
 	}
 	return ""
+}
+
+func (x *GetTrackerHistoryRequest) GetGroupIds() []string {
+	if x != nil {
+		return x.GroupIds
+	}
+	return nil
 }
 
 func (x *GetTrackerHistoryRequest) GetPerformanceFromDate() string {
@@ -7480,21 +7488,22 @@ func (x *TrackerHistoryPoint) GetCoverageKey() string {
 }
 
 type GetTrackerHistoryResponse struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	Points              []*TrackerHistoryPoint `protobuf:"bytes,1,rep,name=points,proto3" json:"points,omitempty"`
-	NextDate            string                 `protobuf:"bytes,2,opt,name=next_date,json=nextDate,proto3" json:"next_date,omitempty"`
-	Generation          int64                  `protobuf:"varint,3,opt,name=generation,proto3" json:"generation,omitempty"`
-	Currency            string                 `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency,omitempty"`
-	FxPolicyKey         string                 `protobuf:"bytes,5,opt,name=fx_policy_key,json=fxPolicyKey,proto3" json:"fx_policy_key,omitempty"`
-	FxPolicyVersion     int64                  `protobuf:"varint,6,opt,name=fx_policy_version,json=fxPolicyVersion,proto3" json:"fx_policy_version,omitempty"`
-	FxMode              string                 `protobuf:"bytes,7,opt,name=fx_mode,json=fxMode,proto3" json:"fx_mode,omitempty"`
-	ReadAt              *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=read_at,json=readAt,proto3" json:"read_at,omitempty"`
-	PriceConvention     string                 `protobuf:"bytes,9,opt,name=price_convention,json=priceConvention,proto3" json:"price_convention,omitempty"`
-	ReportingTimezone   string                 `protobuf:"bytes,10,opt,name=reporting_timezone,json=reportingTimezone,proto3" json:"reporting_timezone,omitempty"`
-	BasisKey            string                 `protobuf:"bytes,11,opt,name=basis_key,json=basisKey,proto3" json:"basis_key,omitempty"`
-	PerformanceSnapshot string                 `protobuf:"bytes,12,opt,name=performance_snapshot,json=performanceSnapshot,proto3" json:"performance_snapshot,omitempty"` // short-lived signed data, not an auth token
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	Points                []*TrackerHistoryPoint `protobuf:"bytes,1,rep,name=points,proto3" json:"points,omitempty"`
+	NextDate              string                 `protobuf:"bytes,2,opt,name=next_date,json=nextDate,proto3" json:"next_date,omitempty"`
+	Generation            int64                  `protobuf:"varint,3,opt,name=generation,proto3" json:"generation,omitempty"`
+	Currency              string                 `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency,omitempty"`
+	FxPolicyKey           string                 `protobuf:"bytes,5,opt,name=fx_policy_key,json=fxPolicyKey,proto3" json:"fx_policy_key,omitempty"`
+	FxPolicyVersion       int64                  `protobuf:"varint,6,opt,name=fx_policy_version,json=fxPolicyVersion,proto3" json:"fx_policy_version,omitempty"`
+	FxMode                string                 `protobuf:"bytes,7,opt,name=fx_mode,json=fxMode,proto3" json:"fx_mode,omitempty"`
+	ReadAt                *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=read_at,json=readAt,proto3" json:"read_at,omitempty"`
+	PriceConvention       string                 `protobuf:"bytes,9,opt,name=price_convention,json=priceConvention,proto3" json:"price_convention,omitempty"`
+	ReportingTimezone     string                 `protobuf:"bytes,10,opt,name=reporting_timezone,json=reportingTimezone,proto3" json:"reporting_timezone,omitempty"`
+	BasisKey              string                 `protobuf:"bytes,11,opt,name=basis_key,json=basisKey,proto3" json:"basis_key,omitempty"`
+	PerformanceSnapshot   string                 `protobuf:"bytes,12,opt,name=performance_snapshot,json=performanceSnapshot,proto3" json:"performance_snapshot,omitempty"` // short-lived signed data, not an auth token
+	ClassificationVersion int64                  `protobuf:"varint,13,opt,name=classification_version,json=classificationVersion,proto3" json:"classification_version,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *GetTrackerHistoryResponse) Reset() {
@@ -7609,6 +7618,13 @@ func (x *GetTrackerHistoryResponse) GetPerformanceSnapshot() string {
 		return x.PerformanceSnapshot
 	}
 	return ""
+}
+
+func (x *GetTrackerHistoryResponse) GetClassificationVersion() int64 {
+	if x != nil {
+		return x.ClassificationVersion
+	}
+	return 0
 }
 
 var File_budget_v1_investment_nav_proto protoreflect.FileDescriptor
@@ -8340,14 +8356,15 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\rfx_policy_key\x18\x03 \x01(\tR\vfxPolicyKey\x12\x1b\n" +
 	"\tfrom_date\x18\x04 \x01(\tR\bfromDate\x12\x17\n" +
 	"\ato_date\x18\x05 \x01(\tR\x06toDate\x12'\n" +
-	"\x0fsnapshot_tokens\x18\x06 \x03(\tR\x0esnapshotTokens\"\xe3\x01\n" +
+	"\x0fsnapshot_tokens\x18\x06 \x03(\tR\x0esnapshotTokens\"\x80\x02\n" +
 	"\x18GetTrackerHistoryRequest\x12\x1d\n" +
 	"\n" +
 	"ledger_ids\x18\x01 \x03(\tR\tledgerIds\x12\x1a\n" +
 	"\bcurrency\x18\x02 \x01(\tR\bcurrency\x12\"\n" +
 	"\rfx_policy_key\x18\x03 \x01(\tR\vfxPolicyKey\x12\x1b\n" +
 	"\tfrom_date\x18\x04 \x01(\tR\bfromDate\x12\x17\n" +
-	"\ato_date\x18\x05 \x01(\tR\x06toDate\x122\n" +
+	"\ato_date\x18\x05 \x01(\tR\x06toDate\x12\x1b\n" +
+	"\tgroup_ids\x18\a \x03(\tR\bgroupIds\x122\n" +
 	"\x15performance_from_date\x18\x06 \x01(\tR\x13performanceFromDate\"\xa3\x02\n" +
 	"\x13TrackerHistoryPoint\x12\x12\n" +
 	"\x04date\x18\x01 \x01(\tR\x04date\x12\x14\n" +
@@ -8357,7 +8374,7 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\x06issues\x18\x04 \x03(\v2\x1d.budget.v1.InvestmentNAVIssueR\x06issues\x12)\n" +
 	"\x10priced_positions\x18\x05 \x01(\x05R\x0fpricedPositions\x12\x1c\n" +
 	"\tpositions\x18\x06 \x01(\x05R\tpositions\x12!\n" +
-	"\fcoverage_key\x18\a \x01(\tR\vcoverageKey\"\xf4\x03\n" +
+	"\fcoverage_key\x18\a \x01(\tR\vcoverageKey\"\xab\x04\n" +
 	"\x19GetTrackerHistoryResponse\x126\n" +
 	"\x06points\x18\x01 \x03(\v2\x1e.budget.v1.TrackerHistoryPointR\x06points\x12\x1b\n" +
 	"\tnext_date\x18\x02 \x01(\tR\bnextDate\x12\x1e\n" +
@@ -8373,7 +8390,8 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\x12reporting_timezone\x18\n" +
 	" \x01(\tR\x11reportingTimezone\x12\x1b\n" +
 	"\tbasis_key\x18\v \x01(\tR\bbasisKey\x121\n" +
-	"\x14performance_snapshot\x18\f \x01(\tR\x13performanceSnapshot2\xc4\x18\n" +
+	"\x14performance_snapshot\x18\f \x01(\tR\x13performanceSnapshot\x125\n" +
+	"\x16classification_version\x18\r \x01(\x03R\x15classificationVersion2\xc4\x18\n" +
 	"\x14InvestmentNAVService\x12^\n" +
 	"\x11GetTrackerHistory\x12#.budget.v1.GetTrackerHistoryRequest\x1a$.budget.v1.GetTrackerHistoryResponse\x12m\n" +
 	"\x15GetTrackerPerformance\x12'.budget.v1.GetTrackerPerformanceRequest\x1a+.budget.v1.GetInvestmentPerformanceResponse\x12^\n" +

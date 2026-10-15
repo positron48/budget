@@ -556,6 +556,7 @@ message GetTrackerHistoryRequest {
  string fx_policy_key=3;
  string from_date=4;
  string to_date=5;
+ repeated string group_ids=7; // empty selection = all; empty ID = ungrouped
  string performance_from_date=6; // original range start, constant across pages
 }
 message TrackerHistoryPoint {
@@ -580,4 +581,5 @@ message GetTrackerHistoryResponse {
  string reporting_timezone=10;
  string basis_key=11;
  string performance_snapshot=12; // short-lived signed data, not an auth token
+ int64 classification_version = 13;
 }
