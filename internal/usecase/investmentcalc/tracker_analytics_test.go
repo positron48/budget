@@ -128,3 +128,35 @@ func TestVirtualStrategyResumesAfterSuspensionWithCashFlows(t *testing.T) {
 		t.Fatal("unknown flow invented", out, e)
 	}
 }
+
+func TestStrategyAnalyticsBoundsInverseFXRunningSums(t *testing.T) {
+	first := time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC)
+	days := []PerformanceDay{}
+	exact := new(big.Rat)
+	for i := 0; i < 2573; i++ {
+		flow := new(big.Rat)
+		if i > 0 {
+			flow.SetFrac64(1, int64(100003+i*2))
+			exact.Add(exact, flow)
+		}
+		days = append(days, PerformanceDay{Date: first.AddDate(0, 0, i).Format(time.DateOnly), NAV: big.NewRat(1000, 1), ExternalFlow: flow, Complete: true})
+	}
+	out, e := CalculateStrategyAnalytics(days, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	tolerance, _ := new(big.Rat).SetString("0.000000000000000000002")
+	last := out.Points[len(out.Points)-1]
+	diff := new(big.Rat).Abs(new(big.Rat).Sub(last.Contributions, exact))
+	if diff.Cmp(tolerance) > 0 {
+		t.Fatal("reporting precision lost", diff)
+	}
+	for _, p := range out.Points {
+		if p.Contributions.Denom().BitLen() > 128 {
+			t.Fatal("unbounded inverse FX denominator", p.Date)
+		}
+	}
+	if last.Profit.Cmp(new(big.Rat).Neg(last.Contributions)) != 0 {
+		t.Fatal("profit and contributions disagree")
+	}
+}

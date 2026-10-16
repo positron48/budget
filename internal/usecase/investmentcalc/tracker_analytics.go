@@ -47,6 +47,7 @@ func CalculateStrategyAnalytics(days []PerformanceDay, resets map[string]bool) (
 				return nil, "strategy_flow_missing"
 			}
 			flows.Add(flows, days[i].ExternalFlow)
+			boundStrategySum(flows)
 		}
 		return new(big.Rat).Sub(new(big.Rat).Sub(days[last].NAV, days[first].NAV), flows), ""
 	}
@@ -70,6 +71,7 @@ func CalculateStrategyAnalytics(days []PerformanceDay, resets map[string]bool) (
 			} else {
 				p.Flow = new(big.Rat).Set(d.ExternalFlow)
 				total.Add(total, d.ExternalFlow)
+				boundStrategySum(total)
 			}
 			p.DailyProfit, _ = boundary(i-1, i)
 		}
@@ -172,4 +174,16 @@ func VirtualStrategyValues(initial *big.Rat, days []BenchmarkDay) (BenchmarkResu
 	}
 	out.Reason = stopped
 	return out, nil
+}
+
+// Daily inverse-FX denominators are often mutually prime. An exact running sum
+// otherwise grows thousands of digits and is repeated in every chart point.
+// Bound only these derived reporting sums to 24 decimals when needed; journal,
+// FIFO and individual converted flows remain exact. Over ten years the error
+// is less than 2e-21 currency units, far below a currency's minor unit.
+func boundStrategySum(v *big.Rat) {
+	if v.Denom().BitLen() > 128 {
+		rounded, _ := new(big.Rat).SetString(v.FloatString(24))
+		v.Set(rounded)
+	}
 }

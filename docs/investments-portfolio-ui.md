@@ -34,7 +34,10 @@ position counts and the coverage hash remain exact. A date's full per-position
 breakdown is fetched separately using `detail_date`.
 
 `GetTrackerChart` returns one server-computed daily bundle, including exact
-monthly/yearly totals and monetary comparisons. Schema 63 stores these disposable
+monthly/yearly totals and monetary comparisons. Running reporting sums are
+bounded to 24 decimals when inverse-FX denominators grow past 128 bits; over
+ten years rounding error stays below 2e-21 currency units. Individual flows,
+source journal and FIFO remain exact. Schema 63 stores these disposable
 protobuf projections in `investment_tracker_charts`. Each tenant/actor retains at
 most 24 views of up to 16 MiB. A process restart preserves the projections.
 Snapshot tokens are used only during calculation and are never persisted.
