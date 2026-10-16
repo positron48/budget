@@ -39,17 +39,9 @@ func NewFXResolver(fixings []FXFixing, policy string, at time.Time) (*FXResolver
 		if f.Policy != policy {
 			continue
 		}
-		if f.ID == "" || f.Revision < 1 || !validMoneyCurrency(f.From) || !validMoneyCurrency(f.To) || f.From == f.To || f.At.IsZero() || f.AvailableAt.IsZero() || f.AvailableAt.Before(f.At) || !f.ValidUntil.After(f.AvailableAt) {
-			return nil, fmt.Errorf("invalid FX evidence")
-		}
-		rate, err := number(f.Rate)
-		if f.Withdrawn {
-			if f.Rate != "" {
-				return nil, fmt.Errorf("withdrawn FX has a rate")
-			}
-			rate = nil
-		} else if err != nil || rate.Sign() <= 0 {
-			return nil, fmt.Errorf("positive FX rate required")
+		rate, err := validateFXFixing(f)
+		if err != nil {
+			return nil, err
 		}
 		// Availability and validity precede duplicate checks: later revisions must
 		// be selected by the repository at the requested knowledge cutoff.
@@ -121,4 +113,20 @@ func (r *FXResolver) Resolve(from, to string) (ResolvedFX, bool) {
 		return ResolvedFX{new(big.Rat).Mul(first.Rate, second.Rate), append(first.Legs, second.Legs...)}, true
 	}
 	return ResolvedFX{}, false
+}
+
+func validateFXFixing(f FXFixing) (*big.Rat, error) {
+	if f.ID == "" || f.Revision < 1 || !validMoneyCurrency(f.From) || !validMoneyCurrency(f.To) || f.From == f.To || f.At.IsZero() || f.AvailableAt.IsZero() || f.AvailableAt.Before(f.At) || !f.ValidUntil.After(f.AvailableAt) {
+		return nil, fmt.Errorf("invalid FX evidence")
+	}
+	rate, err := number(f.Rate)
+	if f.Withdrawn {
+		if f.Rate != "" {
+			return nil, fmt.Errorf("withdrawn FX has a rate")
+		}
+		rate = nil
+	} else if err != nil || rate.Sign() <= 0 {
+		return nil, fmt.Errorf("positive FX rate required")
+	}
+	return rate, nil
 }

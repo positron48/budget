@@ -114,6 +114,11 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 	for _, p := range points {
 		fixings = append(fixings, p.Fixing())
 	}
+	fxSeries, e := calc.NewFXSeries(fixings, md.FXPolicyRef(policy.Key, policy.Version))
+	if e != nil {
+		return out, e
+	}
+
 	inputs := map[string]investmentReplayInput{}
 	startsFromZero := map[string]bool{}
 	splits := map[string]map[string][]d.InvestmentOperation{}
@@ -461,7 +466,11 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 			components = append(components, amount)
 		}
 		sort.Slice(components, func(i, j int) bool { return components[i].ID < components[j].ID })
-		value, e := calc.ValueExact(components, fixings, q.Currency, md.FXPolicyRef(policy.Key, policy.Version), at)
+		rates, e := fxSeries.At(at)
+		if e != nil {
+			return out, e
+		}
+		value, e := calc.ValueExactUsingResolver(components, rates, q.Currency)
 		if e != nil {
 			return out, e
 		}

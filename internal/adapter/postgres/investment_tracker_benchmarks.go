@@ -61,6 +61,11 @@ func (r *MarketDataRepo) TrackerBenchmarks(ctx context.Context, tenant, actor st
 			fixings = append(fixings, p.Fixing())
 		}
 	}
+	fxSeries, e := calc.NewFXSeries(fixings, md.FXPolicyRef(policy.Key, policy.Version))
+	if e != nil {
+		return nil, e
+	}
+
 	entries := map[string]trackerHistoryMarket{}
 	for _, b := range nativehistory.Benchmarks() {
 		entries[b.Key] = trackerHistoryMarket{mapping: md.Mapping{InstrumentKey: b.Key, Version: 1, HistoricalPeriods: []md.MappingPeriod{b.Period()}}}
@@ -89,7 +94,7 @@ func (r *MarketDataRepo) TrackerBenchmarks(ctx context.Context, tenant, actor st
 			} else if selected.Fact.Currency != b.Instrument.Currency || selected.Fact.Unit != b.Unit || selected.Fact.Adjustment != "unadjusted" {
 				point.Reason = "benchmark_terms_conflict"
 			} else {
-				resolver, err := calc.NewFXResolver(fixings, md.FXPolicyRef(policy.Key, policy.Version), cutoff)
+				resolver, err := fxSeries.At(cutoff)
 				if err != nil {
 					return nil, err
 				}

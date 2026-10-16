@@ -68,3 +68,10 @@ seven years, ordered page loading, bounded requests and sampled line geometry.
 CI runs the maximum-size full traversal in a separate step without race
 instrumentation. The 100000-operation quarterly correctness checks, cache
 concurrency checks and smaller seven-year traversal remain race-enabled.
+
+Full-history valuation reuses the IANA reporting location and an indexed FX
+snapshot. The FX index validates each fixing once, selects by availability, and
+preserves conflict, expiry, withdrawal and direct/inverse/cross-path rules.
+Exact monetary amounts are unchanged. `TestFXSeriesMatchesResolverAcrossSevenYears`
+compares every cutoff with the original resolver using populated daily FX evidence;
+`BenchmarkDayCutoffSevenYears` covers repeated reporting-date conversion.

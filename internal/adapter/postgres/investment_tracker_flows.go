@@ -58,6 +58,10 @@ func trackerConvertedStrategyFlows(ctx context.Context, tenant string, ids []str
 	if e != nil {
 		return nil, e
 	}
+	series, e := calc.NewFXSeries(fixings, policy)
+	if e != nil {
+		return nil, e
+	}
 	resolvers := map[string]*calc.FXResolver{}
 	converted, e := calc.ConvertExternalFlows(flows, currency, loc, func(date string) (*calc.FXResolver, error) {
 		if e := ctx.Err(); e != nil {
@@ -70,7 +74,7 @@ func trackerConvertedStrategyFlows(ctx context.Context, tenant string, ids []str
 		if e != nil {
 			return nil, e
 		}
-		r, e := calc.NewFXResolver(fixings, policy, at)
+		r, e := series.At(at)
 		if e == nil {
 			resolvers[date] = r
 		}

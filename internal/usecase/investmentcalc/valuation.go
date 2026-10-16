@@ -86,6 +86,15 @@ func ValueExact(components []ExactComponent, fx []FXFixing, target, policy strin
 	if err != nil {
 		return result, err
 	}
+	return ValueExactUsingResolver(components, rates, target)
+}
+
+// ValueExactUsingResolver reuses a resolver selected at the caller's cutoff.
+func ValueExactUsingResolver(components []ExactComponent, rates *FXResolver, target string) (Valuation, error) {
+	result := Valuation{KnownValue: new(big.Rat), Complete: true, Issues: []QualityIssue{}}
+	if rates == nil || !validMoneyCurrency(target) {
+		return result, fmt.Errorf("target and FX resolver required")
+	}
 	result.FXPaths = map[string][]FXLeg{}
 	result.ComponentValues = map[string]*big.Rat{}
 	seen := map[string]bool{}

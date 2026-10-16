@@ -99,7 +99,7 @@ func TestStaleCandidateAndJournalNominalNeverValued(t *testing.T) {
 	}
 }
 func TestMoscowDayCutoffHistoricalOffsets(t *testing.T) {
-	for date, want := range map[string]string{"2024-01-01": "2024-01-01T20:59:59.999999Z", "2013-01-01": "2013-01-01T19:59:59.999999Z"} {
+	for date, want := range map[string]string{"2024-01-01": "2024-01-01T20:59:59.999999Z", "2013-01-01": "2013-01-01T19:59:59.999999Z", "2010-01-01": "2010-01-01T20:59:59.999999Z", "2010-07-01": "2010-07-01T19:59:59.999999Z", "2014-10-25": "2014-10-25T19:59:59.999999Z", "2014-10-26": "2014-10-26T20:59:59.999999Z"} {
 		got, e := DayCutoff(date)
 		if e != nil || got.Format(time.RFC3339Nano) != want {
 			t.Fatal(got, e)
@@ -107,5 +107,21 @@ func TestMoscowDayCutoffHistoricalOffsets(t *testing.T) {
 	}
 	if _, e := DayCutoff("2024-02-30"); e == nil {
 		t.Fatal("invalid day")
+	}
+}
+
+func BenchmarkDayCutoffSevenYears(b *testing.B) {
+	first := time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC)
+	dates := make([]string, 2557)
+	for i := range dates {
+		dates[i] = first.AddDate(0, 0, i).Format(time.DateOnly)
+	}
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		for _, date := range dates {
+			if _, err := DayCutoff(date); err != nil {
+				b.Fatal(err)
+			}
+		}
 	}
 }

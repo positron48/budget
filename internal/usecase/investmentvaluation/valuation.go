@@ -49,15 +49,18 @@ type Result struct {
 	Warnings []calc.QualityIssue
 }
 
+// Load once: a full portfolio and its benchmarks use thousands of cutoffs.
+// Keep IANA historical offsets rather than substituting a fixed UTC offset.
+var reportingZone, reportingZoneError = time.LoadLocation("Europe/Moscow")
+
 // DayCutoff uses the specified reporting timezone, including its historical
 // offsets, and the database's microsecond precision. US close is not moved back
 // into a Moscow date merely because its provider session has that date.
 func DayCutoff(day string) (time.Time, error) {
-	loc, e := time.LoadLocation("Europe/Moscow")
-	if e != nil {
-		return time.Time{}, e
+	if reportingZoneError != nil {
+		return time.Time{}, reportingZoneError
 	}
-	date, e := time.ParseInLocation("2006-01-02", day, loc)
+	date, e := time.ParseInLocation("2006-01-02", day, reportingZone)
 	if e != nil || date.Format("2006-01-02") != day {
 		return time.Time{}, fmt.Errorf("invalid reporting date")
 	}
