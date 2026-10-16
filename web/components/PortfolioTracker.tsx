@@ -129,14 +129,14 @@ function Tracker({tenantId,analyticsOnly=false}: {tenantId: string;analyticsOnly
   const quoteDetails=useMemo(()=>new Map((marketQuotes.data?.quotes||[]).map(q=>[q.instrumentKey,q])),[marketQuotes.data]);
   const name = (key: string) => key ? quoteDetails.get(key)?.instrument?.ticker || catalog.data?.names.get(key)?.ticker || key.replace(/^tinvest:/, "") : tr("Прочие выплаты", "Other payouts");
   const categoryRows=useMemo(()=>{
-    if(groupIDs.length||instrumentKeys.length)return current.filter(p=>BigInt(p.quantity.numerator)!==0n).map(p=>({id:p.key,name:quoteDetails.get(p.key)?.instrument?.ticker||catalog.data?.names.get(p.key)?.ticker||p.key,count:1,quantity:positionDecimal(p.quantity),estimateDate:p.quoteSource==="estimate"&&p.quoteAt?new Date(p.quoteAt).toLocaleDateString(locale):undefined,value:p.value,cost:p.cost,profit:p.profit,partial:!p.value||!p.profit}));
+    if(groupIDs.length||instrumentKeys.length)return current.filter(p=>BigInt(p.quantity.numerator)!==0n).map(p=>({id:p.key,name:quoteDetails.get(p.key)?.instrument?.ticker||catalog.data?.names.get(p.key)?.ticker||p.key,count:1,quantity:positionDecimal(p.quantity),estimateDate:p.quoteSource==="estimate"&&p.quoteAt?new Date(p.quoteAt).toLocaleDateString(locale):undefined,value:p.value,cost:p.cost,profit:p.profit,partial:!p.value}));
     if(!groups.data?.classification)return [];
     return [...groups.data.classification.groups,{id:"",name:tr("Без категории","Uncategorized")}].flatMap(g=>{
       const sub=portfolioReport(data.data?.snapshots||[],data.data?.operations||[],quotes,currency,rates.data,groupPredicate(groups.data?.classification,[g.id]));
       if(!sub.positions.length)return [];
       const open=sub.positions.filter(p=>BigInt(p.quantity.numerator)!==0n);
       const estimateDates=open.filter(p=>p.quoteSource==="estimate"&&p.quoteAt).map(p=>p.quoteAt!).sort((a,b)=>a-b);
-      return [{id:g.id,name:g.name,count:open.length,estimateDate:estimateDates.length?new Date(estimateDates[0]).toLocaleDateString(locale):undefined,value:open.some(p=>p.value)||!open.length?add(...open.map(p=>p.value)):undefined,cost:open.every(p=>p.cost)?add(...open.map(p=>p.cost)):undefined,profit:sub.positions.every(p=>p.profit)?add(...sub.positions.map(p=>p.profit)):undefined,partial:open.some(p=>!p.value)||sub.positions.some(p=>!p.profit)||sourceHistoryIncomplete}];
+      return [{id:g.id,name:g.name,count:open.length,estimateDate:estimateDates.length?new Date(estimateDates[0]).toLocaleDateString(locale):undefined,value:open.some(p=>p.value)||!open.length?add(...open.map(p=>p.value)):undefined,cost:open.every(p=>p.cost)?add(...open.map(p=>p.cost)):undefined,profit:sub.positions.every(p=>p.profit)?add(...sub.positions.map(p=>p.profit)):undefined,partial:open.some(p=>!p.value)}];
     });
   },[groupIDs,instrumentKeys,current,quoteDetails,catalog.data,groups.data,data.data,quotes,currency,rates.data,sourceHistoryIncomplete,tr]);
   const categoryTitle=groupIDs.length===1?(groups.data?.classification?.groups.find(g=>g.id===groupIDs[0])?.name||tr("Без категории","Uncategorized")):tr("Портфель","Portfolio");
