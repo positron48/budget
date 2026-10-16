@@ -27,11 +27,11 @@ export function tradeAmount(quantity: string, price: string): string {
   return amount;
 }
 
-export type TrackerQuote = {price: Fraction; at: number; name?: string; ticker?: string; source?: "exchange" | "broker_snapshot"};
+export type TrackerQuote = {price: Fraction; at: number; name?: string; ticker?: string; source?: "exchange" | "broker_snapshot" | "estimate"};
 export type TrackerPosition = {
   key: string; currency: string; quantity: Fraction; cost?: Fraction; realized?: Fraction;
   income: Fraction; recoveredAccrued: Fraction; value?: Fraction; price?: Fraction; profit?: Fraction;
-  accounts: string[]; name?: string; ticker?: string; quoteAt?: number; quoteSource?: "exchange" | "broker_snapshot";
+  accounts: string[]; name?: string; ticker?: string; quoteAt?: number; quoteSource?: "exchange" | "broker_snapshot" | "estimate";
 };
 export function trackerPositions(snapshots: InvestmentSnapshot[], operations: InvestmentOperation[], quotes = new Map<string, TrackerQuote>()): TrackerPosition[] {
   const positions = new Map<string, TrackerPosition>();
@@ -63,7 +63,7 @@ export function trackerPositions(snapshots: InvestmentSnapshot[], operations: In
   for (const p of positions.values()) {
     const quote = quotes.get(`${p.key}\0${p.currency}`);
     if (quote) {
-      p.price = quote.price; p.name = quote.name; p.ticker = quote.ticker; p.quoteAt = quote.at;
+      p.price = quote.price; p.name = quote.name; p.ticker = quote.ticker; p.quoteAt = quote.at; p.quoteSource = quote.source;
       p.value = multiply(p.quantity, quote.price);
       if (p.cost && p.realized) p.profit = add(p.value, negate(p.cost), p.realized, p.income, negate(p.recoveredAccrued));
     } else if (BigInt(p.quantity.numerator) === 0n && p.realized) {

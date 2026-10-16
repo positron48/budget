@@ -154,6 +154,27 @@ func TestMarketMappingPersistence(t *testing.T) {
 	if retry, e := svc.Save(ctx, tenant, actor, md.MappingChange{InstrumentKey: first.InstrumentKey, RequestKey: "first", Reason: first.Reason, Periods: first.Periods}); e != nil || retry.Version != 1 {
 		t.Fatal("old retry returned current revision", retry, e)
 	}
+	estimates := []md.PriceEstimate{{Price: "0", Currency: "RUB", At: at, From: at, Reference: "Explicit owner estimate"}}
+	estimated, e := svc.Save(ctx, tenant, actor, md.MappingChange{InstrumentKey: "SBER", ExpectedVersion: 3, RequestKey: "estimate", Reason: "Dated manual valuation", PriceEstimates: &estimates})
+	if e != nil || len(estimated.PriceEstimates) != 1 {
+		t.Fatal(estimated, e)
+	}
+	quotes, e := repo.InvestmentQuotes(ctx, tenant, actor, []string{"SBER"})
+	if e != nil || len(quotes.Quotes) != 1 || quotes.Quotes[0].State != "estimated" || quotes.Quotes[0].CleanPrice.Sign() != 0 || !quotes.Quotes[0].At.Equal(at) {
+		t.Fatal("explicit zero estimate unavailable", quotes, e)
+	}
+	preserved, e := svc.Save(ctx, tenant, actor, md.MappingChange{InstrumentKey: "SBER", ExpectedVersion: 4, RequestKey: "old-client", Reason: "Mapping-only update"})
+	if e != nil || len(preserved.PriceEstimates) != 1 {
+		t.Fatal("legacy client erased estimate", preserved, e)
+	}
+	empty := []md.PriceEstimate{}
+	if _, e = svc.Save(ctx, tenant, actor, md.MappingChange{InstrumentKey: "SBER", ExpectedVersion: 5, RequestKey: "clear-estimate", Reason: "Remove manual estimate", PriceEstimates: &empty}); e != nil {
+		t.Fatal(e)
+	}
+	quotes, e = repo.InvestmentQuotes(ctx, tenant, actor, []string{"SBER"})
+	if e != nil || quotes.Quotes[0].CleanPrice != nil {
+		t.Fatal("removed estimate still used", quotes, e)
+	}
 	applyMigrations(t, ctx, pool.DB)
 	assertInvestmentRollbackRefused(t, ctx, pool, "0025_investment_market_mappings")
 }

@@ -76,7 +76,7 @@ func readAssetLedgerValue(ctx context.Context, tx pgx.Tx, pool *Pool, tenant, ac
 			continue
 		}
 		quote := byKey[p.InstrumentKey]
-		if quote.State != "fresh" || quote.CleanPrice == nil {
+		if !nav.UsablePortfolioQuote(quote) {
 			issues = append(issues, calc.QualityIssue{ComponentID: p.InstrumentKey, Code: "price_missing"})
 			continue
 		}

@@ -148,3 +148,20 @@ func TestHistoricalBondQuoteUsesRawCandleDayAndCurrentKnowledge(t *testing.T) {
 		t.Fatal("next-day nominal borrowed", result, e)
 	}
 }
+
+func TestReviewedPriceEstimateHasDatedBoundaryAndAcceptsExplicitZero(t *testing.T) {
+	at := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	effective := at.AddDate(1, 0, 0)
+	m := md.Mapping{InstrumentKey: "DELISTED", Version: 2, PriceEstimates: []md.PriceEstimate{{Price: "0", Currency: "RUB", At: at, From: effective, Reference: "Reviewed owner estimate"}}}
+	if _, ok := EstimatedPortfolioQuote(m, effective.Add(-time.Second)); ok {
+		t.Fatal("estimate backfilled an earlier date")
+	}
+	q, ok := EstimatedPortfolioQuote(m, effective.AddDate(1, 0, 0))
+	if !ok || !UsablePortfolioQuote(q) || q.State != "estimated" || q.CleanPrice.Sign() != 0 || !q.At.Equal(at) || q.Source != "manual_estimate" {
+		t.Fatal("dated estimate lost provenance", q)
+	}
+	m.PriceEstimates[0].Price = "-1"
+	if _, ok := EstimatedPortfolioQuote(m, effective); ok {
+		t.Fatal("invalid estimate accepted")
+	}
+}

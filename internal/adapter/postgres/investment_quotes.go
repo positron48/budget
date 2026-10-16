@@ -74,6 +74,11 @@ func readPortfolioQuotes(ctx context.Context, tx pgx.Tx, tenant string, keys []s
 		if mapping.InstrumentKey != key || mapping.Version < 1 {
 			return out, d.ErrInvestmentPrecondition
 		}
+		if estimate, ok := nav.EstimatedPortfolioQuote(mapping, at); ok {
+			estimate.Instrument, estimate.MetadataAt = metadata[key], metadataAt[key]
+			out.Quotes = append(out.Quotes, estimate)
+			continue
+		}
 		terms, ok := mapping.TermsAt(out.ReadAt)
 		if !ok {
 			out.Quotes = append(out.Quotes, nav.PortfolioQuote{InstrumentKey: key, State: "unavailable", MappingVersion: mapping.Version, Issues: []string{"terms_missing"}})

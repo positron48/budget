@@ -75,3 +75,19 @@ preserves conflict, expiry, withdrawal and direct/inverse/cross-path rules.
 Exact monetary amounts are unchanged. `TestFXSeriesMatchesResolverAcrossSevenYears`
 compares every cutoff with the original resolver using populated daily FX evidence;
 `BenchmarkDayCutoffSevenYears` covers repeated reporting-date conversion.
+
+## Dated estimates and incomplete source history
+
+Reviewed `Mapping.PriceEstimates` provide an explicit clean price per security,
+including zero, when an owner chooses a reference valuation for an untraded
+holding. `At` retains the price/valuation date; `From` is the first instant it may
+value. These estimates override exchange selection only for the configured
+instrument and effective dates, are versioned with mapping evidence, and never
+backfill earlier history. The API labels them `estimated` / `manual_estimate`;
+category rows and instrument headers show their dates. Mapping-only updates
+preserve the estimate schedule; an explicit empty schedule removes it.
+
+Pending source trades affect selected categories and securities only when their
+identity is established by posted source rows of the same import. Unknown or
+ambiguous identities remain incomplete in every selection. Missing quantities
+and acquisition costs are never manufactured to make the overall profit complete.

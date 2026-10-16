@@ -279,7 +279,12 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 			needsReplay = true
 		}
 	}
-	pendingFrom, e := readPendingTrackerTradeDates(ctx, tx, tenant, q.LedgerIDs)
+	var pendingFrom map[string]string
+	if len(q.GroupIDs) > 0 || len(q.InstrumentKeys) > 0 {
+		pendingFrom, e = readSelectedPendingTrackerTradeDates(ctx, tx, tenant, q.LedgerIDs, selected)
+	} else {
+		pendingFrom, e = readPendingTrackerTradeDates(ctx, tx, tenant, q.LedgerIDs)
+	}
 	if e != nil {
 		return out, e
 	}
@@ -432,7 +437,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 					}
 					details[id] = detail
 				}
-				if quote.CleanPrice == nil || quote.State != "fresh" {
+				if !nav.UsablePortfolioQuote(quote) {
 					for _, issue := range quote.Issues {
 						row.Issues = append(row.Issues, calc.QualityIssue{ComponentID: id, Code: issue})
 					}
@@ -639,6 +644,9 @@ func historyPriceSelection(tenant string, p md.MappingPeriod, at time.Time) md.P
 }
 
 func trackerHistoricalQuote(tenant, key string, entry trackerHistoryMarket, at, readAt time.Time) (nav.PortfolioQuote, error) {
+	if estimate, ok := nav.EstimatedPortfolioQuote(entry.mapping, at); ok {
+		return estimate, nil
+	}
 	missing := func(code string) nav.PortfolioQuote {
 		return nav.PortfolioQuote{InstrumentKey: key, State: "unavailable", Issues: []string{code}}
 	}

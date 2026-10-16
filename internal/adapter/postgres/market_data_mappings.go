@@ -129,6 +129,10 @@ func saveMarketMapping(ctx context.Context, tx pgx.Tx, tenant, actor string, c m
 		}
 	}
 	out = md.Mapping{InstrumentKey: c.InstrumentKey, Version: old.Version + 1, Periods: current, HistoricalPeriods: history, ActorID: actor, Reason: c.Reason}
+	out.PriceEstimates = slices.Clone(old.PriceEstimates)
+	if c.PriceEstimates != nil {
+		out.PriceEstimates = slices.Clone(*c.PriceEstimates)
+	}
 	if err = tx.QueryRow(ctx, `SELECT clock_timestamp()`).Scan(&out.RecordedAt); err != nil {
 		return out, err
 	}
@@ -147,6 +151,14 @@ func saveMarketMapping(ctx context.Context, tx pgx.Tx, tenant, actor string, c m
 		for _, p := range schedule {
 			if affected == nil || p.From.Before(*affected) {
 				v := p.From
+				affected = &v
+			}
+		}
+	}
+	for _, estimates := range [][]md.PriceEstimate{old.PriceEstimates, out.PriceEstimates} {
+		for _, estimate := range estimates {
+			if affected == nil || estimate.From.Before(*affected) {
+				v := estimate.From
 				affected = &v
 			}
 		}

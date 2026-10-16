@@ -51,6 +51,43 @@ func TestInvestmentPendingTradesDoNotDiscardKnownPayoutsOrClaimCompleteHistory(t
 	if e != nil || slices.Contains(earlier.Issues, "source_trades_pending") {
 		t.Fatal("future source trades polluted earlier date", e)
 	}
+	tx, e := pool.DB.Begin(ctx)
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	for _, key := range []string{"TEST", "OTHER"} {
+		pending, err := readSelectedPendingTrackerTradeDates(ctx, tx, tenant, []string{ledger.ID}, func(_, instrument string) bool { return instrument == key })
+		if err != nil || (pending[ledger.ID] != "") != (key == "TEST") {
+			t.Fatal("pending trades escaped their instrument selection", key, pending, err)
+		}
+	}
+	// Without posted identity evidence a category cannot safely exclude a row.
+	if _, e = tx.Exec(ctx, `DELETE FROM investment_source_links WHERE tenant_id=$1 AND import_id=$2`, tenant, source.ID); e != nil {
+		t.Fatal(e)
+	}
+	unknown, e := readSelectedPendingTrackerTradeDates(ctx, tx, tenant, []string{ledger.ID}, func(_, _ string) bool { return false })
+	if e != nil || unknown[ledger.ID] == "" {
+		t.Fatal("unresolved source identity was hidden", unknown, e)
+	}
+	if e = tx.Rollback(ctx); e != nil {
+		t.Fatal(e)
+	}
+	selectedPlan, e := pool.DB.Query(ctx, "EXPLAIN "+selectedPendingTrackerTradesSQL, tenant, []string{ledger.ID})
+	if e != nil {
+		t.Fatal(e)
+	}
+	for selectedPlan.Next() {
+		var line string
+		if e = selectedPlan.Scan(&line); e != nil {
+			t.Fatal(e)
+		}
+		t.Log(line)
+	}
+	if e = selectedPlan.Err(); e != nil {
+		t.Fatal(e)
+	}
+	selectedPlan.Close()
 	plan, e := pool.DB.Query(ctx, "EXPLAIN "+pendingPortfolioTradesSQL, tenant, ledger.ID, "2024-01-06 00:00:00")
 	if e != nil {
 		t.Fatal(e)

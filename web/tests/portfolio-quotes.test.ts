@@ -31,3 +31,11 @@ describe("portfolio market quote selection", () => {
     }
   });
 });
+
+it("uses reviewed dated estimates, including zero, without making stale exchange quotes fresh", () => {
+ const now=Date.parse("2026-10-16T12:00:00Z"), at=Date.parse("2025-08-28T00:00:00Z");
+ const q=create(InvestmentQuoteSchema,{instrumentKey:"DELISTED",currency:"RUB",cleanPrice:decimal("0")!,state:"estimated",source:"manual_estimate",priceAt:{seconds:BigInt(at/1000)}});
+ const selected=portfolioQuotes(new Map(),[q],now).get("DELISTED\0RUB");
+ expect(selected?.source).toBe("estimate");expect(selected?.at).toBe(at);expect(positionDecimal(selected?.price)).toBe("0");
+ q.state="stale";expect(portfolioQuotes(new Map(),[q],now).size).toBe(0);
+});

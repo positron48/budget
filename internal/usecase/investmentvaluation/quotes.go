@@ -31,6 +31,27 @@ type PortfolioQuotes struct {
 	Quotes []PortfolioQuote
 }
 
+// Estimates are usable for totals, but are never labelled exchange prices and
+// cannot fill dates before their explicitly reviewed effective boundary.
+func EstimatedPortfolioQuote(mapping md.Mapping, at time.Time) (PortfolioQuote, bool) {
+	if md.ValidatePriceEstimates(mapping.PriceEstimates) != nil {
+		return PortfolioQuote{}, false
+	}
+	for i := len(mapping.PriceEstimates) - 1; i >= 0; i-- {
+		e := mapping.PriceEstimates[i]
+		if at.Before(e.From) {
+			continue
+		}
+		price, _ := new(big.Rat).SetString(e.Price)
+		return PortfolioQuote{InstrumentKey: mapping.InstrumentKey, MappingVersion: mapping.Version, Currency: e.Currency, CleanPrice: price, At: e.At, State: "estimated", Source: "manual_estimate", Issues: []string{"reviewed_price_estimate"}}, true
+	}
+	return PortfolioQuote{}, false
+}
+
+func UsablePortfolioQuote(q PortfolioQuote) bool {
+	return q.CleanPrice != nil && (q.State == "fresh" || q.State == "estimated")
+}
+
 func NormalizeQuoteKeys(keys []string) ([]string, error) {
 	if len(keys) > 500 {
 		return nil, d.ErrInvestmentLimit

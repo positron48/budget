@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -33,8 +34,17 @@ type Mapping struct {
 	Version           int64
 	Periods           []MappingPeriod
 	HistoricalPeriods []MappingPeriod `json:",omitempty"`
+	PriceEstimates    []PriceEstimate `json:",omitempty"`
 	ActorID, Reason   string
 	RecordedAt        time.Time
+}
+
+// A dated, explicitly reviewed clean price per security, independent of an
+// exchange listing. From is the first valuation instant where it may be used;
+// At retains the actual age of the price instead of pretending it is fresh.
+type PriceEstimate struct {
+	Price, Currency, Reference string
+	At, From                   time.Time
 }
 
 type MappingChange struct {
@@ -45,6 +55,7 @@ type MappingChange struct {
 	// Nil preserves the historical schedule for existing API clients; an
 	// explicit empty schedule clears it. The pointer also fences idempotency.
 	HistoricalPeriods *[]MappingPeriod `json:",omitempty"`
+	PriceEstimates    *[]PriceEstimate `json:",omitempty"`
 }
 
 type MappingRepo interface {
@@ -103,8 +114,29 @@ func ValidateMappingChange(tenant string, c MappingChange) error {
 	if err := validateMappingPeriods(tenant, c.Periods); err != nil {
 		return err
 	}
+	if c.PriceEstimates != nil {
+		if err := ValidatePriceEstimates(*c.PriceEstimates); err != nil {
+			return err
+		}
+	}
 	if c.HistoricalPeriods != nil {
 		return validateMappingPeriods(tenant, *c.HistoricalPeriods)
+	}
+	return nil
+}
+
+func ValidatePriceEstimates(estimates []PriceEstimate) error {
+	if len(estimates) > 100 {
+		return ErrInvalid
+	}
+	for i, e := range estimates {
+		if !decimalPattern.MatchString(e.Price) {
+			return ErrInvalid
+		}
+		price, ok := new(big.Rat).SetString(e.Price)
+		if !ok || len(e.Price) > 100 || price.Sign() < 0 || (e.Currency != "RUB" && e.Currency != "USD" && e.Currency != "EUR") || !mappingText(e.Reference, 2000) || e.At.Year() < 1900 || e.At.Year() > 2200 || e.From.Year() > 2200 || e.From.Before(e.At) || e.At.Nanosecond()%1000 != 0 || e.From.Nanosecond()%1000 != 0 || i > 0 && !e.From.After(estimates[i-1].From) {
+			return ErrInvalid
+		}
 	}
 	return nil
 }
