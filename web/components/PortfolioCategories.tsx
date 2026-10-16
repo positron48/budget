@@ -1,10 +1,11 @@
 "use client";
-import {positionDecimal, type Fraction} from "@/lib/investment-positions";
+import {comparePositionValues, positionDecimal, type Fraction} from "@/lib/investment-positions";
 import {add, divide} from "@/lib/portfolio-tracker";
 import {allocationShare} from "@/lib/portfolio-overview";
 export type PortfolioCategoryRow = {id: string; name: string; count: number; quantity?:string; value?: Fraction; cost?: Fraction; profit?: Fraction; partial?: boolean; estimateDate?: string};
 const colors = ["#5799da", "#50c9db", "#6561ce", "#963fd2", "#e6a052", "#dc6d99"];
 export default function PortfolioCategories({rows, currency, ru, title, onSelect}: {rows: PortfolioCategoryRow[]; currency: string; ru: boolean; title: string; onSelect: (id: string) => void}) {
+  rows = [...rows].sort((a,b)=>comparePositionValues(a.value,b.value)||a.name.localeCompare(b.name));
   const tr = (r: string, e: string) => ru ? r : e, locale = ru ? "ru" : "en";
   const money = (v?: Fraction) => v ? new Intl.NumberFormat(locale, {maximumFractionDigits: 2}).format(Number(positionDecimal(v))) + " " + currency : "—";
   const percent = (v?: Fraction) => v ? new Intl.NumberFormat(locale, {style: "percent", maximumFractionDigits: 2}).format(Number(positionDecimal(v))) : "—";
