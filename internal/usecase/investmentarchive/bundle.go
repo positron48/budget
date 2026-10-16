@@ -37,6 +37,7 @@ var Included = []string{
 	"investment_dividend_histories", "investment_dividend_history_revisions",
 }
 var Excluded = map[string]string{
+	"investment_tracker_charts":         "derived_projection",
 	"investment_export_jobs":            "Ephemeral private downloads; regenerated from canonical domain facts",
 	"investment_cash_links":             "budget_integration_requires_full_backup",
 	"investment_asset_activations":      "budget_integration_requires_full_backup",
@@ -72,13 +73,13 @@ type Bundle struct {
 
 func id(s string) bool { u, e := uuid.Parse(s); return e == nil && u.String() == s }
 func Validate(data Dataset) error {
-	if !id(data.TenantID) || data.CreatedAt.IsZero() || len(data.Tables) != len(Included) || len(data.Excluded) < len(Excluded)-3 || len(data.Excluded) > len(Excluded) {
+	if !id(data.TenantID) || data.CreatedAt.IsZero() || len(data.Tables) != len(Included) || len(data.Excluded) < len(Excluded)-4 || len(data.Excluded) > len(Excluded) {
 		return fmt.Errorf("invalid archive manifest")
 	}
 	for key, reason := range Excluded {
-		if (key == "investment_asset_activations" || key == "investment_cash_links" || key == "investment_export_jobs") && data.Excluded[key] == "" {
+		if (key == "investment_asset_activations" || key == "investment_cash_links" || key == "investment_export_jobs" || key == "investment_tracker_charts") && data.Excluded[key] == "" {
 			continue
-		} // older v1 bundles predate Budget integration or ephemeral export jobs
+		} // older v1 bundles predate Budget integration, export jobs or chart projections
 		if data.Excluded[key] != reason {
 			return fmt.Errorf("archive exclusion manifest mismatch")
 		}

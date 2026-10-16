@@ -105,3 +105,19 @@ func TestArchivePredatingExportJobsRemainsReadable(t *testing.T) {
 		}
 	}
 }
+
+func TestArchivePredatingChartProjectionsRemainsReadable(t *testing.T) {
+	data := fixture()
+	delete(data.Excluded, "investment_tracker_charts")
+	bundle, e := Seal(data)
+	if e != nil {
+		t.Fatal(e)
+	}
+	raw, e := json.Marshal(bundle)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, e = Decode(bytes.NewReader(raw)); e != nil {
+		t.Fatal("pre-projection archive rejected", e)
+	}
+}
