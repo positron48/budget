@@ -1,3 +1,4 @@
+import {chartFallback} from "./fixtures/chart-fallback";
 import {test,expect} from "@playwright/test";
 import {create,fromBinary,toBinary} from "@bufbuild/protobuf";
 import {InvestmentService} from "../proto/budget/v1/investment_pb";
@@ -22,6 +23,7 @@ for(const locale of ["ru","en"])test(`${locale} account subsets are deduplicated
   if(method.name==="GetInvestmentExchangeRates")data={currency:input.currency,fxPolicyKey:"market",policyVersion:1n,mode:"market",readAt:{seconds:BigInt(Math.floor(Date.now()/1000))},rates:["",...input.dates].flatMap((date:string)=>["RUB","USD","EUR"].map(fromCurrency=>({date,fromCurrency,rate:f(1)})))};
   if(method.name==="GetInvestmentQuotes")data={quotes:[{instrumentKey:key,currency:"RUB",state:"fresh",cleanPrice:f(120),priceAt:{seconds:BigInt(Math.floor(Date.now()/1000)-60)},source:"tinvest/personal"}]};
   if(method.name==="GetInvestmentGroups")data={classification:{version:1n,groups:[],memberships:[]}};
+  if(await chartFallback(route,method))return;
   if(method.name==="GetTrackerHistory"){
    expect(new Set(input.ledgerIds).size).toBe(input.ledgerIds.length);historyScopes.push(input.ledgerIds);
    const sum=input.ledgerIds.reduce((n:number,id:string)=>n+ids.indexOf(id)+1,0);

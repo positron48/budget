@@ -1,3 +1,4 @@
+import {chartFallback} from "./fixtures/chart-fallback";
 import {readFile} from "node:fs/promises";
 import {test, expect} from "@playwright/test";
 import {create, fromBinary, toBinary} from "@bufbuild/protobuf";
@@ -40,6 +41,7 @@ for (const locale of ["ru", "en"]) {
       if (method?.name === "GetInvestmentGroups")data={classification:{version:1n}};
       if (method?.name === "ListInvestmentOperations") data = {operations};
       if (method?.name === "ListInvestmentValuationProfiles") data = {fxProfiles:noProfiles?[]:[{key:"market", mode:"market", version:1n},{key:"cbr", mode:"cbr", version:1n}]};
+      if(await chartFallback(route,method))return;
       if (method?.name === "GetTrackerHistory") {
         const points: any[] = []; let date = input.fromDate;
         const shift = (day: string) => {const d = new Date(day + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10);};

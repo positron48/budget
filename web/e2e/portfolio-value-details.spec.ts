@@ -1,3 +1,4 @@
+import {chartFallback} from "./fixtures/chart-fallback";
 import {test,expect} from "@playwright/test";
 import {create,fromBinary,toBinary} from "@bufbuild/protobuf";
 import {InvestmentService} from "../proto/budget/v1/investment_pb";
@@ -26,6 +27,7 @@ for(const locale of ["ru","en"]){test(`${locale} valuation breakdown shows nativ
   if(method?.name==="GetTrackerContributions"){const f=(n:number)=>({numerator:String(n),denominator:"1"});data={fromDate:input.fromDate,toDate:input.toDate,currency:input.currency,fxPolicyKey:"market",fxPolicyVersion:1n,fxMode:"market",classificationVersion:1n,basisKey:"b".repeat(64),convention:"recorded_securities_pnl_attribution_v1",profit:f(25),knownProfit:f(25),rows:[{ledgerId:one,ledgerName:"Broker one",instrumentKey:key,groupId:a,groupName:"Alpha",opening:f(100),closing:f(150),flow:f(25),profit:f(25),openingQuantity:f(1),closingQuantity:f(1),inScope:true}]};}
   if(method?.name==="GetInvestmentGroups")data={classification,positions:[{ledgerId:one,ledgerName:"Broker one",instrumentKey:key},{ledgerId:two,ledgerName:"Broker two",instrumentKey:key},{ledgerId:two,ledgerName:"Broker two",instrumentKey:"OLD-CLOSED"}]};
   if(method?.name==="SaveInvestmentGroups"){writes++;expect(input.classification.version).toBe(1n);expect(input.requestKey).toBeTruthy();expect(input.classification.groups.map((g:any)=>g.name).sort()).toEqual(["Core","New"]);expect(input.classification.memberships).toHaveLength(1);expect(input.classification.memberships[0].ledgerId).toBe(one);classification=create(InvestmentGroupsSchema,{...input.classification,version:2n});data={classification};}
+  if(await chartFallback(route,method))return;
   if(method?.name==="GetTrackerHistory"){
    const selected=new Set(input.groupIds||[]),group=(id:string)=>classification.memberships.find(m=>m.ledgerId===id&&m.instrumentKey===key)?.groupId||"";
    const amount=(!selected.size||selected.has(group(one))?120:0)+(!selected.size||selected.has(group(two))?240:0);const points:any[]=[];let date=input.fromDate;

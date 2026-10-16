@@ -1,3 +1,4 @@
+import {chartFallback} from "./fixtures/chart-fallback";
 import {test,expect} from "@playwright/test";
 import {create,fromBinary,toBinary} from "@bufbuild/protobuf";
 import {InvestmentService} from "../proto/budget/v1/investment_pb";
@@ -35,6 +36,7 @@ for(const locale of ["ru","en"]){test(`${locale} selected securities and groups 
   }
   if(method?.name==="GetInvestmentGroups")data={classification,positions:[{ledgerId:one,ledgerName:"Broker one",instrumentKey:key},{ledgerId:two,ledgerName:"Broker two",instrumentKey:key},{ledgerId:two,ledgerName:"Broker two",instrumentKey:"OLD-CLOSED"}]};
   if(method?.name==="SaveInvestmentGroups"){writes++;expect(input.classification.version).toBe(1n);expect(input.requestKey).toBeTruthy();expect(input.classification.groups.map((g:any)=>g.name).sort()).toEqual(["Core","New"]);expect(input.classification.memberships).toHaveLength(1);expect(input.classification.memberships[0].ledgerId).toBe(one);classification=create(InvestmentGroupsSchema,{...input.classification,version:2n});data={classification};}
+  if(await chartFallback(route,method))return;
   if(method?.name==="GetTrackerHistory"){
    const points:any[]=[];let date=input.fromDate;
    while(date<=input.toDate&&points.length<31){const i=(Date.parse(date)-Date.parse("2023-12-31"))/86400000;points.push({date,state:"ready",knownValue:{numerator:String(vals[i]),denominator:"1"},positions:1,pricedPositions:1,coverageKey:"a".repeat(64)});date=new Date(Date.parse(date)+86400000).toISOString().slice(0,10);}
