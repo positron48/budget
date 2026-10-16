@@ -49,6 +49,9 @@ func (s *Service) ForecastCatalog(ctx context.Context, t, u string) ([]ForecastE
 }
 
 func (s *Service) SaveForecastEvent(ctx context.Context, t, u string, event ForecastEvent, expected int64) (ForecastEvent, error) {
+	if event.Origin != "" {
+		return ForecastEvent{}, d.ErrInvestmentInvalid
+	}
 	if e := s.authorize(ctx, t, u, true); e != nil {
 		return ForecastEvent{}, e
 	}

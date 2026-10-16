@@ -1,6 +1,6 @@
 "use client";
 import {useEffect,useRef,useState} from "react";
-import {chartDateTicks, chartSegments, type ChartPoint} from "@/lib/portfolio-chart";
+import {chartDateTicks, chartScale, chartSegments, type ChartPoint} from "@/lib/portfolio-chart";
 
 type Series = {key: string; title: string; color: string; points: readonly ChartPoint[]; dashed?: boolean};
 type Marker = {date: string; kind: "buy" | "sell"; label: string; value?: number};
@@ -20,7 +20,7 @@ export default function PortfolioLineChart({series, from, to, locale, currency, 
   if (reference && Number.isFinite(reference.value)) values.push(reference.value);
   if (!values.length) return <p role="status" className="flex h-80 items-center justify-center text-sm text-slate-500">{locale === "ru" ? "Нет данных за этот период" : "No data for this period"}</p>;
   const low = Math.min(...values), high = Math.max(...values), padding = (high - low || Math.abs(high) || 1) * .07;
-  const min = low - padding, max = high + padding;
+  const {min, max, ticks: valueTicks} = chartScale(low - padding, high + padding);
   const start = Date.parse(from), days = Math.max(1, (Date.parse(to) - start) / 86400000);
   const x = (date: string) => 76 + (Date.parse(date) - start) / 86400000 / days * plotWidth;
   const y = (n: number) => 18 + (max - n) / (max - min) * 278;
@@ -36,7 +36,7 @@ export default function PortfolioLineChart({series, from, to, locale, currency, 
       onPointerLeave={() => setHover(undefined)}
       onPointerMove={e => {const bounds = e.currentTarget.getBoundingClientRect(); const position = (e.clientX - bounds.left) / bounds.width * width; if (position >= 76 && position <= width-24) setHover(new Date(start + Math.round((position - 76) / plotWidth * days) * 86400000).toISOString().slice(0, 10));}}
       onClick={() => {if (hover) onInspect?.(hover);}}>
-      {Array.from({length: 5}, (_, i) => min + (max - min) * i / 4).map(n => <g key={n}>
+      {valueTicks.map(n => <g key={n}>
         <line x1="76" x2={width-24} y1={y(n)} y2={y(n)} stroke="currentColor" strokeOpacity=".16" strokeDasharray="4 5" vectorEffect="non-scaling-stroke"/>
         <text x="65" y={y(n) + 4} textAnchor="end" className="fill-slate-500 dark:fill-slate-400" fontSize="11">{format(n, true)}</text>
       </g>)}

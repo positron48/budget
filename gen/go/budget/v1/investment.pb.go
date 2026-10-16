@@ -7916,6 +7916,7 @@ type InvestmentForecastEvent struct {
 	Evidence        string                 `protobuf:"bytes,15,opt,name=evidence,proto3" json:"evidence,omitempty"`
 	Reason          string                 `protobuf:"bytes,16,opt,name=reason,proto3" json:"reason,omitempty"`
 	Cancelled       bool                   `protobuf:"varint,17,opt,name=cancelled,proto3" json:"cancelled,omitempty"`
+	Origin          string                 `protobuf:"bytes,18,opt,name=origin,proto3" json:"origin,omitempty"` // empty for saved events; provider or historical_projection for read-only derived events
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -8067,6 +8068,13 @@ func (x *InvestmentForecastEvent) GetCancelled() bool {
 		return x.Cancelled
 	}
 	return false
+}
+
+func (x *InvestmentForecastEvent) GetOrigin() string {
+	if x != nil {
+		return x.Origin
+	}
+	return ""
 }
 
 type InvestmentForecastLink struct {
@@ -10529,7 +10537,7 @@ const file_budget_v1_investment_proto_rawDesc = "" +
 	"\x1bexpected_to_account_version\x18\x06 \x01(\x03R\x18expectedToAccountVersion\x12\x16\n" +
 	"\x06reason\x18\a \x01(\tR\x06reason\x12\x1f\n" +
 	"\vrequest_key\x18\b \x01(\tR\n" +
-	"requestKey\"\xb3\x04\n" +
+	"requestKey\"\xcb\x04\n" +
 	"\x17InvestmentForecastEvent\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\x03R\aversion\x12%\n" +
@@ -10549,7 +10557,8 @@ const file_budget_v1_investment_proto_rawDesc = "" +
 	"\x10source_reference\x18\x0e \x01(\tR\x0fsourceReference\x12\x1a\n" +
 	"\bevidence\x18\x0f \x01(\tR\bevidence\x12\x16\n" +
 	"\x06reason\x18\x10 \x01(\tR\x06reason\x12\x1c\n" +
-	"\tcancelled\x18\x11 \x01(\bR\tcancelled\"\xb1\x02\n" +
+	"\tcancelled\x18\x11 \x01(\bR\tcancelled\x12\x16\n" +
+	"\x06origin\x18\x12 \x01(\tR\x06origin\"\xb1\x02\n" +
 	"\x16InvestmentForecastLink\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12#\n" +
 	"\revent_version\x18\x02 \x01(\x03R\feventVersion\x12\x1b\n" +

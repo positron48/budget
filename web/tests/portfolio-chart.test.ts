@@ -1,7 +1,13 @@
 import {describe, it, expect} from "vitest";
-import {chartSegments, sampleExtrema, chartDateTicks} from "@/lib/portfolio-chart";
+import {chartSegments, sampleExtrema, chartDateTicks, chartScale} from "@/lib/portfolio-chart";
 const day=(i:number)=>new Date(Date.UTC(2019,0,1+i)).toISOString().slice(0,10);
 describe("chart sampling",()=>{
+ it("uses round consistent ticks across positive, negative and tiny ranges",()=>{
+  expect(chartScale(-341500,683000).ticks).toEqual([-500000,0,500000,1000000]);
+  expect(chartScale(0,341500).ticks).toEqual([0,100000,200000,300000,400000]);
+  const tiny=chartScale(.0011,.0017);expect(tiny.min).toBeLessThanOrEqual(.0011);expect(tiny.max).toBeGreaterThanOrEqual(.0017);
+  expect(chartScale(0,0).ticks.every(Number.isFinite)).toBe(true);
+ });
  it("bounds a ten-year line and preserves actual extrema and endpoints",()=>{
   const rows=Array.from({length:3660},(_,i)=>({date:day(i),value:Math.sin(i/10)}));
   rows[1234].value=1000;rows[2001].value=-1000;

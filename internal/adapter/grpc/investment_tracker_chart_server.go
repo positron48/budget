@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"log"
+	"math/big"
 	"slices"
 	"time"
 
@@ -51,7 +52,7 @@ func (s *InvestmentNAVServer) trackerChart(ctx context.Context, req *pb.GetTrack
 	}
 	req = &pb.GetTrackerChartRequest{LedgerIds: q.LedgerIDs, GroupIds: q.GroupIDs, InstrumentKeys: q.InstrumentKeys, Currency: q.Currency, FxPolicyKey: q.FXPolicyKey, FromDate: q.From, ToDate: q.To}
 	request, _ := proto.MarshalOptions{Deterministic: true}.Marshal(req)
-	scope := chartHash(append([]byte("tracker-chart-v3:"), request...))
+	scope := chartHash(append([]byte("tracker-chart-v4:"), request...))
 	fence := func() (string, error) {
 		check := q
 		check.From = q.To
@@ -193,6 +194,13 @@ func (s *InvestmentNAVServer) trackerChart(ctx context.Context, req *pb.GetTrack
 			}
 		}
 	}
+	monetary := out.Portfolio.Performance
+	if out.KnownPortfolio != nil {
+		monetary = out.KnownPortfolio.Performance
+	}
+	if err = s.fillKnownTrackerPeriods(ctx, q, monetary.InstrumentKeys, monetary); err != nil {
+		return nil, err
+	}
 	fresh, err := fence()
 	if err != nil {
 		return nil, err
@@ -212,6 +220,60 @@ func (s *InvestmentNAVServer) trackerChart(ctx context.Context, req *pb.GetTrack
 		return nil, investmentRPCError(err)
 	}
 	return out, nil
+}
+
+// A missing boundary price must not turn the whole month into zero. Calculate
+// the known contribution on a fixed per-period security scope, excluding a
+// security on every account if any of its boundary values or flows are unknown.
+// Keep Profit absent: known totals across changing scopes need not add up to
+// the full range's profit, and the UI/export must identify them as partial.
+func (s *InvestmentNAVServer) fillKnownTrackerPeriods(ctx context.Context, q nav.TrackerHistoryRequest, keys []string, p *pb.GetInvestmentPerformanceResponse) error {
+	for _, periods := range [][]*pb.TrackerAnalyticsPeriod{p.MonthlyProfit, p.YearlyProfit} {
+		for _, period := range periods {
+			if period.Profit != nil || period.Reason != "valuation_missing" {
+				continue
+			}
+			blocked := false
+			for _, day := range p.AnalyticsPoints {
+				if day.Date >= period.FromDate && day.Date <= period.ToDate && (day.Flow == nil || day.FlowReason == "history_reset") {
+					blocked = true
+					break
+				}
+			}
+			if blocked {
+				continue
+			}
+			part, err := s.GetTrackerContributions(ctx, &pb.GetTrackerContributionsRequest{LedgerIds: q.LedgerIDs, GroupIds: q.GroupIDs, InstrumentKeys: keys, Currency: q.Currency, FxPolicyKey: q.FXPolicyKey, FromDate: period.FromDate, ToDate: period.ToDate})
+			if err != nil {
+				return err
+			}
+			bad := map[string]bool{}
+			for _, row := range part.Rows {
+				if row.InScope && row.Profit == nil {
+					bad[row.InstrumentKey] = true
+				}
+			}
+			sum, count := new(big.Rat), 0
+			for _, row := range part.Rows {
+				if row.InScope && !bad[row.InstrumentKey] && row.Profit != nil {
+					amount, ok := new(big.Rat).SetString(row.Profit.Numerator + "/" + row.Profit.Denominator)
+					if !ok {
+						return status.Error(codes.Internal, "period contribution unavailable")
+					}
+					sum.Add(sum, amount)
+					count++
+				}
+			}
+			if count > 0 && len(bad) > 0 && !bad[""] {
+				period.KnownProfit = protoPerformanceAmount(sum)
+				for key := range bad {
+					period.ExcludedInstrumentKeys = append(period.ExcludedInstrumentKeys, key)
+				}
+				slices.Sort(period.ExcludedInstrumentKeys)
+			}
+		}
+	}
+	return nil
 }
 
 // Recent requested scopes are refreshed every six hours; reads always verify

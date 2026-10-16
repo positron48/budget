@@ -31,7 +31,7 @@ for(const locale of ["ru","en"])for(const owned of [false,true])test(`${locale} 
  if(method&&/^(Create|Update|Commit|Post|Save|Delete|Import)/.test(method.name))financialWrites++;
  const body=method?Buffer.from(toBinary(method.output,create(method.output,data))):Buffer.alloc(0),head=Buffer.alloc(5);head.writeUInt32BE(body.length,1);const trailer=Buffer.from("grpc-status: 0\r\n"),tail=Buffer.alloc(5);tail[0]=0x80;tail.writeUInt32BE(trailer.length,1);await route.fulfill({status:200,contentType:"application/grpc-web+proto",body:Buffer.concat([head,body,tail,trailer])});
  });
- await page.goto("/investments/instruments");await page.getByRole("textbox").fill("BOND");await page.getByRole("link",{name:owned?/SHARE · Synthetic share/:/BOND · Synthetic amortizing bond/}).click();
+ await page.goto("/investments/instruments");await page.getByRole("textbox").fill("BOND");await page.getByRole("link",{name:owned?/SHARE.*Synthetic share/:/BOND.*Synthetic amortizing bond/}).click();
  await expect(page.getByRole("heading",{name:owned?"Synthetic share":"Synthetic amortizing bond",exact:true})).toBeVisible();
  await expect(page.getByRole("img",{name:ru?"История цены":"Price history",exact:true})).toBeVisible();if(owned)expect(historyRequests).toBeGreaterThan(0);
  await page.getByLabel(ru?"Выбрать даты":"Choose dates",{exact:true}).click();await page.getByLabel(ru?"История с":"History from",{exact:true}).fill("2024-01-02");await page.getByLabel(ru?"История по":"History through",{exact:true}).fill("2024-01-04");

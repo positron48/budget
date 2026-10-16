@@ -1,4 +1,5 @@
 "use client";
+import PortfolioChartLoading from "./PortfolioChartLoading";
 import {useEffect,useState} from "react";
 import {Code,ConnectError} from "@connectrpc/connect";
 import Link from "next/link";
@@ -11,12 +12,12 @@ import {comparePositionValues,type Fraction} from "@/lib/investment-positions";
 import {analyticsNumber} from "@/lib/portfolio-analytics";
 import {instrumentHref} from "@/lib/portfolio-instrument";
 import {shiftHistoryDate} from "@/lib/portfolio-history";
-export default function PortfolioContributions({tenantId,scope,valid,ru,locale,instrumentNames,ledgerVersionKey}:{ledgerVersionKey:string;instrumentNames?:Map<string,string>;tenantId:string;scope:ContributionScope;valid:boolean;ru:boolean;locale:string}){
+export default function PortfolioContributions({tenantId,scope,valid,ru,locale,instrumentNames,ledgerVersionKey,loading=false}:{loading?:boolean;ledgerVersionKey:string;instrumentNames?:Map<string,string>;tenantId:string;scope:ContributionScope;valid:boolean;ru:boolean;locale:string}){
  const {investmentNAV:api}=useClients(),{params,update}=usePortfolioFilters(),tr=(r:string,e:string)=>ru?r:e;
  const [search,setSearch]=useState(""),[page,setPage]=useState(0),[closed,setClosed]=useState(false);
  const mode=params.get("contribution")==="group"?"group":"instrument",key=JSON.stringify([scope,ledgerVersionKey],(_,v)=>typeof v==="bigint"?v.toString():v);
  useEffect(()=>setPage(0),[key,mode]);
- const query=useQuery({queryKey:["investment",tenantId,"tracker-contributions",key],enabled:valid&&!!scope.ledgerIds.length,queryFn:async({signal})=>{const task=tenantRequestScope(tenantId,signal);try{return await task.run(options=>loadPortfolioContributions(api,scope,options.signal));}finally{task.dispose();}},retry:false,staleTime:60000});
+ const query=useQuery({queryKey:["investment",tenantId,"tracker-contributions",key],enabled:valid&&!loading&&!!scope.ledgerIds.length,queryFn:async({signal})=>{const task=tenantRequestScope(tenantId,signal);try{return await task.run(options=>loadPortfolioContributions(api,scope,options.signal));}finally{task.dispose();}},retry:false,staleTime:60000});
  const rows=query.data?contributionViews(query.data,mode).filter(r=>(closed||r.active||!r.profit||BigInt(r.profit.numerator)!==0n||r.quantity&&BigInt(r.quantity.numerator)!==0n||r.incomplete)&&(!search||[r.instrument,r.instrument&&instrumentNames?.get(r.instrument),...r.accounts,...r.groups].filter(Boolean).some(s=>s!.toLocaleLowerCase().includes(search.toLocaleLowerCase())))).sort((a,b)=>comparePositionValues(a.profit,b.profit)):[];
  const money=(v?:Fraction)=>{const n=analyticsNumber(v);return n===undefined?"—":new Intl.NumberFormat(locale,{style:"currency",currency:scope.currency,maximumFractionDigits:2}).format(n);};
  const share=(v?:Fraction)=>{const n=analyticsNumber(v);return n===undefined?"—":new Intl.NumberFormat(locale,{style:"percent",maximumFractionDigits:1}).format(n);};
@@ -27,9 +28,9 @@ export default function PortfolioContributions({tenantId,scope,valid,ru,locale,i
  return <section className="space-y-5 rounded-xl bg-white p-5 sm:p-7 dark:bg-[#30313d]" aria-label={tr("Прибыльность активов","Asset profitability")}>
  <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">{tr("Прибыльность активов","Asset profitability")}</h2><details className="relative"><summary className={button+" cursor-pointer list-none"} aria-label={tr("Действия с прибыльностью","Profitability actions")}>•••</summary><div className="absolute right-0 z-10 min-w-48 space-y-2 rounded-xl bg-white p-3 shadow-lg dark:bg-slate-800"><button className={button} disabled={query.isFetching||!valid} onClick={()=>void query.refetch()}>{tr("Обновить","Refresh")}</button><button className={button} disabled={!query.data||query.isFetching||!!query.error} onClick={csv}>CSV</button><select className={button} aria-label={tr("Вклад по","Contributions by")} value={mode} onChange={e=>update({contribution:e.target.value})}><option value="instrument">{tr("Бумагам","Security")}</option><option value="group">{tr("Категориям","Category")}</option></select><label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={closed} onChange={e=>{setClosed(e.target.checked);setPage(0);}}/>{tr("Включить нулевой результат","Include zero results")}</label></div></details></div>
  <input className="w-full max-w-xs rounded-lg bg-slate-50 px-3 py-2 text-sm dark:bg-white/5" aria-label={tr("Поиск вклада","Search contributions")} placeholder={tr("Найти бумагу","Find security")} value={search} onChange={e=>{setSearch(e.target.value);setPage(0);}}/>
- {query.isFetching&&<p role="status" className="text-sm text-slate-500">{tr("Загружаем…","Loading…")}</p>}
+ {(loading||query.isFetching)&&<PortfolioChartLoading ru={ru}/>}
  {query.error&&<p role="alert" className="text-sm text-amber-600">{query.error.message==="history_changed"?tr("Категории изменились. Обновите историю.","Categories changed. Refresh history."):query.error instanceof ConnectError&&query.error.code===Code.ResourceExhausted?tr("Выберите меньший период или один счёт.","Choose a shorter period or one account."):tr("Не удалось загрузить прибыльность активов.","Could not load asset profitability.")}</p>}
- {query.data&&!query.isFetching&&!query.error&&<>
+ {query.data&&!loading&&!query.isFetching&&!query.error&&<>
  <div className="overflow-x-auto"><svg viewBox={`0 0 1050 ${height}`} style={{height}} className="min-w-[600px] w-full" role="img" aria-label={tr("Прибыль по бумагам","Profit by security")}>
  {Array.from({length:6},(_,i)=><line key={i} x1={zero+(i/5)*(negative?span*2:span)-(negative?span:0)} x2={zero+(i/5)*(negative?span*2:span)-(negative?span:0)} y1="0" y2={height-30} stroke="currentColor" strokeOpacity=".15" strokeDasharray="4 5"/>)}
  {shown.map((r,i)=>{const n=analyticsNumber(r.profit),w=n===undefined?0:Math.abs(n)/max*span,y=14+i*36;return <g key={r.id}>

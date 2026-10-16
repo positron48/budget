@@ -1,5 +1,15 @@
 export type ChartPoint = {date: string; value?: number; segment?: string};
 
+export function chartScale(low: number, high: number, count = 5) {
+  if (!Number.isFinite(low) || !Number.isFinite(high)) {low = 0; high = 1;}
+  if (low === high) {const pad = Math.abs(low) * .1 || 1; low -= pad; high += pad;}
+  const rough = (high - low) / Math.max(1, count - 1), power = 10 ** Math.floor(Math.log10(rough));
+  const step = ([1, 2, 5, 10].find(n => n * power >= rough) || 10) * power;
+  const min = Math.floor(low / step) * step, max = Math.ceil(high / step) * step;
+  const ticks = Array.from({length: Math.round((max - min) / step) + 1}, (_, i) => Number((min + i * step).toPrecision(12)));
+  return {min, max, step, ticks};
+}
+
 // Split before sampling: missing days and changes of source/coverage must never
 // become a continuous line merely because the chart uses fewer points.
 export function chartSegments(points: readonly ChartPoint[], limit = 400): ChartPoint[][] {

@@ -468,6 +468,7 @@ message InvestmentForecastEvent {
  string payment_date=10; string timezone=11; string entitlement_rule=12;
  google.protobuf.Timestamp entitlement_at=13; string source_reference=14; string evidence=15;
  string reason=16; bool cancelled=17;
+ string origin=18; // empty for saved events; provider or historical_projection for read-only derived events
 }
 message InvestmentForecastLink {
  string event_id=1; int64 event_version=2; string ledger_id=3; string operation_id=4;

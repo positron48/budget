@@ -141,3 +141,46 @@ missing observations remain gaps. SPY is a price proxy, without reinvested fund
 dividends. For all benchmark modes, missing initial price/FX delays the baseline
 to the first eligible date rather than hiding every later observation; that date
 is disclosed. No future fixing is carried backward to fill the initial gap.
+
+## Portfolio navigation and charts
+
+All investment pages share a top navigation bar. Account selections and chart
+filters survive navigation; market FX is the user-facing convention, including
+old URLs containing `fx=cbr`. The underlying CBR data/API remains available to
+ordinary Budget features.
+
+Trades and receipts render bounded pages, link securities to their cards and
+show signed trade quantities. Categories use focusable SVG sectors with value
+and allocation-share tooltips. Security groups are edited on one board by
+dragging account-specific positions or using their keyboard-accessible selectors;
+one Save action retains the version-fenced atomic group update.
+
+Line and period charts use round 1/2/5 × 10^n scale steps. Long period charts
+scroll horizontally while their left value scale remains outside the scrolling
+plot. Each chart shows an indeterminate progress bar while loading. Bar tooltips
+show the period and value on pointer hover or keyboard focus.
+
+Missing period boundary prices keep the full `profit` absent. The saved chart
+may additionally contain `known_profit` and `excluded_instrument_keys`, computed
+from contributions of securities with known opening, closing and movement data
+on every selected account. These bars are labelled partial; changing per-period
+subsets need not sum to the full-range profit. Unknown flows and history resets
+do not receive this fallback. CSV identifies partial rows as `month_known` or
+`year_known` rather than silently exporting them as full period profits.
+
+## Automatic payout calendar
+
+The forecast reads the latest available coupon/dividend schedules for approved
+market mappings and enabled, tenant-scoped sources in the same read-only database
+transaction as the portfolio. Announced amounts remain separate from unknown
+amounts. Previous-year dividends other than known special distributions can
+repeat one year later as explicitly labelled projections; recorded splits adjust
+the per-unit amount, and unsupported transfers/distributions suppress that
+projection. Current holdings and current market FX are a scenario, not confirmed
+personal entitlement or a prediction of future exchange rates.
+
+Derived events have deterministic IDs and `origin=provider` or
+`origin=historical_projection`; they are never saved as personal events, linked
+automatically to receipts, or turned into journal operations. Saved user events,
+including cancellations, take priority for the same security/kind/payment date.
+The calendar shows known monthly totals alongside incomplete-amount indicators.

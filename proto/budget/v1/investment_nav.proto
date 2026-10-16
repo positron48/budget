@@ -664,6 +664,8 @@ message TrackerAnalyticsPoint {
 message TrackerAnalyticsPeriod {
  string key=1; string from_date=2; string to_date=3;
  InvestmentNAVAmount profit=4; string reason=5;
+ // Known contribution of securities priced at both boundaries; never a full total.
+ InvestmentNAVAmount known_profit=6; repeated string excluded_instrument_keys=7;
 }
 
 message GetTrackerContributionsRequest {

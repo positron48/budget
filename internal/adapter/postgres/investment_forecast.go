@@ -176,9 +176,17 @@ func (r *InvestmentRepo) Forecast(ctx context.Context, t, u string, q inv.Foreca
 			}
 		}
 	}
+	schedules, scheduleWarning, e := readForecastMarket(ctx, tx, t, operations, at)
+	if e != nil {
+		return out, e
+	}
+	events = inv.MarketForecastEvents(t, events, schedules, operations, at, q.FromMonth)
 	out, e = inv.BuildForecast(t, ledgers, operations, legs, events, links, q, at, fixings)
 	if e != nil {
 		return out, e
+	}
+	if scheduleWarning != "" {
+		out.Warnings = append(out.Warnings, scheduleWarning)
 	}
 	return out, tx.Commit(ctx)
 }
@@ -204,6 +212,9 @@ func (r *InvestmentRepo) forecastWriteTx(ctx context.Context, t, u string) (pgx.
 }
 
 func (r *InvestmentRepo) SaveForecastEvent(ctx context.Context, t, u string, event inv.ForecastEvent, expected int64) (inv.ForecastEvent, error) {
+	if event.Origin != "" {
+		return event, d.ErrInvestmentInvalid
+	}
 	event, e := inv.NormalizeForecastEvent(event)
 	if e != nil || expected < 0 || expected == 1<<63-1 {
 		return event, d.ErrInvestmentInvalid

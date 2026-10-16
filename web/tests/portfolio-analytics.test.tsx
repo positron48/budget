@@ -1,10 +1,20 @@
 import {expect,it} from "vitest";
 import {create} from "@bufbuild/protobuf";
-import {render,screen} from "@testing-library/react";
+import {render,screen,fireEvent} from "@testing-library/react";
 import {GetInvestmentPerformanceResponseSchema,TrackerHistoryPointSchema} from "@/proto/budget/v1/investment_nav_pb";
 import {portfolioAnalyticsCSV} from "@/lib/portfolio-analytics";
 import PortfolioAnalytics from "@/components/PortfolioAnalytics";
 const f=(n:string,d="1")=>({numerator:n,denominator:d});
+it("keeps each loading chart separate from an empty result",()=>{
+ render(<PortfolioAnalytics loading mode="months" from="2024-01-01" to="2024-01-02" ru locale="ru" benchmarkIds={[]} onBenchmarksChange={()=>{}}/>);
+ expect(screen.getByRole("progressbar")).toBeVisible();expect(screen.queryByText("Нет данных за этот период")).toBeNull();
+});
+it("shows partial monthly profit and excluded names on focus with a fixed scale outside the scrolling plot",()=>{
+ const p=fixture();p.monthlyProfit[0].profit=undefined;p.monthlyProfit[0].reason="valuation_missing";p.monthlyProfit[0].knownProfit=create(GetInvestmentPerformanceResponseSchema,{profit:f("341500")}).profit;p.monthlyProfit[0].excludedInstrumentKeys=["GAP"];
+ const {container}=render(<PortfolioAnalytics performance={p} mode="months" from="2024-01-01" to="2024-01-02" ru locale="ru" benchmarkIds={[]} onBenchmarksChange={()=>{}} instrumentNames={new Map([["GAP","OZON"]])}/>);
+ const scale=screen.getByLabelText("Шкала прибыли"),scroll=screen.getByLabelText("Прокрутить периоды");expect(scroll).not.toContainElement(scale);
+ fireEvent.focus(container.querySelector('g[tabindex="0"]')!);expect(screen.getByRole("tooltip")).toHaveTextContent("OZON");expect(screen.getByRole("tooltip")).toHaveTextContent("известная часть");expect(scale).not.toHaveTextContent("341,5");
+});
 function fixture(){return create(GetInvestmentPerformanceResponseSchema,{currency:"RUB",fxPolicyKey:"market",analyticsConvention:"retrospective_cashless_strategy_v1",analyticsPoints:[{date:"2023-12-31",value:f("100"),contributions:f("0"),invested:f("100"),profit:f("0")},{date:"2024-01-01",flow:f("-5"),contributions:f("-5"),invested:f("95"),reason:"valuation_missing"},{date:"2024-01-02",value:f("110"),flow:f("0"),contributions:f("-5"),invested:f("95"),profit:f("15")}],monthlyProfit:[{key:"2024-01",fromDate:"2024-01-01",toDate:"2024-01-02",profit:f("15")}],yearlyProfit:[{key:"2024",fromDate:"2024-01-01",toDate:"2024-01-02",profit:f("15")}],trackerBenchmarks:[{key:"spy",title:"SPY",baseDate:"2023-12-31",points:[{date:"2023-12-31",virtualValue:f("100"),virtualProfit:f("0"),index:f("100")},{date:"2024-01-01",virtualReason:"benchmark_flow_price_missing"},{date:"2024-01-02",virtualReason:"benchmark_flow_price_missing"}]}]});}
 it("shows cumulative profit gaps without joining missing days or inventing zero",()=>{const {container}=render(<PortfolioAnalytics performance={fixture()} mode="profit" from="2024-01-01" to="2024-01-02" ru={false} locale="en" benchmarkIds={["spy"]} onBenchmarksChange={()=>{}}/>);expect(container.querySelectorAll("polyline")).toHaveLength(3);expect(screen.getByRole("img")).toHaveAttribute("aria-label","Cumulative profit");expect(container.querySelectorAll("circle")).toHaveLength(0);});
 it("retains incomplete monthly rows and displays exact selected boundaries",()=>{const p=fixture();p.monthlyProfit[0].profit=undefined;p.monthlyProfit[0].reason="valuation_missing";const {container}=render(<PortfolioAnalytics performance={p} mode="months" from="2024-01-01" to="2024-01-02" ru locale="ru" benchmarkIds={[]} onBenchmarksChange={()=>{}}/>);expect(screen.queryByRole("table")).toBeNull();expect(screen.getByRole("status")).toHaveTextContent("Не хватает исторической цены или курса");expect(container.querySelector("rect")).toBeNull();});

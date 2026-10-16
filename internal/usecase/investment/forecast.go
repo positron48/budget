@@ -22,6 +22,7 @@ type ForecastEvent struct {
 	SourceReference, Evidence, Reason                   string
 	Version                                             int64
 	Cancelled                                           bool
+	Origin                                              string `json:",omitempty"`
 }
 
 type ForecastLink struct {
@@ -85,7 +86,7 @@ func forecastDate(s string, loc *time.Location) (time.Time, error) {
 func NormalizeForecastEvent(e ForecastEvent) (ForecastEvent, error) {
 	if !validID(e.ID) || len(e.InstrumentKey) < 1 || len(e.InstrumentKey) > 200 || strings.TrimSpace(e.InstrumentKey) != e.InstrumentKey || !utf8.ValidString(e.InstrumentKey) ||
 		(e.Kind != "dividend" && e.Kind != "coupon") || (e.Nature != "announced" && e.Nature != "forecast") ||
-		(e.Currency != "RUB" && e.Currency != "USD" && e.Currency != "EUR") || e.Version < 0 {
+		(e.Currency != "RUB" && e.Currency != "USD" && e.Currency != "EUR") || e.Version < 0 || e.Origin != "" && e.Origin != "provider" && e.Origin != "historical_projection" {
 		return e, d.ErrInvestmentInvalid
 	}
 	loc, err := time.LoadLocation(e.Timezone)

@@ -14,7 +14,7 @@ import (
 )
 
 func protoForecastEvent(e inv.ForecastEvent) *pb.InvestmentForecastEvent {
-	return &pb.InvestmentForecastEvent{Id: e.ID, Version: e.Version, InstrumentKey: e.InstrumentKey, Kind: e.Kind, Nature: e.Nature, Currency: e.Currency, PerShare: e.PerShare, ExDate: e.ExDate, RecordDate: e.RecordDate, PaymentDate: e.PaymentDate, Timezone: e.Timezone, EntitlementRule: e.EntitlementRule, EntitlementAt: optionalInvestmentTimestamp(e.EntitlementAt), SourceReference: e.SourceReference, Evidence: e.Evidence, Reason: e.Reason, Cancelled: e.Cancelled}
+	return &pb.InvestmentForecastEvent{Id: e.ID, Version: e.Version, InstrumentKey: e.InstrumentKey, Kind: e.Kind, Nature: e.Nature, Currency: e.Currency, PerShare: e.PerShare, ExDate: e.ExDate, RecordDate: e.RecordDate, PaymentDate: e.PaymentDate, Timezone: e.Timezone, EntitlementRule: e.EntitlementRule, EntitlementAt: optionalInvestmentTimestamp(e.EntitlementAt), SourceReference: e.SourceReference, Evidence: e.Evidence, Reason: e.Reason, Cancelled: e.Cancelled, Origin: e.Origin}
 }
 func parseForecastEvent(e *pb.InvestmentForecastEvent) (inv.ForecastEvent, error) {
 	if e == nil {
@@ -27,7 +27,7 @@ func parseForecastEvent(e *pb.InvestmentForecastEvent) (inv.ForecastEvent, error
 		}
 		at = e.EntitlementAt.AsTime()
 	}
-	return inv.NormalizeForecastEvent(inv.ForecastEvent{ID: e.Id, Version: e.Version, InstrumentKey: e.InstrumentKey, Kind: e.Kind, Nature: e.Nature, Currency: e.Currency, PerShare: e.PerShare, ExDate: e.ExDate, RecordDate: e.RecordDate, PaymentDate: e.PaymentDate, Timezone: e.Timezone, EntitlementRule: e.EntitlementRule, EntitlementAt: at, SourceReference: e.SourceReference, Evidence: e.Evidence, Reason: e.Reason, Cancelled: e.Cancelled})
+	return inv.NormalizeForecastEvent(inv.ForecastEvent{ID: e.Id, Version: e.Version, InstrumentKey: e.InstrumentKey, Kind: e.Kind, Nature: e.Nature, Currency: e.Currency, PerShare: e.PerShare, ExDate: e.ExDate, RecordDate: e.RecordDate, PaymentDate: e.PaymentDate, Timezone: e.Timezone, EntitlementRule: e.EntitlementRule, EntitlementAt: at, SourceReference: e.SourceReference, Evidence: e.Evidence, Reason: e.Reason, Cancelled: e.Cancelled, Origin: e.Origin})
 }
 func protoForecastLink(l inv.ForecastLink) *pb.InvestmentForecastLink {
 	return &pb.InvestmentForecastLink{EventId: l.EventID, EventVersion: l.EventVersion, LedgerId: l.LedgerID, OperationId: l.OperationID, OperationVersion: l.OperationVersion, Version: l.Version, Complete: l.Complete, Cancelled: l.Cancelled, Reason: l.Reason}
