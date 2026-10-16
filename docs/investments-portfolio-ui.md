@@ -109,7 +109,7 @@ and acquisition costs are never manufactured to make the overall profit complete
 
 ## Preliminary profit and independent index growth
 
-Monetary profit excludes unknown flows and securities without usable end-date
+Monetary profit excludes unknown flows and securities without usable boundary
 valuations from a fixed preliminary subset. Temporary earlier valuation gaps
 remain gaps: they do not discard every trade and payout for that security across
 the entire period. Boundary profit can recover when both valuations and every

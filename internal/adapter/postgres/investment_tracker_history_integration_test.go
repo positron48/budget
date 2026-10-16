@@ -187,6 +187,13 @@ func TestInvestmentTrackerHistoryUsesActualDailyPositionsAndMarketFX(t *testing.
 
 	compactRequest := quarterRequest
 	compactRequest.CompactIssues = true
+	baselineGap := quarterRequest
+	baselineGap.From = "2020-01-05"
+	baselineGap.PerformanceFrom = baselineGap.From
+	boundary, err := repo.TrackerHistory(ctx, tenant, actor, baselineGap)
+	if err != nil || len(boundary.MonetaryExcludedKeys) != 1 || boundary.MonetaryExcludedKeys[0] != "S" {
+		t.Fatal("unpriced baseline lost after overlapping cached period", boundary.MonetaryExcludedKeys, err)
+	}
 	compact, err := repo.TrackerHistory(ctx, tenant, actor, compactRequest)
 	if err != nil || compact.BasisKey != quarter.BasisKey || len(compact.Points) != 93 {
 		t.Fatal("compact chart history", err)

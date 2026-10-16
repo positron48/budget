@@ -260,6 +260,11 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		InstrumentKeys []string
 	}{heads, policy, points, cache, classification, q.GroupIDs, q.InstrumentKeys})
 	first, _ := time.Parse(time.DateOnly, q.From)
+	performanceBaseline := ""
+	if q.PerformanceFrom != "" {
+		base, _ := time.Parse(time.DateOnly, q.PerformanceFrom)
+		performanceBaseline = base.AddDate(0, 0, -1).Format(time.DateOnly)
+	}
 	last, _ := time.Parse(time.DateOnly, q.To)
 	end := first.AddDate(0, 0, nav.TrackerPageDays(q.PageDays)-1)
 	if end.After(last) {
@@ -283,9 +288,9 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 	cacheKey := ""
 	if !q.ContributionOnly && q.DetailDate == "" {
 		cacheKey = investmentHash(struct {
-			Tenant, Actor, Basis, Currency, Through  string
-			Performance, MonetaryOnly, CompactIssues bool
-		}{tenant, actor, out.BasisKey, q.Currency, q.To, q.PerformanceFrom != "", q.MonetaryOnly, q.CompactIssues})
+			Tenant, Actor, Basis, Currency, Through, PerformanceFrom string
+			Performance, MonetaryOnly, CompactIssues                 bool
+		}{tenant, actor, out.BasisKey, q.Currency, q.To, q.PerformanceFrom, q.PerformanceFrom != "", q.MonetaryOnly, q.CompactIssues})
 		cached := []nav.TrackerHistoryPoint{}
 		for day := calculationFirst; !day.After(end); day = day.AddDate(0, 0, 1) {
 			point, ok := r.trackerHistoryCache.get(cacheKey+day.Format(time.DateOnly), out.ReadAt)
@@ -631,7 +636,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		}
 
 		// Temporary historical price gaps remain gaps in the full calculation.
-		// Only unresolved end holdings (and unknown flows above) exclude a security
+		// Only unresolved boundary holdings (and unknown flows above) exclude a security
 		// from the fixed preliminary subset; one stale holiday must not discard
 		// seven years of a bond's coupons, trades and valuations.
 		for _, issue := range row.Issues {
@@ -641,7 +646,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 			}
 			if basisKeys[key] {
 				row.AnalyticsExcludedKeys = append(row.AnalyticsExcludedKeys, key)
-				if row.Date == q.To {
+				if row.Date == q.To || row.Date == performanceBaseline {
 					row.MonetaryExcludedKeys = append(row.MonetaryExcludedKeys, key)
 				}
 			}
