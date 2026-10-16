@@ -52,7 +52,9 @@ for(const locale of ["ru","en"])test(`${locale} simple portfolio ${phase}`,async
  // Principal cost excludes fees, while profit includes both buy/sell fees once.
  expect(positionDecimal(report.cost)).toBe("100");expect(positionDecimal(report.realized)).toBe("18");expect(positionDecimal(report.profit)).toBe("32");
  await page.goto("/investments");await expect(page.getByRole("heading",{name:ru?"Мой портфель":"My portfolio",exact:true})).toBeVisible();
+ await page.getByRole("button",{name:ru?"Без категории":"Uncategorized",exact:true}).click();
  await expect(page.getByRole("table")).toContainText("TRACKER-STOCK");
+ await expect(page.getByRole("table")).toContainText("100 RUB");
  await page.getByRole("button",{name:ru?"Дивиденды и купоны":"Dividends and coupons",exact:true}).click();await expect(page.getByRole("table")).toContainText("15");
  if(phase==="readonly"){
   await expect(page.getByRole("button",{name:ru?"Добавить операцию":"Add operation",exact:true})).toHaveCount(0);
@@ -94,6 +96,7 @@ for(const locale of ["ru","en"])test(`${locale} simple portfolio ${phase}`,async
  await expect(calendar).toContainText(ru?"Получено":"Received");await expect(calendar).toContainText("15 RUB");
  if(phase==="readonly")await expect(page.getByRole("button",{name:ru?"Добавить событие":"Add event",exact:true})).toHaveCount(0);
  await page.goto(`/investments/instruments/TRACKER-STOCK?account=${ledger.id}`);
+ await page.getByText(ru?"Дивиденды эмитента":"Issuer dividends",{exact:true}).click();
  const issuer=page.getByRole("region",{name:ru?"Дивиденды на акцию":"Dividends per share",exact:true});
  if(phase==="write"){
   await issuer.getByRole("button",{name:ru?"Добавить историю эмитента":"Add issuer history",exact:true}).click();const editor=page.getByRole("dialog");
