@@ -52,6 +52,10 @@ for(const locale of ["ru","en"])test(`${locale} account subsets are deduplicated
  archivedThird=true;await page.reload();await expect(cost).toContainText("400 RUB");
  await page.getByRole("button",{name:ru?"Все счета":"All accounts",exact:true}).click();await expect(cost).toContainText("300 RUB");
  await page.getByText(ru?"Выбрать несколько счетов":"Select multiple accounts",{exact:true}).click();await page.getByRole("button",{name:ru?"Selected brokers · архив":"Selected brokers · archived",exact:true}).click();await expect(cost).toContainText("400 RUB");
+ // The cost card can render before the previous account's day query settles.
+ // Wait for that calculation before proving an invalid selection starts none.
+ const daily=page.getByRole("region",{name:ru?"Дневной результат":"Daily result",exact:true});
+ await expect(daily).toBeVisible();await expect(daily.locator("p.tabular-nums").first()).not.toHaveText("…");
  const historyCount=historyScopes.length;await page.goto(`/investments?account=${ids[0]}&account=99999999-9999-4999-8999-999999999999`);await expect(page.getByRole("alert").filter({hasText:ru?"Выбранный счёт недоступен":"The selected account is unavailable"})).toBeVisible();await expect(cost).toHaveCount(0);expect(historyScopes.length).toBe(historyCount);await page.goBack();await expect(cost).toContainText("400 RUB");
  await page.setViewportSize({width:375,height:812});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:test.info().outputPath(`account-selection-${locale}.png`),fullPage:true});expect(writes).toHaveLength(2);
  otherActor=true;await page.evaluate(()=>{localStorage.setItem("budget/access","header."+btoa(JSON.stringify({sub:"synthetic-other",tenant_id:"tenant"}))+".signature");window.dispatchEvent(new Event("budget-auth-changed"));});
