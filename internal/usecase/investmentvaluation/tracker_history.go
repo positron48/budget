@@ -24,6 +24,7 @@ type TrackerHistoryRequest struct {
 }
 type TrackerHistoryPoint struct {
 	AnalyticsExcludedKeys      []string
+	MonetaryExcludedKeys       []string
 	IssueCount                 int
 	Date, State, CoverageKey   string
 	KnownValue                 *big.Rat // Exact reporting-currency subtotal.
@@ -39,14 +40,14 @@ type TrackerHistoryPoint struct {
 	DetailFixings              []calc.FXFixing
 }
 type TrackerHistory struct {
-	Currency, FXPolicyKey, FXMode, NextDate, BasisKey string
-	FXPolicyVersion, Generation                       int64
-	ClassificationVersion                             int64
-	ReadAt                                            time.Time
-	Points                                            []TrackerHistoryPoint
-	Baseline                                          *TrackerHistoryPoint
-	Contributions                                     []TrackerContribution
-	AnalyticsInstrumentKeys, AnalyticsExcludedKeys    []string
+	Currency, FXPolicyKey, FXMode, NextDate, BasisKey                    string
+	FXPolicyVersion, Generation                                          int64
+	ClassificationVersion                                                int64
+	ReadAt                                                               time.Time
+	Points                                                               []TrackerHistoryPoint
+	Baseline                                                             *TrackerHistoryPoint
+	Contributions                                                        []TrackerContribution
+	AnalyticsInstrumentKeys, AnalyticsExcludedKeys, MonetaryExcludedKeys []string
 }
 
 // Bound total navigation to ten years, and each DB snapshot to at most 93 days. History
@@ -134,4 +135,11 @@ func TrackerPageDays(days int) int {
 		return 31
 	}
 	return days
+}
+
+// A saved requested chart scope for bounded periodic refresh.
+type TrackerChartRefresh struct {
+	Tenant, Actor string
+	Request       []byte
+	ComputedAt    time.Time
 }

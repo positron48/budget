@@ -135,10 +135,11 @@ function Tracker({tenantId,analyticsOnly=false}: {tenantId: string;analyticsOnly
       const sub=portfolioReport(data.data?.snapshots||[],data.data?.operations||[],quotes,currency,rates.data,groupPredicate(groups.data?.classification,[g.id]));
       if(!sub.positions.length)return [];
       const open=sub.positions.filter(p=>BigInt(p.quantity.numerator)!==0n);
+      if(!open.length)return [];
       const estimateDates=open.filter(p=>p.quoteSource==="estimate"&&p.quoteAt).map(p=>p.quoteAt!).sort((a,b)=>a-b);
       return [{id:g.id,name:g.name,count:open.length,estimateDate:estimateDates.length?new Date(estimateDates[0]).toLocaleDateString(locale):undefined,value:open.some(p=>p.value)||!open.length?add(...open.map(p=>p.value)):undefined,cost:open.every(p=>p.cost)?add(...open.map(p=>p.cost)):undefined,profit:sub.positions.every(p=>p.profit)?add(...sub.positions.map(p=>p.profit)):undefined,partial:open.some(p=>!p.value)}];
     });
-  },[groupIDs,instrumentKeys,current,quoteDetails,catalog.data,groups.data,data.data,quotes,currency,rates.data,sourceHistoryIncomplete,tr]);
+  },[groupIDs,instrumentKeys,current,quoteDetails,catalog.data,groups.data,data.data,quotes,currency,rates.data,sourceHistoryIncomplete,tr,locale]);
   const categoryTitle=groupIDs.length===1?(groups.data?.classification?.groups.find(g=>g.id===groupIDs[0])?.name||tr("Без категории","Uncategorized")):tr("Портфель","Portfolio");
   const visibleOperations = operations.filter(op => op.status === "posted" && (view === "payments" ? payoutKinds.has(op.kind) : ["buy", "sell"].includes(op.kind))).sort((a, b) => Number((b.occurredAt?.seconds || 0n) - (a.occurredAt?.seconds || 0n)));
   const kind = (k: string) => ({buy: tr("Покупка", "Buy"), sell: tr("Продажа", "Sell"), dividend: tr("Дивиденды", "Dividend"), coupon: tr("Купон", "Coupon"), repo_income: tr("Доход РЕПО", "Repo income"), cash_interest: tr("Проценты", "Interest")}[k] || k);

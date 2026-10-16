@@ -1,5 +1,5 @@
 import {chartHistoryPages,chartPageDays} from "./portfolio-history-pages";
-import type {GetTrackerHistoryResponse, GetInvestmentPerformanceResponse, TrackerHistoryPoint} from "@/proto/budget/v1/investment_nav_pb";
+import type {GetTrackerHistoryResponse, GetTrackerChartResponse, GetInvestmentPerformanceResponse, TrackerHistoryPoint} from "@/proto/budget/v1/investment_nav_pb";
 import {analyticsNumber} from "./portfolio-analytics";
 import {Code, ConnectError} from "@connectrpc/connect";
 export type HistoryScope = {instrumentKeys?:string[];groupIds?: string[]; classificationVersion?: bigint; fxPolicyVersion: bigint; fxMode: string; ledgerIds: string[]; currency: string; fxPolicyKey: string; fromDate: string; toDate: string};
@@ -14,9 +14,36 @@ export function lastHistoryDate(): string {
 export async function loadPortfolioHistory(api: HistoryAPI, scope: HistoryScope, signal: AbortSignal, progress: (points: TrackerHistoryPoint[]) => void): Promise<TrackerHistoryPoint[]> {
   return (await historyPages(api, scope, signal, progress, false)).points;
 }
-type PerformanceAPI = HistoryAPI & {getTrackerPerformance(input: Omit<HistoryScope, "fxPolicyVersion" | "fxMode" | "classificationVersion"> & {snapshotTokens: string[];monetaryOnly?:boolean}, options: {signal: AbortSignal}): Promise<GetInvestmentPerformanceResponse>};
-export type PerformanceHistoryResult = {points:TrackerHistoryPoint[];basisKey:string;performance?:GetInvestmentPerformanceResponse;partialPerformance?:GetInvestmentPerformanceResponse;excludedKeys?:string[];partialUnavailable?:boolean};
+type PerformanceAPI = HistoryAPI & {getTrackerChart?(input:Omit<HistoryScope,"fxPolicyVersion"|"fxMode"|"classificationVersion">,options:{signal:AbortSignal}):Promise<GetTrackerChartResponse>;getTrackerPerformance(input: Omit<HistoryScope, "fxPolicyVersion" | "fxMode" | "classificationVersion"> & {snapshotTokens: string[];monetaryOnly?:boolean}, options: {signal: AbortSignal}): Promise<GetInvestmentPerformanceResponse>};
+export type PerformanceHistoryResult = {points:TrackerHistoryPoint[];basisKey:string;performance?:GetInvestmentPerformanceResponse;partialPoints?:TrackerHistoryPoint[];partialBasisKey?:string;partialPerformance?:GetInvestmentPerformanceResponse;growthPerformance?:GetInvestmentPerformanceResponse;excludedKeys?:string[];partialUnavailable?:boolean};
 export async function loadPortfolioPerformanceHistory(api: PerformanceAPI, scope: HistoryScope, signal: AbortSignal, progress: (points: TrackerHistoryPoint[]) => void, allowPartial=true):Promise<PerformanceHistoryResult> {
+  if(api.getTrackerChart){
+    const {fxPolicyVersion:_v,fxMode:_m,classificationVersion:_c,...request}=scope;
+    try {
+      const chart=await api.getTrackerChart(request,{signal});signal.throwIfAborted();
+      if(!chart.portfolio?.performance||!chart.portfolio.pages.length)throw new Error("invalid_chart");
+      const calculations=[chart.portfolio,...(chart.knownPortfolio?[chart.knownPortfolio]:[]),...(chart.growthPortfolio?[chart.growthPortfolio]:[])].map(c=>({...c,pages:c.pages.map(p=>({...p,analyticsExcludedKeys:p.monetaryExcludedKeys}))}));
+      // Run the same continuity, exact arithmetic and selection validators as
+      // paginated history. Projection pages carry no reusable signed capability.
+      const local:PerformanceAPI={
+        async getTrackerHistory(input){
+          const calculation=calculations.find(c=>historySelectionEqual(c.performance!.instrumentKeys,input.instrumentKeys));
+          const page=calculation?.pages.find(p=>p.points[0]?.date===input.fromDate);
+          if(page)return {...page,performanceSnapshot:"derived_projection"};
+          if(input.fromDate===scope.toDate&&calculation)return {...calculation.pages[calculation.pages.length-1],performanceSnapshot:"derived_projection"};
+          throw new Error("invalid_chart_scope");
+        },
+        async getTrackerPerformance(input){const c=calculations.find(c=>historySelectionEqual(c.performance!.instrumentKeys,input.instrumentKeys));if(!c?.performance)throw new Error("invalid_chart_scope");return c.performance;}
+      };
+      const validated=await loadPortfolioPerformanceHistory(local,scope,signal,progress,allowPartial);
+      if(!historySelectionEqual(chart.excludedKeys,validated.excludedKeys))throw new Error("invalid_chart_scope");
+      if(chart.growthPortfolio?.performance){
+        const growth=await loadPortfolioPerformanceHistory(local,{...scope,instrumentKeys:chart.growthPortfolio.performance.instrumentKeys},signal,()=>{},false);
+        validated.growthPerformance=growth.performance;
+      }
+      return validated;
+    } catch(error){if(!(error instanceof ConnectError&&error.code===Code.Unimplemented))throw error;}
+  }
   const result = await historyPages(api, scope, signal, progress, true);
   if (!result.tokens.length) return {points: result.points, basisKey:result.basisKey, performance: undefined};
   const {fxPolicyVersion: _version, fxMode: _mode, classificationVersion: _classification, ...request} = scope;
@@ -55,7 +82,7 @@ export async function loadPortfolioPerformanceHistory(api: PerformanceAPI, scope
       // its calculation so edits during the second pass cannot mix journals.
       const check=await api.getTrackerHistory({...request,fromDate:scope.toDate,compactIssues:true},{signal});
       if(check.basisKey!==result.basisKey)throw new Error("history_changed");
-      return {points:result.points,basisKey:result.basisKey,performance,partialPerformance:partial.performance,excludedKeys:result.excludedKeys,partialUnavailable:!partial.performance};
+      return {points:result.points,basisKey:result.basisKey,performance,partialPerformance:partial.performance,partialPoints:partial.points,partialBasisKey:partial.basisKey,excludedKeys:result.excludedKeys,partialUnavailable:!partial.performance};
     } catch(error) {
       signal.throwIfAborted();
       if(error instanceof Error&&error.message==="history_changed")throw error;

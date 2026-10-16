@@ -14,6 +14,9 @@ for(const locale of ["ru","en"]){test(`${locale} analytics charts show profit, p
  await page.route("**/budget.v1.*/*",async route=>{
   const path=new URL(route.request().url()).pathname,service=[InvestmentService,InvestmentNAVService,InvestmentImportService,TenantService].find(s=>path.includes(s.typeName+"/")),method=service?.methods.find(m=>path.endsWith("/"+m.name)),bytes=route.request().postDataBuffer()!,input=method?fromBinary(method.input,bytes.subarray(5,5+bytes.readUInt32BE(1))) as any:{};
   let data:any={};const at=1767268800n,qty=input.ledgerId===one?"1":"2";
+  if(method?.name==="GetTrackerChart"){
+   const trailer=Buffer.from("grpc-status: 12\r\ngrpc-message: unsupported by fixture\r\n"),tail=Buffer.alloc(5);tail[0]=0x80;tail.writeUInt32BE(trailer.length,1);await route.fulfill({status:200,contentType:"application/grpc-web+proto",body:Buffer.concat([tail,trailer])});return;
+  }
   if(method?.name==="ListMyTenants")data={memberships:[{tenant:{id:"tenant"},role:1}]};
   if(method?.name==="ListInvestmentLedgers")data={ledgers};
   if(method?.name==="GetInvestmentSnapshot")data={snapshot:{ledger:ledgers.find(l=>l.id===input.ledgerId),positions:[{instrumentKey:key,currency:"RUB",quantity:qty,costBasis:"principal",lots:[{originId:input.ledgerId+"buy",quantity:qty,cleanCost:String(Number(qty)*100),acquiredAccrued:"0",acquiredAt:{seconds:at}}]}]}};

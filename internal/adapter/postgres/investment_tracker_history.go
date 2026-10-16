@@ -220,6 +220,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		}
 		if len(date) >= 10 && date[:10] <= q.To && analyticsKeys[key] && selected(ledger, key) {
 			out.AnalyticsExcludedKeys = append(out.AnalyticsExcludedKeys, key)
+			out.MonetaryExcludedKeys = append(out.MonetaryExcludedKeys, key)
 		}
 	}
 	err = pendingRows.Err()
@@ -230,12 +231,16 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 	collectExclusions := func() {
 		if out.Baseline != nil {
 			out.AnalyticsExcludedKeys = append(out.AnalyticsExcludedKeys, out.Baseline.AnalyticsExcludedKeys...)
+			out.MonetaryExcludedKeys = append(out.MonetaryExcludedKeys, out.Baseline.MonetaryExcludedKeys...)
 		}
 		for _, point := range out.Points {
 			out.AnalyticsExcludedKeys = append(out.AnalyticsExcludedKeys, point.AnalyticsExcludedKeys...)
+			out.MonetaryExcludedKeys = append(out.MonetaryExcludedKeys, point.MonetaryExcludedKeys...)
 		}
 		slices.Sort(out.AnalyticsExcludedKeys)
 		out.AnalyticsExcludedKeys = slices.Compact(out.AnalyticsExcludedKeys)
+		slices.Sort(out.MonetaryExcludedKeys)
+		out.MonetaryExcludedKeys = slices.Compact(out.MonetaryExcludedKeys)
 	}
 
 	if e = tx.QueryRow(ctx, trackerHistoryBasisSQL, tenant, identities, q.LedgerIDs, through).Scan(&cache); e != nil {
@@ -278,9 +283,9 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 	cacheKey := ""
 	if !q.ContributionOnly && q.DetailDate == "" {
 		cacheKey = investmentHash(struct {
-			Tenant, Actor, Basis, Currency           string
+			Tenant, Actor, Basis, Currency, Through  string
 			Performance, MonetaryOnly, CompactIssues bool
-		}{tenant, actor, out.BasisKey, q.Currency, q.PerformanceFrom != "", q.MonetaryOnly, q.CompactIssues})
+		}{tenant, actor, out.BasisKey, q.Currency, q.To, q.PerformanceFrom != "", q.MonetaryOnly, q.CompactIssues})
 		cached := []nav.TrackerHistoryPoint{}
 		for day := calculationFirst; !day.After(end); day = day.AddDate(0, 0, 1) {
 			point, ok := r.trackerHistoryCache.get(cacheKey+day.Format(time.DateOnly), out.ReadAt)
@@ -608,6 +613,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 			for _, key := range flow.excludedKeys {
 				if basisKeys[key] {
 					row.AnalyticsExcludedKeys = append(row.AnalyticsExcludedKeys, key)
+					row.MonetaryExcludedKeys = append(row.MonetaryExcludedKeys, key)
 				}
 			}
 			row.Reset = flow.reset
@@ -624,8 +630,10 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 			}
 		}
 
-		// Preserve identities before compacting diagnostics. The client excludes
-		// the union for the entire requested range, never a changing daily subset.
+		// Temporary historical price gaps remain gaps in the full calculation.
+		// Only unresolved end holdings (and unknown flows above) exclude a security
+		// from the fixed preliminary subset; one stale holiday must not discard
+		// seven years of a bond's coupons, trades and valuations.
 		for _, issue := range row.Issues {
 			key := issue.ComponentID
 			if _, instrument, found := strings.Cut(key, ":"); found && !basisKeys[key] {
@@ -633,6 +641,9 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 			}
 			if basisKeys[key] {
 				row.AnalyticsExcludedKeys = append(row.AnalyticsExcludedKeys, key)
+				if row.Date == q.To {
+					row.MonetaryExcludedKeys = append(row.MonetaryExcludedKeys, key)
+				}
 			}
 		}
 		slices.Sort(row.AnalyticsExcludedKeys)

@@ -69,7 +69,7 @@ func TestVirtualStrategyValuesApplySameFlowsWithoutPayoutDoubleCount(t *testing.
 	}
 	days[1].ExternalFlow = big.NewRat(1, 1)
 	a, _ = VirtualStrategyValues(big.NewRat(100, 1), days)
-	if a.Points[2].Value != nil || a.Reason != "benchmark_flow_price_missing" {
+	if a.Points[1].Value != nil || a.Points[2].Value.Cmp(big.NewRat(91, 1)) != 0 || a.Reason != "" {
 		t.Fatal(a)
 	}
 }
@@ -107,5 +107,24 @@ func TestVirtualStrategyTenYearsHaveBoundedMoneyPrecision(t *testing.T) {
 	tolerance, _ := new(big.Rat).SetString("0.000000000000000001")
 	if errorValue.Cmp(tolerance) > 0 {
 		t.Fatal("virtual precision exceeded tolerance", errorValue)
+	}
+}
+
+func TestVirtualStrategyResumesAfterSuspensionWithCashFlows(t *testing.T) {
+	days := []BenchmarkDay{
+		{Date: "2022-02-25", Price: big.NewRat(100, 1)},
+		{Date: "2022-02-26", ExternalFlow: big.NewRat(50, 1)},
+		{Date: "2022-02-27", ExternalFlow: big.NewRat(-10, 1)},
+		{Date: "2022-02-28", Price: big.NewRat(80, 1), ExternalFlow: big.NewRat(5, 1)},
+		{Date: "2022-03-01", Price: big.NewRat(88, 1), ExternalFlow: new(big.Rat)},
+	}
+	out, e := VirtualStrategyValues(big.NewRat(100, 1), days)
+	if e != nil || out.Reason != "" || out.Points[1].Value != nil || out.Points[2].Value != nil || out.Points[3].Value.Cmp(big.NewRat(125, 1)) != 0 || out.Points[4].Value.Cmp(big.NewRat(275, 2)) != 0 {
+		t.Fatal("pending cash was backdated, lost or earned suspended returns", out, e)
+	}
+	days[2].ExternalFlow = nil
+	out, e = VirtualStrategyValues(big.NewRat(100, 1), days)
+	if e != nil || out.Points[4].Value != nil || out.Reason != "strategy_flow_missing" {
+		t.Fatal("unknown flow invented", out, e)
 	}
 }

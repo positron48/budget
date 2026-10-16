@@ -234,7 +234,9 @@ func main() {
 
 		// Assets
 		marketRepo := postgres.NewMarketDataRepo(db)
-		budgetv1.RegisterInvestmentNAVServiceServer(server, grpcadapter.NewInvestmentNAVServer(marketRepo, cfg.JWTSignKey))
+		trackerNAV := grpcadapter.NewInvestmentNAVServer(marketRepo, cfg.JWTSignKey)
+		go trackerNAV.RunTrackerChartRefresh(ctx)
+		budgetv1.RegisterInvestmentNAVServiceServer(server, trackerNAV)
 		marketSvc := marketdata.NewService(marketRepo, tenantRepo)
 		budgetv1.RegisterMarketDataServiceServer(server, grpcadapter.NewMarketDataServer(marketSvc, marketdata.NewMappingService(marketRepo, tenantRepo)))
 		investmentRepo := postgres.NewInvestmentRepo(db)

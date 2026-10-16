@@ -43,6 +43,7 @@ message RequestInvestmentNAVRefreshRequest { string series_key = 1; }
 message RequestInvestmentNAVRefreshResponse { string state = 1; } // requested, not calculated
 service InvestmentNAVService {
  rpc GetTrackerInstrumentPrices(GetTrackerInstrumentPricesRequest) returns (GetTrackerInstrumentPricesResponse);
+ rpc GetTrackerChart(GetTrackerChartRequest) returns (GetTrackerChartResponse);
  rpc GetTrackerHistory(GetTrackerHistoryRequest) returns (GetTrackerHistoryResponse);
  rpc GetTrackerContributions(GetTrackerContributionsRequest) returns (GetTrackerContributionsResponse);
  // The cashless tracker and recorded-journal APIs share the financial result format; history_scope identifies the model.
@@ -625,6 +626,7 @@ message GetTrackerHistoryResponse {
  int64 classification_version = 13;
  repeated string instrument_keys=14; bool monetary_only=15; repeated string group_ids=16; bool details_included=17;
  repeated string analytics_instrument_keys=18; // Posted instruments within the selected scope.
+ repeated string monetary_excluded_keys=20; // Unknown flows or unavailable end holdings; temporary earlier valuations remain gaps.
  repeated string analytics_excluded_keys=19; // Incomplete instrument histories in this page, including its baseline.
 }
 
@@ -683,4 +685,27 @@ message GetTrackerContributionsResponse {
  google.protobuf.Timestamp read_at=8; string basis_key=9; string convention=10;
  repeated TrackerContribution rows=11; InvestmentNAVAmount profit=12;
  InvestmentNAVAmount known_profit=13; string reason=14; repeated string instrument_keys=15; repeated string group_ids=16;
+}
+
+// Persisted daily projections. Snapshot capabilities are never persisted.
+message GetTrackerChartRequest {
+ repeated string ledger_ids = 1;
+ repeated string group_ids = 2;
+ repeated string instrument_keys = 3;
+ string currency = 4;
+ string fx_policy_key = 5;
+ string from_date = 6;
+ string to_date = 7;
+}
+message TrackerChartCalculation {
+ repeated GetTrackerHistoryResponse pages = 1;
+ GetInvestmentPerformanceResponse performance = 2;
+}
+message GetTrackerChartResponse {
+ TrackerChartCalculation portfolio = 1;
+ TrackerChartCalculation known_portfolio = 2;
+ TrackerChartCalculation growth_portfolio = 6;
+ repeated string excluded_keys = 3;
+ google.protobuf.Timestamp computed_at = 4;
+ bool cache_hit = 5;
 }

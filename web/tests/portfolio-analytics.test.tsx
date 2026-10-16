@@ -15,7 +15,7 @@ it("plots the known portion when every full portfolio valuation is incomplete",(
  const historyPoints=[create(TrackerHistoryPointSchema,{date:"2024-01-01",state:"incomplete",knownValue:f("100"),pricedPositions:105,positions:110,coverageKey:"a".repeat(64)}),create(TrackerHistoryPointSchema,{date:"2024-01-02",state:"incomplete",knownValue:f("110"),pricedPositions:105,positions:110,coverageKey:"a".repeat(64)})];
  const {container}=render(<PortfolioAnalytics performance={p} historyPoints={historyPoints} mode="value" from="2024-01-01" to="2024-01-02" ru locale="ru" benchmarkIds={[]} onBenchmarksChange={()=>{}}/>);
  expect(screen.getByRole("img",{name:"Стоимость и вложения"})).toBeVisible();
- expect(container.querySelector("polyline")).toHaveAttribute("stroke-dasharray","5 4");
+ expect(container.querySelector("polyline")).not.toHaveAttribute("stroke-dasharray");
  expect(container.querySelectorAll("circle")).toHaveLength(0);
  expect(container.querySelector("title")).toHaveTextContent("известная часть");
  expect(p.analyticsPoints.every(d=>!d.value&&!d.profit)).toBe(true);
@@ -43,7 +43,7 @@ it("breaks the known-value line when coverage changes, disappears or becomes com
  ];
  const p=create(GetInvestmentPerformanceResponseSchema,{currency:"RUB",analyticsPoints:points.map(d=>({date:d.date,value:d.state==="ready"?d.knownValue:undefined,reason:d.state==="ready"?"":"valuation_missing"}))});
  const {container}=render(<PortfolioAnalytics performance={p} historyPoints={points} mode="value" from="2024-01-01" to="2024-01-07" ru={false} locale="en" benchmarkIds={[]} onBenchmarksChange={()=>{}}/>);
- expect(container.querySelectorAll("polyline")).toHaveLength(5);expect(container.querySelectorAll('polyline[stroke-dasharray="5 4"]')).toHaveLength(3);expect(container.querySelectorAll("circle")).toHaveLength(0);
+ expect(container.querySelectorAll("polyline")).toHaveLength(5);expect(container.querySelectorAll('polyline[stroke-dasharray="5 4"]')).toHaveLength(0);expect(container.querySelectorAll("circle")).toHaveLength(0);
  expect([...container.querySelectorAll("title")].some(x=>x.textContent?.includes("2024-01-05"))).toBe(false);
 });
 

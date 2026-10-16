@@ -33,21 +33,33 @@ plus the original `issue_count`. Monetary fractions, complete/incomplete state,
 position counts and the coverage hash remain exact. A date's full per-position
 breakdown is fetched separately using `detail_date`.
 
-The backend keeps disposable exact daily projections in a process-local LRU
-cache, bounded to 32 MiB and 24 hours. Entries are fenced by tenant, actor,
-selected journal/market/FX/classification basis, currency and calculation mode.
-Every hit first rechecks current membership, ledger identities and source basis
-inside the read transaction. Periods sharing a basis can reuse overlapping days.
-At most two history calculations per repository run concurrently; queued reads
-have not loaded journals or allocated daily position snapshots.
-Source corrections invalidate reuse; a process restart or eviction makes the
-cache cold. This cache avoids repeating valuation arithmetic, not the database
-checks that establish current eligibility. Large entries may bypass caching.
+`GetTrackerChart` returns one server-computed daily bundle, including exact
+monthly/yearly totals and monetary comparisons. Schema 63 stores these disposable
+protobuf projections in `investment_tracker_charts`. Each tenant/actor retains at
+most 24 views of up to 16 MiB. A process restart preserves the projections.
+Snapshot tokens are used only during calculation and are never persisted.
 
-Historical candles remain in PostgreSQL. No new financial journal or projection
-schema is introduced by this UI change. Seven years are about 28 quarter-sized
-pages; first-load production latency must be measured separately from the local
-single-page and warm-cache benchmarks.
+Every read rechecks current membership, ledger identities and the scoped
+journal/market/FX/classification basis. Built-in benchmark prices and source
+eligibility have an additional fence, even when the index is not a holding.
+Corrections cause a recalculation; expired projections are not returned. A cold
+view calculates quarterly internally, with one cold bundle at a time and
+cancellable waiting. A warm view does not wait behind a cold calculation.
+The 32 MiB process-local daily LRU remains an arithmetic optimization for those
+internal pages and for existing paginated clients.
+
+`budgetd` checks recent requested projections every 15 minutes and recalculates
+those older than six hours or from a previous Moscow date. Recent views ending
+at the then-latest completed day also get an extended projection for the new
+completed day. Explicit historical periods remain fixed. Failed refreshes keep
+the old derived record, but a read still refuses a changed source basis. Fixed
+failure messages contain no portfolio facts or credentials.
+
+Historical candles and projections remain in PostgreSQL; no separate time-series
+service is required for daily portfolios. The first unseen or corrected scope
+still needs a cold calculation. Measure cold calculation, persisted reads and
+browser rendering separately. Clients fall back to paginated loading only when
+an older server explicitly returns Unimplemented.
 
 ## Local full-range benchmark
 
@@ -94,23 +106,29 @@ and acquisition costs are never manufactured to make the overall profit complete
 
 ## Preliminary profit and independent index growth
 
-History pages expose posted instrument identities and incomplete instrument keys
-before diagnostic compaction. The client unions exclusions across the entire
-requested range, including the baseline, then requests a separate signed history
-for the remaining fixed instrument selection. Prices, quantities, flows and paid
-income all use that same subset; unknown costs/flows are never replaced by zero.
-A later page cannot change the universe halfway through a profit line. The full
-value chart and its drilldown retain the original selection. Profit, monthly/yearly
-changes, security-profit bars and monetary benchmark comparisons use the known subset, labelled
-preliminary with an expandable list of excluded instruments. Its CSV explicitly
-names the known portion and retains the exact instrument scope. An empty subset
-never becomes the API's empty selection (which means all instruments).
+Monetary profit excludes unknown flows and securities without usable end-date
+valuations from a fixed preliminary subset. Temporary earlier valuation gaps
+remain gaps: they do not discard every trade and payout for that security across
+the entire period. Boundary profit can recover when both valuations and every
+intervening flow are known. Unknown costs/flows are never replaced by zero.
 
-Both scopes retain their own authorization, signed snapshot and correction
-checks; the original basis is checked again after loading the subset. Unresolved
-pending source identities remain blockers. An unavailable subset does not erase
-the original value chart or fabricate profit. This bounded second traversal uses
-the same quarterly loader and disposable projection cache.
+Value, profit, monthly/yearly changes, security-profit bars and monetary benchmark
+comparisons share the monetary subset, labelled preliminary with its excluded
+instruments. Value drilldown uses that same instrument scope and basis. The
+percentage-growth comparison separately requires a continuous daily history;
+its stricter selection is disclosed. Both calculations retain authorization and
+correction checks. An empty subset never means an unfiltered selection.
+
+During an index price gap, virtual cash flows wait without earning index returns.
+They enter the model at the next eligible close. Missing valuations stay gaps,
+but do not permanently terminate every subsequent comparison point. Unknown
+flows, history resets and insufficient virtual balances still stop the model.
+This is a retrospective fractional comparison, not a claim of executable trades.
+
+Category allocation includes only nonzero security positions. Payout-only and
+closed positions retain their recorded income but do not create zero-asset
+allocation rows. Portfolio value lines are solid; intentional reference/invested
+lines remain dashed. Missing observations and coverage changes still split lines.
 
 Independent growth compares benchmark price returns without simulating personal
 trades. Where a continuous portfolio TWR exists, it is shown alongside those

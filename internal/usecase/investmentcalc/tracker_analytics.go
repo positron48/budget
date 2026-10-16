@@ -111,8 +111,9 @@ func mustAnalyticsDate(s string) time.Time { t, _ := time.Parse(time.DateOnly, s
 // VirtualStrategyValues is a retrospective comparison, not an execution model.
 // Fractional units rebalance at each eligible day's display-currency valuation,
 // including carried closes. There are no fees or invented dividends. Unknown
-// flows, resets, or a flow without a price stop the simulation rather than
-// backdating a trade when a later price becomes available.
+// flows or resets stop the simulation. During a price gap, net flows wait
+// as cash or a withdrawal liability and execute at the next eligible close;
+// earlier missing valuations stay missing.
 func VirtualStrategyValues(initial *big.Rat, days []BenchmarkDay) (BenchmarkResult, error) {
 	out := BenchmarkResult{}
 	if initial == nil || initial.Sign() < 0 || len(days) == 0 {
@@ -122,6 +123,7 @@ func VirtualStrategyValues(initial *big.Rat, days []BenchmarkDay) (BenchmarkResu
 	// thousands of distinct price/FX ratios. Real portfolio money stays exact.
 	value := new(big.Rat).Set(initial)
 	var previousPrice *big.Rat
+	pending := new(big.Rat)
 	stopped := ""
 	for i, d := range days {
 		if _, e := time.Parse(time.DateOnly, d.Date); e != nil || i > 0 && mustAnalyticsDate(d.Date).Sub(mustAnalyticsDate(days[i-1].Date)) != 24*time.Hour || d.Price != nil && d.Price.Sign() <= 0 {
@@ -140,10 +142,14 @@ func VirtualStrategyValues(initial *big.Rat, days []BenchmarkDay) (BenchmarkResu
 				stopped = "history_reset"
 			case d.ExternalFlow == nil:
 				stopped = "strategy_flow_missing"
-			case d.Price == nil && d.ExternalFlow.Sign() != 0:
-				stopped = "benchmark_flow_price_missing"
+			case d.Price == nil:
+				pending.Add(pending, d.ExternalFlow)
+				if value.Sign() == 0 && pending.Sign() < 0 {
+					stopped = "insufficient_benchmark_balance"
+				}
 			case d.Price != nil:
-				next := new(big.Rat).Add(new(big.Rat).Mul(value, new(big.Rat).Quo(d.Price, previousPrice)), d.ExternalFlow)
+				next := new(big.Rat).Add(new(big.Rat).Mul(value, new(big.Rat).Quo(d.Price, previousPrice)), new(big.Rat).Add(pending, d.ExternalFlow))
+				pending.SetInt64(0)
 				if next.Sign() < 0 {
 					stopped = "insufficient_benchmark_balance"
 				} else {
@@ -157,8 +163,8 @@ func VirtualStrategyValues(initial *big.Rat, days []BenchmarkDay) (BenchmarkResu
 		} else if d.Price != nil {
 			p.Value = new(big.Rat).Set(value)
 			p.Units = new(big.Rat).Quo(value, d.Price)
-		} else if value.Sign() == 0 {
-			p.Value = new(big.Rat)
+		} else if value.Sign() == 0 && pending.Sign() >= 0 {
+			p.Value = new(big.Rat).Set(pending)
 		} else {
 			p.State, p.Reason = "gap", "benchmark_price_unavailable"
 		}

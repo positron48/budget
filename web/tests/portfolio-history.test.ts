@@ -1,7 +1,7 @@
 import {describe,it,expect,vi} from "vitest";
 import {create} from "@bufbuild/protobuf";
 import {Code,ConnectError} from "@connectrpc/connect";
-import {GetTrackerHistoryResponseSchema, TrackerHistoryPointSchema, GetInvestmentPerformanceResponseSchema} from "@/proto/budget/v1/investment_nav_pb";
+import {GetTrackerChartResponseSchema, GetTrackerHistoryResponseSchema, TrackerHistoryPointSchema, GetInvestmentPerformanceResponseSchema} from "@/proto/budget/v1/investment_nav_pb";
 import {loadPortfolioHistory,loadPortfolioPerformanceHistory,historyPointVisible,type HistoryScope} from "@/lib/portfolio-history";
 const scope:HistoryScope={ledgerIds:["ledger"],currency:"RUB",fxPolicyKey:"market",fxPolicyVersion:1n,fxMode:"market",fromDate:"2020-01-01",toDate:"2020-01-02"};
 function page(date:string,nextDate:string,generation=1n){return create(GetTrackerHistoryResponseSchema,{currency:"RUB",fxPolicyKey:"market",fxPolicyVersion:1n,fxMode:"market",reportingTimezone:"Europe/Moscow",priceConvention:"retrospective_close_next_utc_day_v1",generation,basisKey:"d".repeat(64),nextDate,points:[{date,state:"ready",knownValue:{numerator:"2",denominator:"3"},positions:1,pricedPositions:1,coverageKey:"a".repeat(64)}]});}
@@ -147,4 +147,25 @@ it("does not turn an empty eligible subset into the all-instrument scope",async(
  api.getTrackerHistory.mockReset().mockResolvedValueOnce(a).mockResolvedValueOnce(b);
  const result=await loadPortfolioPerformanceHistory(api,scope,new AbortController().signal,vi.fn());
  expect(result.partialUnavailable).toBe(true);expect(result.partialPerformance).toBeUndefined();expect(api.getTrackerHistory).toHaveBeenCalledTimes(2);
+});
+
+it("loads a persisted seven-year style bundle through the same validators without network pagination",async()=>{
+ const pages=[page("2020-01-01","2020-01-02"),page("2020-01-02","")];
+ for(const p of pages){p.analyticsInstrumentKeys=["A","B"];p.analyticsExcludedKeys=["B"];p.monetaryExcludedKeys=[];}
+ const performance=performanceFixture();
+ const growthPages=pages.map(p=>create(GetTrackerHistoryResponseSchema,{...p,instrumentKeys:["A"],analyticsInstrumentKeys:["A"],analyticsExcludedKeys:[]}));
+ const chart=create(GetTrackerChartResponseSchema,{portfolio:{pages,performance},growthPortfolio:{pages:growthPages,performance:{...performance,instrumentKeys:["A"]}},cacheHit:true});
+ const api={getTrackerChart:vi.fn().mockResolvedValue(chart),getTrackerHistory:vi.fn(),getTrackerPerformance:vi.fn()};
+ const result=await loadPortfolioPerformanceHistory(api,scope,new AbortController().signal,vi.fn());
+ expect(result.points).toHaveLength(2);expect(result.excludedKeys).toBeUndefined();expect(result.growthPerformance?.instrumentKeys).toEqual(["A"]);
+ expect(api.getTrackerHistory).not.toHaveBeenCalled();expect(api.getTrackerPerformance).not.toHaveBeenCalled();
+ chart.portfolio!.pages[1].points[0].date="2020-01-03";
+ await expect(loadPortfolioPerformanceHistory(api,scope,new AbortController().signal,vi.fn())).rejects.toThrow("invalid_history_point");
+});
+it("does not hide a chart error behind legacy pagination",async()=>{
+ const api={getTrackerChart:vi.fn().mockRejectedValue(new ConnectError("changed",Code.FailedPrecondition)),getTrackerHistory:vi.fn(),getTrackerPerformance:vi.fn()};
+ await expect(loadPortfolioPerformanceHistory(api,scope,new AbortController().signal,vi.fn())).rejects.toThrow();expect(api.getTrackerHistory).not.toHaveBeenCalled();
+ api.getTrackerChart.mockRejectedValue(new ConnectError("old server",Code.Unimplemented));
+ api.getTrackerHistory.mockResolvedValueOnce(page("2020-01-01","2020-01-02")).mockResolvedValueOnce(page("2020-01-02",""));
+ const out=await loadPortfolioPerformanceHistory(api,scope,new AbortController().signal,vi.fn());expect(out.points).toHaveLength(2);
 });
