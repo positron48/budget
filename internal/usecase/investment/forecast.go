@@ -349,7 +349,7 @@ func BuildForecast(tenant string, ledgers []d.InvestmentLedger, operations []d.I
 			return out, d.ErrInvestmentPrecondition
 		}
 	}
-	out = ForecastReport{FromMonth: q.FromMonth, ToMonth: end.AddDate(0, -1, 0).Format("2006-01"), Currency: q.Currency, FXPolicy: q.FXPolicy, TaxRate: q.TaxRate, AsOf: asOf.UTC(), Rows: []ForecastRow{}, Months: []ForecastMonth{}, Warnings: []string{"unchanged_current_portfolio_scenario", "current_fx_is_not_future_fx", "journal_completeness_unconfirmed", "registered_events_only", "event_catalog_completeness_unconfirmed"}}
+	out = ForecastReport{FromMonth: q.FromMonth, ToMonth: end.AddDate(0, -1, 0).Format("2006-01"), Currency: q.Currency, FXPolicy: q.FXPolicy, TaxRate: q.TaxRate, AsOf: asOf.UTC(), Rows: []ForecastRow{}, Months: []ForecastMonth{}, Warnings: []string{"unchanged_current_portfolio_scenario", "current_fx_is_not_future_fx", "journal_completeness_unconfirmed", "available_event_schedules_only", "event_catalog_completeness_unconfirmed"}}
 	out.Events = append([]ForecastEvent{}, events...)
 	out.Links = append([]ForecastLink{}, links...)
 	out.Ledgers = append([]d.InvestmentLedger{}, ledgers...)
