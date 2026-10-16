@@ -76,6 +76,21 @@ func TestInvestmentTrackerBenchmarksUseNativeUnitsDailyFXAndNoBookWrites(t *test
 	if lines[1].Kind != "etf_price_proxy" || lines[1].NativeCurrency != "USD" || lines[0].Kind != "price_index" {
 		t.Fatal(lines)
 	}
+	// A missing baseline FX must delay this line, not erase every later close.
+	late := policy
+	late.Key = "benchmark-late"
+	if _, e = repo.RegisterFXPolicy(ctx, tenant, actor, late, 0); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = repo.SaveFXPoints(ctx, tenant, late.Key, 1, fx[1:]); e != nil {
+		t.Fatal(e)
+	}
+	q.FXPolicyKey = late.Key
+	delayed, err := repo.TrackerBenchmarks(ctx, tenant, actor, q, "2024-01-02")
+	if err != nil || delayed[1].BaseDate != "2024-01-03" || delayed[1].Points[0].Index != nil || delayed[1].Points[1].Index == nil || delayed[1].Points[1].Index.Cmp(big.NewRat(100, 1)) != 0 || delayed[1].Points[2].Index == nil {
+		t.Fatal("missing baseline concealed later prices", delayed, err)
+	}
+	q.FXPolicyKey = policy.Key
 	if _, e = repo.TrackerBenchmarks(ctx, tenant, uuid.NewString(), q, "2024-01-02"); !errors.Is(e, d.ErrInvestmentForbidden) {
 		t.Fatal(e)
 	}

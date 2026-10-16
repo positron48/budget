@@ -23,9 +23,9 @@ func (r *MarketDataRepo) TrackerBenchmarks(ctx context.Context, tenant, actor st
 	}
 	start, _ := time.Parse(time.DateOnly, q.From)
 	first := start.AddDate(0, 0, -1)
-	base, e := time.Parse(time.DateOnly, baseDate)
+	requestedBase, e := time.Parse(time.DateOnly, baseDate)
 	end, _ := time.Parse(time.DateOnly, q.To)
-	if e != nil || base.Before(first) || base.After(end) {
+	if e != nil || requestedBase.Before(first) || requestedBase.After(end) {
 		return nil, d.ErrInvestmentInvalid
 	}
 	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)
@@ -77,6 +77,7 @@ func (r *MarketDataRepo) TrackerBenchmarks(ctx context.Context, tenant, actor st
 	}
 	result := []nav.TrackerBenchmark{}
 	for _, b := range nativehistory.Benchmarks() {
+		base := requestedBase
 		line := nav.TrackerBenchmark{Key: b.Key, Title: b.Title, Kind: b.Kind, NativeCurrency: b.Instrument.Currency, Provider: b.Provider, SourceURL: b.URL, BaseDate: baseDate, ReadAt: now}
 		entry := entries[b.Key]
 		p := b.Period()
@@ -109,9 +110,14 @@ func (r *MarketDataRepo) TrackerBenchmarks(ctx context.Context, tenant, actor st
 					value = new(big.Rat).Mul(v, rate.Rate)
 				}
 			}
-			if point.Date == baseDate {
+			if !day.Before(base) && baseline == nil && value != nil {
+				base = day
+				line.BaseDate = point.Date
+			}
+			if point.Date == line.BaseDate {
 				if value != nil {
 					baseline = new(big.Rat).Set(value)
+					line.Reason = ""
 				} else {
 					line.Reason = point.Reason
 				}

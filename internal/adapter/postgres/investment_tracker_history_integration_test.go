@@ -87,6 +87,9 @@ func TestInvestmentTrackerHistoryUsesActualDailyPositionsAndMarketFX(t *testing.
 	if e != nil || len(r.Points) != 7 {
 		t.Fatal(r, e)
 	}
+	if len(r.AnalyticsInstrumentKeys) != 1 || r.AnalyticsInstrumentKeys[0] != "S" || len(r.AnalyticsExcludedKeys) != 1 || r.AnalyticsExcludedKeys[0] != "S" {
+		t.Fatal("incomplete instrument identity lost", r.AnalyticsInstrumentKeys, r.AnalyticsExcludedKeys)
+	}
 	for i, want := range []string{"1600", "2160", "2100"} {
 		p := r.Points[i]
 		if p.State != "ready" || p.KnownValue.RatString() != want || p.Positions != 1 || p.PricedPositions != 1 {

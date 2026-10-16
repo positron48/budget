@@ -122,3 +122,29 @@ it("accepts large exact money fractions whose quotient remains finite",async()=>
  const {api,selected,value}=selectedAPI(false);value.profit!.numerator="1"+"0".repeat(350);value.profit!.denominator="1"+"0".repeat(349);
  expect((await loadPortfolioPerformanceHistory(api,selected,new AbortController().signal,vi.fn())).performance?.profit).toEqual(value.profit);
 });
+
+it("excludes the union of incomplete instruments for the whole range using a separate signed scope",async()=>{
+ const api=performanceAPI();
+ const original=[page("2020-01-01","2020-01-02"),page("2020-01-02","")];
+ const partial=[page("2020-01-01","2020-01-02"),page("2020-01-02","")];
+ for(const p of original){p.analyticsInstrumentKeys=["GOOD","BAD"];p.performanceSnapshot="original";}
+ original[1].analyticsExcludedKeys=["BAD"];
+ for(const p of partial){p.instrumentKeys=["GOOD"];p.analyticsInstrumentKeys=["GOOD"];p.performanceSnapshot="subset";}
+ api.getTrackerHistory.mockReset();for(const p of [...original,...partial,original[1]])api.getTrackerHistory.mockResolvedValueOnce(p);
+ const known=performanceFixture();known.instrumentKeys=["GOOD"];
+ api.getTrackerPerformance.mockResolvedValueOnce(performanceFixture()).mockResolvedValueOnce(known);
+ const result=await loadPortfolioPerformanceHistory(api,scope,new AbortController().signal,vi.fn());
+ expect(result.excludedKeys).toEqual(["BAD"]);expect(result.partialPerformance?.profit?.numerator).toBe("-2");
+ expect(result.performance?.instrumentKeys).toEqual([]);
+ expect(api.getTrackerHistory.mock.calls[2][0].instrumentKeys).toEqual(["GOOD"]);
+ expect(api.getTrackerHistory.mock.calls[3][0].instrumentKeys).toEqual(["GOOD"]);
+ expect(api.getTrackerPerformance.mock.calls[1][0].snapshotTokens).toEqual(["subset","subset"]);
+});
+
+it("does not turn an empty eligible subset into the all-instrument scope",async()=>{
+ const api=performanceAPI();const a=page("2020-01-01","2020-01-02"),b=page("2020-01-02","");
+ for(const p of [a,b]){p.analyticsInstrumentKeys=["BAD"];p.analyticsExcludedKeys=["BAD"];p.performanceSnapshot="original";}
+ api.getTrackerHistory.mockReset().mockResolvedValueOnce(a).mockResolvedValueOnce(b);
+ const result=await loadPortfolioPerformanceHistory(api,scope,new AbortController().signal,vi.fn());
+ expect(result.partialUnavailable).toBe(true);expect(result.partialPerformance).toBeUndefined();expect(api.getTrackerHistory).toHaveBeenCalledTimes(2);
+});

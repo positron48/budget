@@ -7929,26 +7929,28 @@ func (x *TrackerHistoryPoint) GetFxLegs() []*InvestmentCurrentFXLeg {
 }
 
 type GetTrackerHistoryResponse struct {
-	state                 protoimpl.MessageState `protogen:"open.v1"`
-	Points                []*TrackerHistoryPoint `protobuf:"bytes,1,rep,name=points,proto3" json:"points,omitempty"`
-	NextDate              string                 `protobuf:"bytes,2,opt,name=next_date,json=nextDate,proto3" json:"next_date,omitempty"`
-	Generation            int64                  `protobuf:"varint,3,opt,name=generation,proto3" json:"generation,omitempty"`
-	Currency              string                 `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency,omitempty"`
-	FxPolicyKey           string                 `protobuf:"bytes,5,opt,name=fx_policy_key,json=fxPolicyKey,proto3" json:"fx_policy_key,omitempty"`
-	FxPolicyVersion       int64                  `protobuf:"varint,6,opt,name=fx_policy_version,json=fxPolicyVersion,proto3" json:"fx_policy_version,omitempty"`
-	FxMode                string                 `protobuf:"bytes,7,opt,name=fx_mode,json=fxMode,proto3" json:"fx_mode,omitempty"`
-	ReadAt                *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=read_at,json=readAt,proto3" json:"read_at,omitempty"`
-	PriceConvention       string                 `protobuf:"bytes,9,opt,name=price_convention,json=priceConvention,proto3" json:"price_convention,omitempty"`
-	ReportingTimezone     string                 `protobuf:"bytes,10,opt,name=reporting_timezone,json=reportingTimezone,proto3" json:"reporting_timezone,omitempty"`
-	BasisKey              string                 `protobuf:"bytes,11,opt,name=basis_key,json=basisKey,proto3" json:"basis_key,omitempty"`
-	PerformanceSnapshot   string                 `protobuf:"bytes,12,opt,name=performance_snapshot,json=performanceSnapshot,proto3" json:"performance_snapshot,omitempty"` // short-lived signed data, not an auth token
-	ClassificationVersion int64                  `protobuf:"varint,13,opt,name=classification_version,json=classificationVersion,proto3" json:"classification_version,omitempty"`
-	InstrumentKeys        []string               `protobuf:"bytes,14,rep,name=instrument_keys,json=instrumentKeys,proto3" json:"instrument_keys,omitempty"`
-	MonetaryOnly          bool                   `protobuf:"varint,15,opt,name=monetary_only,json=monetaryOnly,proto3" json:"monetary_only,omitempty"`
-	GroupIds              []string               `protobuf:"bytes,16,rep,name=group_ids,json=groupIds,proto3" json:"group_ids,omitempty"`
-	DetailsIncluded       bool                   `protobuf:"varint,17,opt,name=details_included,json=detailsIncluded,proto3" json:"details_included,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"open.v1"`
+	Points                  []*TrackerHistoryPoint `protobuf:"bytes,1,rep,name=points,proto3" json:"points,omitempty"`
+	NextDate                string                 `protobuf:"bytes,2,opt,name=next_date,json=nextDate,proto3" json:"next_date,omitempty"`
+	Generation              int64                  `protobuf:"varint,3,opt,name=generation,proto3" json:"generation,omitempty"`
+	Currency                string                 `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency,omitempty"`
+	FxPolicyKey             string                 `protobuf:"bytes,5,opt,name=fx_policy_key,json=fxPolicyKey,proto3" json:"fx_policy_key,omitempty"`
+	FxPolicyVersion         int64                  `protobuf:"varint,6,opt,name=fx_policy_version,json=fxPolicyVersion,proto3" json:"fx_policy_version,omitempty"`
+	FxMode                  string                 `protobuf:"bytes,7,opt,name=fx_mode,json=fxMode,proto3" json:"fx_mode,omitempty"`
+	ReadAt                  *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=read_at,json=readAt,proto3" json:"read_at,omitempty"`
+	PriceConvention         string                 `protobuf:"bytes,9,opt,name=price_convention,json=priceConvention,proto3" json:"price_convention,omitempty"`
+	ReportingTimezone       string                 `protobuf:"bytes,10,opt,name=reporting_timezone,json=reportingTimezone,proto3" json:"reporting_timezone,omitempty"`
+	BasisKey                string                 `protobuf:"bytes,11,opt,name=basis_key,json=basisKey,proto3" json:"basis_key,omitempty"`
+	PerformanceSnapshot     string                 `protobuf:"bytes,12,opt,name=performance_snapshot,json=performanceSnapshot,proto3" json:"performance_snapshot,omitempty"` // short-lived signed data, not an auth token
+	ClassificationVersion   int64                  `protobuf:"varint,13,opt,name=classification_version,json=classificationVersion,proto3" json:"classification_version,omitempty"`
+	InstrumentKeys          []string               `protobuf:"bytes,14,rep,name=instrument_keys,json=instrumentKeys,proto3" json:"instrument_keys,omitempty"`
+	MonetaryOnly            bool                   `protobuf:"varint,15,opt,name=monetary_only,json=monetaryOnly,proto3" json:"monetary_only,omitempty"`
+	GroupIds                []string               `protobuf:"bytes,16,rep,name=group_ids,json=groupIds,proto3" json:"group_ids,omitempty"`
+	DetailsIncluded         bool                   `protobuf:"varint,17,opt,name=details_included,json=detailsIncluded,proto3" json:"details_included,omitempty"`
+	AnalyticsInstrumentKeys []string               `protobuf:"bytes,18,rep,name=analytics_instrument_keys,json=analyticsInstrumentKeys,proto3" json:"analytics_instrument_keys,omitempty"` // Posted instruments within the selected scope.
+	AnalyticsExcludedKeys   []string               `protobuf:"bytes,19,rep,name=analytics_excluded_keys,json=analyticsExcludedKeys,proto3" json:"analytics_excluded_keys,omitempty"`       // Incomplete instrument histories in this page, including its baseline.
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *GetTrackerHistoryResponse) Reset() {
@@ -8098,6 +8100,20 @@ func (x *GetTrackerHistoryResponse) GetDetailsIncluded() bool {
 		return x.DetailsIncluded
 	}
 	return false
+}
+
+func (x *GetTrackerHistoryResponse) GetAnalyticsInstrumentKeys() []string {
+	if x != nil {
+		return x.AnalyticsInstrumentKeys
+	}
+	return nil
+}
+
+func (x *GetTrackerHistoryResponse) GetAnalyticsExcludedKeys() []string {
+	if x != nil {
+		return x.AnalyticsExcludedKeys
+	}
+	return nil
 }
 
 // Provider series for a card; no legacy NAV series or position is required.
@@ -10100,7 +10116,7 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\fcoverage_key\x18\a \x01(\tR\vcoverageKey\x127\n" +
 	"\adetails\x18\t \x03(\v2\x1d.budget.v1.TrackerValueDetailR\adetails\x12:\n" +
 	"\afx_legs\x18\n" +
-	" \x03(\v2!.budget.v1.InvestmentCurrentFXLegR\x06fxLegs\"\xc1\x05\n" +
+	" \x03(\v2!.budget.v1.InvestmentCurrentFXLegR\x06fxLegs\"\xb5\x06\n" +
 	"\x19GetTrackerHistoryResponse\x126\n" +
 	"\x06points\x18\x01 \x03(\v2\x1e.budget.v1.TrackerHistoryPointR\x06points\x12\x1b\n" +
 	"\tnext_date\x18\x02 \x01(\tR\bnextDate\x12\x1e\n" +
@@ -10121,7 +10137,9 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\x0finstrument_keys\x18\x0e \x03(\tR\x0einstrumentKeys\x12#\n" +
 	"\rmonetary_only\x18\x0f \x01(\bR\fmonetaryOnly\x12\x1b\n" +
 	"\tgroup_ids\x18\x10 \x03(\tR\bgroupIds\x12)\n" +
-	"\x10details_included\x18\x11 \x01(\bR\x0fdetailsIncluded\"\xe0\x02\n" +
+	"\x10details_included\x18\x11 \x01(\bR\x0fdetailsIncluded\x12:\n" +
+	"\x19analytics_instrument_keys\x18\x12 \x03(\tR\x17analyticsInstrumentKeys\x126\n" +
+	"\x17analytics_excluded_keys\x18\x13 \x03(\tR\x15analyticsExcludedKeys\"\xe0\x02\n" +
 	"!GetTrackerInstrumentPricesRequest\x12\x1b\n" +
 	"\tpage_days\x18\n" +
 	" \x01(\x05R\bpageDays\x12%\n" +

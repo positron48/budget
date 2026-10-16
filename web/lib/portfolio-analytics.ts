@@ -1,6 +1,6 @@
 import type {GetInvestmentPerformanceResponse,TrackerHistoryPoint} from "@/proto/budget/v1/investment_nav_pb";
 import {positionDecimal} from "@/lib/investment-positions";
-export type AnalyticsMode="value"|"profit"|"months"|"years";
+export type AnalyticsMode="value"|"profit"|"months"|"years"|"indices";
 export function analyticsNumber(v?:{numerator:string;denominator:string}){
  if(!v)return undefined;
  const n=Number(positionDecimal(v,12));return Number.isFinite(n)?n:undefined;
@@ -23,4 +23,15 @@ export function portfolioAnalyticsCSV(p:GetInvestmentPerformanceResponse,history
   }
  }
  return rows.map(row=>row.map(cell=>'"'+(/^[=+@\-\t\r]/.test(cell)&&!/^-[0-9]+(?:\.[0-9]+)?(?:e[+-]?[0-9]+)?$/i.test(cell)?"'"+cell:cell).replaceAll('"','""')+'"').join(",")).join("\r\n");
+}
+
+// All visible growth lines share a real observed baseline. Benchmarks use price
+// returns, independently of portfolio trades; portfolio TWR removes flow effects.
+export function portfolioGrowthSeries(p:GetInvestmentPerformanceResponse,ids:string[],from:string,portfolio?:GetInvestmentPerformanceResponse){
+ const lines=p.trackerBenchmarks.filter(b=>ids.includes(b.key)).map(b=>({key:b.key,title:b.key==="imoex"?"IMOEX":"SPY · S&P 500",color:b.key==="imoex"?"#ffa638":"#ec70ad",points:b.points.map(d=>({date:d.date,value:analyticsNumber(d.index)}))}));
+ if(portfolio&&!portfolio.twrReason&&portfolio.twrPoints.some(d=>d.index))lines.unshift({key:"portfolio",title:"Portfolio",color:"#13b5ea",points:portfolio.twrPoints.map(d=>({date:d.date,value:analyticsNumber(d.index)}))});
+ const available=lines.filter(s=>s.points.some(d=>d.value!==undefined&&d.date>=from));
+ const maps=available.map(s=>new Map(s.points.map(d=>[d.date,d.value])));
+ const baseline=available[0]?.points.find(d=>d.date>=from&&maps.every(m=>(m.get(d.date)||0)>0))?.date;
+ return {baseline,lines:available.map((s,i)=>({...s,points:s.points.map(d=>({date:d.date,value:baseline&&d.date>=baseline&&d.value!==undefined?(d.value/maps[i].get(baseline)!-1)*100:undefined}))}))};
 }

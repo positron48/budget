@@ -23,6 +23,7 @@ type TrackerHistoryRequest struct {
 	ContributionOnly                bool // Internal boundary valuation; never a signed performance page.
 }
 type TrackerHistoryPoint struct {
+	AnalyticsExcludedKeys      []string
 	IssueCount                 int
 	Date, State, CoverageKey   string
 	KnownValue                 *big.Rat // Exact reporting-currency subtotal.
@@ -45,6 +46,7 @@ type TrackerHistory struct {
 	Points                                            []TrackerHistoryPoint
 	Baseline                                          *TrackerHistoryPoint
 	Contributions                                     []TrackerContribution
+	AnalyticsInstrumentKeys, AnalyticsExcludedKeys    []string
 }
 
 // Bound total navigation to ten years, and each DB snapshot to at most 93 days. History

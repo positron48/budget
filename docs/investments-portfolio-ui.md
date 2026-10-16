@@ -91,3 +91,32 @@ Pending source trades affect selected categories and securities only when their
 identity is established by posted source rows of the same import. Unknown or
 ambiguous identities remain incomplete in every selection. Missing quantities
 and acquisition costs are never manufactured to make the overall profit complete.
+
+## Preliminary profit and independent index growth
+
+History pages expose posted instrument identities and incomplete instrument keys
+before diagnostic compaction. The client unions exclusions across the entire
+requested range, including the baseline, then requests a separate signed history
+for the remaining fixed instrument selection. Prices, quantities, flows and paid
+income all use that same subset; unknown costs/flows are never replaced by zero.
+A later page cannot change the universe halfway through a profit line. The full
+value chart and its drilldown retain the original selection. Profit, monthly/yearly
+changes, security-profit bars and monetary benchmark comparisons use the known subset, labelled
+preliminary with an expandable list of excluded instruments. Its CSV explicitly
+names the known portion and retains the exact instrument scope. An empty subset
+never becomes the API's empty selection (which means all instruments).
+
+Both scopes retain their own authorization, signed snapshot and correction
+checks; the original basis is checked again after loading the subset. Unresolved
+pending source identities remain blockers. An unavailable subset does not erase
+the original value chart or fabricate profit. This bounded second traversal uses
+the same quarterly loader and disposable projection cache.
+
+Independent growth compares benchmark price returns without simulating personal
+trades. Where a continuous portfolio TWR exists, it is shown alongside those
+returns, with flow effects removed. This is not the historical value of today's
+fixed holdings. All visible growth lines share the first common observed baseline;
+missing observations remain gaps. SPY is a price proxy, without reinvested fund
+dividends. For all benchmark modes, missing initial price/FX delays the baseline
+to the first eligible date rather than hiding every later observation; that date
+is disclosed. No future fixing is carried backward to fill the initial gap.

@@ -624,6 +624,8 @@ message GetTrackerHistoryResponse {
  string performance_snapshot=12; // short-lived signed data, not an auth token
  int64 classification_version = 13;
  repeated string instrument_keys=14; bool monetary_only=15; repeated string group_ids=16; bool details_included=17;
+ repeated string analytics_instrument_keys=18; // Posted instruments within the selected scope.
+ repeated string analytics_excluded_keys=19; // Incomplete instrument histories in this page, including its baseline.
 }
 
 // Provider series for a card; no legacy NAV series or position is required.

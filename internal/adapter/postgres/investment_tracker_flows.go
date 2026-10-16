@@ -11,9 +11,10 @@ import (
 )
 
 type trackerStrategyDay struct {
-	value  *big.Rat
-	reason string
-	reset  bool
+	excludedKeys []string
+	value        *big.Rat
+	reason       string
+	reset        bool
 }
 
 func trackerConvertedStrategyFlows(ctx context.Context, tenant string, ids []string, inputs map[string]investmentReplayInput, market map[string]trackerHistoryMarket, splits map[string]map[string][]d.InvestmentOperation, fixings []calc.FXFixing, policy, currency string, after, through, readAt time.Time) ([]calc.ConvertedFlow, error) {
@@ -105,6 +106,7 @@ func trackerStrategyFlows(ctx context.Context, tenant string, ids []string, inpu
 		}
 		if f.Value == nil {
 			day.reason = "strategy_flow_unknown"
+			day.excludedKeys = append(day.excludedKeys, f.InstrumentKey)
 		} else {
 			day.value.Add(day.value, f.Value)
 		}
@@ -151,6 +153,7 @@ func trackerSelectionFlows(ctx context.Context, tenant string, q nav.TrackerHist
 			}
 			if f.Value == nil {
 				day.reason = "strategy_flow_unknown"
+				day.excludedKeys = append(day.excludedKeys, f.InstrumentKey)
 			} else {
 				day.value.Add(day.value, f.Value)
 			}
@@ -165,6 +168,7 @@ func trackerSelectionFlows(ctx context.Context, tenant string, q nav.TrackerHist
 				date := op.OccurredAt.In(loc).Format(time.DateOnly)
 				day := out[date]
 				day.reason = "corporate_allocation_market_value_unknown"
+				day.excludedKeys = append(day.excludedKeys, op.InstrumentKey, op.Distribution.TargetInstrumentKey)
 				out[date] = day
 			}
 		}

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -187,6 +188,56 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		identities = append(identities, key)
 	}
 	sort.Strings(identities)
+	analyticsKeys := map[string]bool{}
+	for _, input := range inputs {
+		for _, op := range input.Operations {
+			if op.Status != "posted" {
+				continue
+			}
+			if op.InstrumentKey != "" && selected(op.LedgerID, op.InstrumentKey) {
+				analyticsKeys[op.InstrumentKey] = true
+			}
+			if op.Distribution != nil && selected(op.LedgerID, op.Distribution.TargetInstrumentKey) {
+				analyticsKeys[op.Distribution.TargetInstrumentKey] = true
+			}
+		}
+	}
+	for key := range analyticsKeys {
+		out.AnalyticsInstrumentKeys = append(out.AnalyticsInstrumentKeys, key)
+	}
+	slices.Sort(out.AnalyticsInstrumentKeys)
+	// Unknown source identities remain account-wide blockers. Known pending
+	// instruments can be excluded from a separate, explicitly scoped calculation.
+	pendingRows, err := tx.Query(ctx, selectedPendingTrackerTradesSQL, tenant, q.LedgerIDs)
+	if err != nil {
+		return out, err
+	}
+	for pendingRows.Next() {
+		var ledger, date, key string
+		if err = pendingRows.Scan(&ledger, &date, &key); err != nil {
+			pendingRows.Close()
+			return out, err
+		}
+		if len(date) >= 10 && date[:10] <= q.To && analyticsKeys[key] && selected(ledger, key) {
+			out.AnalyticsExcludedKeys = append(out.AnalyticsExcludedKeys, key)
+		}
+	}
+	err = pendingRows.Err()
+	pendingRows.Close()
+	if err != nil {
+		return out, err
+	}
+	collectExclusions := func() {
+		if out.Baseline != nil {
+			out.AnalyticsExcludedKeys = append(out.AnalyticsExcludedKeys, out.Baseline.AnalyticsExcludedKeys...)
+		}
+		for _, point := range out.Points {
+			out.AnalyticsExcludedKeys = append(out.AnalyticsExcludedKeys, point.AnalyticsExcludedKeys...)
+		}
+		slices.Sort(out.AnalyticsExcludedKeys)
+		out.AnalyticsExcludedKeys = slices.Compact(out.AnalyticsExcludedKeys)
+	}
+
 	if e = tx.QueryRow(ctx, trackerHistoryBasisSQL, tenant, identities, q.LedgerIDs, through).Scan(&cache); e != nil {
 		return out, e
 	}
@@ -248,6 +299,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 					out.Points = append(out.Points, point)
 				}
 			}
+			collectExclusions()
 			return out, tx.Commit(ctx)
 		}
 	}
@@ -553,6 +605,11 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 			flow := strategy[row.Date]
 			row.StrategyFlow = new(big.Rat)
 			row.FlowReason = flow.reason
+			for _, key := range flow.excludedKeys {
+				if basisKeys[key] {
+					row.AnalyticsExcludedKeys = append(row.AnalyticsExcludedKeys, key)
+				}
+			}
 			row.Reset = flow.reset
 			if flow.value != nil {
 				row.StrategyFlow.Set(flow.value)
@@ -566,6 +623,20 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 				row.StrategyFlow = nil
 			}
 		}
+
+		// Preserve identities before compacting diagnostics. The client excludes
+		// the union for the entire requested range, never a changing daily subset.
+		for _, issue := range row.Issues {
+			key := issue.ComponentID
+			if _, instrument, found := strings.Cut(key, ":"); found && !basisKeys[key] {
+				key = instrument
+			}
+			if basisKeys[key] {
+				row.AnalyticsExcludedKeys = append(row.AnalyticsExcludedKeys, key)
+			}
+		}
+		slices.Sort(row.AnalyticsExcludedKeys)
+		row.AnalyticsExcludedKeys = slices.Compact(row.AnalyticsExcludedKeys)
 		row.IssueCount = len(row.Issues)
 		if q.CompactIssues {
 			seen := map[string]bool{}
@@ -591,6 +662,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 			return out, e
 		}
 	}
+	collectExclusions()
 	if e = tx.Commit(ctx); e != nil {
 		return out, e
 	}
