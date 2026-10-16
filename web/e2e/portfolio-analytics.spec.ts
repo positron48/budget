@@ -69,7 +69,7 @@ for(const locale of ["ru","en"]){test(`${locale} analytics charts show profit, p
  const history=page.getByLabel(ru?"Рост портфеля":"Portfolio growth",{exact:true});
  await expect(history.getByRole("img",{name:ru?"Стоимость и вложения":"Value and invested",exact:true})).toBeVisible();
  await expect(history.getByRole("img",{name:ru?"Накопленная прибыль":"Cumulative profit",exact:true})).toBeVisible();
- await expect(history.locator("circle")).toHaveCount(0);await expect(history.getByRole("checkbox",{name:"IMOEX",exact:true})).toHaveCount(2);await expect(history.getByRole("img",{name:ru?"Прибыль по бумагам":"Profit by security",exact:true})).toBeVisible();
+ await expect(history.getByRole("img",{name:ru?"Сравнение роста, %":"Growth comparison, %",exact:true})).toBeVisible();await expect(history.locator("circle")).toHaveCount(0);await expect(history.getByRole("checkbox",{name:"IMOEX",exact:true})).toHaveCount(3);await expect(history.getByRole("img",{name:ru?"Прибыль по бумагам":"Profit by security",exact:true})).toBeVisible();
  await expect(history.getByRole("img",{name:ru?"Прибыль по месяцам":"Monthly profit",exact:true}).locator("rect")).toHaveCount(2);
  await history.getByRole("button",{name:ru?"По годам":"Yearly",exact:true}).click();await expect(history.getByRole("img",{name:ru?"Прибыль по годам":"Yearly profit",exact:true})).toBeVisible();
  await history.getByLabel(ru?"Действия с графиком":"Chart actions").click();const download=page.waitForEvent("download");await history.getByRole("button",{name:"CSV",exact:true}).first().click();const file=await download;expect(file.suggestedFilename()).toBe("portfolio-analytics-2024-12-30-2025-01-03.csv");
