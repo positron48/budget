@@ -16,10 +16,10 @@ export function portfolioAnalyticsCSV(p:GetInvestmentPerformanceResponse,history
  for(const row of rows.slice(1)){const twr=row[0]==="day"?twrByDate.get(row[1]):undefined;row.push(twr?.segment.toString()||"",twr?.state||"",twr?.reason||"",...pair(twr?.dailyReturn),...pair(twr?.segmentReturn),p.xirr===undefined?"":String(p.xirr),p.xirrReason,String(p.xirrAnnualized),p.instrumentKeys.join(";"),p.groupIds.join(";"),p.classificationVersion.toString(),String(p.monetaryOnly));}
  if(historyPoints){
   const historyByDate=new Map(historyPoints.map(d=>[d.date,d]));
-  rows[0].push("valuation_state","known_value_num","known_value_den","priced_positions","positions","coverage_key","valuation_issues");
+  rows[0].push("valuation_state","known_value_num","known_value_den","priced_positions","positions","coverage_key","valuation_issues","valuation_issue_count");
   for(const row of rows.slice(1)){
    const d=row[0]==="day"?historyByDate.get(row[1]):undefined;
-   row.push(d?.state||"",...pair(d?.knownValue),d?.pricedPositions.toString()||"",d?.positions.toString()||"",d?.coverageKey||"",d?.issues.map(i=>i.componentId+":"+i.code).join(";")||"");
+   row.push(d?.state||"",...pair(d?.knownValue),d?.pricedPositions.toString()||"",d?.positions.toString()||"",d?.coverageKey||"",d?.issues.map(i=>(i.componentId?i.componentId+":":"")+i.code).join(";")||"",d?String(d.issueCount||d.issues.length):"");
   }
  }
  return rows.map(row=>row.map(cell=>'"'+(/^[=+@\-\t\r]/.test(cell)&&!/^-[0-9]+(?:\.[0-9]+)?(?:e[+-]?[0-9]+)?$/i.test(cell)?"'"+cell:cell).replaceAll('"','""')+'"').join(",")).join("\r\n");

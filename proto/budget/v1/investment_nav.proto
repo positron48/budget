@@ -579,6 +579,8 @@ message GetTrackerPerformanceRequest {
  repeated string group_ids=7; repeated string instrument_keys=8; bool monetary_only=9;
 }
 message GetTrackerHistoryRequest {
+ bool compact_issues=12; // Chart quality codes/count; per-position diagnostics remain in detail_date.
+ int32 page_days=11; // 0 = legacy 31 days; up to 93 days for chart loading.
  repeated string ledger_ids=1;
  string currency=2;
  string fx_policy_key=3;
@@ -597,6 +599,7 @@ message TrackerValueDetail {
  repeated string issues=13;
 }
 message TrackerHistoryPoint {
+ int32 issue_count=11; // Full number before optional chart compaction.
  string date=1;
  string state=2;
  InvestmentNAVAmount known_value=3;
@@ -625,6 +628,7 @@ message GetTrackerHistoryResponse {
 
 // Provider series for a card; no legacy NAV series or position is required.
 message GetTrackerInstrumentPricesRequest {
+ int32 page_days=10; // 0 = legacy 31 days; up to 93 days.
  string instrument_key=1;string currency=2;string fx_policy_key=3;string from_date=4;string to_date=5;
  string listing_id=6;string provider=7;string access_scope=8;string instrument_id=9;
 }

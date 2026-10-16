@@ -60,7 +60,7 @@ func TestTrackerUnitHistoryMatchesFullReplay(t *testing.T) {
 	// Out-of-order storage is normal after backdated corrections.
 	rng.Shuffle(len(ops), func(i, j int) { ops[i], ops[j] = ops[j], ops[i] })
 	cuts := []time.Time{day.Add(-time.Hour)}
-	for i := 0; i < 21; i++ {
+	for i := 0; i < 93; i++ {
 		cuts = append(cuts, day.Add(time.Duration(i)*24*time.Hour))
 	}
 	got, supported, e := TrackerUnitHistory(l, ops, cuts)
@@ -160,5 +160,17 @@ func TestRecordedTrackerHistoryPredatesMetadataCreation(t *testing.T) {
 	l.PortfolioTracking = false
 	if RecordedTrackerStartsFromZero(l, nil) {
 		t.Fatal("legacy cash book must retain start boundary")
+	}
+}
+
+func TestTrackerUnitHistoryRejectsUnboundedQuarter(t *testing.T) {
+	l := testLedger()
+	l.PortfolioTracking = true
+	cuts := make([]time.Time, MaxTrackerUnitCutoffs+1)
+	for i := range cuts {
+		cuts[i] = day.AddDate(0, 0, i)
+	}
+	if _, supported, e := TrackerUnitHistory(l, nil, cuts); !supported || !errors.Is(e, d.ErrInvestmentLimit) {
+		t.Fatal("unbounded unit history accepted", supported, e)
 	}
 }

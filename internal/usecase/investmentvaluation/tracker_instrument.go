@@ -2,20 +2,27 @@ package investmentvaluation
 
 import (
 	"encoding/hex"
-	d "github.com/positron48/budget/internal/domain"
-	md "github.com/positron48/budget/internal/usecase/marketdata"
 	"math/big"
 	"strings"
 	"time"
+
+	d "github.com/positron48/budget/internal/domain"
+	md "github.com/positron48/budget/internal/usecase/marketdata"
 )
 
-type TrackerInstrumentRequest struct{ InstrumentKey, Currency, FXPolicyKey, From, To, ListingID, Provider, AccessScope, InstrumentID string }
-type TrackerInstrumentListing struct {
-	Enabled    bool
-	ID         string
-	Period     md.MappingPeriod
-	Instrument *md.Instrument
-}
+type (
+	TrackerInstrumentRequest struct {
+		InstrumentKey, Currency, FXPolicyKey, From, To, ListingID, Provider, AccessScope, InstrumentID string
+		PageDays                                                                                       int
+	}
+	TrackerInstrumentListing struct {
+		Enabled    bool
+		ID         string
+		Period     md.MappingPeriod
+		Instrument *md.Instrument
+	}
+)
+
 type TrackerInstrumentPoint struct {
 	Date, State, NativeCurrency, Unit, Source, ObservationID, CandleDate string
 	Revision                                                             int64
@@ -41,6 +48,9 @@ type TrackerInstrumentHistory struct {
 }
 
 func NormalizeTrackerInstrument(q TrackerInstrumentRequest, now time.Time) (TrackerInstrumentRequest, error) {
+	if q.PageDays < 0 || q.PageDays > 93 {
+		return q, d.ErrInvestmentInvalid
+	}
 	if keys, e := NormalizeQuoteKeys([]string{q.InstrumentKey}); e != nil || len(keys) != 1 || q.InstrumentKey == "" {
 		return q, d.ErrInvestmentInvalid
 	}

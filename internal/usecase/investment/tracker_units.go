@@ -9,6 +9,9 @@ import (
 	d "github.com/positron48/budget/internal/domain"
 )
 
+// Up to 93 chart dates plus one baseline share a single journal pass.
+const MaxTrackerUnitCutoffs = 94
+
 // TrackerUnitHistory evaluates only security units for a standalone portfolio.
 // It uses exact arithmetic until the same presentation boundary as Replay.
 // Cash-linked and corporate-transfer books return supported=false and retain
@@ -20,7 +23,7 @@ func TrackerUnitHistory(ledger d.InvestmentLedger, input []d.InvestmentOperation
 	if ledger.ID == "" || ledger.TenantID == "" || ledger.StartedAt.IsZero() || len(cutoffs) == 0 {
 		return nil, true, d.ErrInvestmentInvalid
 	}
-	if len(input) > MaxOperations || len(cutoffs) > 31 {
+	if len(input) > MaxOperations || len(cutoffs) > MaxTrackerUnitCutoffs {
 		return nil, true, d.ErrInvestmentLimit
 	}
 	for i, at := range cutoffs {

@@ -49,10 +49,10 @@ for(const locale of ["ru","en"]){test(`${locale} valuation breakdown shows nativ
   const body=method?Buffer.from(toBinary(method.output,create(method.output,data))):Buffer.alloc(0),head=Buffer.alloc(5);head.writeUInt32BE(body.length,1);const trailer=Buffer.from("grpc-status: 0\r\n"),tail=Buffer.alloc(5);tail[0]=0x80;tail.writeUInt32BE(trailer.length,1);await route.fulfill({status:200,contentType:"application/grpc-web+proto",body:Buffer.concat([head,body,tail,trailer])});
  });
  await page.goto("/investments/analytics?from=2024-12-30&to=2025-01-03");
- await expect(page.getByRole("heading",{name:ru?"Аналитика портфеля":"Portfolio analytics",exact:true})).toBeVisible();
- const history=page.getByRole("region",{name:ru?"История портфеля":"Portfolio history",exact:true});
- await expect(history.getByRole("img",{name:ru?"Стоимость и чистые вложения":"Value and net investment",exact:true})).toBeVisible();
- await history.getByRole("button",{name:(ru?"Расшифровать стоимость на ":"Inspect valuation on ")+"2024-12-31",exact:true}).focus();await page.keyboard.press("Enter");
+ await expect(page.getByRole("heading",{name:ru?"Рост":"Growth",exact:true})).toBeVisible();
+ const history=page.getByLabel(ru?"Рост портфеля":"Portfolio growth",{exact:true});
+ await expect(history.getByRole("img",{name:ru?"Стоимость и вложения":"Value and invested",exact:true})).toBeVisible();
+ const chart=history.getByRole("img",{name:ru?"Стоимость и вложения":"Value and invested",exact:true});await chart.focus();await chart.press("Home");await chart.press("ArrowRight");await chart.press("ArrowRight");await chart.press("Enter");
  const details=history.locator('[aria-label="'+(ru?"Расшифровка стоимости":"Valuation breakdown")+'"]');
  await expect(details).toContainText("1.333333333333 USD");await expect(details).toContainText("120 RUB");await expect(details).toContainText("moex/personal");
  await details.getByText(ru?"Источники валютного курса":"FX evidence",{exact:true}).click();await expect(details).toContainText("USD/RUB: 90");await expect(details).toContainText("synthetic-fx · rev 2");

@@ -7542,6 +7542,8 @@ func (x *GetTrackerPerformanceRequest) GetMonetaryOnly() bool {
 
 type GetTrackerHistoryRequest struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
+	CompactIssues       bool                   `protobuf:"varint,12,opt,name=compact_issues,json=compactIssues,proto3" json:"compact_issues,omitempty"` // Chart quality codes/count; per-position diagnostics remain in detail_date.
+	PageDays            int32                  `protobuf:"varint,11,opt,name=page_days,json=pageDays,proto3" json:"page_days,omitempty"`                // 0 = legacy 31 days; up to 93 days for chart loading.
 	LedgerIds           []string               `protobuf:"bytes,1,rep,name=ledger_ids,json=ledgerIds,proto3" json:"ledger_ids,omitempty"`
 	Currency            string                 `protobuf:"bytes,2,opt,name=currency,proto3" json:"currency,omitempty"`
 	FxPolicyKey         string                 `protobuf:"bytes,3,opt,name=fx_policy_key,json=fxPolicyKey,proto3" json:"fx_policy_key,omitempty"`
@@ -7584,6 +7586,20 @@ func (x *GetTrackerHistoryRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetTrackerHistoryRequest.ProtoReflect.Descriptor instead.
 func (*GetTrackerHistoryRequest) Descriptor() ([]byte, []int) {
 	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{87}
+}
+
+func (x *GetTrackerHistoryRequest) GetCompactIssues() bool {
+	if x != nil {
+		return x.CompactIssues
+	}
+	return false
+}
+
+func (x *GetTrackerHistoryRequest) GetPageDays() int32 {
+	if x != nil {
+		return x.PageDays
+	}
+	return 0
 }
 
 func (x *GetTrackerHistoryRequest) GetLedgerIds() []string {
@@ -7798,6 +7814,7 @@ func (x *TrackerValueDetail) GetIssues() []string {
 
 type TrackerHistoryPoint struct {
 	state           protoimpl.MessageState    `protogen:"open.v1"`
+	IssueCount      int32                     `protobuf:"varint,11,opt,name=issue_count,json=issueCount,proto3" json:"issue_count,omitempty"` // Full number before optional chart compaction.
 	Date            string                    `protobuf:"bytes,1,opt,name=date,proto3" json:"date,omitempty"`
 	State           string                    `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
 	KnownValue      *InvestmentNAVAmount      `protobuf:"bytes,3,opt,name=known_value,json=knownValue,proto3" json:"known_value,omitempty"`
@@ -7839,6 +7856,13 @@ func (x *TrackerHistoryPoint) ProtoReflect() protoreflect.Message {
 // Deprecated: Use TrackerHistoryPoint.ProtoReflect.Descriptor instead.
 func (*TrackerHistoryPoint) Descriptor() ([]byte, []int) {
 	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{89}
+}
+
+func (x *TrackerHistoryPoint) GetIssueCount() int32 {
+	if x != nil {
+		return x.IssueCount
+	}
+	return 0
 }
 
 func (x *TrackerHistoryPoint) GetDate() string {
@@ -8079,6 +8103,7 @@ func (x *GetTrackerHistoryResponse) GetDetailsIncluded() bool {
 // Provider series for a card; no legacy NAV series or position is required.
 type GetTrackerInstrumentPricesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	PageDays      int32                  `protobuf:"varint,10,opt,name=page_days,json=pageDays,proto3" json:"page_days,omitempty"` // 0 = legacy 31 days; up to 93 days.
 	InstrumentKey string                 `protobuf:"bytes,1,opt,name=instrument_key,json=instrumentKey,proto3" json:"instrument_key,omitempty"`
 	Currency      string                 `protobuf:"bytes,2,opt,name=currency,proto3" json:"currency,omitempty"`
 	FxPolicyKey   string                 `protobuf:"bytes,3,opt,name=fx_policy_key,json=fxPolicyKey,proto3" json:"fx_policy_key,omitempty"`
@@ -8120,6 +8145,13 @@ func (x *GetTrackerInstrumentPricesRequest) ProtoReflect() protoreflect.Message 
 // Deprecated: Use GetTrackerInstrumentPricesRequest.ProtoReflect.Descriptor instead.
 func (*GetTrackerInstrumentPricesRequest) Descriptor() ([]byte, []int) {
 	return file_budget_v1_investment_nav_proto_rawDescGZIP(), []int{91}
+}
+
+func (x *GetTrackerInstrumentPricesRequest) GetPageDays() int32 {
+	if x != nil {
+		return x.PageDays
+	}
+	return 0
 }
 
 func (x *GetTrackerInstrumentPricesRequest) GetInstrumentKey() string {
@@ -10021,8 +10053,10 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\x0fsnapshot_tokens\x18\x06 \x03(\tR\x0esnapshotTokens\x12\x1b\n" +
 	"\tgroup_ids\x18\a \x03(\tR\bgroupIds\x12'\n" +
 	"\x0finstrument_keys\x18\b \x03(\tR\x0einstrumentKeys\x12#\n" +
-	"\rmonetary_only\x18\t \x01(\bR\fmonetaryOnly\"\xef\x02\n" +
-	"\x18GetTrackerHistoryRequest\x12\x1d\n" +
+	"\rmonetary_only\x18\t \x01(\bR\fmonetaryOnly\"\xb3\x03\n" +
+	"\x18GetTrackerHistoryRequest\x12%\n" +
+	"\x0ecompact_issues\x18\f \x01(\bR\rcompactIssues\x12\x1b\n" +
+	"\tpage_days\x18\v \x01(\x05R\bpageDays\x12\x1d\n" +
 	"\n" +
 	"ledger_ids\x18\x01 \x03(\tR\tledgerIds\x12\x1a\n" +
 	"\bcurrency\x18\x02 \x01(\tR\bcurrency\x12\"\n" +
@@ -10052,8 +10086,10 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\apriceAt\x12!\n" +
 	"\fprice_source\x18\v \x01(\tR\vpriceSource\x12'\n" +
 	"\x0fmapping_version\x18\f \x01(\x03R\x0emappingVersion\x12\x16\n" +
-	"\x06issues\x18\r \x03(\tR\x06issues\"\x98\x03\n" +
-	"\x13TrackerHistoryPoint\x12\x12\n" +
+	"\x06issues\x18\r \x03(\tR\x06issues\"\xb9\x03\n" +
+	"\x13TrackerHistoryPoint\x12\x1f\n" +
+	"\vissue_count\x18\v \x01(\x05R\n" +
+	"issueCount\x12\x12\n" +
 	"\x04date\x18\x01 \x01(\tR\x04date\x12\x14\n" +
 	"\x05state\x18\x02 \x01(\tR\x05state\x12?\n" +
 	"\vknown_value\x18\x03 \x01(\v2\x1e.budget.v1.InvestmentNAVAmountR\n" +
@@ -10085,8 +10121,10 @@ const file_budget_v1_investment_nav_proto_rawDesc = "" +
 	"\x0finstrument_keys\x18\x0e \x03(\tR\x0einstrumentKeys\x12#\n" +
 	"\rmonetary_only\x18\x0f \x01(\bR\fmonetaryOnly\x12\x1b\n" +
 	"\tgroup_ids\x18\x10 \x03(\tR\bgroupIds\x12)\n" +
-	"\x10details_included\x18\x11 \x01(\bR\x0fdetailsIncluded\"\xc3\x02\n" +
-	"!GetTrackerInstrumentPricesRequest\x12%\n" +
+	"\x10details_included\x18\x11 \x01(\bR\x0fdetailsIncluded\"\xe0\x02\n" +
+	"!GetTrackerInstrumentPricesRequest\x12\x1b\n" +
+	"\tpage_days\x18\n" +
+	" \x01(\x05R\bpageDays\x12%\n" +
 	"\x0einstrument_key\x18\x01 \x01(\tR\rinstrumentKey\x12\x1a\n" +
 	"\bcurrency\x18\x02 \x01(\tR\bcurrency\x12\"\n" +
 	"\rfx_policy_key\x18\x03 \x01(\tR\vfxPolicyKey\x12\x1b\n" +

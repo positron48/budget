@@ -1,8 +1,9 @@
+import {chartHistoryPages,chartPageDays} from "./portfolio-history-pages";
 import type {GetTrackerHistoryResponse, GetInvestmentPerformanceResponse, TrackerHistoryPoint} from "@/proto/budget/v1/investment_nav_pb";
 import {analyticsNumber} from "./portfolio-analytics";
 import {Code, ConnectError} from "@connectrpc/connect";
 export type HistoryScope = {instrumentKeys?:string[];groupIds?: string[]; classificationVersion?: bigint; fxPolicyVersion: bigint; fxMode: string; ledgerIds: string[]; currency: string; fxPolicyKey: string; fromDate: string; toDate: string};
-type HistoryAPI = {getTrackerHistory(input: Omit<HistoryScope, "fxPolicyVersion" | "fxMode" | "classificationVersion"> & {performanceFromDate?: string;monetaryOnly?:boolean}, options: {signal: AbortSignal}): Promise<GetTrackerHistoryResponse>};
+type HistoryAPI = {getTrackerHistory(input: Omit<HistoryScope, "fxPolicyVersion" | "fxMode" | "classificationVersion"> & {performanceFromDate?: string;monetaryOnly?:boolean;pageDays?:number;compactIssues?:boolean}, options: {signal: AbortSignal}): Promise<GetTrackerHistoryResponse>};
 export function shiftHistoryDate(date: string, days: number): string {
   const at = new Date(date + "T00:00:00Z"); at.setUTCDate(at.getUTCDate() + days); return at.toISOString().slice(0, 10);
 }
@@ -51,18 +52,16 @@ async function historyPages(api: HistoryAPI, scope: HistoryScope, signal: AbortS
   const result: TrackerHistoryPoint[] = [];
   const tokens: string[] = []; let hasSnapshots = true;
   let cursor = scope.fromDate, basis: string | undefined, version: bigint | undefined;
-  for (let pages = 0; pages < 119; pages++) {
+  for await (const page of chartHistoryPages(scope.fromDate,scope.toDate,signal,(date,pageSignal)=>api.getTrackerHistory({...request,fromDate:date,pageDays:chartPageDays,compactIssues:true,...(performance?{performanceFromDate:scope.fromDate,monetaryOnly:!!scope.groupIds?.length}:{})},{signal:pageSignal}))) {
     signal.throwIfAborted();
-    const page = await api.getTrackerHistory({...request, fromDate: cursor, ...(performance ? {performanceFromDate: scope.fromDate,monetaryOnly:!!scope.groupIds?.length} : {})}, {signal});
-    signal.throwIfAborted();
-    if (page.currency !== scope.currency || page.fxPolicyKey !== scope.fxPolicyKey || page.reportingTimezone !== "Europe/Moscow" || page.priceConvention !== "retrospective_close_next_utc_day_v1" || !["market", "cbr"].includes(page.fxMode) || page.fxPolicyVersion !== fxPolicyVersion || page.fxMode !== fxMode || !/^[a-f0-9]{64}$/.test(page.basisKey) || !page.points.length || page.points.length > 31) throw new Error("invalid_history");
+    if (page.currency !== scope.currency || page.fxPolicyKey !== scope.fxPolicyKey || page.reportingTimezone !== "Europe/Moscow" || page.priceConvention !== "retrospective_close_next_utc_day_v1" || !["market", "cbr"].includes(page.fxMode) || page.fxPolicyVersion !== fxPolicyVersion || page.fxMode !== fxMode || !/^[a-f0-9]{64}$/.test(page.basisKey) || !page.points.length || page.points.length > chartPageDays) throw new Error("invalid_history");
     if(!historySelectionEqual(page.instrumentKeys,scope.instrumentKeys)||!historySelectionEqual(page.groupIds,scope.groupIds)||page.monetaryOnly!==(performance&&!!scope.groupIds?.length))throw new Error("invalid_history_scope");
     if (scope.groupIds?.length && classificationVersion !== undefined && page.classificationVersion !== classificationVersion) throw new Error("history_changed");
     if (basis !== undefined && (basis !== page.basisKey || version !== page.fxPolicyVersion)) throw new Error("history_changed");
     basis = page.basisKey; version = page.fxPolicyVersion;
-    if (performance) {if (!page.performanceSnapshot) hasSnapshots = false; else {if (page.performanceSnapshot.length > 32768) throw new Error("invalid_performance"); tokens.push(page.performanceSnapshot);}}
+    if (performance) {if (!page.performanceSnapshot) hasSnapshots = false; else {if (page.performanceSnapshot.length > 131072) throw new Error("invalid_performance"); tokens.push(page.performanceSnapshot);}}
     for (const point of page.points) {
-      if (point.date !== cursor || point.date > scope.toDate || !["ready", "incomplete"].includes(point.state) || !point.knownValue || !/^[a-f0-9]{64}$/.test(point.coverageKey) || !/^[0-9]+$/.test(point.knownValue.numerator) || !/^[1-9][0-9]*$/.test(point.knownValue.denominator) || point.positions < 0 || point.pricedPositions < 0 || point.pricedPositions > point.positions || point.state === "ready" && (point.issues.length > 0 || point.positions !== point.pricedPositions)) throw new Error("invalid_history_point");
+      if (point.date !== cursor || point.date > scope.toDate || !["ready", "incomplete"].includes(point.state) || !point.knownValue || !/^[a-f0-9]{64}$/.test(point.coverageKey) || !/^[0-9]+$/.test(point.knownValue.numerator) || !/^[1-9][0-9]*$/.test(point.knownValue.denominator) || point.issueCount < 0 || point.issueCount > 0 && point.issueCount < point.issues.length || point.positions < 0 || point.pricedPositions < 0 || point.pricedPositions > point.positions || point.state === "ready" && (point.issues.length > 0 || point.issueCount > 0 || point.positions !== point.pricedPositions)) throw new Error("invalid_history_point");
       result.push(point); cursor = shiftHistoryDate(cursor, 1);
     }
     progress([...result]);

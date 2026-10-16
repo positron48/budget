@@ -9,7 +9,7 @@ for(const locale of ["ru","en"]){test(`${locale} analytics charts show profit, p
  const ru=locale==="ru",a="11111111-1111-4111-8111-111111111111",b="22222222-2222-4222-8222-222222222222",one="33333333-3333-4333-8333-333333333333",two="44444444-4444-4444-8444-444444444444",uid="55555555-5555-4555-8555-555555555555",key="tinvest:"+uid;
  const ledgers=[{id:one,name:"Broker one",version:1n,portfolioTracking:true},{id:two,name:"Broker two",version:1n,portfolioTracking:true}];
  let classification=create(InvestmentGroupsSchema,{version:1n,groups:[{id:a,name:"Alpha"},{id:b,name:"Beta"}],memberships:[{ledgerId:one,instrumentKey:key,groupId:a},{ledgerId:two,instrumentKey:key,groupId:b}]});
- let writes=0,partialHistory=false;const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
+ let writes=0,historyReads=0,partialHistory=false;const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
  await context.addCookies([{name:"NEXT_LOCALE",value:locale,url:test.info().project.use.baseURL as string}]);await page.addInitScript(()=>{localStorage.setItem("budget/access","synthetic-session");localStorage.setItem("budget/tenant","tenant");});
  await page.route("**/budget.v1.*/*",async route=>{
   const path=new URL(route.request().url()).pathname,service=[InvestmentService,InvestmentNAVService,InvestmentImportService,TenantService].find(s=>path.includes(s.typeName+"/")),method=service?.methods.find(m=>path.endsWith("/"+m.name)),bytes=route.request().postDataBuffer()!,input=method?fromBinary(method.input,bytes.subarray(5,5+bytes.readUInt32BE(1))) as any:{};
@@ -29,10 +29,10 @@ for(const locale of ["ru","en"]){test(`${locale} analytics charts show profit, p
   if(method?.name==="GetBrokerSnapshot")data={originalJson:new TextEncoder().encode(JSON.stringify({fetched_at:new Date().toISOString(),operations:[{ticker:"ABC",instrumentUid:uid,name:"Synthetic security"}]}))};
   if(method?.name==="GetInvestmentGroups")data={classification,positions:[{ledgerId:one,ledgerName:"Broker one",instrumentKey:key},{ledgerId:two,ledgerName:"Broker two",instrumentKey:key},{ledgerId:two,ledgerName:"Broker two",instrumentKey:"OLD-CLOSED"}]};
   if(method?.name==="SaveInvestmentGroups"){writes++;expect(input.classification.version).toBe(1n);expect(input.requestKey).toBeTruthy();expect(input.classification.groups.map((g:any)=>g.name).sort()).toEqual(["Core","New"]);expect(input.classification.memberships).toHaveLength(1);expect(input.classification.memberships[0].ledgerId).toBe(one);classification=create(InvestmentGroupsSchema,{...input.classification,version:2n});data={classification};}
-  if(method?.name==="GetTrackerHistory"){
+  if(method?.name==="GetTrackerHistory"){historyReads++;
    const selected=new Set(input.groupIds||[]),group=(id:string)=>classification.memberships.find(m=>m.ledgerId===id&&m.instrumentKey===key)?.groupId||"";
    const amount=(!selected.size||selected.has(group(one))?120:0)+(!selected.size||selected.has(group(two))?240:0);const points:any[]=[];let date=input.fromDate;
-   while(date<=input.toDate&&points.length<31){points.push({date,state:partialHistory?"incomplete":"ready",knownValue:{numerator:String(100+((Date.parse(date)-Date.parse(input.performanceFromDate||input.fromDate))/86400000+1)*10),denominator:"1"},positions:amount?(partialHistory?2:1):0,pricedPositions:amount?1:0,coverageKey:"a".repeat(64)});const d=new Date(date+"T00:00:00Z");d.setUTCDate(d.getUTCDate()+1);date=d.toISOString().slice(0,10);}
+   while(date<=input.toDate&&points.length<(input.pageDays||31)){points.push({date,state:partialHistory?"incomplete":"ready",knownValue:{numerator:String(100+((Date.parse(date)-Date.parse(input.performanceFromDate||input.fromDate))/86400000+1)*10),denominator:"1"},positions:amount?(partialHistory?2:1):0,pricedPositions:amount?1:0,coverageKey:"a".repeat(64)});const d=new Date(date+"T00:00:00Z");d.setUTCDate(d.getUTCDate()+1);date=d.toISOString().slice(0,10);}
    data={points,nextDate:date<=input.toDate?date:"",currency:input.currency,fxPolicyKey:"market",fxPolicyVersion:1n,fxMode:"market",basisKey:"b".repeat(64),priceConvention:"retrospective_close_next_utc_day_v1",reportingTimezone:"Europe/Moscow",classificationVersion:selected.size?classification.version:0n,performanceSnapshot:selected.size?"":"synthetic-page"};
   }
   if(method?.name==="GetTrackerPerformance"){
@@ -42,41 +42,47 @@ for(const locale of ["ru","en"]){test(`${locale} analytics charts show profit, p
    data={fromDate:input.fromDate,toDate:input.toDate,currency:input.currency,fxPolicyKey:"market",historyScope:"recorded_securities_strategy",reportingTimezone:"Europe/Moscow",twrConvention:"securities_daily_end_of_day_flows",profit:f((points.length-1)*5),netContributions:f((points.length-1)*5),twr:{numerator:"1",denominator:"4"},xirr:0.1,xirrAnnualized:true,xirrDays:points.length-1,analyticsConvention:"retrospective_cashless_strategy_v1",analyticsPoints:points,monthlyProfit:periods(7).map(d=>partialHistory?{...d,profit:undefined,reason:"valuation_missing"}:d),yearlyProfit:periods(4).map(d=>partialHistory?{...d,profit:undefined,reason:"valuation_missing"}:d),twrPoints:points.map((p,j)=>({date:p.date,state:j?"calculated":"baseline",segment:1,index:f(100+j*5)}))};
   }
 
+  if(method?.name==="GetTrackerPerformance")data.trackerBenchmarks=[{key:"imoex",title:"IMOEX",provider:"moex",nativeCurrency:"RUB",kind:"price_index",sourceUrl:"https://www.moex.com/ru/index/IMOEX"},{key:"spy",title:"SPY",provider:"twelvedata",nativeCurrency:"USD",kind:"etf_price_proxy",sourceUrl:"https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-sp-500-etf-trust-spy"}].map(b=>({...b,baseDate:data.analyticsPoints[0].date,points:data.analyticsPoints.map((p:any,i:number)=>({date:p.date,index:{numerator:String(100+i*2),denominator:"1"},virtualValue:{numerator:String(100+i*7),denominator:"1"},virtualProfit:{numerator:String(i*2),denominator:"1"}}))}));
+  if(method?.name==="GetTrackerContributions"){
+   const f=(n:number)=>({numerator:String(n),denominator:"1"});
+   const days=(Date.parse(input.toDate)-Date.parse(input.fromDate))/86400000+1;const rows=[{ledgerId:one,ledgerName:"Broker one",instrumentKey:key,groupId:a,groupName:"Alpha",opening:f(60),closing:f(60+days*6),flow:f(days*3),profit:f(days*3),openingQuantity:f(1),closingQuantity:f(1),inScope:true},{ledgerId:two,ledgerName:"Broker two",instrumentKey:key,groupId:b,groupName:"Beta",opening:f(40),closing:f(40+days*4),flow:f(days*2),profit:f(days*2),openingQuantity:f(2),closingQuantity:f(2),inScope:true}].filter(r=>input.ledgerIds.includes(r.ledgerId));
+   const total=rows.reduce((n,r)=>n+Number(r.profit.numerator),0);
+   data={convention:"recorded_securities_pnl_attribution_v1",currency:input.currency,fxPolicyKey:"market",fxPolicyVersion:1n,fxMode:"market",fromDate:input.fromDate,toDate:input.toDate,basisKey:"b".repeat(64),classificationVersion:1n,profit:f(total),knownProfit:f(total),rows};
+  }
   if(partialHistory&&method?.name==="GetTrackerPerformance")Object.assign(data,{profit:undefined,reason:"valuation_missing",twr:undefined,twrReason:"valuation_missing",xirr:undefined,xirrReason:"valuation_missing",twrPoints:data.twrPoints.map((d:any)=>({...d,state:"gap",index:undefined,reason:"valuation_missing"}))});
   if(method&&/^(Create|Update|Save|Delete|Commit|Post)/.test(method.name))writes++;
   if(["GetTrackerHistory","GetTrackerPerformance","GetTrackerContributions"].includes(method?.name||""))Object.assign(data,{groupIds:input.groupIds||[],instrumentKeys:input.instrumentKeys||[],monetaryOnly:!!input.monetaryOnly});
   const body=method?Buffer.from(toBinary(method.output,create(method.output,data))):Buffer.alloc(0),head=Buffer.alloc(5);head.writeUInt32BE(body.length,1);const trailer=Buffer.from("grpc-status: 0\r\n"),tail=Buffer.alloc(5);tail[0]=0x80;tail.writeUInt32BE(trailer.length,1);await route.fulfill({status:200,contentType:"application/grpc-web+proto",body:Buffer.concat([head,body,tail,trailer])});
  });
  await page.goto("/investments?to=2025-01-03");
- const holding=page.getByRole("row").filter({has:page.getByRole("link",{name:"ABC",exact:true})});await expect(holding).toContainText("SYNTHETIC123");await expect(holding).toContainText("SYNTHETIC");await expect(holding).toContainText(ru?"Номинал на UTC-день цены":"Nominal on the UTC price day");await expect(holding).toContainText(ru?"НКД на бумагу: 0 RUB":"Accrued per security: 0 RUB");
- await page.getByRole("textbox",{name:ru?"Поиск в позициях":"Search holdings"}).fill("SYNTHETIC123");await expect(holding).toBeVisible();
- const dayResult=page.getByRole("region",{name:ru?"Дневной результат":"Daily result",exact:true});await expect(dayResult).toContainText("2025-01-03");await expect(dayResult.locator("p.tabular-nums")).toContainText("5");await dayResult.getByText(ru?"Расчёт за день":"Daily calculation",{exact:true}).click();await expect(dayResult).toContainText("110");await expect(dayResult).toContainText("100");
- await page.screenshot({path:test.info().outputPath(`portfolio-overview-evidence-${locale}.png`),fullPage:true});await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:test.info().outputPath(`portfolio-overview-mobile-${locale}.png`),fullPage:true});await page.setViewportSize({width:1280,height:720});
- partialHistory=true;await page.goto("/investments?to=2025-01-03");await expect(dayResult).toContainText(ru?"Для дневного результата нужны полные оценки":"Daily profit requires complete valuations");await expect(dayResult.locator("p.tabular-nums")).toHaveText("—");partialHistory=false;
+ const day=page.getByRole("region",{name:ru?"Дневной результат":"Daily result",exact:true});
+ await expect(day.locator("p.tabular-nums").first()).toContainText("5");await expect(day.locator("p.tabular-nums").last()).toContainText("5");
+ const fx=page.getByRole("region",{name:ru?"Валютные курсы портфеля":"Portfolio exchange rates",exact:true});await expect(fx).toContainText("USDRUB");await expect(fx).toContainText("EURRUB");await expect(fx).toContainText("25");
+ await expect(page.getByRole("img",{name:ru?"Распределение активов":"Asset allocation"})).toBeVisible();
+ await expect(page.getByRole("heading",{name:ru?"Стоимость портфеля":"Portfolio value",exact:true})).toHaveCount(0);
+ await page.screenshot({path:test.info().outputPath(`portfolio-overview-${locale}.png`),fullPage:true});
+ await page.getByRole("button",{name:/Alpha/}).click();await expect(page).toHaveURL(new RegExp("group="+a));await expect(page.getByRole("button",{name:/ABC/})).toBeVisible();
+ await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:test.info().outputPath(`portfolio-category-mobile-${locale}.png`),fullPage:true});await page.setViewportSize({width:1280,height:720});
+ partialHistory=true;await page.goto("/investments?to=2025-01-03");await expect(day.locator("p.tabular-nums").first()).toHaveText("—");partialHistory=false;
  await page.goto("/investments/analytics?from=2024-12-30&to=2025-01-03");
- await expect(page.getByRole("heading",{name:ru?"Аналитика портфеля":"Portfolio analytics",exact:true})).toBeVisible();
- const fx=page.getByRole("region",{name:ru?"Валютные курсы портфеля":"Portfolio exchange rates",exact:true});
- await expect(fx).toContainText("USD/RUB: 1");await expect(fx).toContainText("EUR/RUB: 1");await expect(fx).toContainText("Alpha Vantage");await expect(fx).toContainText(ru?"Для оценки с":"Eligible from");await expect(fx).toContainText(ru?"ретроспективная оценка":"retrospective valuation");
- await expect(fx).toContainText(ru?"К предыдущему наблюдению":"Vs previous observation");await expect(fx).toContainText(ru?/\+0,2 RUB \(\+25\s*%/:/\+0\.2 RUB \(\+25\s*%/);await expect(fx).toContainText(ru?"База сравнения":"Comparison basis");
- const history=page.getByRole("region",{name:ru?"История портфеля":"Portfolio history",exact:true});
- await expect(history.getByRole("img",{name:ru?"Стоимость и чистые вложения":"Value and net investment",exact:true})).toBeVisible();
- await history.getByRole("button",{name:ru?"Прибыль":"Profit",exact:true}).click();await expect(history.getByRole("img",{name:ru?"Накопленная прибыль":"Cumulative profit",exact:true})).toBeVisible();
- await expect(history.locator("svg title").last()).toContainText("25");
- await history.getByRole("button",{name:ru?"По месяцам":"Monthly",exact:true}).click();await expect(history.getByRole("table")).toContainText("2024-12");await expect(history.getByRole("table")).toContainText("2025-01");await expect(history.locator("rect")).toHaveCount(2);
- await history.getByRole("button",{name:ru?"По годам":"Yearly",exact:true}).click();await expect(history.getByRole("table")).toContainText("2024-12-30 — 2024-12-31");await expect(history.getByRole("table")).toContainText("2025-01-01 — 2025-01-03");
- const download=page.waitForEvent("download");await history.getByRole("button",{name:"CSV",exact:true}).click();const file=await download;expect(file.suggestedFilename()).toBe("portfolio-analytics-2024-12-30-2025-01-03.csv");
- const fs=await import("node:fs/promises"),text=await fs.readFile((await file.path())!,"utf8");expect(text).toContain("daily_profit_num");expect(text).toContain("retrospective_cashless_strategy_v1");expect(text).toContain('"month"');expect(text).toContain('"year"');
- await page.getByRole("combobox",{name:ru?"Валюта сумм":"Amount currency",exact:true}).selectOption("USD");await expect(history.getByRole("table")).toContainText("USD");
- await history.getByRole("button",{name:ru?"7 дней":"7 days",exact:true}).click();const start=await history.getByLabel(ru?"История с":"History from",{exact:true}).inputValue(),end=await history.getByLabel(ru?"История по":"History through",{exact:true}).inputValue();expect((Date.parse(end)-Date.parse(start))/86400000).toBe(6);
- partialHistory=true;
- await page.goto("/investments/analytics?from=2024-12-30&to=2025-01-03");
- await expect(history.getByRole("img",{name:ru?"Стоимость и чистые вложения":"Value and net investment",exact:true})).toBeVisible();
- await expect(history.locator('polyline[stroke-dasharray="5 4"]')).toHaveCount(1);
- await expect(history.getByText(ru?"Пунктир — известная часть стоимости":"Dashed line — known portion of value",{exact:true})).toBeVisible();
- await expect(history.locator("svg circle")).toHaveCount(5);
- const partialDownload=page.waitForEvent("download");await history.getByRole("button",{name:"CSV",exact:true}).click();const partialFile=await partialDownload;
- const partialText=await fs.readFile((await partialFile.path())!,"utf8");expect(partialText).toContain("known_value_num");expect(partialText).toContain('"incomplete"');
- await page.setViewportSize({width:390,height:844});await page.screenshot({path:test.info().outputPath(`portfolio-known-value-${locale}.png`),fullPage:true});
- await history.getByRole("button",{name:ru?"Прибыль":"Profit",exact:true}).click();await expect(history.getByText(ru?"Нет полной оценки для выбранных показателей.":"Complete valuations are unavailable for these metrics.",{exact:true})).toBeVisible();await expect(history.getByRole("img")).toHaveCount(0);
- await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:test.info().outputPath(`portfolio-analytics-${locale}.png`),fullPage:true});expect(writes).toBe(0);expect(errors).toEqual([]);
+ await expect(page.getByRole("heading",{name:ru?"Рост":"Growth",exact:true})).toBeVisible();
+ const history=page.getByLabel(ru?"Рост портфеля":"Portfolio growth",{exact:true});
+ await expect(history.getByRole("img",{name:ru?"Стоимость и вложения":"Value and invested",exact:true})).toBeVisible();
+ await expect(history.getByRole("img",{name:ru?"Накопленная прибыль":"Cumulative profit",exact:true})).toBeVisible();
+ await expect(history.locator("circle")).toHaveCount(0);await expect(history.getByRole("checkbox",{name:"IMOEX",exact:true})).toHaveCount(2);await expect(history.getByRole("img",{name:ru?"Прибыль по бумагам":"Profit by security",exact:true})).toBeVisible();
+ await expect(history.getByRole("img",{name:ru?"Прибыль по месяцам":"Monthly profit",exact:true}).locator("rect")).toHaveCount(2);
+ await history.getByRole("button",{name:ru?"По годам":"Yearly",exact:true}).click();await expect(history.getByRole("img",{name:ru?"Прибыль по годам":"Yearly profit",exact:true})).toBeVisible();
+ await history.getByLabel(ru?"Действия с графиком":"Chart actions").click();const download=page.waitForEvent("download");await history.getByRole("button",{name:"CSV",exact:true}).first().click();const file=await download;expect(file.suggestedFilename()).toBe("portfolio-analytics-2024-12-30-2025-01-03.csv");
+ const fs=await import("node:fs/promises"),text=await fs.readFile((await file.path())!,"utf8");expect(text).toContain("daily_profit_num");expect(text).toContain("retrospective_cashless_strategy_v1");
+ await history.getByLabel(ru?"Действия с графиком":"Chart actions").click();await page.screenshot({path:test.info().outputPath(`portfolio-growth-${locale}.png`),fullPage:true});
+ historyReads=0;await page.goto("/investments/analytics?from=2019-01-01&to=2025-12-31");
+ const longValue=history.getByRole("img",{name:ru?"Стоимость и вложения":"Value and invested",exact:true});await expect(longValue).toBeVisible();await expect(history.getByRole("img",{name:ru?"Прибыль по годам":"Yearly profit",exact:true})).toBeVisible();
+ expect(historyReads).toBe(28);for(const line of await longValue.locator("polyline").all())expect((await line.getAttribute("points"))!.split(" ").length).toBeLessThanOrEqual(400);
+ await expect(longValue.locator("circle")).toHaveCount(0);await expect(longValue.locator("polyline")).toHaveCount(4);
+ await history.getByRole("checkbox",{name:"SPY · S&P 500",exact:true}).first().uncheck();await expect(longValue.locator("polyline")).toHaveCount(3);expect(historyReads).toBe(28);
+ await page.screenshot({path:test.info().outputPath(`portfolio-seven-years-${locale}.png`),fullPage:true});
+ partialHistory=true;await page.goto("/investments/analytics?from=2024-12-30&to=2025-01-03");
+ await expect(history.getByRole("img",{name:ru?"Стоимость и вложения":"Value and invested",exact:true})).toBeVisible();await expect(history.getByRole("img",{name:ru?"Стоимость и вложения":"Value and invested",exact:true}).locator('polyline[stroke-dasharray="5 4"]')).toHaveCount(1);await expect(history.locator("circle")).toHaveCount(0);
+ await expect(history.locator('polyline[stroke="#55d0ad"]')).toHaveCount(0);
+ await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:test.info().outputPath(`portfolio-growth-mobile-${locale}.png`),fullPage:true});expect(writes).toBe(0);expect(errors).toEqual([]);
  });}

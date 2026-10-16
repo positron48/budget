@@ -16,6 +16,8 @@ func TestTrackerInstrumentScopeAndCompletedDates(t *testing.T) {
 		func(q *TrackerInstrumentRequest) { q.From = "1899-12-31" },
 		func(q *TrackerInstrumentRequest) { q.To = "2024-02-30" },
 		func(q *TrackerInstrumentRequest) { q.Currency = "GBP" },
+		func(q *TrackerInstrumentRequest) { q.PageDays = -1 },
+		func(q *TrackerInstrumentRequest) { q.PageDays = 94 },
 		func(q *TrackerInstrumentRequest) { q.InstrumentKey = "S\n" },
 		func(q *TrackerInstrumentRequest) { q.ListingID = "invalid" },
 		func(q *TrackerInstrumentRequest) {

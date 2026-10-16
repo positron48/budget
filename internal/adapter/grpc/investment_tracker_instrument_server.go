@@ -2,12 +2,13 @@ package grpcadapter
 
 import (
 	"context"
+	"time"
+
 	pb "github.com/positron48/budget/gen/go/budget/v1"
 	nav "github.com/positron48/budget/internal/usecase/investmentvaluation"
 	md "github.com/positron48/budget/internal/usecase/marketdata"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"time"
 )
 
 func (s *InvestmentNAVServer) GetTrackerInstrumentPrices(ctx context.Context, req *pb.GetTrackerInstrumentPricesRequest) (*pb.GetTrackerInstrumentPricesResponse, error) {
@@ -15,7 +16,7 @@ func (s *InvestmentNAVServer) GetTrackerInstrumentPrices(ctx context.Context, re
 	if e != nil {
 		return nil, e
 	}
-	q, e := nav.NormalizeTrackerInstrument(nav.TrackerInstrumentRequest{InstrumentKey: req.GetInstrumentKey(), Currency: req.GetCurrency(), FXPolicyKey: req.GetFxPolicyKey(), From: req.GetFromDate(), To: req.GetToDate(), ListingID: req.GetListingId(), Provider: req.GetProvider(), AccessScope: req.GetAccessScope(), InstrumentID: req.GetInstrumentId()}, time.Now().UTC())
+	q, e := nav.NormalizeTrackerInstrument(nav.TrackerInstrumentRequest{PageDays: int(req.GetPageDays()), InstrumentKey: req.GetInstrumentKey(), Currency: req.GetCurrency(), FXPolicyKey: req.GetFxPolicyKey(), From: req.GetFromDate(), To: req.GetToDate(), ListingID: req.GetListingId(), Provider: req.GetProvider(), AccessScope: req.GetAccessScope(), InstrumentID: req.GetInstrumentId()}, time.Now().UTC())
 	if e != nil {
 		return nil, investmentRPCError(e)
 	}

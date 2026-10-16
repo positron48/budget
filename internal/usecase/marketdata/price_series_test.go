@@ -73,3 +73,35 @@ func TestPreparedPriceSeriesRejectsMalformedEvidence(t *testing.T) {
 		t.Fatal("changed observation identity accepted")
 	}
 }
+
+func TestPreparedPriceSeriesWindowMatchesBoundedDatabaseRead(t *testing.T) {
+	q, values := selectionFixture()
+	q.Calendar = nil
+	q.Retrospective = &RetrospectiveDailyPolicy{Convention: RetrospectiveCloseNextUTCDay, MaxAge: 96 * time.Hour}
+	series, e := NewPriceSeries(q, values)
+	if e != nil {
+		t.Fatal(e)
+	}
+	for day := -1; day < 12; day++ {
+		q.At = values[0].At.AddDate(0, 0, day).Add(21 * time.Hour)
+		from := q.At.UTC().Truncate(24 * time.Hour).Add(-5 * 24 * time.Hour)
+		bounded := []ScopedObservation{}
+		for _, v := range values {
+			if !v.At.Before(from) && !v.At.After(q.At) {
+				bounded = append(bounded, v)
+			}
+		}
+		want, e := SelectValuationPrice(q, bounded)
+		if e != nil {
+			t.Fatal(e)
+		}
+		got, e := series.SelectSince(q, from)
+		if e != nil || !reflect.DeepEqual(got, want) {
+			t.Fatal(day, got, want, e)
+		}
+	}
+	q.AccessScope = "other"
+	if _, e = series.SelectSince(q, q.At.Add(-24*time.Hour)); e == nil {
+		t.Fatal("cross-scope window accepted")
+	}
+}

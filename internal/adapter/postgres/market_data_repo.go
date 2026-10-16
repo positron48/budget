@@ -12,9 +12,15 @@ import (
 	md "github.com/positron48/budget/internal/usecase/marketdata"
 )
 
-type MarketDataRepo struct{ pool *Pool }
+type MarketDataRepo struct {
+	pool                *Pool
+	trackerHistoryCache *trackerHistoryCache
+	trackerHistorySlots chan struct{}
+}
 
-func NewMarketDataRepo(p *Pool) *MarketDataRepo { return &MarketDataRepo{pool: p} }
+func NewMarketDataRepo(p *Pool) *MarketDataRepo {
+	return &MarketDataRepo{pool: p, trackerHistoryCache: newTrackerHistoryCache(), trackerHistorySlots: make(chan struct{}, 2)}
+}
 
 // SaveObservations publishes a validated batch and its revision/invalidation
 // records in one transaction. Identical retries do not create new revisions.

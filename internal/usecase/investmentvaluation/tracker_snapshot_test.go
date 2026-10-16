@@ -52,3 +52,26 @@ func TestTrackerSnapshotLargeInstrumentScopeUsesDigest(t *testing.T) {
 		t.Fatal("instrument scope digest lost", e)
 	}
 }
+
+func TestTrackerSnapshotQuarterPageRetainsEveryExactDay(t *testing.T) {
+	now := time.Now().UTC()
+	signer := NewTrackerSnapshotSigner("synthetic")
+	q := TrackerHistoryRequest{PageDays: 93, PerformanceFrom: "2024-01-01"}
+	data := TrackerHistory{ReadAt: now}
+	first := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	for i := 0; i < 93; i++ {
+		data.Points = append(data.Points, TrackerHistoryPoint{Date: first.AddDate(0, 0, i).Format(time.DateOnly), State: "ready", KnownValue: big.NewRat(int64(i), 3), StrategyFlow: big.NewRat(1, 7)})
+	}
+	token, e := signer.Seal("tenant", "actor", q, data)
+	if e != nil {
+		t.Fatal(e)
+	}
+	claim, e := signer.Open(token, now)
+	if e != nil || len(claim.Days) != 93 || claim.Days[92].Value != "92/3" {
+		t.Fatal(claim, e)
+	}
+	q.PageDays = 0
+	if _, e = signer.Seal("tenant", "actor", q, data); e == nil {
+		t.Fatal("legacy page bound bypassed")
+	}
+}

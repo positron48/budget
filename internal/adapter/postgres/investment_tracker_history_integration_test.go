@@ -2,14 +2,15 @@ package postgres
 
 import (
 	"errors"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/google/uuid"
 	d "github.com/positron48/budget/internal/domain"
 	inv "github.com/positron48/budget/internal/usecase/investment"
 	nav "github.com/positron48/budget/internal/usecase/investmentvaluation"
 	md "github.com/positron48/budget/internal/usecase/marketdata"
-	"strings"
-	"testing"
-	"time"
 )
 
 func TestInvestmentTrackerHistoryUsesActualDailyPositionsAndMarketFX(t *testing.T) {
@@ -149,6 +150,60 @@ func TestInvestmentTrackerHistoryUsesActualDailyPositionsAndMarketFX(t *testing.
 	if e != nil || len(fullPage.Points) != 31 || fullPage.Baseline == nil || fullPage.NextDate != "2020-02-01" {
 		t.Fatal("baseline must not consume a chart page slot", fullPage, e)
 	}
+	quarterRequest := q
+	quarterRequest.To = "2020-04-10"
+	quarterRequest.PerformanceFrom = q.From
+	quarterRequest.PageDays = 93
+	began := time.Now()
+	quarter, err := repo.TrackerHistory(ctx, tenant, actor, quarterRequest)
+	quarterTime := time.Since(began)
+	if err != nil || len(quarter.Points) != 93 || quarter.NextDate != "2020-04-03" || quarter.Baseline == nil {
+		t.Fatal("quarter page", len(quarter.Points), quarter.NextDate, err)
+	}
+	began = time.Now()
+	for part := 0; part < 3; part++ {
+		legacyRequest := quarterRequest
+		legacyRequest.PageDays = 0
+		legacyRequest.From = day.AddDate(0, 0, 31*part).Format(time.DateOnly)
+		legacy, err := repo.TrackerHistory(ctx, tenant, actor, legacyRequest)
+		if err != nil || len(legacy.Points) != 31 || legacy.BasisKey != quarter.BasisKey {
+			t.Fatal("legacy comparison", err)
+		}
+		for i, got := range legacy.Points {
+			want := quarter.Points[part*31+i]
+			equalFlow := got.StrategyFlow == nil && want.StrategyFlow == nil || got.StrategyFlow != nil && want.StrategyFlow != nil && got.StrategyFlow.Cmp(want.StrategyFlow) == 0
+			if got.Date != want.Date || got.State != want.State || got.CoverageKey != want.CoverageKey || got.KnownValue.Cmp(want.KnownValue) != 0 || !equalFlow || got.FlowReason != want.FlowReason || got.Reset != want.Reset {
+				t.Fatal("quarter changed exact history", got.Date)
+			}
+		}
+	}
+	t.Logf("93 days: quarter=%s, three legacy reads=%s", quarterTime, time.Since(began))
+
+	compactRequest := quarterRequest
+	compactRequest.CompactIssues = true
+	compact, err := repo.TrackerHistory(ctx, tenant, actor, compactRequest)
+	if err != nil || compact.BasisKey != quarter.BasisKey || len(compact.Points) != 93 {
+		t.Fatal("compact chart history", err)
+	}
+	for i, p := range compact.Points {
+		full := quarter.Points[i]
+		if p.KnownValue.Cmp(full.KnownValue) != 0 || p.CoverageKey != full.CoverageKey || p.State != full.State || p.IssueCount != len(full.Issues) {
+			t.Fatal("compact chart altered valuation", p.Date)
+		}
+		codes := map[string]bool{}
+		for _, issue := range full.Issues {
+			codes[issue.Code] = true
+		}
+		if len(p.Issues) != len(codes) {
+			t.Fatal("chart issue compaction lost a reason", p.Date)
+		}
+		for _, issue := range p.Issues {
+			if issue.ComponentID != "" || !codes[issue.Code] {
+				t.Fatal("chart retained position detail or invented issue", p.Date)
+			}
+		}
+	}
+
 	basis := r.BasisKey
 	if _, e = repo.SaveObservations(ctx, scope, []md.Observation{{InstrumentID: instrument.ID, Kind: "last_price", At: day, SourceKind: "exchange", Adjustment: "unadjusted", PriceUnit: "provider_unspecified", Price: "9999", Complete: true}}); e != nil {
 		t.Fatal(e)
@@ -370,5 +425,15 @@ func TestInvestmentTrackerHistoryUsesActualDailyPositionsAndMarketFX(t *testing.
 	r, e = repo.TrackerHistory(ctx, tenant, actor, q)
 	if e != nil || len(r.Points) != 3 || r.Points[0].KnownValue.RatString() != "3682" || r.Points[1].KnownValue.RatString() != "3680" || r.Points[2].KnownValue.RatString() != "2100" || r.Points[2].PricedPositions != 1 {
 		t.Fatal("session nominal not used or missing nominal guessed", r, e)
+	}
+	// Even an entirely warm projection must recheck current membership first.
+	if _, e = repo.TrackerHistory(ctx, tenant, actor, q); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = pool.DB.Exec(ctx, `DELETE FROM user_tenants WHERE tenant_id=$1 AND user_id=$2`, tenant, actor); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = repo.TrackerHistory(ctx, tenant, actor, q); !errors.Is(e, d.ErrInvestmentForbidden) {
+		t.Fatal("warm projection bypassed revoked membership", e)
 	}
 }

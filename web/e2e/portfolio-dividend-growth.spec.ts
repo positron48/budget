@@ -43,6 +43,7 @@ for(const locale of ["ru","en"])for(const member of [false,true])test(`${locale}
   const body=method?Buffer.from(toBinary(method.output,create(method.output,data))):Buffer.alloc(0),head=Buffer.alloc(5);head.writeUInt32BE(body.length,1);const trailer=Buffer.from(`grpc-status: ${status}\r\n`),tail=Buffer.alloc(5);tail[0]=0x80;tail.writeUInt32BE(trailer.length,1);await route.fulfill({status:200,contentType:"application/grpc-web+proto",body:Buffer.concat([head,body,tail,trailer])});
  });
  await page.goto("/investments/instruments/"+encodeURIComponent(key)+"?from=2024-01-01&to=2024-01-02");
+ await page.getByText(ru?"Дивиденды эмитента":"Issuer dividends",{exact:true}).click();
  const issuer=page.getByRole("region",{name:ru?"Дивиденды на акцию":"Dividends per share",exact:true});await expect(issuer).toContainText(ru?"Нет проверенной истории":"No reviewed issuer history");
  await issuer.locator("summary").filter({hasText:ru?"Наблюдения источника":"Provider observations"}).click();await issuer.getByRole("spinbutton",{name:ru?"Год дат записи поставщика (UTC), не дат выплат":"Provider record-date year (UTC), not payment dates"}).fill("2024");
  await expect(issuer.getByText(/dividendNet: 12 RUB/)).toHaveCount(1);await expect(issuer).not.toContainText("777");expect(issuerWrites).toBe(0);

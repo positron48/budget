@@ -41,6 +41,12 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 	out.Currency, out.FXPolicyKey = q.Currency, q.FXPolicyKey
 	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)
 	defer cancel()
+	release, e := r.acquireTrackerHistorySlot(ctx)
+	if e != nil {
+		return out, e
+	}
+	defer release()
+
 	tx, e := r.pool.DB.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
 	if e != nil {
 		return out, e
@@ -194,7 +200,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 	}{heads, policy, points, cache, classification, q.GroupIDs, q.InstrumentKeys})
 	first, _ := time.Parse(time.DateOnly, q.From)
 	last, _ := time.Parse(time.DateOnly, q.To)
-	end := first.AddDate(0, 0, 30)
+	end := first.AddDate(0, 0, nav.TrackerPageDays(q.PageDays)-1)
 	if end.After(last) {
 		end = last
 	} else if end.Before(last) {
@@ -213,6 +219,34 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		end = calculationFirst
 		out.NextDate = ""
 	}
+	cacheKey := ""
+	if !q.ContributionOnly && q.DetailDate == "" {
+		cacheKey = investmentHash(struct {
+			Tenant, Actor, Basis, Currency           string
+			Performance, MonetaryOnly, CompactIssues bool
+		}{tenant, actor, out.BasisKey, q.Currency, q.PerformanceFrom != "", q.MonetaryOnly, q.CompactIssues})
+		cached := []nav.TrackerHistoryPoint{}
+		for day := calculationFirst; !day.After(end); day = day.AddDate(0, 0, 1) {
+			point, ok := r.trackerHistoryCache.get(cacheKey+day.Format(time.DateOnly), out.ReadAt)
+			if !ok || point.Date != day.Format(time.DateOnly) {
+				cached = nil
+				break
+			}
+			cached = append(cached, point)
+		}
+		if len(cached) > 0 {
+			for _, point := range cached {
+				if point.Date < q.From {
+					copy := point
+					out.Baseline = &copy
+				} else {
+					out.Points = append(out.Points, point)
+				}
+			}
+			return out, tx.Commit(ctx)
+		}
+	}
+
 	captureComponents := q.ContributionOnly || q.DetailDate != ""
 	days := []time.Time{}
 	states := [][]d.InvestmentSnapshot{}
@@ -230,12 +264,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 	needsReplay := false
 	for _, id := range q.LedgerIDs {
 		input := inputs[id]
-		history, supported, err := inv.TrackerUnitHistory(input.Ledger, input.Operations, days[:min(31, len(days))])
-		if err == nil && supported && len(days) > 31 {
-			tail, _, e := inv.TrackerUnitHistory(input.Ledger, input.Operations, days[31:])
-			err = e
-			history = append(history, tail...)
-		}
+		history, supported, err := inv.TrackerUnitHistory(input.Ledger, input.Operations, days)
 		if err != nil {
 			return out, err
 		}
@@ -523,6 +552,19 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 				row.StrategyFlow = nil
 			}
 		}
+		row.IssueCount = len(row.Issues)
+		if q.CompactIssues {
+			seen := map[string]bool{}
+			compact := []calc.QualityIssue{}
+			for _, issue := range row.Issues {
+				if !seen[issue.Code] {
+					seen[issue.Code] = true
+					compact = append(compact, calc.QualityIssue{Code: issue.Code})
+				}
+			}
+			row.Issues = compact
+		}
+
 		if row.Date < q.From {
 			out.Baseline = &row
 		} else {
@@ -535,7 +577,18 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 			return out, e
 		}
 	}
-	return out, tx.Commit(ctx)
+	if e = tx.Commit(ctx); e != nil {
+		return out, e
+	}
+	if cacheKey != "" {
+		if out.Baseline != nil {
+			r.trackerHistoryCache.put(cacheKey+out.Baseline.Date, *out.Baseline, out.ReadAt)
+		}
+		for _, point := range out.Points {
+			r.trackerHistoryCache.put(cacheKey+point.Date, point, out.ReadAt)
+		}
+	}
+	return out, nil
 }
 
 func readTrackerHistoryMarket(ctx context.Context, tx pgx.Tx, tenant string, keys []string, from, to, readAt time.Time, sparse ...time.Time) (map[string]trackerHistoryMarket, error) {
@@ -571,9 +624,11 @@ func readTrackerHistoryMarket(ctx context.Context, tx pgx.Tx, tenant string, key
 	// selects latest corrected history; no historical knowledge cutoff is used.
 	return readTrackerHistorySeries(ctx, tx, tenant, result, from, to, readAt, sparse...)
 }
+
 func historyPriceSelection(tenant string, p md.MappingPeriod, at time.Time) md.PriceSelectionRequest {
 	return md.PriceSelectionRequest{Scope: md.Scope{TenantID: tenant, Provider: p.Provider, AccessScope: p.AccessScope}, InstrumentID: p.InstrumentID, Kind: "daily_candle", SourceKind: "exchange", Adjustment: "unadjusted", At: at, Retrospective: &md.RetrospectiveDailyPolicy{Convention: md.RetrospectiveCloseNextUTCDay, MaxAge: nav.PortfolioQuoteMaxAge}}
 }
+
 func trackerHistoricalQuote(tenant, key string, entry trackerHistoryMarket, at, readAt time.Time) (nav.PortfolioQuote, error) {
 	missing := func(code string) nav.PortfolioQuote {
 		return nav.PortfolioQuote{InstrumentKey: key, State: "unavailable", Issues: []string{code}}
@@ -657,8 +712,17 @@ SELECT jsonb_build_array(
  )`
 
 func (entry trackerHistoryMarket) selectPrice(q md.PriceSelectionRequest, key string) (md.SelectedPrice, error) {
+	// SQL already reads five preceding UTC days. Apply the same window per
+	// valuation date so a larger page cannot change missing/stale diagnostics.
+	from := q.At.UTC().Truncate(24 * time.Hour).Add(-5 * 24 * time.Hour)
 	if series := entry.series[key]; series != nil {
-		return series.Select(q)
+		return series.SelectSince(q, from)
 	}
-	return md.SelectValuationPrice(q, entry.observations[key])
+	selected := []md.ScopedObservation{}
+	for _, o := range entry.observations[key] {
+		if !o.At.Before(from) {
+			selected = append(selected, o)
+		}
+	}
+	return md.SelectValuationPrice(q, selected)
 }

@@ -1,15 +1,18 @@
 package investmentvaluation
 
 import (
-	"github.com/google/uuid"
-	d "github.com/positron48/budget/internal/domain"
-	calc "github.com/positron48/budget/internal/usecase/investmentcalc"
 	"math/big"
 	"slices"
 	"time"
+
+	"github.com/google/uuid"
+	d "github.com/positron48/budget/internal/domain"
+	calc "github.com/positron48/budget/internal/usecase/investmentcalc"
 )
 
 type TrackerHistoryRequest struct {
+	CompactIssues                   bool
+	PageDays                        int
 	LedgerIDs                       []string
 	Currency, FXPolicyKey, From, To string
 	PerformanceFrom                 string
@@ -20,6 +23,7 @@ type TrackerHistoryRequest struct {
 	ContributionOnly                bool // Internal boundary valuation; never a signed performance page.
 }
 type TrackerHistoryPoint struct {
+	IssueCount                 int
 	Date, State, CoverageKey   string
 	KnownValue                 *big.Rat // Exact reporting-currency subtotal.
 	Issues                     []calc.QualityIssue
@@ -43,13 +47,16 @@ type TrackerHistory struct {
 	Contributions                                     []TrackerContribution
 }
 
-// Bound total navigation to ten years, and each DB snapshot to 31 days. History
+// Bound total navigation to ten years, and each DB snapshot to at most 93 days. History
 // always consists of completed Moscow dates, never a fabricated close for today.
 func NormalizeTrackerHistory(q TrackerHistoryRequest, now time.Time) (TrackerHistoryRequest, error) {
+	if q.PageDays < 0 || q.PageDays > 93 {
+		return q, d.ErrInvestmentInvalid
+	}
 	if len(q.LedgerIDs) < 1 || len(q.LedgerIDs) > 20 || q.FXPolicyKey == "" || len(q.FXPolicyKey) > 100 || (q.Currency != "RUB" && q.Currency != "USD" && q.Currency != "EUR") {
 		return q, d.ErrInvestmentInvalid
 	}
-	if q.DetailDate != "" && (q.DetailDate < q.From || q.DetailDate > q.To || q.ContributionOnly || q.PerformanceFrom != "") {
+	if q.DetailDate != "" && (q.DetailDate < q.From || q.DetailDate > q.To || q.ContributionOnly || q.PerformanceFrom != "" || q.CompactIssues) {
 		return q, d.ErrInvestmentInvalid
 	}
 	if q.DetailDate != "" {
@@ -117,4 +124,12 @@ type TrackerValueDetail struct {
 	PriceAt                                               time.Time
 	MappingVersion                                        int64
 	Issues                                                []string
+}
+
+// TrackerPageDays preserves the existing page contract for older clients.
+func TrackerPageDays(days int) int {
+	if days == 0 {
+		return 31
+	}
+	return days
 }

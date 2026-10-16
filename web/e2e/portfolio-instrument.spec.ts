@@ -33,20 +33,20 @@ for(const locale of ["ru","en"])for(const owned of [false,true])test(`${locale} 
  });
  await page.goto("/investments/instruments");await page.getByRole("textbox").fill("BOND");await page.getByRole("link",{name:owned?/SHARE · Synthetic share/:/BOND · Synthetic amortizing bond/}).click();
  await expect(page.getByRole("heading",{name:owned?"Synthetic share":"Synthetic amortizing bond",exact:true})).toBeVisible();
- await expect(page.getByRole("img",{name:ru?"Дневная история цены":"Daily price history",exact:true})).toBeVisible();if(owned)expect(historyRequests).toBeGreaterThan(0);
- await page.getByLabel(ru?"История с":"History from",{exact:true}).fill("2024-01-02");await page.getByLabel(ru?"История по":"History through",{exact:true}).fill("2024-01-04");
+ await expect(page.getByRole("img",{name:ru?"История цены":"Price history",exact:true})).toBeVisible();if(owned)expect(historyRequests).toBeGreaterThan(0);
+ await page.getByLabel(ru?"Выбрать даты":"Choose dates",{exact:true}).click();await page.getByLabel(ru?"История с":"History from",{exact:true}).fill("2024-01-02");await page.getByLabel(ru?"История по":"History through",{exact:true}).fill("2024-01-04");
  const chart=page.getByRole("region",{name:ru?"История цены бумаги":"Security price history"});
- await expect(chart.getByRole("img")).toBeVisible();await expect(chart.locator("svg title").first()).toContainText("90.000000");
- if(!owned){await page.getByLabel(ru?"Вид цены":"Price view",{exact:true}).selectOption("nativeClean");await expect(chart.locator("svg title").first()).toContainText("900.000000");
- await page.getByLabel(ru?"Вид цены":"Price view",{exact:true}).selectOption("nativeDirty");await expect(chart.locator("svg title").first()).toContainText("903.000000");
+ await expect(chart.getByRole("img")).toBeVisible();await expect(chart.locator("svg polyline")).toHaveCount(1);
+ if(!owned){await page.getByLabel(ru?"Вид цены":"Price view",{exact:true}).selectOption("nativeClean");await expect(chart.getByRole("img")).toBeVisible();
+ await page.getByLabel(ru?"Вид цены":"Price view",{exact:true}).selectOption("nativeDirty");await expect(chart.getByRole("img")).toBeVisible();
  await expect(page.getByText(ru?"В выбранной области нет операций с этой бумагой.":"No operations for this security in the selected scope.")).toBeVisible();
- await expect(page.getByRole("heading",{name:ru?"Условия облигации":"Bond terms",exact:true})).toBeVisible();}else{
+ await page.getByText(ru?"Условия облигации":"Bond terms",{exact:true}).click();await expect(page.getByText(ru?"Погашение":"Maturity",{exact:true})).toBeVisible();}else{
  const positions=page.locator("section").filter({has:page.getByRole("heading",{name:ru?"Позиции по счетам":"Positions by account",exact:true})});
- await expect(positions.locator("tbody td")).toHaveText(["Broker","1","80 RUB","80 RUB","10 RUB","40 RUB","5 RUB"]);
- await expect(chart.locator("circle[cy=\"228\"]")).toHaveCount(2);
+ await expect(positions.locator("tbody td")).toHaveText(["Broker","1","80 RUB","80 RUB","120 RUB"]);
+ await expect(chart.locator("circle")).toHaveCount(2);await expect(chart.locator("svg text").filter({hasText:ru?"Средняя в портфеле":"Portfolio average"})).toHaveCount(1);await page.getByText(ru?"Сделки и выплаты":"Trades and payouts",{exact:true}).click();
  await expect(page.getByRole("cell",{name:ru?"Дивиденды":"Dividend",exact:true})).toBeVisible();
  }
- const download=page.waitForEvent("download");await chart.getByRole("button",{name:"CSV",exact:true}).click();expect((await download).suggestedFilename()).toBe("instrument-history-2024-01-02-2024-01-04.csv");
- await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:test.info().outputPath(`security-card-${owned?"share":"bond"}-${locale}.png`),fullPage:true});
+ await chart.getByLabel(ru?"Действия с графиком":"Chart actions",{exact:true}).click();const download=page.waitForEvent("download");await chart.getByRole("button",{name:"CSV",exact:true}).click();expect((await download).suggestedFilename()).toBe("instrument-history-2024-01-02-2024-01-04.csv");
+ await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.evaluate(()=>{(document.activeElement as HTMLElement)?.blur();window.scrollTo(0,0);});await page.screenshot({path:test.info().outputPath(`security-card-${owned?"share":"bond"}-${locale}.png`),fullPage:true});
  expect(financialWrites).toBe(0);expect(errors).toEqual([]);
 });

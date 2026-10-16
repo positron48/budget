@@ -2,14 +2,15 @@ package grpcadapter
 
 import (
 	"context"
+	"math/big"
+	"sort"
+	"time"
+
 	pb "github.com/positron48/budget/gen/go/budget/v1"
 	nav "github.com/positron48/budget/internal/usecase/investmentvaluation"
 	md "github.com/positron48/budget/internal/usecase/marketdata"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"math/big"
-	"sort"
-	"time"
 )
 
 type trackerHistoryRepo interface {
@@ -21,7 +22,7 @@ func (s *InvestmentNAVServer) GetTrackerHistory(ctx context.Context, req *pb.Get
 	if e != nil {
 		return nil, e
 	}
-	q, e := nav.NormalizeTrackerHistory(nav.TrackerHistoryRequest{DetailDate: req.GetDetailDate(), LedgerIDs: req.GetLedgerIds(), Currency: req.GetCurrency(), FXPolicyKey: req.GetFxPolicyKey(), From: req.GetFromDate(), To: req.GetToDate(), PerformanceFrom: req.GetPerformanceFromDate(), GroupIDs: req.GetGroupIds(), InstrumentKeys: req.GetInstrumentKeys(), MonetaryOnly: req.GetMonetaryOnly()}, time.Now().UTC())
+	q, e := nav.NormalizeTrackerHistory(nav.TrackerHistoryRequest{CompactIssues: req.GetCompactIssues(), PageDays: int(req.GetPageDays()), DetailDate: req.GetDetailDate(), LedgerIDs: req.GetLedgerIds(), Currency: req.GetCurrency(), FXPolicyKey: req.GetFxPolicyKey(), From: req.GetFromDate(), To: req.GetToDate(), PerformanceFrom: req.GetPerformanceFromDate(), GroupIDs: req.GetGroupIds(), InstrumentKeys: req.GetInstrumentKeys(), MonetaryOnly: req.GetMonetaryOnly()}, time.Now().UTC())
 	if e != nil {
 		return nil, investmentRPCError(e)
 	}
@@ -38,7 +39,7 @@ func (s *InvestmentNAVServer) GetTrackerHistory(ctx context.Context, req *pb.Get
 	}
 	out := &pb.GetTrackerHistoryResponse{DetailsIncluded: q.DetailDate != "", InstrumentKeys: q.InstrumentKeys, GroupIds: q.GroupIDs, MonetaryOnly: q.MonetaryOnly, ClassificationVersion: result.ClassificationVersion, Currency: result.Currency, BasisKey: result.BasisKey, FxPolicyKey: result.FXPolicyKey, FxPolicyVersion: result.FXPolicyVersion, FxMode: result.FXMode, NextDate: result.NextDate, Generation: result.Generation, ReadAt: optionalInvestmentTimestamp(result.ReadAt), PriceConvention: md.RetrospectiveCloseNextUTCDay, ReportingTimezone: "Europe/Moscow"}
 	for _, p := range result.Points {
-		row := &pb.TrackerHistoryPoint{Date: p.Date, State: p.State, CoverageKey: p.CoverageKey, KnownValue: protoPerformanceAmount(p.KnownValue), PricedPositions: int32(p.PricedPositions), Positions: int32(p.Positions)}
+		row := &pb.TrackerHistoryPoint{IssueCount: int32(p.IssueCount), Date: p.Date, State: p.State, CoverageKey: p.CoverageKey, KnownValue: protoPerformanceAmount(p.KnownValue), PricedPositions: int32(p.PricedPositions), Positions: int32(p.Positions)}
 		for _, issue := range p.Issues {
 			row.Issues = append(row.Issues, &pb.InvestmentNAVIssue{ComponentId: issue.ComponentID, Code: issue.Code})
 		}

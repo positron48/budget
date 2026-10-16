@@ -15,12 +15,15 @@ import (
 // already used for the chart. They contain no auth credential, confer no access,
 // expire promptly, and are never persisted. Every summary rechecks authorization
 // and the current journal/market basis. Shared signing keys support replicas.
-type TrackerSnapshotSigner struct{ key []byte }
-type TrackerSnapshotDay struct {
-	Date, Value, Flow string
-	Complete, Reset   bool
-	FlowReason        string
-}
+type (
+	TrackerSnapshotSigner struct{ key []byte }
+	TrackerSnapshotDay    struct {
+		Date, Value, Flow string
+		Complete, Reset   bool
+		FlowReason        string
+	}
+)
+
 type TrackerSnapshot struct {
 	Tenant, Actor, Basis, FXMode string
 	InstrumentScopeDigest        string
@@ -38,11 +41,12 @@ func NewTrackerSnapshotSigner(root string) *TrackerSnapshotSigner {
 	_, _ = h.Write([]byte("budget:securities-performance:pages:v1"))
 	return &TrackerSnapshotSigner{key: h.Sum(nil)}
 }
+
 func (*TrackerSnapshotSigner) String() string     { return "tracker snapshot signer (key redacted)" }
 func (s *TrackerSnapshotSigner) GoString() string { return s.String() }
 
 func (s *TrackerSnapshotSigner) Seal(tenant, actor string, q TrackerHistoryRequest, data TrackerHistory) (string, error) {
-	if s == nil || len(data.Points) == 0 || len(data.Points) > 31 || q.PerformanceFrom == "" {
+	if s == nil || q.PageDays < 0 || q.PageDays > 93 || len(data.Points) == 0 || len(data.Points) > TrackerPageDays(q.PageDays) || q.PerformanceFrom == "" {
 		return "", errors.New("invalid performance page")
 	}
 	instrumentDigest := TrackerInstrumentScopeDigest(q.InstrumentKeys)
@@ -72,7 +76,7 @@ func (s *TrackerSnapshotSigner) Seal(tenant, actor string, q TrackerHistoryReque
 	h := hmac.New(sha256.New, s.key)
 	_, _ = h.Write([]byte(payload))
 	token := "v1." + payload + "." + hex.EncodeToString(h.Sum(nil))
-	if len(token) > 32768 {
+	if len(token) > 131072 {
 		return "", errors.New("performance page limit")
 	}
 	return token, nil
@@ -81,7 +85,7 @@ func (s *TrackerSnapshotSigner) Seal(tenant, actor string, q TrackerHistoryReque
 func (s *TrackerSnapshotSigner) Open(token string, now time.Time) (TrackerSnapshot, error) {
 	var claim TrackerSnapshot
 	fail := func() (TrackerSnapshot, error) { return TrackerSnapshot{}, errors.New("invalid performance snapshot") }
-	if s == nil || len(token) > 32768 {
+	if s == nil || len(token) > 131072 {
 		return fail()
 	}
 	parts := strings.Split(token, ".")
@@ -98,7 +102,7 @@ func (s *TrackerSnapshotSigner) Open(token string, now time.Time) (TrackerSnapsh
 		return fail()
 	}
 	raw, e := base64.RawURLEncoding.DecodeString(parts[1])
-	if e != nil || json.Unmarshal(raw, &claim) != nil || claim.Expires <= now.Unix() || claim.Expires > now.Add(16*time.Minute).Unix() || len(claim.Days) < 1 || len(claim.Days) > 32 {
+	if e != nil || json.Unmarshal(raw, &claim) != nil || claim.Request.PageDays < 0 || claim.Request.PageDays > 93 || claim.Expires <= now.Unix() || claim.Expires > now.Add(16*time.Minute).Unix() || len(claim.Days) < 1 || len(claim.Days) > TrackerPageDays(claim.Request.PageDays)+1 {
 		return fail()
 	}
 	return claim, nil

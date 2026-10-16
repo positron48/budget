@@ -180,7 +180,7 @@ func (r *MarketDataRepo) TrackerInstrumentPrices(ctx context.Context, tenant, ac
 	}{mapping, policy, fx, basis, out.Instrument})
 	first, _ := time.Parse(time.DateOnly, q.From)
 	last, _ := time.Parse(time.DateOnly, q.To)
-	end := first.AddDate(0, 0, 30)
+	end := first.AddDate(0, 0, nav.TrackerPageDays(q.PageDays)-1)
 	if end.After(last) {
 		end = last
 	} else if end.Before(last) {

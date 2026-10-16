@@ -11,7 +11,7 @@ func TestTrackerHistoryBoundsAndCompletedDates(t *testing.T) {
 	if _, e := NormalizeTrackerHistory(q, now); e != nil {
 		t.Fatal(e)
 	}
-	for _, change := range []func(*TrackerHistoryRequest){func(q *TrackerHistoryRequest) { q.To = "2026-01-10" }, func(q *TrackerHistoryRequest) { q.From = "2010-01-01" }, func(q *TrackerHistoryRequest) { q.LedgerIDs = append(q.LedgerIDs, q.LedgerIDs[0]) }, func(q *TrackerHistoryRequest) { q.Currency = "GBP" }, func(q *TrackerHistoryRequest) { q.From = "bad" }} {
+	for _, change := range []func(*TrackerHistoryRequest){func(q *TrackerHistoryRequest) { q.To = "2026-01-10" }, func(q *TrackerHistoryRequest) { q.From = "2010-01-01" }, func(q *TrackerHistoryRequest) { q.LedgerIDs = append(q.LedgerIDs, q.LedgerIDs[0]) }, func(q *TrackerHistoryRequest) { q.Currency = "GBP" }, func(q *TrackerHistoryRequest) { q.From = "bad" }, func(q *TrackerHistoryRequest) { q.PageDays = -1 }, func(q *TrackerHistoryRequest) { q.PageDays = 94 }} {
 		bad := q
 		change(&bad)
 		if _, e := NormalizeTrackerHistory(bad, now); e == nil {

@@ -36,7 +36,7 @@ for(const locale of ["ru","en"])test(`${locale} account subsets are deduplicated
   const body=toBinary(method.output,create(method.output,data)),header=Buffer.alloc(5);header.writeUInt32BE(body.length,1);const trailer=Buffer.from("grpc-status: 0\r\n"),end=Buffer.alloc(5);end[0]=128;end.writeUInt32BE(trailer.length,1);await route.fulfill({status:200,contentType:"application/grpc-web+proto",body:Buffer.concat([header,body,end,trailer])});
  });
  await page.goto(`/investments?account=${ids[0]}&account=${ids[2]}&account=${ids[0]}&from=2024-01-02&to=2024-01-02`);
- const cost=page.locator("section").filter({has:page.getByRole("heading",{name:ru?"Вложено в бумаги":"Cost of holdings",exact:true})});await expect(cost).toContainText("400 RUB");await expect(page.getByRole("table").locator("tbody tr").first().locator("td").nth(1)).toHaveText("4");
+ const cost=page.locator("section").filter({has:page.getByRole("heading",{name:ru?"Вложено":"Invested",exact:true})});await expect(cost).toContainText("400 RUB");await expect(page.getByRole("table")).toContainText("480 RUB");
  await expect.poll(()=>historyScopes.some(s=>JSON.stringify(s)==JSON.stringify([ids[0],ids[2]]))).toBe(true);
  await page.getByText(ru?"Выбрать несколько счетов":"Select multiple accounts",{exact:true}).click();
  const set=page.getByRole("group",{name:ru?"Счета в портфеле":"Portfolio accounts",exact:true});await expect(set.getByLabel("Broker 2",{exact:true})).not.toBeChecked();

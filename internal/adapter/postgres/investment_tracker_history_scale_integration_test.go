@@ -19,6 +19,14 @@ import (
 )
 
 func TestInvestmentTrackerHistory100000Operations500Instruments(t *testing.T) {
+	testTrackerHistoryScale(t, 10000, 500)
+}
+
+func TestInvestmentTrackerHistory3000Operations100Instruments(t *testing.T) {
+	testTrackerHistoryScale(t, 300, 100)
+}
+
+func testTrackerHistoryScale(t *testing.T, operationsPerAccount, instruments int) {
 	pool, done := withPg(t)
 	defer done()
 	ctx, tenant, actor := acceptanceOwner(t, pool)
@@ -27,7 +35,7 @@ func TestInvestmentTrackerHistory100000Operations500Instruments(t *testing.T) {
 	start := time.Date(2013, 1, 1, 0, 0, 0, 0, time.UTC)
 	from := start.AddDate(1, 0, 0)
 	ids := []string{}
-	values := make([][]any, 0, 100000)
+	values := make([][]any, 0, 10*operationsPerAccount)
 	expected := make([]int64, 31)
 	cutoffs := make([]time.Time, 31)
 	for i := range cutoffs {
@@ -39,12 +47,12 @@ func TestInvestmentTrackerHistory100000Operations500Instruments(t *testing.T) {
 			t.Fatal(e)
 		}
 		ids = append(ids, l.ID)
-		for i := 0; i < 10000; i++ {
+		for i := 0; i < operationsPerAccount; i++ {
 			at := start
-			if i >= 500 {
-				at = from.AddDate(0, 0, (i-500)%3650)
+			if i >= instruments {
+				at = from.AddDate(0, 0, (i-instruments)%3650)
 			}
-			o := d.InvestmentOperation{ID: uuid.NewString(), TenantID: tenant, LedgerID: l.ID, Kind: "buy", InstrumentKey: fmt.Sprintf("S%d", i%500), Currency: "RUB", Amount: "10", Quantity: "1", OccurredAt: at, Sequence: int64(i + 1), Status: "posted", Version: 1}
+			o := d.InvestmentOperation{ID: uuid.NewString(), TenantID: tenant, LedgerID: l.ID, Kind: "buy", InstrumentKey: fmt.Sprintf("S%d", i%instruments), Currency: "RUB", Amount: "10", Quantity: "1", OccurredAt: at, Sequence: int64(i + 1), Status: "posted", Version: 1}
 			if e = inv.ValidateOperation(&o); e != nil {
 				t.Fatal(e)
 			}
@@ -86,7 +94,7 @@ func TestInvestmentTrackerHistory100000Operations500Instruments(t *testing.T) {
 
 	batch := HistoricalPriceBatch{Version: 1}
 	listings := []trackerHistorySeries{}
-	for i := 0; i < 500; i++ {
+	for i := 0; i < instruments; i++ {
 		id := uuid.NewString()
 		key := fmt.Sprintf("S%d", i)
 		instrument := md.Instrument{ID: id, Ticker: key, Name: "Synthetic", Kind: "share", Currency: "RUB", Detailed: true}
@@ -136,18 +144,74 @@ func TestInvestmentTrackerHistory100000Operations500Instruments(t *testing.T) {
 	}
 	for i, point := range history.Points {
 		want := big.NewRat(expected[i]*10, 1)
-		if point.State != "ready" || point.Positions != 500 || point.PricedPositions != 500 || point.KnownValue.Cmp(want) != 0 {
+		if point.State != "ready" || point.Positions != instruments || point.PricedPositions != instruments || point.KnownValue.Cmp(want) != 0 {
 			t.Fatal(i, point, want)
 		}
 	}
-	t.Logf("100000 operations, 500 instruments, ten-year request, 31 valued days: %s", elapsed)
+	t.Logf("%d operations, %d instruments, ten-year request, 31 valued days: %s", 10*operationsPerAccount, instruments, elapsed)
+	began = time.Now()
+	quarter, err := repo.TrackerHistory(ctx, tenant, actor, nav.TrackerHistoryRequest{CompactIssues: true, PageDays: 93, LedgerIDs: ids, Currency: "RUB", FXPolicyKey: policy.Key, From: from.Format(time.DateOnly), To: "2024-01-08"})
+	quarterElapsed := time.Since(began)
+	if err != nil || len(quarter.Points) != 93 {
+		t.Fatal("quarter scale", len(quarter.Points), err)
+	}
+	began = time.Now()
+	for part := 0; part < 3; part++ {
+		legacy, err := (&MarketDataRepo{pool: pool}).TrackerHistory(ctx, tenant, actor, nav.TrackerHistoryRequest{LedgerIDs: ids, Currency: "RUB", FXPolicyKey: policy.Key, From: from.AddDate(0, 0, part*31).Format(time.DateOnly), To: "2024-01-08"})
+		if err != nil || len(legacy.Points) != 31 || legacy.BasisKey != quarter.BasisKey {
+			t.Fatal("legacy scale", err)
+		}
+		for i, got := range legacy.Points {
+			want := quarter.Points[part*31+i]
+			if got.Date != want.Date || got.State != want.State || got.CoverageKey != want.CoverageKey || got.KnownValue.Cmp(want.KnownValue) != 0 || got.PricedPositions != want.PricedPositions || got.Positions != want.Positions || len(got.Issues) != want.IssueCount {
+				t.Fatal("quarter scale changed exact valuation", got.Date)
+			}
+		}
+	}
+	t.Logf("%d operations, %d instruments, 93 valued days: quarter=%s, three legacy reads=%s", 10*operationsPerAccount, instruments, quarterElapsed, time.Since(began))
+	began = time.Now()
+	warmed, err := repo.TrackerHistory(ctx, tenant, actor, nav.TrackerHistoryRequest{CompactIssues: true, PageDays: 93, LedgerIDs: ids, Currency: "RUB", FXPolicyKey: policy.Key, From: from.Format(time.DateOnly), To: "2024-01-08"})
+	if err != nil || len(warmed.Points) != 93 || warmed.BasisKey != quarter.BasisKey {
+		t.Fatal("warm exact history", err)
+	}
+	t.Logf("%d operations, %d instruments, warm 93-day projection with current source fence: %s", 10*operationsPerAccount, instruments, time.Since(began))
+
+	// Measure the complete seven-year traversal as well as the individual page.
+	// This fixture intentionally has missing later quotes: the traversal must
+	// retain partial coverage rather than turn missing prices into zero profit.
+	sevenYearRepo := NewMarketDataRepo(pool)
+	sevenYearEnd := from.AddDate(7, 0, -1).Format(time.DateOnly)
+	for _, pass := range []string{"cold", "warm"} {
+		began = time.Now()
+		pages, days := 0, 0
+		next := from.Format(time.DateOnly)
+		for next != "" {
+			page, err := sevenYearRepo.TrackerHistory(ctx, tenant, actor, nav.TrackerHistoryRequest{CompactIssues: true, PageDays: 93, LedgerIDs: ids, Currency: "RUB", FXPolicyKey: policy.Key, From: next, To: sevenYearEnd})
+			if err != nil || len(page.Points) == 0 || len(page.Points) > 93 {
+				t.Fatal("seven-year traversal", pass, next, err)
+			}
+			for _, point := range page.Points {
+				if point.Date != from.AddDate(0, 0, days).Format(time.DateOnly) {
+					t.Fatal("seven-year date discontinuity", point.Date, days)
+				}
+				days++
+			}
+			pages++
+			next = page.NextDate
+		}
+		if days != 2557 || pages != 28 {
+			t.Fatal("seven-year traversal shape", days, pages)
+		}
+		t.Logf("%d operations, %d instruments, complete seven-year sequential traversal (%s), %d days / %d pages: %s", 10*operationsPerAccount, instruments, pass, days, pages, time.Since(began))
+	}
+
 	for _, last := range []string{from.AddDate(0, 0, 30).Format(time.DateOnly), "2024-01-08"} {
 		began = time.Now()
 		h, err := repo.TrackerHistory(ctx, tenant, actor, nav.TrackerHistoryRequest{LedgerIDs: ids, Currency: "RUB", FXPolicyKey: policy.Key, From: from.Format(time.DateOnly), To: last, ContributionOnly: true})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(h.Points) != 1 || h.Baseline == nil || len(h.Contributions) != 5000 {
+		if len(h.Points) != 1 || h.Baseline == nil || len(h.Contributions) != 10*instruments {
 			t.Fatal("attribution scale shape", len(h.Points), len(h.Contributions))
 		}
 		for _, r := range h.Contributions {
@@ -159,7 +223,7 @@ func TestInvestmentTrackerHistory100000Operations500Instruments(t *testing.T) {
 				t.Fatal("flat-price exact attribution", r)
 			}
 		}
-		t.Logf("100000 operations, 500 instruments, contribution boundaries through %s: %s", last, time.Since(began))
+		t.Logf("%d operations, %d instruments, contribution boundaries through %s: %s", 10*operationsPerAccount, instruments, last, time.Since(began))
 	}
 	began = time.Now()
 	selection, err := repo.TrackerHistory(ctx, tenant, actor, nav.TrackerHistoryRequest{LedgerIDs: ids, Currency: "RUB", FXPolicyKey: policy.Key, From: from.Format(time.DateOnly), To: from.AddDate(0, 0, 30).Format(time.DateOnly), PerformanceFrom: from.Format(time.DateOnly), InstrumentKeys: []string{"S0"}})
@@ -171,7 +235,7 @@ func TestInvestmentTrackerHistory100000Operations500Instruments(t *testing.T) {
 			t.Fatal("selection inherited other securities", point)
 		}
 	}
-	t.Logf("100000 operations, 500 instruments, one-security 31-day signed scope: %s", time.Since(began))
+	t.Logf("%d operations, %d instruments, one-security 31-day signed scope: %s", 10*operationsPerAccount, instruments, time.Since(began))
 	sparseDates, _ := json.Marshal([]time.Time{cutoffs[0].AddDate(0, 0, -1), cutoffs[30]})
 	sparsePlan, err := pool.DB.Query(ctx, "EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) "+trackerHistorySparseSeriesSQL, tenant, encoded, sparseDates)
 	if err != nil {
@@ -188,5 +252,4 @@ func TestInvestmentTrackerHistory100000Operations500Instruments(t *testing.T) {
 		t.Fatal(err)
 	}
 	sparsePlan.Close()
-
 }
