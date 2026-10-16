@@ -33,7 +33,7 @@ plus the original `issue_count`. Monetary fractions, complete/incomplete state,
 position counts and the coverage hash remain exact. A date's full per-position
 breakdown is fetched separately using `detail_date`.
 
-`GetTrackerChart` returns one server-computed daily bundle, including exact
+`GetTrackerChart` returns one server-computed daily bundle, including derived
 monthly/yearly totals and monetary comparisons. Running reporting sums are
 bounded to 24 decimals when inverse-FX denominators grow past 128 bits; over
 ten years rounding error stays below 2e-21 currency units. Individual flows,
