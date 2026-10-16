@@ -27,13 +27,13 @@ class ProvisionRefreshTests(unittest.TestCase):
                     "Accounts": [{"PortfolioTracking": True}],
                 },
             }
-            for version in (61, 62):
+            for version in (61, 62, 63):
                 with self.subTest(version=version):
                     report["Scope"]["SchemaVersion"] = version
                     path.write_text(json.dumps(report))
                     path.chmod(0o600)
                     self.assertEqual(TENANT, module.source_tenant(path))
-            for version, dirty in ((60, False), (63, False), (62, True)):
+            for version, dirty in ((60, False), (64, False), (62, True)):
                 with self.subTest(version=version, dirty=dirty):
                     report["Scope"]["SchemaVersion"] = version
                     report["Scope"]["SchemaDirty"] = dirty

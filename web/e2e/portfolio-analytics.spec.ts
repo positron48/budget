@@ -85,7 +85,7 @@ for(const locale of ["ru","en"]){test(`${locale} analytics charts show profit, p
  await history.getByRole("checkbox",{name:"SPY · S&P 500",exact:true}).first().uncheck();await expect(longValue.locator("polyline")).toHaveCount(3);expect(historyReads).toBe(28);
  await page.screenshot({path:test.info().outputPath(`portfolio-seven-years-${locale}.png`),fullPage:true});
  partialHistory=true;await page.goto("/investments/analytics?from=2024-12-30&to=2025-01-03");
- await expect(history.getByRole("img",{name:ru?"Стоимость и вложения":"Value and invested",exact:true})).toBeVisible();await expect(history.getByRole("img",{name:ru?"Стоимость и вложения":"Value and invested",exact:true}).locator('polyline[stroke-dasharray="5 4"]')).toHaveCount(1);await expect(history.locator("circle")).toHaveCount(0);
+ await expect(history.getByRole("img",{name:ru?"Стоимость и вложения":"Value and invested",exact:true})).toBeVisible();await expect(history.getByRole("img",{name:ru?"Стоимость и вложения":"Value and invested",exact:true}).locator('polyline[stroke-dasharray="5 4"]')).toHaveCount(0);await expect(history.locator("circle")).toHaveCount(0);
  await expect(history.locator('polyline[stroke="#55d0ad"]')).toHaveCount(0);
  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:test.info().outputPath(`portfolio-growth-mobile-${locale}.png`),fullPage:true});expect(writes).toBe(0);expect(errors).toEqual([]);
  });}

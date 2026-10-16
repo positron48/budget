@@ -61,7 +61,7 @@ def source_tenant(path):
     scope = report["Scope"]
     tenant = scope["TenantID"]
     if (report.get("Status") != "portfolio_scope_backed_up" or report.get("SourceWrites") is not False
-            or scope["SchemaDirty"] or scope["SchemaVersion"] not in (61, 62)
+            or scope["SchemaDirty"] or scope["SchemaVersion"] not in (61, 62, 63)
             or not scope["Accounts"] or any(a.get("PortfolioTracking") is not True for a in scope["Accounts"])
             or str(uuid.UUID(tenant)) != tenant):
         raise Failure("matching clean standalone portfolio scope required")
