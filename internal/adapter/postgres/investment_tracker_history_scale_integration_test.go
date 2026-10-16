@@ -19,14 +19,21 @@ import (
 )
 
 func TestInvestmentTrackerHistory100000Operations500Instruments(t *testing.T) {
-	testTrackerHistoryScale(t, 10000, 500)
+	testTrackerHistoryScale(t, 10000, 500, false)
 }
 
 func TestInvestmentTrackerHistory3000Operations100Instruments(t *testing.T) {
-	testTrackerHistoryScale(t, 300, 100)
+	testTrackerHistoryScale(t, 300, 100, true)
 }
 
-func testTrackerHistoryScale(t *testing.T, operationsPerAccount, instruments int) {
+// The complete upper-bound traversal is a performance check. CI runs it
+// separately without race instrumentation; quarterly exactness and the smaller
+// seven-year fixture remain in the race-enabled financial suite.
+func TestTrackerHistorySevenYearScale100000Operations500Instruments(t *testing.T) {
+	testTrackerHistoryScale(t, 10000, 500, true)
+}
+
+func testTrackerHistoryScale(t *testing.T, operationsPerAccount, instruments int, fullRange bool) {
 	pool, done := withPg(t)
 	defer done()
 	ctx, tenant, actor := acceptanceOwner(t, pool)
@@ -176,33 +183,36 @@ func testTrackerHistoryScale(t *testing.T, operationsPerAccount, instruments int
 	}
 	t.Logf("%d operations, %d instruments, warm 93-day projection with current source fence: %s", 10*operationsPerAccount, instruments, time.Since(began))
 
-	// Measure the complete seven-year traversal as well as the individual page.
-	// This fixture intentionally has missing later quotes: the traversal must
-	// retain partial coverage rather than turn missing prices into zero profit.
-	sevenYearRepo := NewMarketDataRepo(pool)
-	sevenYearEnd := from.AddDate(7, 0, -1).Format(time.DateOnly)
-	for _, pass := range []string{"cold", "warm"} {
-		began = time.Now()
-		pages, days := 0, 0
-		next := from.Format(time.DateOnly)
-		for next != "" {
-			page, err := sevenYearRepo.TrackerHistory(ctx, tenant, actor, nav.TrackerHistoryRequest{CompactIssues: true, PageDays: 93, LedgerIDs: ids, Currency: "RUB", FXPolicyKey: policy.Key, From: next, To: sevenYearEnd})
-			if err != nil || len(page.Points) == 0 || len(page.Points) > 93 {
-				t.Fatal("seven-year traversal", pass, next, err)
-			}
-			for _, point := range page.Points {
-				if point.Date != from.AddDate(0, 0, days).Format(time.DateOnly) {
-					t.Fatal("seven-year date discontinuity", point.Date, days)
+	if fullRange {
+		// Measure the complete seven-year traversal as well as the individual page.
+		// This fixture intentionally has missing later quotes: the traversal must
+		// retain partial coverage rather than turn missing prices into zero profit.
+		sevenYearRepo := NewMarketDataRepo(pool)
+		sevenYearEnd := from.AddDate(7, 0, -1).Format(time.DateOnly)
+		for _, pass := range []string{"cold", "warm"} {
+			began = time.Now()
+			pages, days := 0, 0
+			next := from.Format(time.DateOnly)
+			for next != "" {
+				page, err := sevenYearRepo.TrackerHistory(ctx, tenant, actor, nav.TrackerHistoryRequest{CompactIssues: true, PageDays: 93, LedgerIDs: ids, Currency: "RUB", FXPolicyKey: policy.Key, From: next, To: sevenYearEnd})
+				if err != nil || len(page.Points) == 0 || len(page.Points) > 93 {
+					t.Fatal("seven-year traversal", pass, next, err)
 				}
-				days++
+				for _, point := range page.Points {
+					if point.Date != from.AddDate(0, 0, days).Format(time.DateOnly) {
+						t.Fatal("seven-year date discontinuity", point.Date, days)
+					}
+					days++
+				}
+				pages++
+				next = page.NextDate
 			}
-			pages++
-			next = page.NextDate
+			if days != 2557 || pages != 28 {
+				t.Fatal("seven-year traversal shape", days, pages)
+			}
+			t.Logf("%d operations, %d instruments, complete seven-year sequential traversal (%s), %d days / %d pages: %s", 10*operationsPerAccount, instruments, pass, days, pages, time.Since(began))
 		}
-		if days != 2557 || pages != 28 {
-			t.Fatal("seven-year traversal shape", days, pages)
-		}
-		t.Logf("%d operations, %d instruments, complete seven-year sequential traversal (%s), %d days / %d pages: %s", 10*operationsPerAccount, instruments, pass, days, pages, time.Since(began))
+
 	}
 
 	for _, last := range []string{from.AddDate(0, 0, 30).Format(time.DateOnly), "2024-01-08"} {

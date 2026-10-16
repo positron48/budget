@@ -52,7 +52,7 @@ single-page and warm-cache benchmarks.
 ## Local full-range benchmark
 
 `TestInvestmentTrackerHistory3000Operations100Instruments` and
-`TestInvestmentTrackerHistory100000Operations500Instruments` traverse all 2557
+`TestTrackerHistorySevenYearScale100000Operations500Instruments` traverse all 2557
 dates in 28 sequential requests, then repeat with a warm projection cache.
 The synthetic fixture has daily candles for the first 31 dates and deliberately
 missing later prices. It tests partial coverage as well as exact valued dates;
@@ -64,3 +64,7 @@ instruments. These are server traversal times without network/browser rendering;
 the upper-bound fixture still needs further optimization for interactive use.
 Both fixtures also pass on PostgreSQL 16. Browser scenarios separately verify
 seven years, ordered page loading, bounded requests and sampled line geometry.
+
+CI runs the maximum-size full traversal in a separate step without race
+instrumentation. The 100000-operation quarterly correctness checks, cache
+concurrency checks and smaller seven-year traversal remain race-enabled.

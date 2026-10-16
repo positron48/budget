@@ -110,6 +110,13 @@ jobs:
           cat financial-test-results.jsonl
           python3 scripts/investments/ci_go_summary.py financial-test-results.jsonl
           exit "$test_exit"
+      - name: Test complete seven-year history at maximum journal size
+        run: |
+          test_exit=0
+          go test ./internal/adapter/postgres -run '^TestTrackerHistorySevenYearScale100000Operations500Instruments$' -count=1 -timeout=10m -json > history-scale-results.jsonl 2>&1 || test_exit=$?
+          cat history-scale-results.jsonl
+          python3 scripts/investments/ci_go_summary.py history-scale-results.jsonl
+          exit "$test_exit"
       - name: Test operator backup and restore through pod tools
         if: matrix.pg == 15
         env:
@@ -126,6 +133,7 @@ jobs:
           path: |
             full-backup-fixture-report.json
             financial-test-results.jsonl
+            history-scale-results.jsonl
             operator-backup-test.log
           if-no-files-found: warn
 
