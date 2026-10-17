@@ -99,16 +99,16 @@ export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled
   };
 
   const investmentLinks = [
-    ["/investments", "overview", "portfolio"],
-    ["/investments/analytics", "", "growth"],
-    ["/investments", "trades", "trades"],
-    ["/investments", "payments", "payments"],
-    ["/investments/calendar", "", "calendar"],
-    ["/investments/instruments", "", "findSecurity"],
-    ["/investments/groups", "", "securityGroups"],
-    ["/investments/accounts", "", "investmentAccounts"],
-    ["/investments/import", "", "import"],
-  ].map(([route, view, label]) => {
+    ["/investments", "overview", "portfolio", "pie-chart"],
+    ["/investments/analytics", "", "growth", "trending-up"],
+    ["/investments", "trades", "trades", "fx"],
+    ["/investments", "payments", "payments", "coins"],
+    ["/investments/calendar", "", "calendar", "calendar"],
+    ["/investments/instruments", "", "findSecurity", "search"],
+    ["/investments/groups", "", "securityGroups", "layers"],
+    ["/investments/accounts", "", "investmentAccounts", "wallet"],
+    ["/investments/import", "", "import", "upload"],
+  ].map(([route, view, label, icon]) => {
     const params = new URLSearchParams(pathname.startsWith("/investments") ? searchParams.toString() : "");
     params.delete("fx");
     params.delete("page");
@@ -117,7 +117,7 @@ export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled
     return {
       href: route + (params.size ? "?" + params.toString() : ""),
       label: t(label),
-      icon: "reports",
+      icon,
       active: route === "/investments"
         ? pathname === route && (searchParams.get("view") || "overview") === view
         : isActive(route),
