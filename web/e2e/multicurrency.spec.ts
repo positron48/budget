@@ -89,6 +89,17 @@ for (const locale of ["en", "ru"]) test(`shared display currency ${locale}`, asy
   await page.goto("/investments");
   await expect(selector).toHaveValue("USD");
   await expect.poll(()=>seen.some(q=>q.method==="GetInvestmentExchangeRates"&&q.currency==="USD")).toBe(true);
+  await expect(page.getByRole("navigation",{name:locale==="ru"?"Навигация инвестиций":"Investment navigation"})).toHaveCount(0);
+  await page.locator("header summary").filter({hasText:locale==="ru"?"Инвестиции":"Investments"}).click();
+  const investmentMenu=page.locator("header details[open]");
+  await expect(investmentMenu.getByRole("link")).toHaveCount(9);
+  await page.screenshot({path:info.outputPath(`investment-menu-${locale}.png`)});
+  await investmentMenu.getByRole("link",{name:locale==="ru"?"Сделки":"Trades",exact:true}).click();
+  await expect(page).toHaveURL(/view=trades/);
+  await page.locator("header summary").filter({hasText:locale==="ru"?"Инвестиции":"Investments"}).click();
+  await expect(investmentMenu.getByRole("link",{name:locale==="ru"?"Сделки":"Trades",exact:true})).toHaveAttribute("aria-current","page");
+  await expect(investmentMenu.getByRole("link",{name:locale==="ru"?"Портфель":"Portfolio",exact:true})).not.toHaveAttribute("aria-current","page");
+  await investmentMenu.getByRole("link",{name:locale==="ru"?"Портфель":"Portfolio",exact:true}).click();
   await page.screenshot({path:info.outputPath(`investments-${locale}.png`),fullPage:true});
   await page.getByRole("button",{name:locale==="ru"?"Переключить тему":"Toggle theme"}).click();
   await page.screenshot({path:info.outputPath(`investments-${locale}-theme.png`),fullPage:true});

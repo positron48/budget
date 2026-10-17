@@ -1,5 +1,14 @@
 {
   "nav": {
+    "portfolio": "Портфель",
+    "growth": "Рост",
+    "trades": "Сделки",
+    "payments": "Выплаты",
+    "calendar": "Календарь",
+    "findSecurity": "Найти бумагу",
+    "securityGroups": "Группы бумаг",
+    "investmentAccounts": "Счета",
+    "import": "Импорт",
     "budget": "Бюджет",
     "navigation": "Основная навигация",
     "home": "Главная",

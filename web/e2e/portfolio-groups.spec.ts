@@ -43,7 +43,8 @@ for(const locale of ["ru","en"]){test(`${locale} groups classify accounts, prese
  const filteredSummaryCalls=summaryCalls;
  await page.goto("/investments?group="+a+"&group="+b);await expect(page.locator("tbody tr").first()).toContainText(ru?"3 шт.":"3 units");
  await page.goBack();await expect(page.locator("tbody tr").first()).toContainText(ru?"1 шт.":"1 units");expect(summaryCalls).toBe(filteredSummaryCalls);
- await page.getByRole("navigation",{name:ru?"Навигация инвестиций":"Investment navigation"}).getByRole("link",{name:ru?"Группы бумаг":"Security groups",exact:true}).click();await expect(page.getByRole("heading",{name:ru?"Группы бумаг":"Security groups",exact:true})).toBeVisible();await expect(page.getByText("OLD-CLOSED",{exact:true})).toBeVisible();
+ await page.locator("header summary").filter({hasText:ru?"Инвестиции":"Investments"}).click();
+ await page.getByRole("navigation",{name:ru?"Основная навигация":"Main navigation"}).getByRole("link",{name:ru?"Группы бумаг":"Security groups",exact:true}).click();await expect(page.getByRole("heading",{name:ru?"Группы бумаг":"Security groups",exact:true})).toBeVisible();await expect(page.getByText("OLD-CLOSED",{exact:true})).toBeVisible();
  await page.getByRole("textbox",{name:(ru?"Название группы":"Group name")+": Alpha",exact:true}).fill("Core");
  await page.getByRole("textbox",{name:ru?"Новая группа":"New group",exact:true}).fill("New");await page.getByRole("button",{name:ru?"Добавить группу":"Add group",exact:true}).click();
  await page.getByRole("button",{name:(ru?"Удалить группу":"Delete group")+": Beta",exact:true}).click();
@@ -52,7 +53,8 @@ for(const locale of ["ru","en"]){test(`${locale} groups classify accounts, prese
  await page.getByRole("button",{name:ru?"Сохранить группы":"Save groups",exact:true}).click();await expect(page.getByRole("button",{name:ru?"Сохранить группы":"Save groups",exact:true})).toBeDisabled();expect(writes).toBe(1);
  await page.reload();await expect(page.getByText("OLD-CLOSED",{exact:true})).toBeVisible();await expect(page.getByRole("combobox",{name:(ru?"Группа для":"Group for")+" ABC · Broker two",exact:true})).toHaveValue("");
  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:test.info().outputPath(`portfolio-group-manager-${locale}.png`),fullPage:true});
- await page.getByRole("navigation",{name:ru?"Навигация инвестиций":"Investment navigation"}).getByRole("link",{name:ru?"Портфель":"Portfolio",exact:true}).click();await expect(page).toHaveURL(new RegExp("group="+a));await expect(page.locator("tbody tr")).toHaveCount(0);await expect(page.locator("section").filter({has:page.getByRole("heading",{name:ru?"Прибыль":"Profit",exact:true})}).first()).toContainText("0 RUB");
+ await page.getByRole("button",{name:ru?"Основная навигация":"Main navigation"}).click();
+ await page.getByRole("navigation",{name:ru?"Основная навигация":"Main navigation"}).getByRole("link",{name:ru?"Портфель":"Portfolio",exact:true}).click();await expect(page).toHaveURL(new RegExp("group="+a));await expect(page.locator("tbody tr")).toHaveCount(0);await expect(page.locator("section").filter({has:page.getByRole("heading",{name:ru?"Прибыль":"Profit",exact:true})}).first()).toContainText("0 RUB");
  await page.getByRole("button",{name:ru?"Все категории":"All categories",exact:true}).click();await page.getByRole("button",{name:"New",exact:true}).click();await expect(page.locator("tbody tr").first()).toContainText(ru?"1 шт.":"1 units");
  await page.getByRole("button",{name:ru?"Все категории":"All categories",exact:true}).click();
  classification=create(InvestmentGroupsSchema,{...classification,version:3n,groups:classification.groups.map(g=>g.id===newGroup?{...g,name:"New updated"}:g)});

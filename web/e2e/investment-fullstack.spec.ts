@@ -55,6 +55,7 @@ for(const locale of ["ru","en"])test(`${locale} simple portfolio ${phase}`,async
  await page.getByRole("button",{name:ru?"Без категории":"Uncategorized",exact:true}).click();
  await expect(page.getByRole("table")).toContainText("TRACKER-STOCK");
  await expect(page.getByRole("table")).toContainText("100 RUB");
+ await page.locator("header summary").filter({hasText:ru?"Инвестиции":"Investments"}).click();
  await page.getByRole("link",{name:ru?"Выплаты":"Payouts",exact:true}).click();await expect(page.getByRole("table")).toContainText("15");
  if(phase==="readonly"){
   await expect(page.getByRole("button",{name:ru?"Добавить операцию":"Add operation",exact:true})).toHaveCount(0);

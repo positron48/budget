@@ -3,7 +3,7 @@
 import {useInvestmentAccess} from "@/lib/investment-access";
 import DisplayCurrencySelect from "@/components/DisplayCurrencySelect";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { authStore, AUTH_CHANGED_EVENT, TENANT_CHANGED_EVENT } from "@/lib/auth/store";
 import { useTranslations } from "next-intl";
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -15,6 +15,7 @@ export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled
   const investmentAccess=useInvestmentAccess(investmentsEnabled);
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const t = useTranslations("nav");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currentLocale, setCurrentLocale] = useState<string>("en");
@@ -97,16 +98,39 @@ export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled
     return pathname === path || pathname.startsWith(path + "/");
   };
 
-  const navGroups = [
+  const investmentLinks = [
+    ["/investments", "overview", "portfolio"],
+    ["/investments/analytics", "", "growth"],
+    ["/investments", "trades", "trades"],
+    ["/investments", "payments", "payments"],
+    ["/investments/calendar", "", "calendar"],
+    ["/investments/instruments", "", "findSecurity"],
+    ["/investments/groups", "", "securityGroups"],
+    ["/investments/accounts", "", "investmentAccounts"],
+    ["/investments/import", "", "import"],
+  ].map(([route, view, label]) => {
+    const params = new URLSearchParams(pathname.startsWith("/investments") ? searchParams.toString() : "");
+    params.delete("fx");
+    params.delete("page");
+    params.delete("view");
+    if (view && view !== "overview") params.set("view", view);
+    return {
+      href: route + (params.size ? "?" + params.toString() : ""),
+      label: t(label),
+      icon: "reports",
+      active: route === "/investments"
+        ? pathname === route && (searchParams.get("view") || "overview") === view
+        : isActive(route),
+    };
+  });
+  const navGroups: {label: string; items: {href: string; label: string; icon: string; active?: boolean}[]}[] = [
     {label: t("budget"), items: [
       {href: "/", label: t("home"), icon: "home"},
       {href: "/transactions", label: t("transactions"), icon: "transactions"},
       {href: "/reports", label: t("reports"), icon: "reports"},
       {href: "/categories", label: t("categories"), icon: "categories"},
     ]},
-    ...(investmentsEnabled && investmentAccess.isSuccess ? [{label: t("investments"), items: [
-      {href: "/investments", label: t("investments"), icon: "reports"},
-    ]}] : []),
+    ...(investmentsEnabled && investmentAccess.isSuccess ? [{label: t("investments"), items: investmentLinks}] : []),
     {label: t("assets"), items: [
       {href: "/assets", label: t("assets"), icon: "wallet"},
       {href: "/currency-exchanges", label: t("currencyExchanges"), icon: "fx"},
@@ -146,11 +170,11 @@ export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled
             {/* Desktop Navigation */}
             <nav ref={navigationRef} aria-label={t("navigation")} className="hidden xl:flex items-center gap-1">
               {navGroups.map(group => <details name="primary-navigation" key={group.label} className="relative group" onKeyDown={e => {if(e.key === "Escape") e.currentTarget.open = false;}}>
-                <summary className={`flex cursor-pointer list-none items-center gap-2 rounded-md px-3 py-2 text-sm font-medium ${group.items.some(item => isActive(item.href)) ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}>
+                <summary className={`flex cursor-pointer list-none items-center gap-2 rounded-md px-3 py-2 text-sm font-medium ${group.items.some(item => (item.active ?? isActive(item.href))) ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}>
                   {group.label}<span aria-hidden="true" className="text-xs group-open:rotate-180">⌄</span>
                 </summary>
-                <div className="absolute left-0 top-full z-50 mt-2 w-56 rounded-lg border border-border bg-[hsl(var(--card))] p-1 shadow-lg">
-                  {group.items.map(item => <Link key={item.href} href={item.href} aria-current={isActive(item.href) ? "page" : undefined} onClick={e => {const menu=e.currentTarget.closest("details");if(menu)menu.open=false;}} className="flex items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-accent">
+                <div className="absolute left-0 top-full z-50 mt-2 max-h-[calc(100dvh-5rem)] w-56 overflow-y-auto rounded-lg border border-border bg-[hsl(var(--card))] p-1 shadow-lg">
+                  {group.items.map(item => <Link key={item.href} href={item.href} aria-current={(item.active ?? isActive(item.href)) ? "page" : undefined} onClick={e => {const menu=e.currentTarget.closest("details");if(menu)menu.open=false;}} className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-accent ${(item.active ?? isActive(item.href)) ? "bg-accent font-medium text-foreground" : "text-muted-foreground"}`}>
                     <Icon name={item.icon as any} size={16}/>{item.label}
                   </Link>)}
                 </div>
@@ -266,8 +290,9 @@ export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled
                   key={item.href}
                   href={item.href}
                   onClick={() => setIsMenuOpen(false)}
+                  aria-current={(item.active ?? isActive(item.href)) ? "page" : undefined}
                   className={`flex items-center space-x-3 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                    isActive(item.href)
+                    (item.active ?? isActive(item.href))
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-accent"
                   }`}

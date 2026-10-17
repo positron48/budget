@@ -1,5 +1,14 @@
 {
   "nav": {
+    "portfolio": "Portfolio",
+    "growth": "Growth",
+    "trades": "Trades",
+    "payments": "Payouts",
+    "calendar": "Calendar",
+    "findSecurity": "Find security",
+    "securityGroups": "Security groups",
+    "investmentAccounts": "Accounts",
+    "import": "Import",
     "budget": "Budget",
     "navigation": "Main navigation",
     "home": "Home",
