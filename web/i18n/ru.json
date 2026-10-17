@@ -1,5 +1,7 @@
 {
   "nav": {
+    "budget": "Бюджет",
+    "navigation": "Основная навигация",
     "home": "Главная",
     "categories": "Категории",
     "transactions": "Транзакции",

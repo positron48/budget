@@ -17,7 +17,7 @@ export default function InvestmentNavigation(){
   ["/investments/accounts","","Счета","Accounts"],
   ["/investments/import","","Импорт","Import"],
  ];
- return <nav aria-label={ru?"Навигация инвестиций":"Investment navigation"} className="border-b border-slate-200 bg-white dark:border-slate-700 dark:bg-[#272832]">
+ return <nav aria-label={ru?"Навигация инвестиций":"Investment navigation"} className="border-b border-slate-200 bg-[hsl(var(--card))] dark:border-slate-700 ">
   <div className="mx-auto flex max-w-[1480px] flex-wrap gap-x-5 px-4 lg:px-7">{links.map(([route,view,r,e])=>{
    const q=new URLSearchParams(params);q.delete("fx");q.delete("page");q.delete("view");if(view&&view!=="overview")q.set("view",view);
    const active=path===route&&(route!=="/investments"||(params.get("view")||"overview")===view);

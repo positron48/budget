@@ -50,6 +50,22 @@ for (const locale of ["en", "ru"]) test(`shared display currency ${locale}`, asy
     await route.fulfill({status:200,contentType:"application/grpc-web+proto",body:Buffer.concat([header,body,end,trailer])});
   });
   await page.goto("/");
+  await page.setViewportSize({width:1440,height:1000});
+  const stats=page.locator(".card-content").filter({has:page.locator(".text-2xl.font-bold")});
+  await expect(stats).toHaveCount(3);
+  for (const card of await stats.all()) {
+    const padding=await card.evaluate(el=>{const s=getComputedStyle(el);return [s.paddingTop,s.paddingBottom];});
+    expect(padding[0]).toBe(padding[1]);
+  }
+  for (const width of [390,768,1024,1280,1440]) {
+    await page.setViewportSize({width,height:1000});
+    expect(await page.locator("header").first().evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+  }
+  await page.setViewportSize({width:1440,height:1000});
+  await page.locator("header summary").filter({hasText:locale==="ru"?"Бюджет":"Budget"}).click();
+  await expect(page.getByRole("link",{name:locale==="ru"?"Отчеты":"Reports",exact:true}).first()).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.screenshot({path:info.outputPath(`home-${locale}.png`),fullPage:true});
   const selector=page.getByRole("combobox",{name:locale==="ru"?"Валюта отображения":"Display currency"});
   await selector.selectOption("EUR");
   await expect.poll(()=>seen.some(q=>q.method==="GetMonthlySummary"&&q.currency==="EUR")).toBe(true);
@@ -63,14 +79,19 @@ for (const locale of ["en", "ru"]) test(`shared display currency ${locale}`, asy
   await expect.poll(()=>seen.filter(q=>["GetMonthlySummary","GetSummaryReport"].includes(q.method)&&q.currency==="EUR").length).toBeGreaterThan(1);
   await selector.selectOption("USD");
   await expect.poll(()=>seen.some(q=>["GetMonthlySummary","GetSummaryReport"].includes(q.method)&&q.currency==="USD")).toBe(true);
+  await page.screenshot({path:info.outputPath(`reports-${locale}.png`),fullPage:true});
   await page.goto("/assets");
   await expect(selector).toHaveValue("USD");
   await expect(page.getByText("Euro cash")).toBeVisible();
   await expect.poll(()=>seen.some(q=>q.method==="GetOverview"&&q.currency==="USD")).toBe(true);
   await page.reload();await expect(selector).toHaveValue("USD");
+  await page.screenshot({path:info.outputPath(`assets-${locale}.png`),fullPage:true});
   await page.goto("/investments");
   await expect(selector).toHaveValue("USD");
   await expect.poll(()=>seen.some(q=>q.method==="GetInvestmentExchangeRates"&&q.currency==="USD")).toBe(true);
+  await page.screenshot({path:info.outputPath(`investments-${locale}.png`),fullPage:true});
+  await page.getByRole("button",{name:locale==="ru"?"Переключить тему":"Toggle theme"}).click();
+  await page.screenshot({path:info.outputPath(`investments-${locale}-theme.png`),fullPage:true});
   await page.goto("/investments/calendar");
   await expect.poll(()=>seen.some(q=>q.method==="GetInvestmentForecast"&&q.currency==="USD")).toBe(true);
   await expect.poll(()=>seen.some(q=>q.method==="GetInvestmentPayouts"&&q.currency==="USD")).toBe(true);
@@ -78,6 +99,15 @@ for (const locale of ["en", "ru"]) test(`shared display currency ${locale}`, asy
   await expect(selector).toBeVisible();
   expect(await page.locator("header").first().evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
   await page.screenshot({path:info.outputPath(`currency-${locale}-mobile.png`)});
+  await page.getByRole("button",{name:locale==="ru"?"Основная навигация":"Main navigation"}).click();
+  await expect(page.getByRole("heading",{name:locale==="ru"?"Бюджет":"Budget",exact:true})).toBeVisible();
+  await page.getByRole("link",{name:locale==="ru"?"Главная":"Home",exact:true}).click();
+  for (const route of ["/", "/reports", "/assets", "/investments", "/investments/analytics"]) {
+    await page.goto(route);
+    await expect(selector).toBeVisible();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+    await page.screenshot({path:info.outputPath(`mobile-${locale}-${route.replaceAll("/","_")||"home"}.png`),fullPage:true});
+  }
   expect(writes).toBe(0);
   expect(errors).toEqual([]);
 });

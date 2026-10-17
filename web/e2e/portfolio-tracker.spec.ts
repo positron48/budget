@@ -189,8 +189,8 @@ for (const locale of ["ru", "en"]) {
     await page.getByRole("button", {name: ru ? "Импортировать (2)" : "Import 2 operations", exact: true}).click();
     await expect(page.getByRole("status")).toContainText(ru ? "Добавлено операций: 1" : "1 operation imported");
     await page.getByText(ru ? "Строк для уточнения: 1" : "Rows needing clarification: 1", {exact: true}).click();
-    await expect(page.locator("details")).toContainText("BAD@MCX");
-    await expect(page.locator("details")).toContainText(ru ? "Не хватает истории покупок" : "Purchase history is incomplete");
+    await expect(page.locator("main details")).toContainText("BAD@MCX");
+    await expect(page.locator("main details")).toContainText(ru ? "Не хватает истории покупок" : "Purchase history is incomplete");
     await page.getByRole("button", {name: ru ? "Предпросмотр" : "Preview", exact: true}).click();
     await expect(page.locator("main")).toContainText(ru ? "Уже добавлено: 1" : "Already imported: 1");
     expect(committed).toBe(1);

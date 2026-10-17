@@ -1,5 +1,7 @@
 {
   "nav": {
+    "budget": "Budget",
+    "navigation": "Main navigation",
     "home": "Home",
     "categories": "Categories",
     "transactions": "Transactions",

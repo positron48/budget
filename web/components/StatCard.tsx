@@ -24,11 +24,11 @@ export default function StatCard({ icon, title, value, change, color = "primary"
 
   return (
     <div className="card hover:shadow-md transition-shadow">
-      <div className="card-content">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
+      <div className="card-content flex h-full min-h-28 items-center">
+        <div className="flex w-full items-center justify-between gap-4">
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
-            <p className="text-2xl font-bold text-foreground mb-1">{value}</p>
+            <p className="text-2xl font-bold text-foreground break-words tabular-nums">{value}</p>
             {change && (
               <p className={`text-sm font-medium flex items-center space-x-1 ${
                 change.isPositive ? 'text-[hsl(var(--positive))]' : 'text-[hsl(var(--negative))]'
@@ -41,7 +41,7 @@ export default function StatCard({ icon, title, value, change, color = "primary"
               </p>
             )}
           </div>
-          <div className={`p-3 rounded-lg ${colorClasses[color]}`}>
+          <div className={`shrink-0 p-3 rounded-lg ${colorClasses[color]}`}>
             <Icon name={icon} size={24} />
           </div>
         </div>

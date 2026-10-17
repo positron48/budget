@@ -19,7 +19,7 @@ export default function PortfolioFX({tenantId,policy,ru}:{tenantId:string;policy
  const p=query.data,source=p?.source==="alphavantage"?"Alpha Vantage":p?.source==="cbr"?tr("Банк России","Bank of Russia"):p?.source;
  const rows=["USD","EUR"].map(from=>({from,value:currentFXRow(p,from),change:currentFXChange(p,from)}));
  const date=(seconds:bigint)=>new Date(Number(seconds)*1000).toISOString().replace("T"," ").replace(".000Z"," UTC");
- return <section aria-label={tr("Валютные курсы портфеля","Portfolio exchange rates")} className="rounded-2xl border border-slate-200 bg-white px-6 py-5 dark:border-slate-700/40 dark:bg-[#30313d]">
+ return <section aria-label={tr("Валютные курсы портфеля","Portfolio exchange rates")} className="rounded-2xl border border-slate-200 bg-[hsl(var(--card))] px-6 py-5 dark:border-slate-700/40 ">
  <h2 className="mb-4 font-semibold">{tr("Мои котировки","My quotes")}</h2>
  <div className="flex flex-wrap gap-x-12 gap-y-4">{rows.map(({from,value,change})=><div key={from} className="flex items-center gap-3" title={[source,value?.legs.map(l=>date(l.asOf!.seconds)).join(" · "),change?tr("Сравнение с ","Compared with ")+date(change.legs[0].asOf!.seconds):""].filter(Boolean).join(" · ")}>
  <span className="text-2xl" aria-hidden="true">{from==="USD"?"🇺🇸":"🇪🇺"}</span><span className="text-sm font-semibold">{from}RUB</span>

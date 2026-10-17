@@ -31,7 +31,7 @@ import {positionDecimal, type Fraction} from "@/lib/investment-positions";
 import type {InvestmentLedger, InvestmentOperation, InvestmentSnapshot} from "@/proto/budget/v1/investment_pb";
 import type {TenantMembership} from "@/proto/budget/v1/tenant_pb";
 
-const panel = "rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-[#30313d]";
+const panel = "rounded-2xl border border-slate-200 bg-[hsl(var(--card))] dark:border-slate-800 ";
 const input = "mt-1 w-full rounded-lg border border-slate-300 bg-transparent px-3 py-2 dark:border-slate-700";
 const secondary = "inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-800";
 const primary = "inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-40";
@@ -192,7 +192,7 @@ function Tracker({tenantId,analyticsOnly=false}: {tenantId: string;analyticsOnly
   const availableInstruments=[...new Set([...(data.data?.operations||[]).filter(o=>o.status==="posted").flatMap(o=>[o.instrumentKey,o.distribution?.targetInstrumentKey||""]),...(data.data?.snapshots||[]).flatMap(s=>s.positions.map(p=>p.instrumentKey))].filter(Boolean))].sort();
   const invalidInstrument=!emptySelection&&!!data.data&&instrumentKeys.some(key=>!availableInstruments.includes(key));
   const error = ledgers.error || data.error || roles.error || (!analyticsOnly||groupIDs.length?groups.error:undefined);
-  return <div className="min-h-screen bg-slate-50/70 text-slate-800 dark:bg-[#272832] dark:text-slate-100">
+  return <div className="min-h-screen bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
     <div className="mx-auto grid max-w-[1480px] gap-6 px-4 py-7 lg:grid-cols-[210px_minmax(0,1fr)] lg:px-7">
       <aside className="min-w-0 space-y-5 lg:pt-2"><div className="flex items-center gap-2 text-lg font-semibold"><Wallet size={20} className="text-emerald-600"/>{tr("Мои портфели", "My portfolios")}</div>
         <div className="flex gap-2 overflow-x-auto lg:flex-col"><button onClick={() => setAccount("")} className={`whitespace-nowrap rounded-xl px-3 py-3 text-left text-sm ${!accountScope.explicit ? "bg-emerald-50 font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "hover:bg-slate-100 dark:hover:bg-slate-800"}`}>{tr("Все счета", "All accounts")}</button>{ledgers.data?.map(l => <button key={l.id} onClick={() => setAccount(l.id)} className={`flex items-center justify-between gap-3 whitespace-nowrap rounded-xl px-3 py-3 text-left text-sm ${accountScope.ids.length===1&&account === l.id ? "bg-emerald-50 font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "hover:bg-slate-100 dark:hover:bg-slate-800"}`}><span>{l.name}</span>{l.accountType === "iis" && <span className="text-[10px] text-slate-400">{tr("ИИС", "IIS")}</span>}</button>)}</div>

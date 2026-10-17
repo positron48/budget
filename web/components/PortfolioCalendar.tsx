@@ -23,7 +23,7 @@ import {positionDecimal} from "@/lib/investment-positions";
 import {InvestmentForecastEventSchema,type ListInvestmentLedgersResponse,type GetInvestmentForecastResponse,type GetInvestmentPayoutsResponse,type InvestmentForecastEvent,type InvestmentForecastRow,type InvestmentPayoutAmount,type InvestmentLedger,type InvestmentOperation} from "@/proto/budget/v1/investment_pb";
 import type {TenantMembership} from "@/proto/budget/v1/tenant_pb";
 import type {ListInvestmentValuationProfilesResponse,InvestmentValuationProfileOption} from "@/proto/budget/v1/investment_nav_pb";
-const panel="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900";
+const panel="rounded-2xl border border-slate-200 bg-[hsl(var(--card))] p-5 dark:border-slate-800 ";
 const input="w-full rounded-lg border border-slate-300 bg-transparent px-3 py-2 text-sm dark:border-slate-700";
 const button="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:opacity-40 dark:border-slate-700";
 async function scoped<T>(tenantId:string,signal:AbortSignal|undefined,request:(task:ReturnType<typeof tenantRequestScope>)=>Promise<T>){

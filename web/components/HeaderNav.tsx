@@ -20,6 +20,7 @@ export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled
   const [currentLocale, setCurrentLocale] = useState<string>("en");
   const [isAccountOpen, setIsAccountOpen] = useState<boolean>(false);
   const [mounted, setMounted] = useState<boolean>(false);
+  const navigationRef = useRef<HTMLElement | null>(null);
   const accountRef = useRef<HTMLDivElement | null>(null);
   const { tenant } = useClients();
   const qc = useQueryClient();
@@ -46,6 +47,9 @@ export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled
   // Close account menu on outside click or Escape
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
+      navigationRef.current?.querySelectorAll("details[open]").forEach(menu => {
+        if (e.target instanceof Node && !menu.contains(e.target)) menu.removeAttribute("open");
+      });
       if (!isAccountOpen) return;
       const node = accountRef.current;
       if (node && e.target instanceof Node && !node.contains(e.target)) {
@@ -66,6 +70,7 @@ export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled
   // Close menu on route changes
   useEffect(() => {
     setIsAccountOpen(false);
+    setIsMenuOpen(false);
   }, [pathname]);
 
   const onLogout = () => {
@@ -92,17 +97,21 @@ export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled
     return pathname === path || pathname.startsWith(path + "/");
   };
 
-  const navItems = [
-    { href: "/", label: t("home"), icon: "home" },
-    { href: "/transactions", label: t("transactions"), icon: "transactions" },
-    { href: "/assets", label: t("assets"), icon: "wallet" },
-    ...(investmentsEnabled && investmentAccess.isSuccess ? [{ href: "/investments", label: t("investments"), icon: "reports" }] : []),
-    { href: "/currency-exchanges", label: t("currencyExchanges"), icon: "fx" },
-    { href: "/categories", label: t("categories"), icon: "categories" },
-    { href: "/reports", label: t("reports"), icon: "reports" },
-    { href: "/fx", label: t("fx"), icon: "fx" },
-    { href: "/account", label: t("tenants"), icon: "tenants" },
-    { href: "/settings/profile", label: t("profile"), icon: "profile" },
+  const navGroups = [
+    {label: t("budget"), items: [
+      {href: "/", label: t("home"), icon: "home"},
+      {href: "/transactions", label: t("transactions"), icon: "transactions"},
+      {href: "/reports", label: t("reports"), icon: "reports"},
+      {href: "/categories", label: t("categories"), icon: "categories"},
+    ]},
+    ...(investmentsEnabled && investmentAccess.isSuccess ? [{label: t("investments"), items: [
+      {href: "/investments", label: t("investments"), icon: "reports"},
+    ]}] : []),
+    {label: t("assets"), items: [
+      {href: "/assets", label: t("assets"), icon: "wallet"},
+      {href: "/currency-exchanges", label: t("currencyExchanges"), icon: "fx"},
+      {href: "/fx", label: t("fx"), icon: "fx"},
+    ]},
   ];
 
   // Load user memberships to show active account name and allow switching
@@ -131,32 +140,26 @@ export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled
               className="flex items-center space-x-2 text-xl font-bold text-primary hover:text-primary/80 transition-colors"
             >
               <Icon name="wallet" size={24} className="text-primary" />
-              <span className="hidden min-[420px]:inline">Budget<span className="hidden sm:inline"> Manager</span></span>
+              <span className="hidden min-[420px]:inline">Budget<span className="hidden 2xl:inline"> Manager</span></span>
             </Link>
             
             {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center space-x-1">
-              {navItems.slice(1).map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  title={item.label}
-                  aria-label={item.label}
-                  className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                    isActive(item.href)
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                  }`}
-                >
-                  <Icon name={item.icon as any} size={16} />
-                  <span className="hidden 2xl:inline">{item.label}</span>
-                </Link>
-              ))}
+            <nav ref={navigationRef} aria-label={t("navigation")} className="hidden xl:flex items-center gap-1">
+              {navGroups.map(group => <details name="primary-navigation" key={group.label} className="relative group" onKeyDown={e => {if(e.key === "Escape") e.currentTarget.open = false;}}>
+                <summary className={`flex cursor-pointer list-none items-center gap-2 rounded-md px-3 py-2 text-sm font-medium ${group.items.some(item => isActive(item.href)) ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}>
+                  {group.label}<span aria-hidden="true" className="text-xs group-open:rotate-180">⌄</span>
+                </summary>
+                <div className="absolute left-0 top-full z-50 mt-2 w-56 rounded-lg border border-border bg-[hsl(var(--card))] p-1 shadow-lg">
+                  {group.items.map(item => <Link key={item.href} href={item.href} aria-current={isActive(item.href) ? "page" : undefined} onClick={e => {const menu=e.currentTarget.closest("details");if(menu)menu.open=false;}} className="flex items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-accent">
+                    <Icon name={item.icon as any} size={16}/>{item.label}
+                  </Link>)}
+                </div>
+              </details>)}
             </nav>
           </div>
 
           {/* Right side - Locale and Account */}
-          <div className="flex items-center gap-1.5 sm:gap-4">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {mounted && isAuthorized && <DisplayCurrencySelect />}
             {/* Locale Switcher */}
             <div className="flex items-center space-x-1 bg-muted rounded-md p-1">
@@ -195,7 +198,7 @@ export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled
                   icon="wallet"
                   aria-label={activeTenantName || "Account"}
                 >
-                  <span className="hidden max-w-40 truncate sm:inline">{activeTenantName || "Account"}</span>
+                  <span className="hidden max-w-28 truncate md:inline">{activeTenantName || "Account"}</span>
                 </Button>
                 {isAccountOpen && (
                   <div
@@ -224,6 +227,7 @@ export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled
                         </button>
                       ))}
                       <div className="my-1 border-t border-border/60" />
+                      {[{href:"/account",label:t("tenants")},{href:"/settings/profile",label:t("profile")}].map(item => <Link key={item.href} href={item.href} onClick={()=>setIsAccountOpen(false)} className="block px-3 py-2 text-sm hover:bg-secondary/40">{item.label}</Link>)}
                       <button
                         onClick={() => { setIsAccountOpen(false); onLogout(); }}
                         className="w-full text-left px-3 py-2 text-sm hover:bg-secondary/40 flex items-center gap-2 text-[hsl(var(--negative))]"
@@ -238,16 +242,16 @@ export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled
             )}
 
             {/* Mobile Menu Button */}
-            <div className="lg:hidden">
+            <div className="xl:hidden">
               <Button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 variant="ghost"
                 size="sm"
                 icon={isMenuOpen ? "close" : "menu"}
                 className="p-2"
-                aria-label="Toggle menu"
+                aria-label={t("navigation")} aria-expanded={isMenuOpen}
               >
-                <span className="sr-only">Toggle menu</span>
+                <span className="sr-only">{t("navigation")}</span>
               </Button>
             </div>
           </div>
@@ -255,9 +259,9 @@ export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="lg:hidden border-t bg-background animate-in">
-            <nav className="py-4 space-y-1">
-              {navItems.map((item) => (
+          <div className="xl:hidden border-t bg-background animate-in">
+            <nav aria-label={t("navigation")} className="max-h-[calc(100dvh-4rem)] overflow-y-auto py-3">
+              {navGroups.map(group => <section key={group.label} className="pb-3"><h2 className="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group.label}</h2>{group.items.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
@@ -271,7 +275,7 @@ export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled
                   <Icon name={item.icon as any} size={18} />
                   <span>{item.label}</span>
                 </Link>
-              ))}
+              ))}</section>)}
               {mounted && isAuthorized && (
                 <>
                   <div className="my-2 border-t border-border/60" />

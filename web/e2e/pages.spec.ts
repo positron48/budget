@@ -22,6 +22,7 @@ const account = { id: "test-account", name: "Smoke account", kind: "bank", versi
 for (const locale of ["en", "ru"]) {
   for (const route of routes) {
     test(`${locale} ${route} renders without JavaScript errors`, async ({ page, context }) => {
+      await page.route("https://accounts.google.com/gsi/client", route => route.fulfill({contentType:"application/javascript",body:""}));
       const errors: string[] = [];
       let importAccountID = "proposal-a";
       let journalCash = "1000";
