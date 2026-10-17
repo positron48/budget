@@ -196,12 +196,12 @@ func (r *TransactionRepo) List(ctx context.Context, tenantID string, filter txus
 		orderByWithJoin := strings.ReplaceAll(orderBy, "category_code", "c.code")
 		query = fmt.Sprintf(
 			"SELECT t.id, t.tenant_id, t.user_id, t.category_id, t.type::text, t.amount_numeric::text, t.currency_code, t.base_amount_numeric::text, t.base_currency_code, t.fx_rate::text, t.fx_provider, t.fx_as_of, t.occurred_at, t.comment, t.created_at, t.is_extraordinary, COALESCE(t.asset_account_id::text,'') FROM transactions t LEFT JOIN categories c ON t.category_id = c.id WHERE %s ORDER BY %s OFFSET $%d LIMIT $%d",
-			strings.ReplaceAll(strings.ReplaceAll(clause, "tenant_id=$1", "t.tenant_id=$1"), "is_extraordinary", "t.is_extraordinary"), orderByWithJoin, offIdx, limIdx,
+			strings.ReplaceAll(strings.ReplaceAll(clause, "tenant_id=$1", "t.tenant_id=$1"), "is_extraordinary", "t.is_extraordinary"), orderByWithJoin+", t.id ASC", offIdx, limIdx,
 		)
 	} else {
 		query = fmt.Sprintf(
 			"SELECT id, tenant_id, user_id, category_id, type::text, amount_numeric::text, currency_code, base_amount_numeric::text, base_currency_code, fx_rate::text, fx_provider, fx_as_of, occurred_at, comment, created_at, is_extraordinary, COALESCE(asset_account_id::text,'') FROM transactions WHERE %s ORDER BY %s OFFSET $%d LIMIT $%d",
-			clause, orderBy, offIdx, limIdx,
+			clause, orderBy+", id ASC", offIdx, limIdx,
 		)
 	}
 	rows, err := r.pool.query(ctx).Query(ctx, query, append(args, offset, size)...)

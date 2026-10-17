@@ -75,4 +75,32 @@ func TestBudgetMulticurrency_PG(t *testing.T) {
 	if count != 3 {
 		t.Fatal(count)
 	}
+	// More than one report page of identical timestamps must not duplicate/skip rows.
+	_, err = pool.DB.Exec(ctx, `INSERT INTO transactions(tenant_id,user_id,category_id,type,amount_numeric,currency_code,base_amount_numeric,base_currency_code,fx_rate,fx_provider,fx_as_of,occurred_at,comment) SELECT $1,$2,$3,'expense',g/100.0,'EUR',g/100.0*125,'RUB',125,'cbr',$4,$5,'' FROM generate_series(1,501) g`, tenant, user, cat, friday, sunday)
+	must(err)
+	_, total, err = svc.Totals(ctx, tenant, filter)
+	must(err)
+	if total.MinorUnits != 129351 {
+		t.Fatalf("pagination changed total: %+v", total)
+	}
+	seen := make(map[string]bool)
+	for page := 1; page <= 11; page++ {
+		filter.Page, filter.PageSize = page, 50
+		items, _, err := svc.List(ctx, tenant, filter)
+		must(err)
+		for _, tx := range items {
+			if seen[tx.ID] {
+				t.Fatalf("duplicate row %s", tx.ID)
+			}
+			seen[tx.ID] = true
+		}
+	}
+	if len(seen) != 504 {
+		t.Fatalf("missing rows: %d", len(seen))
+	}
+	filter.Page, filter.Sort = 1, "category_code asc"
+	if _, _, err = svc.List(ctx, tenant, filter); err != nil {
+		t.Fatal("joined sort", err)
+	}
+
 }

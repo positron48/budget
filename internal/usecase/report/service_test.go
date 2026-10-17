@@ -94,3 +94,34 @@ func TestReportsUseOriginalAmountAndPreserveSnapshot(t *testing.T) {
 		}
 	}
 }
+
+type rangeCapture struct {
+	stubTxService
+	filter txuse.ListFilter
+}
+
+func (r *rangeCapture) List(_ context.Context, _ string, f txuse.ListFilter) ([]domain.Transaction, int64, error) {
+	r.filter = f
+	return nil, 0, nil
+}
+func TestMonthlyAndSummaryShareLocalCalendarBounds(t *testing.T) {
+	for _, offset := range []int{-120, -180, 240} {
+		capture := &rangeCapture{}
+		svc := NewService(capture, fxRepoStub{}, tRepoStub{base: "RUB"}, cRepoStub{})
+		_, err := svc.GetMonthlySummary(context.Background(), "t1", 2026, 10, "en", "EUR", offset, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		monthly := capture.filter
+		summary, err := svc.GetSummaryReport(context.Background(), "t1", "2026-10-01", "2026-10-31", "en", "EUR", offset, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !monthly.From.Equal(*capture.filter.From) || !monthly.To.Equal(*capture.filter.To) {
+			t.Fatalf("offset %d monthly %v..%v summary %v..%v", offset, monthly.From, monthly.To, capture.filter.From, capture.filter.To)
+		}
+		if len(summary.Months) != 1 || summary.Months[0] != "2026-10" {
+			t.Fatal(summary.Months)
+		}
+	}
+}

@@ -181,19 +181,16 @@ func (s *Service) GetMonthlySummary(ctx context.Context, tenantID string, year i
 }
 
 func (s *Service) GetSummaryReport(ctx context.Context, tenantID string, fromDate, toDate, locale, targetCurrencyCode string, tzOffsetMinutes int, excludeExtraordinary bool) (SummaryReport, error) {
-	// Parse date range
-	fromLocal, err := time.Parse("2006-01-02", fromDate)
+	// Parse calendar dates in the client timezone before converting to UTC.
+	location := time.FixedZone("client", -tzOffsetMinutes*60)
+	fromLocal, err := time.ParseInLocation("2006-01-02", fromDate, location)
 	if err != nil {
 		return SummaryReport{}, err
 	}
-	toLocal, err := time.Parse("2006-01-02", toDate)
+	toLocal, err := time.ParseInLocation("2006-01-02", toDate, location)
 	if err != nil {
 		return SummaryReport{}, err
 	}
-
-	// Apply timezone offset
-	fromLocal = fromLocal.In(time.FixedZone("client", -tzOffsetMinutes*60))
-	toLocal = toLocal.In(time.FixedZone("client", -tzOffsetMinutes*60))
 
 	// Convert to UTC for DB comparison
 	from := fromLocal.UTC()
