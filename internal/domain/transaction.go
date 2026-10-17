@@ -25,6 +25,7 @@ type Transaction struct {
 	Type            TransactionType
 	Amount          Money
 	BaseAmount      Money
+	DisplayAmount   *Money // response-only equivalent; never persisted
 	Fx              *FxInfo
 	OccurredAt      time.Time
 	Comment         string

@@ -49,25 +49,52 @@ func MoscowDate(now time.Time) time.Time {
 	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
 }
 
+// HistoryStart includes existing budget operations before the default FX history.
+func (s Service) HistoryStart(ctx context.Context) (time.Time, error) {
+	from := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	if history, ok := s.Store.(interface {
+		BudgetHistoryStart(context.Context) (time.Time, error)
+	}); ok {
+		earliest, err := history.BudgetHistoryStart(ctx)
+		if err != nil {
+			return time.Time{}, err
+		}
+		if !earliest.IsZero() && earliest.Before(from) {
+			from = MoscowDate(earliest)
+		}
+	}
+	return from, nil
+}
+
 // Run retries failed imports hourly. Only a fully persisted import advances the window.
 // A restart rechecks all history, repairing gaps without a separate checkpoint table.
 func (s Service) Run(ctx context.Context, report func(int, error)) {
 	from := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
-	var through time.Time
+	var through, historyStart time.Time
 	ticker := time.NewTicker(time.Hour)
 	defer ticker.Stop()
 	for {
 		today := MoscowDate(time.Now())
-		if today.After(through) {
-			attempt, cancel := context.WithTimeout(ctx, 10*time.Minute)
-			n, err := s.Import(attempt, from, today, false)
-			cancel()
-			report(n, err)
-			if err == nil {
-				through = today
-				from = today.AddDate(0, 0, -7)
+		attempt, cancel := context.WithTimeout(ctx, 10*time.Minute)
+		earliest, err := s.HistoryStart(attempt)
+		if err != nil {
+			report(0, err)
+		} else {
+			older := historyStart.IsZero() || earliest.Before(historyStart)
+			if today.After(through) || older {
+				if older {
+					from = earliest
+				}
+				n, err := s.Import(attempt, from, today, false)
+				report(n, err)
+				if err == nil {
+					through, historyStart = today, earliest
+					from = today.AddDate(0, 0, -7)
+				}
 			}
 		}
+		cancel()
+
 		select {
 		case <-ctx.Done():
 			return

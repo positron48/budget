@@ -1,3 +1,4 @@
+import {useDisplayCurrency} from "@/lib/display-currency";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { authStore, AUTH_CHANGED_EVENT, TENANT_CHANGED_EVENT } from "@/lib/auth/store";
@@ -170,22 +171,8 @@ export function valueAssetAccounts(
 }
 
 export function useAssetDisplayCurrency(tenant?: string) {
-  const [selection, setSelection] = useState<{ tenant: string; code: string }>();
-  useEffect(() => {
-    if (!tenant) return;
-    let code = "";
-    try { code = localStorage.getItem(`assets:display-currency:${tenant}`) || ""; }
-    catch { /* Storage may be disabled; selection still works for this visit. */ }
-    setSelection({ tenant, code: /^[A-Z]{3}$/.test(code) ? code : "" });
-  }, [tenant]);
-  const ready = !!tenant && selection?.tenant === tenant;
-  const select = (code: string) => {
-    if (!tenant) return;
-    setSelection({ tenant, code });
-    try { localStorage.setItem(`assets:display-currency:${tenant}`, code); }
-    catch { /* Keep the in-memory choice. */ }
-  };
-  return { target: ready ? selection.code : "", setTarget: select, ready };
+  const {currency, setCurrency, ready} = useDisplayCurrency(tenant);
+  return {target: currency, setTarget: setCurrency, ready};
 }
 
 export function useAssetIncludeProperty(tenant?: string) {

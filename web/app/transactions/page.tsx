@@ -1,6 +1,7 @@
 "use client";
+import {useDisplayCurrency} from "@/lib/display-currency";
 
-import { ClientsProvider, useClients } from "@/app/providers";
+import { useClients } from "@/app/providers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { TransactionType, CategoryKind } from "@/proto/budget/v1/common_pb";
@@ -17,6 +18,7 @@ const SURFACE_CARD = "rounded-lg border border-border bg-card/80 backdrop-blur s
 const PANEL_CARD = "rounded-lg border border-border bg-secondary/40";
 
 function TransactionsInner() {
+  const {currency, tenant} = useDisplayCurrency();
   const { transaction, category } = useClients();
   const t = useTranslations("transactions");
   const tc = useTranslations("common");
@@ -76,7 +78,7 @@ function TransactionsInner() {
 
 
   const request = useMemo(() => {
-    const req: any = { page: { page, pageSize, sort } };
+    const req: any = { page: { page, pageSize, sort }, targetCurrencyCode: currency };
     if (type) req.type = type;
     if (from || to) {
       req.dateRange = {};
@@ -93,10 +95,10 @@ function TransactionsInner() {
     if (debouncedSearch) req.search = debouncedSearch;
     if (selectedCategoryIds.length) req.categoryIds = selectedCategoryIds;
     return req;
-  }, [page, pageSize, sort, type, from, to, debouncedSearch, selectedCategoryIds]);
+  }, [page, pageSize, sort, type, from, to, debouncedSearch, selectedCategoryIds, currency]);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["transactions", request],
+    queryKey: ["transactions", tenant, request],
     queryFn: async () => (await transaction.listTransactions(request as any)) as any,
     retry: false,
     refetchOnWindowFocus: false,
@@ -104,12 +106,12 @@ function TransactionsInner() {
     refetchInterval: false,
     refetchOnMount: false,
     gcTime: 600000, // 10 минут
-    placeholderData: (previousData) => previousData,
+
   });
 
   // Totals for full filtered period via RPC (ignores pagination)
   const totalsRequest = useMemo(() => {
-    const req: any = {};
+    const req: any = {targetCurrencyCode: currency};
     if (type) req.type = type;
     if (from || to) {
       req.dateRange = {};
@@ -126,10 +128,10 @@ function TransactionsInner() {
     if (debouncedSearch) req.search = debouncedSearch;
     if (selectedCategoryIds.length) req.categoryIds = selectedCategoryIds;
     return req;
-  }, [type, from, to, debouncedSearch, selectedCategoryIds]);
+  }, [type, from, to, debouncedSearch, selectedCategoryIds, currency]);
 
   const { data: totalsData, isLoading: totalsLoading, error: totalsError } = useQuery({
-    queryKey: ["transactionsTotals", totalsRequest],
+    queryKey: ["transactionsTotals", tenant, totalsRequest],
     queryFn: async () => {
       const resp = await transaction.getTransactionsTotals(totalsRequest as any);
       return {
@@ -277,6 +279,7 @@ function TransactionsInner() {
           onToChange={setToCallback}
         />
 
+        {totalsError && <p role="alert" className="mb-4 text-destructive">{locale === "ru" ? "Не удалось пересчитать итоги в выбранную валюту." : "Could not convert totals to the selected currency."}</p>}
         {/* Statistics (full filtered period, ignores pagination) */}
         {!isLoading && !error && Number(data?.page?.totalItems || 0) > 0 && !totalsLoading && !totalsError && totalsData && (
           <div className="mb-4">
@@ -434,9 +437,7 @@ function TransactionsInner() {
 
 export default function TransactionsPage() {
   return (
-    <ClientsProvider>
-      <TransactionsInner />
-    </ClientsProvider>
+    <TransactionsInner />
   );
 }
 
@@ -760,7 +761,7 @@ function TransactionTable({
                       }`}
                     >
                       {tx?.type === TransactionType.EXPENSE ? "-" : "+"}
-                      {assetMoney(tx?.amount?.minorUnits ?? 0n, tx?.amount?.currencyCode, locale)}
+                      {assetMoney(tx?.amount?.minorUnits ?? 0n, tx?.amount?.currencyCode, locale)}{tx?.displayAmount && tx.amount?.currencyCode !== tx.displayAmount.currencyCode && <span className="block text-xs text-muted-foreground">≈ {assetMoney(tx.displayAmount.minorUnits, tx.displayAmount.currencyCode, locale)}</span>}
                     </div>
                   )}
                 </td>

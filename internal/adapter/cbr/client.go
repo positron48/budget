@@ -109,7 +109,7 @@ func unitRate(v value) (string, error) {
 	return rate, nil
 }
 
-func (c *Client) snapshot(ctx context.Context, at time.Time) (map[string]fximport.Quote, map[string]string, error) {
+func (c *Client) snapshot(ctx context.Context, at time.Time, codes []string) (map[string]fximport.Quote, map[string]string, error) {
 	var doc daily
 	if err := c.get(ctx, "XML_daily.asp", url.Values{"date_req": {at.Format("02/01/2006")}}, &doc); err != nil {
 		return nil, nil, err
@@ -121,7 +121,7 @@ func (c *Client) snapshot(ctx context.Context, at time.Time) (map[string]fximpor
 	quotes := map[string]fximport.Quote{}
 	ids := map[string]string{}
 	for _, v := range doc.Values {
-		for _, code := range currencies {
+		for _, code := range codes {
 			if v.Code != code {
 				continue
 			}
@@ -136,7 +136,7 @@ func (c *Client) snapshot(ctx context.Context, at time.Time) (map[string]fximpor
 			quotes[code] = fximport.Quote{Currency: code, Rate: rate, Date: date}
 		}
 	}
-	for _, code := range currencies {
+	for _, code := range codes {
 		if ids[code] == "" {
 			return nil, nil, fmt.Errorf("CBR snapshot missing %s", code)
 		}
@@ -147,19 +147,54 @@ func (c *Client) snapshot(ctx context.Context, at time.Time) (map[string]fximpor
 // Fetch includes the effective opening quote, even when its date precedes from.
 // The closing snapshot verifies that a successful but truncated history isn't saved.
 func (c *Client) Fetch(ctx context.Context, from, to time.Time) ([]fximport.Quote, error) {
+	cutoff := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	if !from.IsZero() && from.Before(cutoff) && !to.Before(from) {
+		// Budget display needs EUR/USD for old RUB operations too. Some currencies
+		// in the modern asset feed (e.g. GEL) did not have CBR quotes in old years.
+		end := cutoff.AddDate(0, 0, -1)
+		if to.Before(end) {
+			end = to
+		}
+		old, err := c.fetch(ctx, from, end, []string{"USD", "EUR"})
+		if err != nil || to.Before(cutoff) {
+			return old, err
+		}
+		recent, err := c.fetch(ctx, cutoff, to, currencies)
+		if err != nil {
+			return nil, err
+		}
+		seen := make(map[string]string)
+		out := make([]fximport.Quote, 0, len(old)+len(recent))
+		for _, q := range append(old, recent...) {
+			key := q.Currency + q.Date.Format(time.DateOnly)
+			if rate, ok := seen[key]; ok {
+				if rate != q.Rate {
+					return nil, fmt.Errorf("conflicting CBR quotes for %s", key)
+				}
+				continue
+			}
+			seen[key] = q.Rate
+			out = append(out, q)
+		}
+		return out, nil
+	}
+	return c.fetch(ctx, from, to, currencies)
+}
+
+func (c *Client) fetch(ctx context.Context, from, to time.Time, codes []string) ([]fximport.Quote, error) {
 	if from.IsZero() || to.Before(from) {
 		return nil, fmt.Errorf("invalid CBR period")
 	}
-	opening, ids, err := c.snapshot(ctx, from)
+	opening, ids, err := c.snapshot(ctx, from, codes)
 	if err != nil {
 		return nil, err
 	}
-	closing, _, err := c.snapshot(ctx, to)
+	closing, _, err := c.snapshot(ctx, to, codes)
 	if err != nil {
 		return nil, err
 	}
 	out := []fximport.Quote{}
-	for _, code := range currencies {
+	for _, code := range codes {
 		timer := time.NewTimer(100 * time.Millisecond)
 		select {
 		case <-ctx.Done():

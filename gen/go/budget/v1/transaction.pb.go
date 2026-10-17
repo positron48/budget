@@ -37,6 +37,7 @@ type Transaction struct {
 	Comment         string                 `protobuf:"bytes,10,opt,name=comment,proto3" json:"comment,omitempty"`
 	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	IsExtraordinary bool                   `protobuf:"varint,12,opt,name=is_extraordinary,json=isExtraordinary,proto3" json:"is_extraordinary,omitempty"` // one-off operation excluded from reports on demand
+	DisplayAmount   *Money                 `protobuf:"bytes,14,opt,name=display_amount,json=displayAmount,proto3" json:"display_amount,omitempty"`        // optional equivalent in requested display currency
 	AssetAccountId  string                 `protobuf:"bytes,13,opt,name=asset_account_id,json=assetAccountId,proto3" json:"asset_account_id,omitempty"`   // optional account balance affected by this transaction
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
@@ -154,6 +155,13 @@ func (x *Transaction) GetIsExtraordinary() bool {
 		return x.IsExtraordinary
 	}
 	return false
+}
+
+func (x *Transaction) GetDisplayAmount() *Money {
+	if x != nil {
+		return x.DisplayAmount
+	}
+	return nil
 }
 
 func (x *Transaction) GetAssetAccountId() string {
@@ -580,17 +588,18 @@ func (x *GetTransactionResponse) GetTransaction() *Transaction {
 }
 
 type ListTransactionsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Page          *PageRequest           `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
-	DateRange     *DateRange             `protobuf:"bytes,2,opt,name=date_range,json=dateRange,proto3" json:"date_range,omitempty"`
-	CategoryIds   []string               `protobuf:"bytes,3,rep,name=category_ids,json=categoryIds,proto3" json:"category_ids,omitempty"`
-	Type          TransactionType        `protobuf:"varint,4,opt,name=type,proto3,enum=budget.v1.TransactionType" json:"type,omitempty"`           // optional filter
-	MinMinorUnits int64                  `protobuf:"varint,5,opt,name=min_minor_units,json=minMinorUnits,proto3" json:"min_minor_units,omitempty"` // optional amount filters
-	MaxMinorUnits int64                  `protobuf:"varint,6,opt,name=max_minor_units,json=maxMinorUnits,proto3" json:"max_minor_units,omitempty"`
-	CurrencyCode  string                 `protobuf:"bytes,7,opt,name=currency_code,json=currencyCode,proto3" json:"currency_code,omitempty"` // optional filter by transaction currency
-	Search        string                 `protobuf:"bytes,8,opt,name=search,proto3" json:"search,omitempty"`                                 // comment search
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	TargetCurrencyCode string                 `protobuf:"bytes,9,opt,name=target_currency_code,json=targetCurrencyCode,proto3" json:"target_currency_code,omitempty"` // optional response valuation currency
+	Page               *PageRequest           `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
+	DateRange          *DateRange             `protobuf:"bytes,2,opt,name=date_range,json=dateRange,proto3" json:"date_range,omitempty"`
+	CategoryIds        []string               `protobuf:"bytes,3,rep,name=category_ids,json=categoryIds,proto3" json:"category_ids,omitempty"`
+	Type               TransactionType        `protobuf:"varint,4,opt,name=type,proto3,enum=budget.v1.TransactionType" json:"type,omitempty"`           // optional filter
+	MinMinorUnits      int64                  `protobuf:"varint,5,opt,name=min_minor_units,json=minMinorUnits,proto3" json:"min_minor_units,omitempty"` // optional amount filters
+	MaxMinorUnits      int64                  `protobuf:"varint,6,opt,name=max_minor_units,json=maxMinorUnits,proto3" json:"max_minor_units,omitempty"`
+	CurrencyCode       string                 `protobuf:"bytes,7,opt,name=currency_code,json=currencyCode,proto3" json:"currency_code,omitempty"` // optional filter by transaction currency
+	Search             string                 `protobuf:"bytes,8,opt,name=search,proto3" json:"search,omitempty"`                                 // comment search
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *ListTransactionsRequest) Reset() {
@@ -621,6 +630,13 @@ func (x *ListTransactionsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ListTransactionsRequest.ProtoReflect.Descriptor instead.
 func (*ListTransactionsRequest) Descriptor() ([]byte, []int) {
 	return file_budget_v1_transaction_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ListTransactionsRequest) GetTargetCurrencyCode() string {
+	if x != nil {
+		return x.TargetCurrencyCode
+	}
+	return ""
 }
 
 func (x *ListTransactionsRequest) GetPage() *PageRequest {
@@ -731,18 +747,19 @@ func (x *ListTransactionsResponse) GetPage() *PageResponse {
 	return nil
 }
 
-// Filtered totals for transactions (ignores pagination). Totals are returned in tenant base currency.
+// Filtered totals ignore pagination. Empty target_currency_code uses the stored tenant base amounts.
 type GetTransactionsTotalsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	DateRange     *DateRange             `protobuf:"bytes,1,opt,name=date_range,json=dateRange,proto3" json:"date_range,omitempty"`
-	CategoryIds   []string               `protobuf:"bytes,2,rep,name=category_ids,json=categoryIds,proto3" json:"category_ids,omitempty"`
-	Type          TransactionType        `protobuf:"varint,3,opt,name=type,proto3,enum=budget.v1.TransactionType" json:"type,omitempty"`           // optional filter
-	MinMinorUnits int64                  `protobuf:"varint,4,opt,name=min_minor_units,json=minMinorUnits,proto3" json:"min_minor_units,omitempty"` // optional amount filters (by original amount)
-	MaxMinorUnits int64                  `protobuf:"varint,5,opt,name=max_minor_units,json=maxMinorUnits,proto3" json:"max_minor_units,omitempty"`
-	CurrencyCode  string                 `protobuf:"bytes,6,opt,name=currency_code,json=currencyCode,proto3" json:"currency_code,omitempty"` // optional filter by transaction currency
-	Search        string                 `protobuf:"bytes,7,opt,name=search,proto3" json:"search,omitempty"`                                 // comment search
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	TargetCurrencyCode string                 `protobuf:"bytes,8,opt,name=target_currency_code,json=targetCurrencyCode,proto3" json:"target_currency_code,omitempty"` // empty preserves legacy base-currency totals
+	DateRange          *DateRange             `protobuf:"bytes,1,opt,name=date_range,json=dateRange,proto3" json:"date_range,omitempty"`
+	CategoryIds        []string               `protobuf:"bytes,2,rep,name=category_ids,json=categoryIds,proto3" json:"category_ids,omitempty"`
+	Type               TransactionType        `protobuf:"varint,3,opt,name=type,proto3,enum=budget.v1.TransactionType" json:"type,omitempty"`           // optional filter
+	MinMinorUnits      int64                  `protobuf:"varint,4,opt,name=min_minor_units,json=minMinorUnits,proto3" json:"min_minor_units,omitempty"` // optional amount filters (by original amount)
+	MaxMinorUnits      int64                  `protobuf:"varint,5,opt,name=max_minor_units,json=maxMinorUnits,proto3" json:"max_minor_units,omitempty"`
+	CurrencyCode       string                 `protobuf:"bytes,6,opt,name=currency_code,json=currencyCode,proto3" json:"currency_code,omitempty"` // optional filter by transaction currency
+	Search             string                 `protobuf:"bytes,7,opt,name=search,proto3" json:"search,omitempty"`                                 // comment search
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *GetTransactionsTotalsRequest) Reset() {
@@ -773,6 +790,13 @@ func (x *GetTransactionsTotalsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetTransactionsTotalsRequest.ProtoReflect.Descriptor instead.
 func (*GetTransactionsTotalsRequest) Descriptor() ([]byte, []int) {
 	return file_budget_v1_transaction_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *GetTransactionsTotalsRequest) GetTargetCurrencyCode() string {
+	if x != nil {
+		return x.TargetCurrencyCode
+	}
+	return ""
 }
 
 func (x *GetTransactionsTotalsRequest) GetDateRange() *DateRange {
@@ -826,8 +850,8 @@ func (x *GetTransactionsTotalsRequest) GetSearch() string {
 
 type GetTransactionsTotalsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TotalIncome   *Money                 `protobuf:"bytes,1,opt,name=total_income,json=totalIncome,proto3" json:"total_income,omitempty"`    // in tenant base currency
-	TotalExpense  *Money                 `protobuf:"bytes,2,opt,name=total_expense,json=totalExpense,proto3" json:"total_expense,omitempty"` // in tenant base currency
+	TotalIncome   *Money                 `protobuf:"bytes,1,opt,name=total_income,json=totalIncome,proto3" json:"total_income,omitempty"`    // in requested currency, or tenant base currency
+	TotalExpense  *Money                 `protobuf:"bytes,2,opt,name=total_expense,json=totalExpense,proto3" json:"total_expense,omitempty"` // in requested currency, or tenant base currency
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -880,7 +904,7 @@ var File_budget_v1_transaction_proto protoreflect.FileDescriptor
 
 const file_budget_v1_transaction_proto_rawDesc = "" +
 	"\n" +
-	"\x1bbudget/v1/transaction.proto\x12\tbudget.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a google/protobuf/field_mask.proto\x1a\x16budget/v1/common.proto\"\x8b\x04\n" +
+	"\x1bbudget/v1/transaction.proto\x12\tbudget.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a google/protobuf/field_mask.proto\x1a\x16budget/v1/common.proto\"\xc4\x04\n" +
 	"\vTransaction\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x12\x17\n" +
@@ -898,7 +922,8 @@ const file_budget_v1_transaction_proto_rawDesc = "" +
 	" \x01(\tR\acomment\x129\n" +
 	"\n" +
 	"created_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12)\n" +
-	"\x10is_extraordinary\x18\f \x01(\bR\x0fisExtraordinary\x12(\n" +
+	"\x10is_extraordinary\x18\f \x01(\bR\x0fisExtraordinary\x127\n" +
+	"\x0edisplay_amount\x18\x0e \x01(\v2\x10.budget.v1.MoneyR\rdisplayAmount\x12(\n" +
 	"\x10asset_account_id\x18\r \x01(\tR\x0eassetAccountId\"\xe2\x02\n" +
 	"\x18CreateTransactionRequest\x12.\n" +
 	"\x04type\x18\x01 \x01(\x0e2\x1a.budget.v1.TransactionTypeR\x04type\x12\x1f\n" +
@@ -927,8 +952,9 @@ const file_budget_v1_transaction_proto_rawDesc = "" +
 	"\x15GetTransactionRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"R\n" +
 	"\x16GetTransactionResponse\x128\n" +
-	"\vtransaction\x18\x01 \x01(\v2\x16.budget.v1.TransactionR\vtransaction\"\xda\x02\n" +
-	"\x17ListTransactionsRequest\x12*\n" +
+	"\vtransaction\x18\x01 \x01(\v2\x16.budget.v1.TransactionR\vtransaction\"\x8c\x03\n" +
+	"\x17ListTransactionsRequest\x120\n" +
+	"\x14target_currency_code\x18\t \x01(\tR\x12targetCurrencyCode\x12*\n" +
 	"\x04page\x18\x01 \x01(\v2\x16.budget.v1.PageRequestR\x04page\x123\n" +
 	"\n" +
 	"date_range\x18\x02 \x01(\v2\x14.budget.v1.DateRangeR\tdateRange\x12!\n" +
@@ -940,8 +966,9 @@ const file_budget_v1_transaction_proto_rawDesc = "" +
 	"\x06search\x18\b \x01(\tR\x06search\"\x83\x01\n" +
 	"\x18ListTransactionsResponse\x12:\n" +
 	"\ftransactions\x18\x01 \x03(\v2\x16.budget.v1.TransactionR\ftransactions\x12+\n" +
-	"\x04page\x18\x02 \x01(\v2\x17.budget.v1.PageResponseR\x04page\"\xb3\x02\n" +
-	"\x1cGetTransactionsTotalsRequest\x123\n" +
+	"\x04page\x18\x02 \x01(\v2\x17.budget.v1.PageResponseR\x04page\"\xe5\x02\n" +
+	"\x1cGetTransactionsTotalsRequest\x120\n" +
+	"\x14target_currency_code\x18\b \x01(\tR\x12targetCurrencyCode\x123\n" +
 	"\n" +
 	"date_range\x18\x01 \x01(\v2\x14.budget.v1.DateRangeR\tdateRange\x12!\n" +
 	"\fcategory_ids\x18\x02 \x03(\tR\vcategoryIds\x12.\n" +
@@ -1004,40 +1031,41 @@ var file_budget_v1_transaction_proto_depIdxs = []int32{
 	15, // 3: budget.v1.Transaction.fx:type_name -> budget.v1.FxInfo
 	16, // 4: budget.v1.Transaction.occurred_at:type_name -> google.protobuf.Timestamp
 	16, // 5: budget.v1.Transaction.created_at:type_name -> google.protobuf.Timestamp
-	13, // 6: budget.v1.CreateTransactionRequest.type:type_name -> budget.v1.TransactionType
-	14, // 7: budget.v1.CreateTransactionRequest.amount:type_name -> budget.v1.Money
-	16, // 8: budget.v1.CreateTransactionRequest.occurred_at:type_name -> google.protobuf.Timestamp
-	0,  // 9: budget.v1.CreateTransactionResponse.transaction:type_name -> budget.v1.Transaction
-	0,  // 10: budget.v1.UpdateTransactionRequest.transaction:type_name -> budget.v1.Transaction
-	17, // 11: budget.v1.UpdateTransactionRequest.update_mask:type_name -> google.protobuf.FieldMask
-	0,  // 12: budget.v1.UpdateTransactionResponse.transaction:type_name -> budget.v1.Transaction
-	0,  // 13: budget.v1.GetTransactionResponse.transaction:type_name -> budget.v1.Transaction
-	18, // 14: budget.v1.ListTransactionsRequest.page:type_name -> budget.v1.PageRequest
-	19, // 15: budget.v1.ListTransactionsRequest.date_range:type_name -> budget.v1.DateRange
-	13, // 16: budget.v1.ListTransactionsRequest.type:type_name -> budget.v1.TransactionType
-	0,  // 17: budget.v1.ListTransactionsResponse.transactions:type_name -> budget.v1.Transaction
-	20, // 18: budget.v1.ListTransactionsResponse.page:type_name -> budget.v1.PageResponse
-	19, // 19: budget.v1.GetTransactionsTotalsRequest.date_range:type_name -> budget.v1.DateRange
-	13, // 20: budget.v1.GetTransactionsTotalsRequest.type:type_name -> budget.v1.TransactionType
-	14, // 21: budget.v1.GetTransactionsTotalsResponse.total_income:type_name -> budget.v1.Money
-	14, // 22: budget.v1.GetTransactionsTotalsResponse.total_expense:type_name -> budget.v1.Money
-	1,  // 23: budget.v1.TransactionService.CreateTransaction:input_type -> budget.v1.CreateTransactionRequest
-	3,  // 24: budget.v1.TransactionService.UpdateTransaction:input_type -> budget.v1.UpdateTransactionRequest
-	5,  // 25: budget.v1.TransactionService.DeleteTransaction:input_type -> budget.v1.DeleteTransactionRequest
-	7,  // 26: budget.v1.TransactionService.GetTransaction:input_type -> budget.v1.GetTransactionRequest
-	9,  // 27: budget.v1.TransactionService.ListTransactions:input_type -> budget.v1.ListTransactionsRequest
-	11, // 28: budget.v1.TransactionService.GetTransactionsTotals:input_type -> budget.v1.GetTransactionsTotalsRequest
-	2,  // 29: budget.v1.TransactionService.CreateTransaction:output_type -> budget.v1.CreateTransactionResponse
-	4,  // 30: budget.v1.TransactionService.UpdateTransaction:output_type -> budget.v1.UpdateTransactionResponse
-	6,  // 31: budget.v1.TransactionService.DeleteTransaction:output_type -> budget.v1.DeleteTransactionResponse
-	8,  // 32: budget.v1.TransactionService.GetTransaction:output_type -> budget.v1.GetTransactionResponse
-	10, // 33: budget.v1.TransactionService.ListTransactions:output_type -> budget.v1.ListTransactionsResponse
-	12, // 34: budget.v1.TransactionService.GetTransactionsTotals:output_type -> budget.v1.GetTransactionsTotalsResponse
-	29, // [29:35] is the sub-list for method output_type
-	23, // [23:29] is the sub-list for method input_type
-	23, // [23:23] is the sub-list for extension type_name
-	23, // [23:23] is the sub-list for extension extendee
-	0,  // [0:23] is the sub-list for field type_name
+	14, // 6: budget.v1.Transaction.display_amount:type_name -> budget.v1.Money
+	13, // 7: budget.v1.CreateTransactionRequest.type:type_name -> budget.v1.TransactionType
+	14, // 8: budget.v1.CreateTransactionRequest.amount:type_name -> budget.v1.Money
+	16, // 9: budget.v1.CreateTransactionRequest.occurred_at:type_name -> google.protobuf.Timestamp
+	0,  // 10: budget.v1.CreateTransactionResponse.transaction:type_name -> budget.v1.Transaction
+	0,  // 11: budget.v1.UpdateTransactionRequest.transaction:type_name -> budget.v1.Transaction
+	17, // 12: budget.v1.UpdateTransactionRequest.update_mask:type_name -> google.protobuf.FieldMask
+	0,  // 13: budget.v1.UpdateTransactionResponse.transaction:type_name -> budget.v1.Transaction
+	0,  // 14: budget.v1.GetTransactionResponse.transaction:type_name -> budget.v1.Transaction
+	18, // 15: budget.v1.ListTransactionsRequest.page:type_name -> budget.v1.PageRequest
+	19, // 16: budget.v1.ListTransactionsRequest.date_range:type_name -> budget.v1.DateRange
+	13, // 17: budget.v1.ListTransactionsRequest.type:type_name -> budget.v1.TransactionType
+	0,  // 18: budget.v1.ListTransactionsResponse.transactions:type_name -> budget.v1.Transaction
+	20, // 19: budget.v1.ListTransactionsResponse.page:type_name -> budget.v1.PageResponse
+	19, // 20: budget.v1.GetTransactionsTotalsRequest.date_range:type_name -> budget.v1.DateRange
+	13, // 21: budget.v1.GetTransactionsTotalsRequest.type:type_name -> budget.v1.TransactionType
+	14, // 22: budget.v1.GetTransactionsTotalsResponse.total_income:type_name -> budget.v1.Money
+	14, // 23: budget.v1.GetTransactionsTotalsResponse.total_expense:type_name -> budget.v1.Money
+	1,  // 24: budget.v1.TransactionService.CreateTransaction:input_type -> budget.v1.CreateTransactionRequest
+	3,  // 25: budget.v1.TransactionService.UpdateTransaction:input_type -> budget.v1.UpdateTransactionRequest
+	5,  // 26: budget.v1.TransactionService.DeleteTransaction:input_type -> budget.v1.DeleteTransactionRequest
+	7,  // 27: budget.v1.TransactionService.GetTransaction:input_type -> budget.v1.GetTransactionRequest
+	9,  // 28: budget.v1.TransactionService.ListTransactions:input_type -> budget.v1.ListTransactionsRequest
+	11, // 29: budget.v1.TransactionService.GetTransactionsTotals:input_type -> budget.v1.GetTransactionsTotalsRequest
+	2,  // 30: budget.v1.TransactionService.CreateTransaction:output_type -> budget.v1.CreateTransactionResponse
+	4,  // 31: budget.v1.TransactionService.UpdateTransaction:output_type -> budget.v1.UpdateTransactionResponse
+	6,  // 32: budget.v1.TransactionService.DeleteTransaction:output_type -> budget.v1.DeleteTransactionResponse
+	8,  // 33: budget.v1.TransactionService.GetTransaction:output_type -> budget.v1.GetTransactionResponse
+	10, // 34: budget.v1.TransactionService.ListTransactions:output_type -> budget.v1.ListTransactionsResponse
+	12, // 35: budget.v1.TransactionService.GetTransactionsTotals:output_type -> budget.v1.GetTransactionsTotalsResponse
+	30, // [30:36] is the sub-list for method output_type
+	24, // [24:30] is the sub-list for method input_type
+	24, // [24:24] is the sub-list for extension type_name
+	24, // [24:24] is the sub-list for extension extendee
+	0,  // [0:24] is the sub-list for field type_name
 }
 
 func init() { file_budget_v1_transaction_proto_init() }

@@ -73,3 +73,24 @@ func TestReport_TargetDiffersFromBase(t *testing.T) {
 		t.Fatalf("conversion failed: %+v", sum)
 	}
 }
+
+func TestReportsUseOriginalAmountAndPreserveSnapshot(t *testing.T) {
+	items := []domain.Transaction{
+		{CategoryID: "food", Type: domain.TransactionTypeExpense, Amount: domain.Money{CurrencyCode: "EUR", MinorUnits: 2000}, BaseAmount: domain.Money{CurrencyCode: "RUB", MinorUnits: 222223}, Fx: &domain.FxInfo{RateDecimal: "111.1115"}, OccurredAt: time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)},
+		{CategoryID: "food", Type: domain.TransactionTypeExpense, Amount: domain.Money{CurrencyCode: "USD", MinorUnits: 1000}, BaseAmount: domain.Money{CurrencyCode: "RUB", MinorUnits: 100000}, Fx: &domain.FxInfo{RateDecimal: "100"}, OccurredAt: time.Date(2026, 10, 2, 12, 0, 0, 0, time.UTC)},
+	}
+	rep := NewService(stubTxService{items: items}, fxRepoStub{}, tRepoStub{base: "RUB"}, cRepoStub{})
+	for _, tc := range []struct {
+		currency string
+		want     int64
+	}{{"EUR", 4000}, {"RUB", 322223}} {
+		monthly, err := rep.GetMonthlySummary(context.Background(), "t1", 2026, 10, "en", tc.currency, 0, false)
+		if err != nil || monthly.TotalExpense.MinorUnits != tc.want {
+			t.Fatalf("monthly %+v %v", monthly, err)
+		}
+		report, err := rep.GetSummaryReport(context.Background(), "t1", "2026-10-01", "2026-10-31", "en", tc.currency, 0, false)
+		if err != nil || report.TotalExpense.MinorUnits != tc.want || report.Categories[0].Total.MinorUnits != tc.want {
+			t.Fatalf("report %+v %v", report, err)
+		}
+	}
+}

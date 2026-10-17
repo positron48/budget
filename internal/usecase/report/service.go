@@ -2,7 +2,7 @@ package report
 
 import (
 	"context"
-	"math/big"
+	"github.com/positron48/budget/internal/usecase/transactionfx"
 	"time"
 
 	"github.com/positron48/budget/internal/domain"
@@ -117,29 +117,33 @@ func (s *Service) GetMonthlySummary(ctx context.Context, tenantID string, year i
 	var totalIncomeMinor int64
 	var totalExpenseMinor int64
 
-	// use base_amount if target==base else convert base->target by rate per tx date
+	converter := transactionfx.New(s.fx)
+	if err := converter.Prepare(ctx, all, target); err != nil {
+		return MonthlySummary{}, err
+	}
 	for _, t := range all {
-		baseMinor := t.BaseAmount.MinorUnits
-		var minor int64
-		if target == baseCurrency {
-			minor = baseMinor
-		} else {
-			rateDec, _, err := s.fx.GetRateAsOf(ctx, baseCurrency, target, t.OccurredAt)
-			if err != nil {
-				return MonthlySummary{}, err
-			}
-			minor, err = convertMinorByRate(baseMinor, rateDec)
-			if err != nil {
-				return MonthlySummary{}, err
-			}
+		converted, err := converter.Convert(ctx, t, target)
+		if err != nil {
+			return MonthlySummary{}, err
 		}
+		minor := converted.MinorUnits
+
 		k := key{CatID: t.CategoryID, Type: t.Type}
-		sums[k] += minor
+		sums[k], err = transactionfx.Add(sums[k], minor)
+		if err != nil {
+			return MonthlySummary{}, err
+		}
 		switch t.Type {
 		case domain.TransactionTypeIncome:
-			totalIncomeMinor += minor
+			totalIncomeMinor, err = transactionfx.Add(totalIncomeMinor, minor)
+			if err != nil {
+				return MonthlySummary{}, err
+			}
 		case domain.TransactionTypeExpense:
-			totalExpenseMinor += minor
+			totalExpenseMinor, err = transactionfx.Add(totalExpenseMinor, minor)
+			if err != nil {
+				return MonthlySummary{}, err
+			}
 		}
 	}
 
@@ -238,35 +242,38 @@ func (s *Service) GetSummaryReport(ctx context.Context, tenantID string, fromDat
 	var totalIncomeMinor int64
 	var totalExpenseMinor int64
 
-	// use base_amount if target==base else convert base->target by rate per tx date
+	converter := transactionfx.New(s.fx)
+	if err := converter.Prepare(ctx, all, target); err != nil {
+		return SummaryReport{}, err
+	}
 	for _, t := range all {
-		baseMinor := t.BaseAmount.MinorUnits
-		var minor int64
-		if target == baseCurrency {
-			minor = baseMinor
-		} else {
-			rateDec, _, err := s.fx.GetRateAsOf(ctx, baseCurrency, target, t.OccurredAt)
-			if err != nil {
-				return SummaryReport{}, err
-			}
-			minor, err = convertMinorByRate(baseMinor, rateDec)
-			if err != nil {
-				return SummaryReport{}, err
-			}
+		converted, err := converter.Convert(ctx, t, target)
+		if err != nil {
+			return SummaryReport{}, err
 		}
+		minor := converted.MinorUnits
 
 		// Determine which month this transaction belongs to
 		txMonth := getMonthIndex(t.OccurredAt, fromLocal, len(months))
 		if txMonth >= 0 && txMonth < len(months) {
 			k := key{CatID: t.CategoryID, Type: t.Type, Month: txMonth}
-			sums[k] += minor
+			sums[k], err = transactionfx.Add(sums[k], minor)
+			if err != nil {
+				return SummaryReport{}, err
+			}
 		}
 
 		switch t.Type {
 		case domain.TransactionTypeIncome:
-			totalIncomeMinor += minor
+			totalIncomeMinor, err = transactionfx.Add(totalIncomeMinor, minor)
+			if err != nil {
+				return SummaryReport{}, err
+			}
 		case domain.TransactionTypeExpense:
-			totalExpenseMinor += minor
+			totalExpenseMinor, err = transactionfx.Add(totalExpenseMinor, minor)
+			if err != nil {
+				return SummaryReport{}, err
+			}
 		}
 	}
 
@@ -295,7 +302,10 @@ func (s *Service) GetSummaryReport(ctx context.Context, tenantID string, fromDat
 			catGroups[ck] = make([]int64, len(months))
 		}
 		catGroups[ck][k.Month] += amount
-		catTotals[ck] += amount
+		catTotals[ck], err = transactionfx.Add(catTotals[ck], amount)
+		if err != nil {
+			return SummaryReport{}, err
+		}
 	}
 
 	categories := make([]MonthlyCategoryData, 0, len(catGroups))
@@ -394,32 +404,3 @@ func (s *Service) GetDateRange(ctx context.Context, tenantID string, locale stri
 		LatestDate:   latestDate,
 	}, nil
 }
-
-// convertMinorByRate multiplies integer minor units (2 decimals) by decimal rate and rounds to nearest minor unit
-func convertMinorByRate(minor int64, rateDecimal string) (int64, error) {
-	// amount as rational (minor / 100)
-	num := big.NewInt(minor)
-	den := big.NewInt(100)
-	amount := new(big.Rat).SetFrac(num, den)
-	// rate as rational
-	r := new(big.Rat)
-	if _, ok := r.SetString(rateDecimal); !ok {
-		return 0, ErrParseRate
-	}
-	prod := new(big.Rat).Mul(amount, r) // value in target currency
-	// to minor units: prod * 100, rounded
-	prodMul := new(big.Rat).Mul(prod, big.NewRat(100, 1))
-	p := new(big.Int).Set(prodMul.Num())
-	q := new(big.Int).Set(prodMul.Denom())
-	// round to nearest: (p + q/2) / q
-	halfQ := new(big.Int).Rsh(q, 1) // q/2 floor
-	p.Add(p, halfQ)
-	res := new(big.Int).Quo(p, q)
-	return res.Int64(), nil
-}
-
-var ErrParseRate = domainError("invalid fx rate")
-
-type domainError string
-
-func (e domainError) Error() string { return string(e) }

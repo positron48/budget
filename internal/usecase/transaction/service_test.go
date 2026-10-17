@@ -228,3 +228,43 @@ func TestComputeBaseAmount_RateNotFound(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+type pagedBudgetRepo struct {
+	noopTxRepo
+	items   []domain.Transaction
+	filters []ListFilter
+}
+
+func (r *pagedBudgetRepo) List(_ context.Context, _ string, f ListFilter) ([]domain.Transaction, int64, error) {
+	r.filters = append(r.filters, f)
+	start := (f.Page - 1) * f.PageSize
+	if start < 0 {
+		start = 0
+	}
+	end := start + f.PageSize
+	if end > len(r.items) {
+		end = len(r.items)
+	}
+	return append([]domain.Transaction(nil), r.items[start:end]...), int64(len(r.items)), nil
+}
+func TestDisplayTotalsAllPagesAndOriginalCurrency(t *testing.T) {
+	items := make([]domain.Transaction, 501)
+	for i := range items {
+		items[i] = domain.Transaction{Amount: domain.Money{CurrencyCode: "EUR", MinorUnits: 2000}, BaseAmount: domain.Money{CurrencyCode: "RUB", MinorUnits: 222223}, Fx: &domain.FxInfo{RateDecimal: "111.1115"}, Type: domain.TransactionTypeExpense, OccurredAt: time.Now()}
+	}
+	repo := &pagedBudgetRepo{items: items}
+	svc := NewService(repo, stubFxRepo{rate: "1.2"}, stubTenantRepo{defCcy: "RUB"}, stubCategoryRepo{})
+	f := ListFilter{TargetCurrencyCode: "EUR", Page: 7, PageSize: 3, Search: func() *string { s := "coffee"; return &s }()}
+	inc, exp, err := svc.Totals(context.Background(), "t1", f)
+	if err != nil || inc.MinorUnits != 0 || exp.MinorUnits != 1002000 || exp.CurrencyCode != "EUR" {
+		t.Fatalf("%+v %+v %v", inc, exp, err)
+	}
+	if len(repo.filters) != 2 || repo.filters[1].Page != 2 || repo.filters[0].Search != f.Search {
+		t.Fatalf("pagination/filter lost: %+v", repo.filters)
+	}
+	f.Page, f.PageSize = 1, 2
+	list, _, err := svc.List(context.Background(), "t1", f)
+	if err != nil || len(list) != 2 || list[0].DisplayAmount.MinorUnits != 2000 || list[0].BaseAmount.MinorUnits != 222223 {
+		t.Fatalf("%+v %v", list, err)
+	}
+}

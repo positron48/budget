@@ -1,4 +1,5 @@
 "use client";
+import {useDisplayCurrency} from "@/lib/display-currency";
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
@@ -34,31 +35,32 @@ function DashboardInner() {
   const formRef = useRef<NewTxFormRef>(null);
   const [showCreate, setShowCreate] = useState(false);
 
+  const {currency, tenant} = useDisplayCurrency();
   const now = useMemo(() => new Date(), []);
   const monthReq = useMemo(
     () => ({
       year: now.getFullYear(),
       month: now.getMonth() + 1,
-      targetCurrencyCode: "",
+      targetCurrencyCode: currency,
       timezoneOffsetMinutes: now.getTimezoneOffset(),
       excludeExtraordinary: false,
     }),
-    [now]
+    [now, currency]
   );
 
-  const { data: monthly, isLoading: monthlyLoading, refetch: refetchMonthly } = useQuery({
-    queryKey: ["dashboard-monthly", monthReq],
+  const { data: monthly, isLoading: monthlyLoading, error: monthlyError, refetch: refetchMonthly } = useQuery({
+    queryKey: ["dashboard-monthly", tenant, monthReq],
     queryFn: async () => (await report.getMonthlySummary(monthReq as any)) as any,
     retry: false,
     refetchOnWindowFocus: false,
   });
 
   const recentReq = useMemo(
-    () => ({ page: { page: 1, pageSize: 5, sort: "occurred_at desc" } }),
-    []
+    () => ({ page: { page: 1, pageSize: 5, sort: "occurred_at desc" }, targetCurrencyCode: currency }),
+    [currency]
   );
   const { data: recent, isLoading: recentLoading, error: recentError, refetch: refetchRecent } = useQuery({
-    queryKey: ["dashboard-recent", recentReq],
+    queryKey: ["dashboard-recent", tenant, recentReq],
     queryFn: async (): Promise<ListTransactionsResponse> => transaction.listTransactions(recentReq),
     retry: false,
     refetchOnWindowFocus: false,
@@ -131,7 +133,7 @@ function DashboardInner() {
       {/* Metrics */}
       {monthlyLoading ? (
         <LoadingSpinner text={tc("loading")} className="py-8" />
-      ) : (
+      ) : monthlyError ? <p role="alert" className="text-destructive">{locale === "ru" ? "Не удалось пересчитать суммы. Попробуйте обновить страницу." : "Could not convert totals. Try refreshing the page."}</p> : (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StatCard icon="trending-up" color="success" title={t("income")} value={formatCurrency(totalIncome, currencyCode)} />
           <StatCard icon="trending-down" color="danger" title={t("expenses")} value={formatCurrency(totalExpenses, currencyCode)} />
@@ -211,7 +213,7 @@ function DashboardInner() {
                         }`}
                       >
                         {isExpense ? "−" : "+"}
-                        {formatCurrency(amount, tx?.amount?.currencyCode || currencyCode)}
+                        {formatCurrency(amount, tx?.amount?.currencyCode || currencyCode)}{tx.displayAmount && tx.amount?.currencyCode !== tx.displayAmount.currencyCode && <span className="block text-xs text-muted-foreground">≈ {formatCurrency(Number(tx.displayAmount.minorUnits), tx.displayAmount.currencyCode)}</span>}
                       </span>
                     </li>
                   );

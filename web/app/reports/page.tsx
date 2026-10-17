@@ -1,6 +1,7 @@
 "use client";
+import {useDisplayCurrency} from "@/lib/display-currency";
 
-import { ClientsProvider, useClients } from "@/app/providers";
+import { useClients } from "@/app/providers";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { TransactionType } from "@/proto/budget/v1/common_pb";
@@ -35,7 +36,7 @@ function MonthlyReportInner() {
   const today = useMemo(() => new Date(), []);
   const [year, setYear] = useState<number>(today.getFullYear());
   const [month, setMonth] = useState<number>(today.getMonth() + 1); // 1..12
-  const [currency] = useState<string>("");
+  const {currency, tenant} = useDisplayCurrency();
   const [includeExtraordinary, setIncludeExtraordinary] = useState(true);
   const req = useMemo(() => ({ year, month, targetCurrencyCode: currency, timezoneOffsetMinutes: new Date().getTimezoneOffset(), excludeExtraordinary: !includeExtraordinary } as any), [year, month, currency, includeExtraordinary]);
 
@@ -70,7 +71,7 @@ function MonthlyReportInner() {
     setMonth(m);
   };
   const { data, isLoading, error } = useQuery({
-    queryKey: ["monthly", req],
+    queryKey: ["monthly", tenant, req],
     queryFn: async () => (await report.getMonthlySummary(req)) as any,
     retry: false,
     refetchOnWindowFocus: false,
@@ -365,7 +366,7 @@ function SummaryReportInner() {
 
   const [from, setFrom] = useState<string>(getCurrentYearRange().from);
   const [to, setTo] = useState<string>(getCurrentYearRange().to);
-  const [currency] = useState<string>("");
+  const {currency, tenant} = useDisplayCurrency();
   const [includeExtraordinary, setIncludeExtraordinary] = useState(true);
   
   const req = useMemo(() => ({ 
@@ -377,7 +378,7 @@ function SummaryReportInner() {
   } as any), [from, to, currency, includeExtraordinary]);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["summary", req],
+    queryKey: ["summary", tenant, req],
     queryFn: async () => (await report.getSummaryReport(req)) as any,
     retry: false,
     refetchOnWindowFocus: false,
@@ -632,8 +633,6 @@ function ReportsPageInner() {
 
 export default function ReportsPage() {
   return (
-    <ClientsProvider>
-      <ReportsPageInner />
-    </ClientsProvider>
+    <ReportsPageInner />
   );
 }

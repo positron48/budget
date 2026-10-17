@@ -9,6 +9,7 @@ import {
 } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import DisplayCurrencySelect from "@/components/DisplayCurrencySelect";
 import AssetsPage from "@/app/assets/page";
 import { authStore } from "@/lib/auth/store";
 import en from "@/i18n/en.json";
@@ -63,6 +64,7 @@ function mount() {
   });
   return render(
     <QueryClientProvider client={client}>
+      <DisplayCurrencySelect />
       <AssetsPage />
     </QueryClientProvider>,
   );
@@ -213,7 +215,7 @@ describe("savings display currency", () => {
   it("converts total, types and account cards, retaining original balances and selection", async () => {
     const view = mount();
     expect(await screen.findByText("RUB 22,500.00")).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Display in"), {
+    fireEvent.change(screen.getByLabelText("Display currency"), {
       target: { value: "USD" },
     });
     expect(await screen.findByText("$225.00")).toBeInTheDocument();
@@ -221,20 +223,20 @@ describe("savings display currency", () => {
     expect(screen.getByText("$125.00")).toBeInTheDocument();
     expect(screen.getByText("€100.00")).toBeInTheDocument();
     expect(screen.getAllByText("Original balances")).toHaveLength(2);
-    expect(localStorage.getItem("assets:display-currency:tenant-a")).toBe(
+    expect(localStorage.getItem("budget:display-currency:tenant-a")).toBe(
       "USD",
     );
     expect(getOverview).toHaveBeenLastCalledWith({ targetCurrencyCode: "USD" });
     view.unmount();
     mount();
     await screen.findByText("$225.00");
-    expect(screen.getByLabelText("Display in")).toHaveValue("USD");
+    expect(screen.getByLabelText("Display currency")).toHaveValue("USD");
   });
   it("does not borrow another budget's selection", async () => {
     localStorage.setItem("assets:display-currency:tenant-b", "USD");
     mount();
     await screen.findByText("RUB 22,500.00");
-    expect(screen.getByLabelText("Display in")).toHaveValue("RUB");
+    expect(screen.getByLabelText("Display currency")).toHaveValue("RUB");
   });
   it("marks unconvertible cards and the total as partial", async () => {
     getOverview.mockResolvedValue({

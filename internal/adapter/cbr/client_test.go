@@ -85,3 +85,38 @@ func TestFetch(t *testing.T) {
 		})
 	}
 }
+
+func TestOldBudgetHistoryWithoutModernCurrencies(t *testing.T) {
+	var historicalCurrencies []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "daily") {
+			date, _ := time.Parse("02/01/2006", r.URL.Query().Get("date_req"))
+			codes := currencies
+			if date.Year() < 2025 {
+				codes = []string{"USD", "EUR"}
+			}
+			_, _ = fmt.Fprintf(w, `<ValCurs Date="%s">`, date.Format("02.01.2006"))
+			for _, code := range codes {
+				_, _ = fmt.Fprintf(w, `<Valute ID="%s"><CharCode>%s</CharCode><Nominal>1</Nominal><Value>100</Value></Valute>`, code, code)
+			}
+			_, _ = fmt.Fprint(w, `</ValCurs>`)
+			return
+		}
+		q := r.URL.Query()
+		id := q.Get("VAL_NM_RQ")
+		date, _ := time.Parse("02/01/2006", q.Get("date_req2"))
+		if date.Year() < 2025 {
+			historicalCurrencies = append(historicalCurrencies, id)
+		}
+		_, _ = fmt.Fprintf(w, `<ValCurs ID="%s"><Record Date="%s" Id="%s"><Nominal>1</Nominal><Value>100</Value></Record></ValCurs>`, id, date.Format("02.01.2006"), id)
+	}))
+	defer srv.Close()
+	client := &Client{HTTP: srv.Client(), BaseURL: srv.URL + "/"}
+	quotes, err := client.Fetch(context.Background(), time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC), time.Date(2025, 1, 10, 0, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(historicalCurrencies) != 2 || len(quotes) != 22 {
+		t.Fatalf("historical %v quotes %d", historicalCurrencies, len(quotes))
+	}
+}

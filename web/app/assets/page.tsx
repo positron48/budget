@@ -3,14 +3,13 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
-import { ClientsProvider, useClients } from "@/app/providers";
+import { useClients } from "@/app/providers";
 import { Button, Icon, Protected } from "@/components";
 import type {
   AssetAccount,
   GetOverviewResponse,
 } from "@/proto/budget/v1/asset_pb";
 import {
-  ASSET_CURRENCIES,
   ASSET_KINDS,
   ASSET_ICONS,
   assetDate,
@@ -28,7 +27,7 @@ function AssetsOverview() {
   const t = useTranslations("assets");
   const locale = useLocale();
   const tenant = useAssetTenant();
-  const { target, setTarget, ready } = useAssetDisplayCurrency(tenant);
+  const { target, ready } = useAssetDisplayCurrency(tenant);
   const {
     includeProperty,
     setIncludeProperty,
@@ -184,21 +183,6 @@ function AssetsOverview() {
             </p>
           </div>
           <div className="space-y-3">
-            <label className="block min-w-28 text-xs text-[hsl(var(--muted-foreground))]">
-              <span className="mb-1.5 block">{t("displayCurrency")}</span>
-              <select
-                className="input !bg-[hsl(var(--card))]"
-                aria-label={t("displayCurrency")}
-                value={target || currency}
-                onChange={(e) => setTarget(e.target.value)}
-              >
-                {Array.from(new Set([currency, ...ASSET_CURRENCIES])).map(
-                  (c) => (
-                    <option key={c}>{c}</option>
-                  ),
-                )}
-              </select>
-            </label>
             <label className="flex max-w-60 cursor-pointer items-start gap-2 text-sm text-[hsl(var(--muted-foreground))]">
               <input
                 type="checkbox"
@@ -377,9 +361,7 @@ function AssetsOverview() {
 export default function AssetsPage() {
   return (
     <Protected>
-      <ClientsProvider>
-        <AssetsOverview />
-      </ClientsProvider>
+      <AssetsOverview />
     </Protected>
   );
 }

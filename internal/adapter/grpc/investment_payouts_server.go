@@ -23,7 +23,7 @@ func (s *InvestmentServer) GetInvestmentPayouts(ctx context.Context, req *pb.Get
 	if e != nil {
 		return nil, e
 	}
-	v, e := s.svc.Payouts(ctx, t, u, inv.PayoutQuery{LedgerIDs: req.GetLedgerIds(), FromDate: req.GetFromDate(), ToDate: req.GetToDate(), InstrumentKey: req.GetInstrumentKey(), Kinds: req.GetKinds(), Cursor: req.GetCursor(), Limit: int(req.GetLimit())})
+	v, e := s.svc.Payouts(ctx, t, u, inv.PayoutQuery{TargetCurrencyCode: req.GetTargetCurrencyCode(), LedgerIDs: req.GetLedgerIds(), FromDate: req.GetFromDate(), ToDate: req.GetToDate(), InstrumentKey: req.GetInstrumentKey(), Kinds: req.GetKinds(), Cursor: req.GetCursor(), Limit: int(req.GetLimit())})
 	if e != nil {
 		return nil, investmentRPCError(e)
 	}

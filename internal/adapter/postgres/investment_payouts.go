@@ -2,9 +2,12 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 	"github.com/jackc/pgx/v5"
 	d "github.com/positron48/budget/internal/domain"
+	"github.com/positron48/budget/internal/usecase/fximport"
 	inv "github.com/positron48/budget/internal/usecase/investment"
+	"math/big"
 	"time"
 )
 
@@ -66,7 +69,39 @@ func (r *InvestmentRepo) Payouts(ctx context.Context, t, u string, q inv.PayoutQ
 	if e != nil {
 		return out, e
 	}
-	out, e = inv.BuildPayoutReport(t, ledgers, ops, q, time.Now())
+	rates := make(map[string]*big.Rat)
+	fx := NewFxRepo(r.pool)
+	rateContext := context.WithValue(ctx, financialTxKey{}, tx)
+	convert := func(entry inv.PayoutEntry) (inv.PayoutEntry, error) {
+		if entry.Currency == q.TargetCurrencyCode {
+			return entry, nil
+		}
+		date := fximport.MoscowDate(entry.At)
+		key := entry.Currency + "/" + q.TargetCurrencyCode + "/" + date.Format(time.DateOnly)
+		rate := rates[key]
+		if rate == nil {
+			text, _, err := fx.GetRateAsOf(rateContext, entry.Currency, q.TargetCurrencyCode, date)
+			if err != nil {
+				return entry, fmt.Errorf("historical payout FX %s: %w", key, err)
+			}
+			var ok bool
+			rate, ok = new(big.Rat).SetString(text)
+			if !ok || rate.Sign() <= 0 {
+				return entry, d.ErrInvestmentPrecondition
+			}
+			rates[key] = rate
+		}
+		multiply := func(value *big.Rat) *big.Rat {
+			if value == nil {
+				return nil
+			}
+			return new(big.Rat).Mul(value, rate)
+		}
+		entry.Gross, entry.Tax, entry.Net = multiply(entry.Gross), multiply(entry.Tax), multiply(entry.Net)
+		entry.Currency = q.TargetCurrencyCode
+		return entry, nil
+	}
+	out, e = inv.BuildConvertedPayoutReport(t, ledgers, ops, q, time.Now(), convert)
 	if e != nil {
 		return out, e
 	}

@@ -42,7 +42,7 @@ describe("dashboard recent transactions", () => {
     expect(screen.getByText(/250,00/)).toBeInTheDocument();
     expect(screen.getByText(new Date(1790985600 * 1000).toLocaleDateString("en"))).toBeInTheDocument();
     expect(screen.queryByText("noRecent")).not.toBeInTheDocument();
-    expect(listTransactions).toHaveBeenCalledWith({ page: { page: 1, pageSize: 5, sort: "occurred_at desc" } });
+    expect(listTransactions).toHaveBeenCalledWith({ page: { page: 1, pageSize: 5, sort: "occurred_at desc" }, targetCurrencyCode: "RUB" });
   });
 
   it("shows the empty state when the API returns no transactions", async () => {

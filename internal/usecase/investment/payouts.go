@@ -18,6 +18,7 @@ import (
 const MaxPayoutOperations = 100000
 
 type PayoutQuery struct {
+	TargetCurrencyCode              string // optional historical aggregate currency; entries retain their originals
 	LedgerIDs                       []string
 	FromDate, ToDate, InstrumentKey string
 	Kinds                           []string
@@ -53,6 +54,9 @@ type payoutRepo interface {
 var payoutKinds = map[string]bool{"dividend": true, "coupon": true, "repo_income": true, "cash_interest": true, "fee": true, "tax": true, "tax_refund": true, "amortization": true, "redemption": true}
 
 func normalizePayoutQuery(q PayoutQuery) (PayoutQuery, error) {
+	if q.TargetCurrencyCode != "" && q.TargetCurrencyCode != "RUB" && q.TargetCurrencyCode != "USD" && q.TargetCurrencyCode != "EUR" {
+		return q, d.ErrInvestmentInvalid
+	}
 	if q.Limit == 0 {
 		q.Limit = 50
 	}
@@ -153,6 +157,12 @@ func addPayoutTotal(t *PayoutTotals, e PayoutEntry) {
 // BuildPayoutReport is deterministic over a tenant snapshot. Cursor scope includes
 // financial versions and a frozen cash cutoff; an amendment invalidates paging.
 func BuildPayoutReport(tenant string, ledgers []d.InvestmentLedger, ops []d.InvestmentOperation, q PayoutQuery, now time.Time) (PayoutReport, error) {
+	return BuildConvertedPayoutReport(tenant, ledgers, ops, q, now, nil)
+}
+
+// BuildConvertedPayoutReport values aggregates per payment date while preserving
+// original page entries and exact investment arithmetic.
+func BuildConvertedPayoutReport(tenant string, ledgers []d.InvestmentLedger, ops []d.InvestmentOperation, q PayoutQuery, now time.Time, convert func(PayoutEntry) (PayoutEntry, error)) (PayoutReport, error) {
 	var out PayoutReport
 	q, e := normalizePayoutQuery(q)
 	if e != nil {
@@ -237,14 +247,32 @@ func BuildPayoutReport(tenant string, ledgers []d.InvestmentLedger, ops []d.Inve
 		kinds[kind] = true
 	}
 	growth := newPayoutGrowth(q, cutoff, loc, selected)
+	var conversionErr error
 	add := func(e PayoutEntry) {
+		original := e
+		matches := (len(kinds) == 0 || kinds[e.Kind]) && (q.InstrumentKey == "" || q.InstrumentKey == e.InstrumentKey)
+		if q.TargetCurrencyCode != "" && matches && !e.At.Before(from.AddDate(-1, 0, 0)) && !e.At.After(cutoff) {
+			if conversionErr != nil {
+				return
+			}
+			if convert == nil {
+				conversionErr = d.ErrInvestmentPrecondition
+				return
+			}
+			var err error
+			e, err = convert(e)
+			if err != nil {
+				conversionErr = err
+				return
+			}
+		}
 		if (len(kinds) == 0 || kinds[e.Kind]) && (q.InstrumentKey == "" || q.InstrumentKey == e.InstrumentKey) {
 			growth.add(e)
 		}
 		if e.At.Before(from) || e.At.After(cutoff) || (len(kinds) > 0 && !kinds[e.Kind]) || (q.InstrumentKey != "" && q.InstrumentKey != e.InstrumentKey) {
 			return
 		}
-		entries = append(entries, e)
+		entries = append(entries, original)
 		m := e.At.In(loc).Format("2006-01")
 
 		if totals[e.Currency] == nil {
@@ -337,6 +365,9 @@ func BuildPayoutReport(tenant string, ledgers []d.InvestmentLedger, ops []d.Inve
 			entry.Net = new(big.Rat).Neg(rational(o.Fee))
 			add(entry)
 		}
+	}
+	if conversionErr != nil {
+		return out, conversionErr
 	}
 	sort.Slice(entries, func(i, j int) bool {
 		a, b := entries[i], entries[j]

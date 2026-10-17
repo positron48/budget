@@ -65,3 +65,28 @@ func TestMoscowDate(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+type historicalStore struct {
+	fakeStore
+	earliest   time.Time
+	historyErr error
+}
+
+func (s historicalStore) BudgetHistoryStart(context.Context) (time.Time, error) {
+	return s.earliest, s.historyErr
+}
+func TestBudgetHistoryStart(t *testing.T) {
+	old := time.Date(2019, 6, 1, 0, 0, 0, 0, time.UTC)
+	for _, tc := range []struct {
+		earliest time.Time
+		want     string
+	}{{old, "2019-06-01"}, {time.Time{}, "2025-01-01"}, {old.AddDate(10, 0, 0), "2025-01-01"}} {
+		got, err := (Service{Store: &historicalStore{earliest: tc.earliest}}).HistoryStart(context.Background())
+		if err != nil || got.Format(time.DateOnly) != tc.want {
+			t.Fatalf("%v %v", got, err)
+		}
+	}
+	if _, err := (Service{Store: &historicalStore{historyErr: errors.New("db unavailable")}}).HistoryStart(context.Background()); err == nil {
+		t.Fatal("history error ignored")
+	}
+}

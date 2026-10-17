@@ -7,6 +7,7 @@ import (
 
 	"github.com/positron48/budget/internal/domain"
 	"github.com/positron48/budget/internal/pkg/ctxutil"
+	"github.com/positron48/budget/internal/usecase/transactionfx"
 )
 
 var (
@@ -38,6 +39,7 @@ type CategoryRepo interface {
 }
 
 type ListFilter struct {
+	TargetCurrencyCode   string // response valuation; does not filter original currency
 	From                 *time.Time
 	To                   *time.Time
 	CategoryIDs          []string
@@ -115,14 +117,66 @@ func (s *Service) Get(ctx context.Context, id string) (domain.Transaction, error
 }
 
 func (s *Service) List(ctx context.Context, tenantID string, filter ListFilter) ([]domain.Transaction, int64, error) {
-	return s.txs.List(ctx, tenantID, filter)
+	items, total, err := s.txs.List(ctx, tenantID, filter)
+	if err != nil || filter.TargetCurrencyCode == "" {
+		return items, total, err
+	}
+	converter := transactionfx.New(s.fx)
+	if err := converter.Prepare(ctx, items, filter.TargetCurrencyCode); err != nil {
+		return nil, 0, err
+	}
+	for i := range items {
+		amount, e := converter.Convert(ctx, items[i], filter.TargetCurrencyCode)
+		if e != nil {
+			return nil, 0, e
+		}
+		items[i].DisplayAmount = &amount
+	}
+	return items, total, nil
 }
 
-// Totals returns income/expense totals in tenant base currency according to filter (ignoring pagination)
+// Totals values every matching operation in TargetCurrencyCode, ignoring pagination.
+// Empty target retains the stored base-currency totals for existing clients.
 func (s *Service) Totals(ctx context.Context, tenantID string, filter ListFilter) (domain.Money, domain.Money, error) {
 	tenant, err := s.tenants.GetByID(ctx, tenantID)
 	if err != nil {
 		return domain.Money{}, domain.Money{}, err
+	}
+	if filter.TargetCurrencyCode != "" {
+		target := filter.TargetCurrencyCode
+		filter.TargetCurrencyCode = ""
+		filter.Page, filter.PageSize = 1, 500
+		converter := transactionfx.New(s.fx)
+		var income, expense int64
+		for {
+			items, total, e := s.txs.List(ctx, tenantID, filter)
+			if e != nil {
+				return domain.Money{}, domain.Money{}, e
+			}
+			if e := converter.Prepare(ctx, items, target); e != nil {
+				return domain.Money{}, domain.Money{}, e
+			}
+			for _, tx := range items {
+				amount, e := converter.Convert(ctx, tx, target)
+				if e != nil {
+					return domain.Money{}, domain.Money{}, e
+				}
+				switch tx.Type {
+				case domain.TransactionTypeIncome:
+					income, e = transactionfx.Add(income, amount.MinorUnits)
+				case domain.TransactionTypeExpense:
+					expense, e = transactionfx.Add(expense, amount.MinorUnits)
+				}
+				if e != nil {
+					return domain.Money{}, domain.Money{}, e
+				}
+			}
+			if len(items) == 0 || int64(filter.Page*filter.PageSize) >= total {
+				break
+			}
+			filter.Page++
+		}
+		return domain.Money{CurrencyCode: target, MinorUnits: income}, domain.Money{CurrencyCode: target, MinorUnits: expense}, nil
 	}
 	inc, exp, baseCurrency, err := s.txs.Totals(ctx, tenantID, filter)
 	if err != nil {

@@ -1,4 +1,5 @@
 "use client";
+import {useDisplayCurrency} from "@/lib/display-currency";
 import {useEffect,useMemo,useRef,useState} from "react";
 import PortfolioAccountSelection from "@/components/PortfolioAccountSelection";
 import {accountSelection,selectedPortfolioAccounts} from "@/lib/portfolio-accounts";
@@ -32,7 +33,7 @@ const panel="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-
 const button="rounded-lg border border-slate-300 bg-transparent px-3 py-2 text-sm dark:border-slate-700 disabled:opacity-40";
 function Instrument({tenantId,instrumentKey}:{tenantId:string;instrumentKey:string}){
  const ru=useLocale()==="ru",locale=useLocale(),tr=(r:string,e:string)=>ru?r:e,{investment:book,investmentImport:imports,investmentNAV:api,marketData:market}=useClients() as {investment:Client<typeof InvestmentService>;investmentImport:Client<typeof InvestmentImportService>;investmentNAV:Client<typeof InvestmentNAVService>;marketData:Client<typeof MarketDataService>},readOnly=useInvestmentReadOnly();
- const {params,update}=usePortfolioFilters(),currency=["RUB","USD","EUR"].includes(params.get("currency")||"")?params.get("currency")!:"RUB",fxMode="market";
+ const {params,update}=usePortfolioFilters(),currency=useDisplayCurrency(tenantId).currency,fxMode="market";
  const from=params.get("from")||shiftHistoryDate(lastHistoryDate(),-30),to=params.get("to")||lastHistoryDate(),listingId=params.get("listing")||"";
  const [showIncome,setShowIncome]=useState(false);
  const [preview,setPreview]=useState<{key:string;data:GetTrackerInstrumentPricesResponse}>(),[requestState,setRequestState]=useState("");

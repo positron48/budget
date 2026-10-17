@@ -6712,16 +6712,17 @@ func (x *InvestmentPayoutGrowth) GetStatus() string {
 }
 
 type GetInvestmentPayoutsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	LedgerIds     []string               `protobuf:"bytes,1,rep,name=ledger_ids,json=ledgerIds,proto3" json:"ledger_ids,omitempty"`
-	FromDate      string                 `protobuf:"bytes,2,opt,name=from_date,json=fromDate,proto3" json:"from_date,omitempty"`
-	ToDate        string                 `protobuf:"bytes,3,opt,name=to_date,json=toDate,proto3" json:"to_date,omitempty"`
-	InstrumentKey string                 `protobuf:"bytes,4,opt,name=instrument_key,json=instrumentKey,proto3" json:"instrument_key,omitempty"`
-	Kinds         []string               `protobuf:"bytes,5,rep,name=kinds,proto3" json:"kinds,omitempty"`
-	Cursor        string                 `protobuf:"bytes,6,opt,name=cursor,proto3" json:"cursor,omitempty"`
-	Limit         int32                  `protobuf:"varint,7,opt,name=limit,proto3" json:"limit,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	TargetCurrencyCode string                 `protobuf:"bytes,8,opt,name=target_currency_code,json=targetCurrencyCode,proto3" json:"target_currency_code,omitempty"` // historical aggregate currency; page entries retain original currency
+	LedgerIds          []string               `protobuf:"bytes,1,rep,name=ledger_ids,json=ledgerIds,proto3" json:"ledger_ids,omitempty"`
+	FromDate           string                 `protobuf:"bytes,2,opt,name=from_date,json=fromDate,proto3" json:"from_date,omitempty"`
+	ToDate             string                 `protobuf:"bytes,3,opt,name=to_date,json=toDate,proto3" json:"to_date,omitempty"`
+	InstrumentKey      string                 `protobuf:"bytes,4,opt,name=instrument_key,json=instrumentKey,proto3" json:"instrument_key,omitempty"`
+	Kinds              []string               `protobuf:"bytes,5,rep,name=kinds,proto3" json:"kinds,omitempty"`
+	Cursor             string                 `protobuf:"bytes,6,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	Limit              int32                  `protobuf:"varint,7,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *GetInvestmentPayoutsRequest) Reset() {
@@ -6752,6 +6753,13 @@ func (x *GetInvestmentPayoutsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetInvestmentPayoutsRequest.ProtoReflect.Descriptor instead.
 func (*GetInvestmentPayoutsRequest) Descriptor() ([]byte, []int) {
 	return file_budget_v1_investment_proto_rawDescGZIP(), []int{91}
+}
+
+func (x *GetInvestmentPayoutsRequest) GetTargetCurrencyCode() string {
+	if x != nil {
+		return x.TargetCurrencyCode
+	}
+	return ""
 }
 
 func (x *GetInvestmentPayoutsRequest) GetLedgerIds() []string {
@@ -10423,8 +10431,9 @@ const file_budget_v1_investment_proto_rawDesc = "" +
 	"\x13previous_income_net\x18\x05 \x01(\v2!.budget.v1.InvestmentPayoutAmountR\x11previousIncomeNet\x129\n" +
 	"\x06change\x18\x06 \x01(\v2!.budget.v1.InvestmentPayoutAmountR\x06change\x12H\n" +
 	"\x0epercent_change\x18\a \x01(\v2!.budget.v1.InvestmentPayoutAmountR\rpercentChange\x12\x16\n" +
-	"\x06status\x18\b \x01(\tR\x06status\"\xdd\x01\n" +
-	"\x1bGetInvestmentPayoutsRequest\x12\x1d\n" +
+	"\x06status\x18\b \x01(\tR\x06status\"\x8f\x02\n" +
+	"\x1bGetInvestmentPayoutsRequest\x120\n" +
+	"\x14target_currency_code\x18\b \x01(\tR\x12targetCurrencyCode\x12\x1d\n" +
 	"\n" +
 	"ledger_ids\x18\x01 \x03(\tR\tledgerIds\x12\x1b\n" +
 	"\tfrom_date\x18\x02 \x01(\tR\bfromDate\x12\x17\n" +

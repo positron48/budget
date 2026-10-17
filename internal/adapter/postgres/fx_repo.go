@@ -39,6 +39,16 @@ func (r *FxRepo) GetRateAsOf(ctx context.Context, from, to string, asOf time.Tim
 	return rows[0].Rate, rows[0].Provider, nil
 }
 
+// BudgetHistoryStart covers even old RUB operations when reports switch currency.
+func (r *FxRepo) BudgetHistoryStart(ctx context.Context) (time.Time, error) {
+	var earliest *time.Time
+	err := r.pool.DB.QueryRow(ctx, `SELECT LEAST((SELECT MIN(occurred_at) FROM transactions), (SELECT MIN(occurred_at) FROM investment_operations WHERE status='posted'))`).Scan(&earliest)
+	if err != nil || earliest == nil {
+		return time.Time{}, err
+	}
+	return fximport.MoscowDate(*earliest), nil
+}
+
 // SaveCBRRates atomically publishes a validated import. Manual entries are untouched.
 func (r *FxRepo) SaveCBRRates(ctx context.Context, quotes []fximport.Quote) error {
 	codes, rates, dates := []string{}, []string{}, []time.Time{}

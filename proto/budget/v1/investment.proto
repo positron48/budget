@@ -391,6 +391,7 @@ message InvestmentPayoutGrowth {
  string status=8;
 }
 message GetInvestmentPayoutsRequest {
+ string target_currency_code=8; // historical aggregate currency; page entries retain original currency
  repeated string ledger_ids=1; string from_date=2; string to_date=3; string instrument_key=4;
  repeated string kinds=5; string cursor=6; int32 limit=7;
 }

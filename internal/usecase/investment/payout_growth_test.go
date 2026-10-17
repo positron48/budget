@@ -1,6 +1,7 @@
 package investment
 
 import (
+	"math/big"
 	"testing"
 	"time"
 
@@ -134,4 +135,64 @@ func TestTrackerPayoutGrowthUsesRecordedAmountsBeforeCreation(t *testing.T) {
 	}
 	expectPayoutRat(t, report.Growth[0].PercentChange, "100")
 	expectPayoutRat(t, report.Totals[0].IncomeNet, "200")
+}
+
+func TestPayoutGrowthHistoricalDisplayAndNativeEntries(t *testing.T) {
+	ledgers, _, q, now := payoutFixture()
+	for i := range ledgers {
+		ledgers[i].StartedAt = time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	}
+	q.FromDate, q.ToDate, q.TargetCurrencyCode = "2024-02-01", "2024-02-29", "EUR"
+	q.Limit = 200
+	at := time.Date(2024, 2, 3, 12, 0, 0, 0, time.UTC)
+	mk := func(id, currency, amount string, date time.Time) d.InvestmentOperation {
+		v := op(id, "dividend", amount, 1)
+		v.LedgerID = payoutLedgerID
+		v.InstrumentKey = "STOCK"
+		v.Currency = currency
+		v.OccurredAt = date
+		v.Version = 1
+		return v
+	}
+	operations := []d.InvestmentOperation{mk("previous", "USD", "10", at.AddDate(-1, 0, 0)), mk("current", "USD", "20", at), mk("euro", "EUR", "5", at)}
+	convert := func(e PayoutEntry) (PayoutEntry, error) {
+		rate := rational("1")
+		if e.Currency == "USD" {
+			rate = rational("0.8")
+			if e.At.Year() == 2023 {
+				rate = rational("0.5")
+			}
+		}
+		e.Net = new(big.Rat).Mul(e.Net, rate)
+		if e.Gross != nil {
+			e.Gross = new(big.Rat).Mul(e.Gross, rate)
+		}
+		if e.Tax != nil {
+			e.Tax = new(big.Rat).Mul(e.Tax, rate)
+		}
+		e.Currency = "EUR"
+		return e, nil
+	}
+	out, err := BuildConvertedPayoutReport("tenant", ledgers, operations, q, now, convert)
+	if err != nil || len(out.Growth) != 1 || len(out.Totals) != 1 || len(out.Entries) != 2 {
+		t.Fatalf("%+v %v", out, err)
+	}
+	expectPayoutRat(t, out.Growth[0].IncomeNet, "21")
+	expectPayoutRat(t, out.Growth[0].PreviousIncomeNet, "5")
+	expectPayoutRat(t, out.Growth[0].PercentChange, "320")
+	if operations[1].Currency != "USD" {
+		t.Fatal("mutated journal")
+	}
+	native := false
+	for _, e := range out.Entries {
+		if e.Currency == "USD" {
+			native = true
+		}
+	}
+	if !native {
+		t.Fatal("lost original entry currency")
+	}
+	if _, err := BuildPayoutReport("tenant", ledgers, operations, q, now); err == nil {
+		t.Fatal("target silently ignored without rates")
+	}
 }

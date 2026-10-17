@@ -107,8 +107,8 @@ for (const locale of ["ru", "en"]) {
     const us=table.getByRole("row").filter({has:page.getByRole("button",{name:"US",exact:true})});await expect(us.locator("td").last()).toHaveText("—");
     missingForeignPrice=false;await page.getByRole("button",{name:ru?"Обновить портфель":"Refresh portfolio",exact:true}).click();await expect(value).toContainText(/23[\s,.]?200/);
     await expect(page.getByRole("combobox",{name:ru?"Источник валютного курса":"Exchange rate source",exact:true})).toHaveCount(0);
-    await page.getByRole("combobox",{name:ru?"Валюта сумм":"Amount currency",exact:true}).selectOption("USD");await expect(value).toContainText(/232/);
-    await page.getByRole("combobox",{name:ru?"Валюта сумм":"Amount currency",exact:true}).selectOption("RUB");await expect(value).toContainText(/23[\s,.]?200/);
+    await page.getByRole("combobox",{name:ru?"Валюта отображения":"Display currency",exact:true}).selectOption("USD");await expect(value).toContainText(/232/);
+    await page.getByRole("combobox",{name:ru?"Валюта отображения":"Display currency",exact:true}).selectOption("RUB");await expect(value).toContainText(/23[\s,.]?200/);
     await expect(table).toContainText("ABC");await expect(page.locator("main")).not.toContainText("999999");
     await expect(page.getByRole("region",{name:ru?"История портфеля":"Portfolio history",exact:true})).toHaveCount(0);
     await page.screenshot({path:test.info().outputPath(`portfolio-tracker-${locale}-desktop.png`),fullPage:true});

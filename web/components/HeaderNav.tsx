@@ -1,6 +1,7 @@
 "use client";
 
 import {useInvestmentAccess} from "@/lib/investment-access";
+import DisplayCurrencySelect from "@/components/DisplayCurrencySelect";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { authStore, AUTH_CHANGED_EVENT, TENANT_CHANGED_EVENT } from "@/lib/auth/store";
@@ -130,7 +131,7 @@ export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled
               className="flex items-center space-x-2 text-xl font-bold text-primary hover:text-primary/80 transition-colors"
             >
               <Icon name="wallet" size={24} className="text-primary" />
-              <span>Budget<span className="hidden sm:inline"> Manager</span></span>
+              <span className="hidden min-[420px]:inline">Budget<span className="hidden sm:inline"> Manager</span></span>
             </Link>
             
             {/* Desktop Navigation */}
@@ -156,6 +157,7 @@ export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled
 
           {/* Right side - Locale and Account */}
           <div className="flex items-center gap-1.5 sm:gap-4">
+            {mounted && isAuthorized && <DisplayCurrencySelect />}
             {/* Locale Switcher */}
             <div className="flex items-center space-x-1 bg-muted rounded-md p-1">
               <button

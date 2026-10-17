@@ -107,6 +107,7 @@ func (s *TransactionServer) GetTransaction(ctx context.Context, req *budgetv1.Ge
 func (s *TransactionServer) ListTransactions(ctx context.Context, req *budgetv1.ListTransactionsRequest) (*budgetv1.ListTransactionsResponse, error) {
 	tenantID, _ := ctxutil.TenantIDFromContext(ctx)
 	var f txusecase.ListFilter
+	f.TargetCurrencyCode = req.GetTargetCurrencyCode()
 	if dr := req.GetDateRange(); dr != nil {
 		if dr.GetFrom() != nil {
 			t := dr.GetFrom().AsTime()
@@ -164,6 +165,7 @@ func (s *TransactionServer) ListTransactions(ctx context.Context, req *budgetv1.
 func (s *TransactionServer) GetTransactionsTotals(ctx context.Context, req *budgetv1.GetTransactionsTotalsRequest) (*budgetv1.GetTransactionsTotalsResponse, error) {
 	tenantID, _ := ctxutil.TenantIDFromContext(ctx)
 	var f txusecase.ListFilter
+	f.TargetCurrencyCode = req.GetTargetCurrencyCode()
 	if dr := req.GetDateRange(); dr != nil {
 		if dr.GetFrom() != nil {
 			t := dr.GetFrom().AsTime()
@@ -207,6 +209,10 @@ func (s *TransactionServer) GetTransactionsTotals(ctx context.Context, req *budg
 }
 
 func toProtoTx(t domain.Transaction) *budgetv1.Transaction {
+	var display *budgetv1.Money
+	if t.DisplayAmount != nil {
+		display = &budgetv1.Money{CurrencyCode: t.DisplayAmount.CurrencyCode, MinorUnits: t.DisplayAmount.MinorUnits}
+	}
 	var fx *budgetv1.FxInfo
 	if t.Fx != nil {
 		fx = &budgetv1.FxInfo{
@@ -231,6 +237,7 @@ func toProtoTx(t domain.Transaction) *budgetv1.Transaction {
 		CreatedAt:       timestamppb.New(t.CreatedAt),
 		IsExtraordinary: t.IsExtraordinary,
 		AssetAccountId:  t.AssetAccountID,
+		DisplayAmount:   display,
 	}
 }
 

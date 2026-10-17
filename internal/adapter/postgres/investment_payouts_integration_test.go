@@ -7,6 +7,7 @@ import (
 	d "github.com/positron48/budget/internal/domain"
 	inv "github.com/positron48/budget/internal/usecase/investment"
 	archive "github.com/positron48/budget/internal/usecase/investmentarchive"
+	"math/big"
 	"testing"
 	"time"
 )
@@ -68,6 +69,24 @@ func TestInvestmentPayoutsPersistedFactsAndIsolation(t *testing.T) {
 	}
 	if len(report.Growth) != 1 || report.Growth[0].Status != "incomplete_history" || report.Growth[0].PercentChange != nil {
 		t.Fatal("missing baseline certified", report.Growth)
+	}
+	// Historical display conversion is a read-only view, including exact fractions.
+	fx := NewFxRepo(pool)
+	if _, err := fx.UpsertRate(ctx, "USD", "EUR", "0.8", at.AddDate(0, 0, -1), "manual"); err != nil {
+		t.Fatal(err)
+	}
+	displayQuery := q
+	displayQuery.TargetCurrencyCode = "EUR"
+	converted, err := svc.Payouts(ctx, tenant, user, displayQuery)
+	if err != nil || len(converted.Totals) != 1 || converted.Totals[0].Currency != "EUR" {
+		t.Fatalf("converted %+v %v", converted, err)
+	}
+	expected := new(big.Rat).Mul(report.Totals[0].IncomeNet, big.NewRat(4, 5))
+	if converted.Totals[0].IncomeNet.Cmp(expected) != 0 || converted.Growth[0].Currency != "EUR" || converted.Growth[0].IncomeNet.Cmp(expected) != 0 {
+		t.Fatal(converted)
+	}
+	if converted.Entries[0].Currency != "USD" {
+		t.Fatal("original entry currency overwritten")
 	}
 	// The recorded refund exactly offsets standalone fees/tax in this fixture.
 	seen := map[string]bool{}

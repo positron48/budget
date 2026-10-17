@@ -36,6 +36,8 @@ vi.mock("@/app/providers", () => ({
 
 // Mock auth store
 vi.mock("@/lib/auth/store", () => ({
+  AUTH_CHANGED_EVENT: "budget-auth-changed",
+  TENANT_CHANGED_EVENT: "budget-tenant-changed",
   authStore: {
     getAccess: vi.fn(),
     getRefresh: vi.fn(),
