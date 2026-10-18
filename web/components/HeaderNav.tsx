@@ -172,7 +172,7 @@ export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled
             <nav ref={navigationRef} aria-label={t("navigation")} className="hidden xl:flex items-center gap-1">
               {navGroups.map(group => <details name="primary-navigation" key={group.label} className="relative group" onKeyDown={e => {if(e.key === "Escape") e.currentTarget.open = false;}}>
                 <summary className={`flex cursor-pointer list-none items-center gap-2 rounded-md px-3 py-2 text-sm font-medium ${group.items.some(item => (item.active ?? isActive(item.href))) ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}>
-                  {group.label}<span aria-hidden="true" className="text-xs group-open:rotate-180">⌄</span>
+                  {group.label}<Icon name="chevron-down" size={16} className="shrink-0 transition-transform group-open:rotate-180" />
                 </summary>
                 <div className="absolute left-0 top-full z-50 mt-2 max-h-[calc(100dvh-5rem)] w-56 overflow-y-auto rounded-lg border border-border bg-[hsl(var(--card))] p-1 shadow-lg">
                   {group.items.map(item => <Link key={item.href} href={item.href} aria-current={(item.active ?? isActive(item.href)) ? "page" : undefined} onClick={e => {const menu=e.currentTarget.closest("details");if(menu)menu.open=false;}} className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-accent ${(item.active ?? isActive(item.href)) ? "bg-accent font-medium text-foreground" : "text-muted-foreground"}`}>
@@ -222,8 +222,11 @@ export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled
                   size="sm"
                   icon="wallet"
                   aria-label={activeTenantName || "Account"}
+                  aria-expanded={isAccountOpen}
+                  aria-haspopup="true"
                 >
                   <span className="hidden max-w-28 truncate md:inline">{activeTenantName || "Account"}</span>
+                  <Icon name="chevron-down" size={16} className={`ml-1 shrink-0 transition-transform ${isAccountOpen ? "rotate-180" : ""}`} />
                 </Button>
                 {isAccountOpen && (
                   <div
