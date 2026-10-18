@@ -1,6 +1,7 @@
 "use client";
 import {useDisplayCurrency} from "@/lib/display-currency";
 
+import Link from "next/link";
 import { useClients } from "@/app/providers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState, useCallback, useRef, useEffect } from "react";
@@ -181,7 +182,8 @@ function TransactionsInner() {
   });
 
   const refetchListAndTotals = useCallback(() => {
-    qc.invalidateQueries({ queryKey: ["transactions"] });
+    ["payments", "dashboard-monthly", "dashboard-recent", "monthly", "summary"].forEach(key=>qc.invalidateQueries({queryKey:[key]}));
+      qc.invalidateQueries({ queryKey: ["transactions"] });
     qc.invalidateQueries({ queryKey: ["transactionsTotals"] });
     qc.invalidateQueries({ queryKey: ["assets"] });
   }, [qc]);
@@ -681,6 +683,7 @@ function TransactionTable({
                   ) : (
                     <div className="text-sm text-foreground">
                       {tx?.comment || t("noComment")}
+ {tx?.paymentOccurrenceId&&<Link className="block text-xs underline text-amber-600" href="/payments">{t("linkedPaymentWarning")}</Link>}
                     </div>
                   )}
                 </td>

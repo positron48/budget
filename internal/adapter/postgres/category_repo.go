@@ -60,13 +60,13 @@ func (r *CategoryRepo) Delete(ctx context.Context, id string) error {
 
 func (r *CategoryRepo) Get(ctx context.Context, id string) (domain.Category, error) {
 	var c domain.Category
-	err := r.pool.DB.QueryRow(ctx,
+	err := r.pool.query(ctx).QueryRow(ctx,
 		`SELECT id, tenant_id, kind, code, parent_id, is_active, created_at FROM categories WHERE id=$1`, id,
 	).Scan(&c.ID, &c.TenantID, &c.Kind, &c.Code, &c.ParentID, &c.IsActive, &c.CreatedAt)
 	if err != nil {
 		return domain.Category{}, err
 	}
-	rows, err := r.pool.DB.Query(ctx, `SELECT locale, name, description FROM category_i18n WHERE category_id=$1`, id)
+	rows, err := r.pool.query(ctx).Query(ctx, `SELECT locale, name, description FROM category_i18n WHERE category_id=$1`, id)
 	if err != nil {
 		return domain.Category{}, err
 	}

@@ -106,7 +106,7 @@ jobs:
       - name: Test financial persistence and real pg_dump/pg_restore
         run: |
           test_exit=0
-          go test -race ./internal/adapter/postgres ./internal/adapter/pgbackup -run '^(TestInvestment|TestBroker|TestMarket|TestAssets|TestBudgetFullBackup|TestMigrationUpgrade|TestUpgradeRehearsal)' -count=1 -timeout=15m -json > financial-test-results.jsonl 2>&1 || test_exit=$?
+          go test -race ./internal/adapter/postgres ./internal/adapter/pgbackup -run '^(TestRecurringPayments|TestInvestment|TestBroker|TestMarket|TestAssets|TestBudgetFullBackup|TestMigrationUpgrade|TestUpgradeRehearsal)' -count=1 -timeout=15m -json > financial-test-results.jsonl 2>&1 || test_exit=$?
           cat financial-test-results.jsonl
           python3 scripts/investments/ci_go_summary.py financial-test-results.jsonl
           exit "$test_exit"

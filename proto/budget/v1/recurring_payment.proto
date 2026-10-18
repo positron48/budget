@@ -1,0 +1,56 @@
+syntax = "proto3";
+package budget.v1;
+option go_package = "github.com/positron48/budget/gen/go/budget/v1;budgetv1";
+import "budget/v1/common.proto";
+import "budget/v1/transaction.proto";
+import "google/protobuf/timestamp.proto";
+message RecurringPaymentTemplate {
+ string id=1; string name=2; string category_id=3; string currency_code=4; string account_id=5; string note=6; string timezone=7;
+ string amount_mode=8; optional int64 fixed_amount=9; optional int64 initial_estimate=10;
+ string first_month=11; string last_month=12; int32 interval_months=13; int32 day=14; bool last_day=15; int32 period_offset=16; bool archived=17; int64 version=18;
+}
+message PaymentOccurrence {
+ string id=1; string template_id=2; string scheduled_month=3; string period_month=4; string due_date=5;
+ string name=6; string category_id=7; string currency_code=8; string account_id=9; string note=10; string timezone=11; string amount_mode=12;
+ optional int64 exact_amount=13; optional int64 estimate_override=14; optional int64 expected_amount=15; string estimate_source=16;
+ string status=17; string skip_reason=18; bool manual=19; int64 version=20; Transaction transaction=21;
+ string confirmed_by=22; google.protobuf.Timestamp confirmed_at=23; Money display_amount=24; string fx_date=25; bool incomplete=26;
+}
+message PaymentSummary { Money exact=1; Money estimated=2; Money paid=3; int32 unknown=4; int32 needs_review=5; int32 missing_fx=6; int32 total=7; int32 outstanding=8; }
+message ListRecurringPaymentTemplatesRequest {}
+message ListRecurringPaymentTemplatesResponse { repeated RecurringPaymentTemplate templates=1; }
+message CreateRecurringPaymentTemplateRequest { RecurringPaymentTemplate template=1; string request_key=2; }
+message CreateRecurringPaymentTemplateResponse { RecurringPaymentTemplate template=1; }
+message UpdateRecurringPaymentTemplateRequest { RecurringPaymentTemplate template=1; string request_key=2; bool preview=3; }
+message UpdateRecurringPaymentTemplateResponse { RecurringPaymentTemplate template=1; repeated PaymentOccurrence affected=2; repeated PaymentOccurrence preserved=3; repeated PaymentOccurrence proposed=4; }
+message ArchiveRecurringPaymentTemplateRequest { string id=1; int64 expected_version=2; string request_key=3; }
+message ArchiveRecurringPaymentTemplateResponse { RecurringPaymentTemplate template=1; }
+message ListPaymentOccurrencesRequest { string from_date=1; string to_date=2; repeated string statuses=3; string search=4; int32 page=5; int32 page_size=6; string target_currency_code=7; }
+message ListPaymentOccurrencesResponse { repeated PaymentOccurrence occurrences=1; PaymentSummary summary=2; int32 total=3; }
+message GetPaymentOccurrenceRequest { string id=1; string target_currency_code=2; }
+message GetPaymentOccurrenceResponse { PaymentOccurrence occurrence=1; }
+message UpdatePaymentOccurrenceRequest { string id=1; int64 expected_version=2; string request_key=3; optional int64 exact_amount=4; optional int64 estimate_override=5; string due_date=6; string note=7; }
+message UpdatePaymentOccurrenceResponse { PaymentOccurrence occurrence=1; }
+message GetPaymentOverviewRequest { string month=1; string target_currency_code=2; }
+message GetPaymentOverviewResponse { repeated PaymentOccurrence occurrences=1; PaymentSummary summary=2; repeated PaymentOccurrence previous_debts=3; PaymentSummary previous_summary=4; }
+message PaymentNewExpense { int64 amount=1; string currency_code=2; google.protobuf.Timestamp occurred_at=3; string category_id=4; string account_id=5; string comment=6; }
+message PaymentExistingTransaction { string transaction_id=1; int64 expected_amount=2; string expected_currency_code=3; google.protobuf.Timestamp expected_occurred_at=4; }
+message ConfirmPaymentRequest { string occurrence_id=1; int64 expected_version=2; string request_key=3; bool accept_amount_change=4; oneof expense { PaymentNewExpense new_expense=5; PaymentExistingTransaction existing_transaction=6; } }
+message ConfirmPaymentResponse { PaymentOccurrence occurrence=1; }
+message UnlinkPaymentRequest { string id=1; int64 expected_version=2; string request_key=3; }
+message UnlinkPaymentResponse { PaymentOccurrence occurrence=1; }
+message SetPaymentSkippedRequest { string id=1; int64 expected_version=2; string request_key=3; bool skipped=4; string reason=5; }
+message SetPaymentSkippedResponse { PaymentOccurrence occurrence=1; }
+service RecurringPaymentService {
+ rpc ListRecurringPaymentTemplates(ListRecurringPaymentTemplatesRequest) returns(ListRecurringPaymentTemplatesResponse);
+ rpc CreateRecurringPaymentTemplate(CreateRecurringPaymentTemplateRequest) returns(CreateRecurringPaymentTemplateResponse);
+ rpc UpdateRecurringPaymentTemplate(UpdateRecurringPaymentTemplateRequest) returns(UpdateRecurringPaymentTemplateResponse);
+ rpc ArchiveRecurringPaymentTemplate(ArchiveRecurringPaymentTemplateRequest) returns(ArchiveRecurringPaymentTemplateResponse);
+ rpc ListPaymentOccurrences(ListPaymentOccurrencesRequest) returns(ListPaymentOccurrencesResponse);
+ rpc GetPaymentOccurrence(GetPaymentOccurrenceRequest) returns(GetPaymentOccurrenceResponse);
+ rpc UpdatePaymentOccurrence(UpdatePaymentOccurrenceRequest) returns(UpdatePaymentOccurrenceResponse);
+ rpc GetPaymentOverview(GetPaymentOverviewRequest) returns(GetPaymentOverviewResponse);
+ rpc ConfirmPayment(ConfirmPaymentRequest) returns(ConfirmPaymentResponse);
+ rpc UnlinkPayment(UnlinkPaymentRequest) returns(UnlinkPaymentResponse);
+ rpc SetPaymentSkipped(SetPaymentSkippedRequest) returns(SetPaymentSkippedResponse);
+}

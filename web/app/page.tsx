@@ -1,6 +1,7 @@
 "use client";
 import {useDisplayCurrency} from "@/lib/display-currency";
 
+import PaymentsOverview from "@/components/payments/PaymentsOverview";
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
@@ -119,6 +120,7 @@ function DashboardInner() {
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <PaymentsOverview key={tenant}/>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

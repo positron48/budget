@@ -134,3 +134,23 @@ func TestTenantGuard_AllInvestmentNAVRPCs(t *testing.T) {
 		}
 	}
 }
+
+func TestTenantGuard_AllRecurringPaymentRPCs(t *testing.T) {
+	for _, method := range budgetv1.RecurringPaymentService_ServiceDesc.Methods {
+		t.Run(method.MethodName, func(t *testing.T) {
+			called := false
+			guard := NewTenantGuardUnaryInterceptor(func(context.Context, string, string) (bool, error) { return false, nil })
+			info := &grpc.UnaryServerInfo{FullMethod: "/budget.v1.RecurringPaymentService/" + method.MethodName}
+			handler := func(context.Context, interface{}) (interface{}, error) { called = true; return nil, nil }
+			_, e := guard(context.Background(), nil, info, handler)
+			if status.Code(e) != codes.Unauthenticated {
+				t.Fatal(e)
+			}
+			ctx := ctxutil.WithUserID(ctxutil.WithTenantID(context.Background(), "t1"), "u1")
+			_, e = guard(ctx, nil, info, handler)
+			if status.Code(e) != codes.PermissionDenied || called {
+				t.Fatal(e, called)
+			}
+		})
+	}
+}

@@ -31,6 +31,7 @@ import (
 	"github.com/positron48/budget/internal/usecase/investmentimport"
 	"github.com/positron48/budget/internal/usecase/marketdata"
 	useoauth "github.com/positron48/budget/internal/usecase/oauth"
+	"github.com/positron48/budget/internal/usecase/recurringpayment"
 	reportuse "github.com/positron48/budget/internal/usecase/report"
 	"github.com/positron48/budget/internal/usecase/tenant"
 	"github.com/positron48/budget/internal/usecase/transaction"
@@ -269,6 +270,7 @@ func main() {
 		txRepo := postgres.NewTransactionRepo(db)
 		txSvc := transaction.NewService(txRepo, fxRepo, tenantRepo, categoryRepo)
 		budgetv1.RegisterTransactionServiceServer(server, grpcadapter.NewTransactionServer(txSvc))
+		budgetv1.RegisterRecurringPaymentServiceServer(server, grpcadapter.NewRecurringPaymentServer(recurringpayment.New(postgres.NewRecurringPaymentRepo(db), txSvc, fxRepo)))
 
 		// Currency exchanges
 		currencyExchangeRepo := postgres.NewCurrencyExchangeRepo(db)

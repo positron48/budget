@@ -224,20 +224,21 @@ func toProtoTx(t domain.Transaction) *budgetv1.Transaction {
 		}
 	}
 	return &budgetv1.Transaction{
-		Id:              t.ID,
-		TenantId:        t.TenantID,
-		UserId:          t.UserID,
-		CategoryId:      t.CategoryID,
-		Type:            toProtoTxType(t.Type),
-		Amount:          &budgetv1.Money{CurrencyCode: t.Amount.CurrencyCode, MinorUnits: t.Amount.MinorUnits},
-		BaseAmount:      &budgetv1.Money{CurrencyCode: t.BaseAmount.CurrencyCode, MinorUnits: t.BaseAmount.MinorUnits},
-		Fx:              fx,
-		OccurredAt:      timestamppb.New(t.OccurredAt),
-		Comment:         t.Comment,
-		CreatedAt:       timestamppb.New(t.CreatedAt),
-		IsExtraordinary: t.IsExtraordinary,
-		AssetAccountId:  t.AssetAccountID,
-		DisplayAmount:   display,
+		Id:                  t.ID,
+		TenantId:            t.TenantID,
+		UserId:              t.UserID,
+		CategoryId:          t.CategoryID,
+		Type:                toProtoTxType(t.Type),
+		Amount:              &budgetv1.Money{CurrencyCode: t.Amount.CurrencyCode, MinorUnits: t.Amount.MinorUnits},
+		BaseAmount:          &budgetv1.Money{CurrencyCode: t.BaseAmount.CurrencyCode, MinorUnits: t.BaseAmount.MinorUnits},
+		Fx:                  fx,
+		OccurredAt:          timestamppb.New(t.OccurredAt),
+		Comment:             t.Comment,
+		CreatedAt:           timestamppb.New(t.CreatedAt),
+		IsExtraordinary:     t.IsExtraordinary,
+		AssetAccountId:      t.AssetAccountID,
+		DisplayAmount:       display,
+		PaymentOccurrenceId: t.PaymentOccurrenceID,
 	}
 }
 

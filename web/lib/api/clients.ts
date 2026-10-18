@@ -14,11 +14,13 @@ import { InvestmentNAVService } from "../../proto/budget/v1/investment_nav_pb";
 import { MarketDataService } from "../../proto/budget/v1/market_data_pb";
 import { InvestmentService } from "../../proto/budget/v1/investment_pb";
 import { InvestmentImportService } from "../../proto/budget/v1/investment_import_pb";
+import { RecurringPaymentService } from "../../proto/budget/v1/recurring_payment_pb";
 import { AssetService } from "../../proto/budget/v1/asset_pb";
 import { CurrencyExchangeService } from "../../proto/budget/v1/currency_exchange_pb";
 
 export function createClients(transport: Transport) {
   return {
+    recurringPayment: createClient(RecurringPaymentService as any, transport),
     investmentNAV: createClient(InvestmentNAVService as any, transport),
     marketData: createClient(MarketDataService as any, transport),
     investment: createClient(InvestmentService as any, transport),

@@ -18,19 +18,20 @@ type FxInfo struct {
 }
 
 type Transaction struct {
-	ID              string
-	TenantID        string
-	UserID          string
-	CategoryID      string
-	Type            TransactionType
-	Amount          Money
-	BaseAmount      Money
-	DisplayAmount   *Money // response-only equivalent; never persisted
-	Fx              *FxInfo
-	OccurredAt      time.Time
-	Comment         string
-	CreatedAt       time.Time
-	IsExtraordinary bool
-	AssetAccountID  string
-	RequestKey      string
+	ID                  string
+	TenantID            string
+	UserID              string
+	CategoryID          string
+	Type                TransactionType
+	Amount              Money
+	BaseAmount          Money
+	DisplayAmount       *Money // response-only equivalent; never persisted
+	Fx                  *FxInfo
+	OccurredAt          time.Time
+	Comment             string
+	CreatedAt           time.Time
+	IsExtraordinary     bool
+	AssetAccountID      string
+	PaymentOccurrenceID string
+	RequestKey          string
 }

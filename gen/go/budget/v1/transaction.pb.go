@@ -24,23 +24,24 @@ const (
 )
 
 type Transaction struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`                                     // UUID
-	TenantId        string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`         // UUID
-	UserId          string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`               // UUID
-	CategoryId      string                 `protobuf:"bytes,4,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`   // UUID
-	Type            TransactionType        `protobuf:"varint,5,opt,name=type,proto3,enum=budget.v1.TransactionType" json:"type,omitempty"` // income / expense
-	Amount          *Money                 `protobuf:"bytes,6,opt,name=amount,proto3" json:"amount,omitempty"`                             // original amount in transaction currency
-	BaseAmount      *Money                 `protobuf:"bytes,7,opt,name=base_amount,json=baseAmount,proto3" json:"base_amount,omitempty"`   // amount converted to tenant's base currency (if currency differs)
-	Fx              *FxInfo                `protobuf:"bytes,8,opt,name=fx,proto3" json:"fx,omitempty"`                                     // FX used to compute base_amount (optional if same currency)
-	OccurredAt      *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=occurred_at,json=occurredAt,proto3" json:"occurred_at,omitempty"`
-	Comment         string                 `protobuf:"bytes,10,opt,name=comment,proto3" json:"comment,omitempty"`
-	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	IsExtraordinary bool                   `protobuf:"varint,12,opt,name=is_extraordinary,json=isExtraordinary,proto3" json:"is_extraordinary,omitempty"` // one-off operation excluded from reports on demand
-	DisplayAmount   *Money                 `protobuf:"bytes,14,opt,name=display_amount,json=displayAmount,proto3" json:"display_amount,omitempty"`        // optional equivalent in requested display currency
-	AssetAccountId  string                 `protobuf:"bytes,13,opt,name=asset_account_id,json=assetAccountId,proto3" json:"asset_account_id,omitempty"`   // optional account balance affected by this transaction
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	PaymentOccurrenceId string                 `protobuf:"bytes,15,opt,name=payment_occurrence_id,json=paymentOccurrenceId,proto3" json:"payment_occurrence_id,omitempty"` // response-only recurring payment link
+	Id                  string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`                                                                 // UUID
+	TenantId            string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`                                     // UUID
+	UserId              string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`                                           // UUID
+	CategoryId          string                 `protobuf:"bytes,4,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`                               // UUID
+	Type                TransactionType        `protobuf:"varint,5,opt,name=type,proto3,enum=budget.v1.TransactionType" json:"type,omitempty"`                             // income / expense
+	Amount              *Money                 `protobuf:"bytes,6,opt,name=amount,proto3" json:"amount,omitempty"`                                                         // original amount in transaction currency
+	BaseAmount          *Money                 `protobuf:"bytes,7,opt,name=base_amount,json=baseAmount,proto3" json:"base_amount,omitempty"`                               // amount converted to tenant's base currency (if currency differs)
+	Fx                  *FxInfo                `protobuf:"bytes,8,opt,name=fx,proto3" json:"fx,omitempty"`                                                                 // FX used to compute base_amount (optional if same currency)
+	OccurredAt          *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=occurred_at,json=occurredAt,proto3" json:"occurred_at,omitempty"`
+	Comment             string                 `protobuf:"bytes,10,opt,name=comment,proto3" json:"comment,omitempty"`
+	CreatedAt           *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	IsExtraordinary     bool                   `protobuf:"varint,12,opt,name=is_extraordinary,json=isExtraordinary,proto3" json:"is_extraordinary,omitempty"` // one-off operation excluded from reports on demand
+	DisplayAmount       *Money                 `protobuf:"bytes,14,opt,name=display_amount,json=displayAmount,proto3" json:"display_amount,omitempty"`        // optional equivalent in requested display currency
+	AssetAccountId      string                 `protobuf:"bytes,13,opt,name=asset_account_id,json=assetAccountId,proto3" json:"asset_account_id,omitempty"`   // optional account balance affected by this transaction
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Transaction) Reset() {
@@ -71,6 +72,13 @@ func (x *Transaction) ProtoReflect() protoreflect.Message {
 // Deprecated: Use Transaction.ProtoReflect.Descriptor instead.
 func (*Transaction) Descriptor() ([]byte, []int) {
 	return file_budget_v1_transaction_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *Transaction) GetPaymentOccurrenceId() string {
+	if x != nil {
+		return x.PaymentOccurrenceId
+	}
+	return ""
 }
 
 func (x *Transaction) GetId() string {
@@ -904,8 +912,9 @@ var File_budget_v1_transaction_proto protoreflect.FileDescriptor
 
 const file_budget_v1_transaction_proto_rawDesc = "" +
 	"\n" +
-	"\x1bbudget/v1/transaction.proto\x12\tbudget.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a google/protobuf/field_mask.proto\x1a\x16budget/v1/common.proto\"\xc4\x04\n" +
-	"\vTransaction\x12\x0e\n" +
+	"\x1bbudget/v1/transaction.proto\x12\tbudget.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a google/protobuf/field_mask.proto\x1a\x16budget/v1/common.proto\"\xf8\x04\n" +
+	"\vTransaction\x122\n" +
+	"\x15payment_occurrence_id\x18\x0f \x01(\tR\x13paymentOccurrenceId\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x12\x17\n" +
 	"\auser_id\x18\x03 \x01(\tR\x06userId\x12\x1f\n" +

@@ -9,6 +9,7 @@ import "google/protobuf/field_mask.proto";
 import "budget/v1/common.proto";
 
 message Transaction {
+  string payment_occurrence_id = 15; // response-only recurring payment link
   string id = 1;                           // UUID
   string tenant_id = 2;                    // UUID
   string user_id = 3;                      // UUID

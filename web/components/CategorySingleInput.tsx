@@ -65,7 +65,9 @@ export default function CategorySingleInput({
   const updateDropdownPosition = () => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    setDropdownPosition({ top: rect.bottom, left: rect.left, width: rect.width });
+    const availableBelow = window.innerHeight - rect.bottom;
+    const top = availableBelow >= 240 ? rect.bottom : Math.max(8, rect.top - 240);
+    setDropdownPosition({ top, left: rect.left, width: rect.width });
   };
 
   useEffect(() => {
@@ -80,7 +82,7 @@ export default function CategorySingleInput({
     const onScroll = (e: Event) => {
       const target = e.target as Element;
       const dropdown = document.querySelector('[data-dropdown="category-single-input"]');
-      if (dropdown && !dropdown.contains(target)) setIsOpen(false);
+      if (dropdown && !dropdown.contains(target)) updateDropdownPosition();
     };
     document.addEventListener("mousedown", onDocClick);
     document.addEventListener("scroll", onScroll, true);

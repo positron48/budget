@@ -1,5 +1,6 @@
 import {test, expect} from "@playwright/test";
 import {create, fromBinary, toBinary} from "@bufbuild/protobuf";
+import {RecurringPaymentService} from "../proto/budget/v1/recurring_payment_pb";
 import {TenantService} from "../proto/budget/v1/tenant_pb";
 import {TransactionService} from "../proto/budget/v1/transaction_pb";
 import {ReportService} from "../proto/budget/v1/report_pb";
@@ -10,7 +11,7 @@ import {InvestmentService} from "../proto/budget/v1/investment_pb";
 import {InvestmentNAVService} from "../proto/budget/v1/investment_nav_pb";
 
 for (const locale of ["en", "ru"]) test(`shared display currency ${locale}`, async ({page, context}, info) => {
-  const services = [TenantService, TransactionService, ReportService, CategoryService, AssetService, InvestmentService, InvestmentNAVService, InvestmentImportService];
+  const services = [RecurringPaymentService, TenantService, TransactionService, ReportService, CategoryService, AssetService, InvestmentService, InvestmentNAVService, InvestmentImportService];
   const seen: {method:string;currency:string}[] = [];
   const errors: string[] = [];
   let writes = 0;

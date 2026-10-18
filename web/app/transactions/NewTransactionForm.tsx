@@ -91,6 +91,7 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
       payload.assetAccountId = v.assetAccountId || "";
       payload.requestKey = requestKey.current;
       await transaction.createTransaction(payload as any);
+      qc.invalidateQueries({ queryKey: ["payments"] });
       qc.invalidateQueries({ queryKey: ["transactions"] });
       qc.invalidateQueries({ queryKey: ["assets"] });
       requestKey.current = crypto.randomUUID();

@@ -126,6 +126,7 @@ export default function HeaderNav({investmentsEnabled=false}:{investmentsEnabled
   const navGroups: {label: string; items: {href: string; label: string; icon: string; active?: boolean}[]}[] = [
     {label: t("budget"), items: [
       {href: "/", label: t("home"), icon: "home"},
+      {href: "/payments", label: t("recurringPayments"), icon: "calendar"},
       {href: "/transactions", label: t("transactions"), icon: "transactions"},
       {href: "/reports", label: t("reports"), icon: "reports"},
       {href: "/categories", label: t("categories"), icon: "categories"},

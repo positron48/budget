@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 import { readdirSync } from "node:fs";
+import { RecurringPaymentService } from "../proto/budget/v1/recurring_payment_pb";
 import { AuthService } from "../proto/budget/v1/auth_pb";
 import { UserService } from "../proto/budget/v1/user_pb";
 import { TenantService } from "../proto/budget/v1/tenant_pb";
@@ -15,7 +16,7 @@ import { InvestmentImportService } from "../proto/budget/v1/investment_import_pb
 import { AssetService } from "../proto/budget/v1/asset_pb";
 import { CurrencyExchangeService } from "../proto/budget/v1/currency_exchange_pb";
 
-const services = [InvestmentNAVService, MarketDataService, AuthService, UserService, TenantService, CategoryService, TransactionService, ReportService, FxService, AssetService, InvestmentImportService, InvestmentService, CurrencyExchangeService];
+const services = [RecurringPaymentService, InvestmentNAVService, MarketDataService, AuthService, UserService, TenantService, CategoryService, TransactionService, ReportService, FxService, AssetService, InvestmentImportService, InvestmentService, CurrencyExchangeService];
 const routes = readdirSync("app", { recursive: true }).filter((path) => typeof path === "string" && /(^|\/)page\.tsx$/.test(path)).map((path) => "/" + String(path).replace(/(^|\/)page\.tsx$/, "")).filter(path=>!path.startsWith("/investments")).sort();
 const account = { id: "test-account", name: "Smoke account", kind: "bank", version: 1n, balances: [{ amount: { currencyCode: "RUB", minorUnits: 112931988n } }] };
 

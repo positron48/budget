@@ -79,9 +79,9 @@ func (r *TransactionRepo) get(ctx context.Context, id string, lock bool) (domain
 	var fxAsOf *time.Time
 	err := r.pool.query(ctx).QueryRow(ctx,
 		`SELECT id, tenant_id, user_id, category_id, type::text, amount_numeric::text, currency_code,
-                base_amount_numeric::text, base_currency_code, fx_rate::text, fx_provider, fx_as_of, occurred_at, comment, created_at, is_extraordinary, COALESCE(asset_account_id::text,'')
+                base_amount_numeric::text, base_currency_code, fx_rate::text, fx_provider, fx_as_of, occurred_at, comment, created_at, is_extraordinary, COALESCE(asset_account_id::text,''), COALESCE((SELECT l.occurrence_id::text FROM recurring_payment_links l WHERE l.tenant_id=transactions.tenant_id AND l.transaction_id=transactions.id),'')
            FROM transactions WHERE id=$1 AND ($2='' OR tenant_id::text=$2)`+lockClause(lock), id, activeTenant(ctx),
-	).Scan(&t.ID, &t.TenantID, &t.UserID, &t.CategoryID, &typ, &amountDec, &t.Amount.CurrencyCode, &baseDec, &t.BaseAmount.CurrencyCode, &fxRate, &fxProvider, &fxAsOf, &t.OccurredAt, &t.Comment, &t.CreatedAt, &t.IsExtraordinary, &t.AssetAccountID)
+	).Scan(&t.ID, &t.TenantID, &t.UserID, &t.CategoryID, &typ, &amountDec, &t.Amount.CurrencyCode, &baseDec, &t.BaseAmount.CurrencyCode, &fxRate, &fxProvider, &fxAsOf, &t.OccurredAt, &t.Comment, &t.CreatedAt, &t.IsExtraordinary, &t.AssetAccountID, &t.PaymentOccurrenceID)
 	if err != nil {
 		return domain.Transaction{}, err
 	}
@@ -195,12 +195,12 @@ func (r *TransactionRepo) List(ctx context.Context, tenantID string, filter txus
 		// Replace category_code with c.code in ORDER BY clause
 		orderByWithJoin := strings.ReplaceAll(orderBy, "category_code", "c.code")
 		query = fmt.Sprintf(
-			"SELECT t.id, t.tenant_id, t.user_id, t.category_id, t.type::text, t.amount_numeric::text, t.currency_code, t.base_amount_numeric::text, t.base_currency_code, t.fx_rate::text, t.fx_provider, t.fx_as_of, t.occurred_at, t.comment, t.created_at, t.is_extraordinary, COALESCE(t.asset_account_id::text,'') FROM transactions t LEFT JOIN categories c ON t.category_id = c.id WHERE %s ORDER BY %s OFFSET $%d LIMIT $%d",
+			"SELECT t.id, t.tenant_id, t.user_id, t.category_id, t.type::text, t.amount_numeric::text, t.currency_code, t.base_amount_numeric::text, t.base_currency_code, t.fx_rate::text, t.fx_provider, t.fx_as_of, t.occurred_at, t.comment, t.created_at, t.is_extraordinary, COALESCE(t.asset_account_id::text,''), COALESCE((SELECT l.occurrence_id::text FROM recurring_payment_links l WHERE l.tenant_id=t.tenant_id AND l.transaction_id=t.id),'') FROM transactions t LEFT JOIN categories c ON t.category_id = c.id WHERE %s ORDER BY %s OFFSET $%d LIMIT $%d",
 			strings.ReplaceAll(strings.ReplaceAll(clause, "tenant_id=$1", "t.tenant_id=$1"), "is_extraordinary", "t.is_extraordinary"), orderByWithJoin+", t.id ASC", offIdx, limIdx,
 		)
 	} else {
 		query = fmt.Sprintf(
-			"SELECT id, tenant_id, user_id, category_id, type::text, amount_numeric::text, currency_code, base_amount_numeric::text, base_currency_code, fx_rate::text, fx_provider, fx_as_of, occurred_at, comment, created_at, is_extraordinary, COALESCE(asset_account_id::text,'') FROM transactions WHERE %s ORDER BY %s OFFSET $%d LIMIT $%d",
+			"SELECT id, tenant_id, user_id, category_id, type::text, amount_numeric::text, currency_code, base_amount_numeric::text, base_currency_code, fx_rate::text, fx_provider, fx_as_of, occurred_at, comment, created_at, is_extraordinary, COALESCE(asset_account_id::text,''), COALESCE((SELECT l.occurrence_id::text FROM recurring_payment_links l WHERE l.tenant_id=transactions.tenant_id AND l.transaction_id=transactions.id),'') FROM transactions WHERE %s ORDER BY %s OFFSET $%d LIMIT $%d",
 			clause, orderBy+", id ASC", offIdx, limIdx,
 		)
 	}
@@ -215,7 +215,7 @@ func (r *TransactionRepo) List(ctx context.Context, tenantID string, filter txus
 		var typ, amountDec, baseDec string
 		var fxRate, fxProvider *string
 		var fxAsOf *time.Time
-		if err := rows.Scan(&t.ID, &t.TenantID, &t.UserID, &t.CategoryID, &typ, &amountDec, &t.Amount.CurrencyCode, &baseDec, &t.BaseAmount.CurrencyCode, &fxRate, &fxProvider, &fxAsOf, &t.OccurredAt, &t.Comment, &t.CreatedAt, &t.IsExtraordinary, &t.AssetAccountID); err != nil {
+		if err := rows.Scan(&t.ID, &t.TenantID, &t.UserID, &t.CategoryID, &typ, &amountDec, &t.Amount.CurrencyCode, &baseDec, &t.BaseAmount.CurrencyCode, &fxRate, &fxProvider, &fxAsOf, &t.OccurredAt, &t.Comment, &t.CreatedAt, &t.IsExtraordinary, &t.AssetAccountID, &t.PaymentOccurrenceID); err != nil {
 			return nil, 0, err
 		}
 		t.Type = domain.TransactionType(typ)

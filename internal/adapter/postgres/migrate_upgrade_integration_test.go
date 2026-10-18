@@ -128,11 +128,11 @@ INSERT INTO asset_snapshots(tenant_id,account_id,currency_code,amount_minor,as_o
 		if err := pool.DB.QueryRow(ctx, `SELECT version,dirty FROM schema_migrations`).Scan(&version, &dirty); err != nil {
 			t.Fatal(err)
 		}
-		if version != 63 || dirty {
+		if version != 64 || dirty {
 			t.Fatalf("migration state: version=%d dirty=%t", version, dirty)
 		}
 	}
-	// Reproduce the previous binary's actual migration startup against schema 63.
+	// Reproduce the previous binary's actual migration startup against schema 64.
 	oldFS := fstest.MapFS{}
 	files, e := migrations.FS.ReadDir(".")
 	if e != nil {
@@ -143,7 +143,7 @@ INSERT INTO asset_snapshots(tenant_id,account_id,currency_code,amount_minor,as_o
 			continue
 		}
 		version, e := strconv.Atoi(file.Name()[:4])
-		if e != nil || version > 62 {
+		if e != nil || version > 63 {
 			continue
 		}
 		raw, e := migrations.FS.ReadFile(file.Name())
@@ -168,14 +168,14 @@ INSERT INTO asset_snapshots(tenant_id,account_id,currency_code,amount_minor,as_o
 	if e != nil {
 		t.Fatal(e)
 	}
-	if e = oldMigrate.Up(); e == nil || !strings.Contains(e.Error(), "63") {
+	if e = oldMigrate.Up(); e == nil || !strings.Contains(e.Error(), "64") {
 		t.Fatal("old binary accepted native schema", e)
 	}
 	_, _ = oldMigrate.Close()
 	var current int
 	var dirty bool
-	if e = pool.DB.QueryRow(ctx, `SELECT version,dirty FROM schema_migrations`).Scan(&current, &dirty); e != nil || current != 63 || dirty {
+	if e = pool.DB.QueryRow(ctx, `SELECT version,dirty FROM schema_migrations`).Scan(&current, &dirty); e != nil || current != 64 || dirty {
 		t.Fatal("old startup altered current schema", current, dirty, e)
 	}
-	t.Logf("tracked upgrade 11 -> 63 and restart preserved %d legacy tables", len(before))
+	t.Logf("tracked upgrade 11 -> 64 and restart preserved %d legacy tables", len(before))
 }
