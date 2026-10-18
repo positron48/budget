@@ -309,6 +309,9 @@ func (s *RecurringPaymentServer) ConfirmPayment(ctx context.Context, req *budget
 			return nil, paymentRPCError(rp.ErrInvalid)
 		}
 		p := x.ExistingTransaction
+		if p.TransactionId == "" {
+			return nil, paymentRPCError(rp.ErrInvalid)
+		}
 		at, e := assetTimestamp(p.ExpectedOccurredAt)
 		if e != nil {
 			return nil, e

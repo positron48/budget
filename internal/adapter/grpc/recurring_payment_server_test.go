@@ -1,7 +1,10 @@
 package grpcadapter
 
 import (
+	"context"
 	"errors"
+	budgetv1 "github.com/positron48/budget/gen/go/budget/v1"
+	"github.com/positron48/budget/internal/pkg/ctxutil"
 	rp "github.com/positron48/budget/internal/usecase/recurringpayment"
 	"github.com/positron48/budget/internal/usecase/transaction"
 	"google.golang.org/grpc/codes"
@@ -19,5 +22,14 @@ func TestRecurringPaymentErrorContract(t *testing.T) {
 		if status.Code(e) != tc.code || status.Convert(e).Message() != tc.message {
 			t.Fatal(e)
 		}
+	}
+}
+
+func TestRecurringPaymentExistingExpenseRequiresSelection(t *testing.T) {
+	ctx := ctxutil.WithUserID(ctxutil.WithTenantID(context.Background(), "tenant"), "user")
+	server := NewRecurringPaymentServer(nil)
+	_, err := server.ConfirmPayment(ctx, &budgetv1.ConfirmPaymentRequest{Expense: &budgetv1.ConfirmPaymentRequest_ExistingTransaction{ExistingTransaction: &budgetv1.PaymentExistingTransaction{}}})
+	if status.Code(err) != codes.InvalidArgument || status.Convert(err).Message() != "payment_invalid" {
+		t.Fatal(err)
 	}
 }
