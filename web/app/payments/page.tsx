@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useClients } from "@/app/providers";
-import { Protected } from "@/components";
+import { Button, Protected } from "@/components";
 import { useDisplayCurrency } from "@/lib/display-currency";
 import {
   localPaymentMonth,
@@ -79,20 +79,26 @@ function Payments() {
     queryFn: () => api.listRecurringPaymentTemplates({}),
   });
   return (
-    <main className="container mx-auto max-w-5xl p-4 sm:p-8 space-y-5">
+    <div className="container mx-auto max-w-5xl px-4 py-5 sm:px-8 space-y-4">
       <div className="flex flex-wrap justify-between gap-3">
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <button
-          className="btn btn-primary"
-          onClick={() => setEditor({ tenant: tenant || "" })}
-        >
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
+          <p className="mt-1 hidden sm:block text-sm text-muted-foreground">
+            {t("description")}
+          </p>
+        </div>
+        <Button icon="plus" onClick={() => setEditor({ tenant: tenant || "" })}>
           {t("newTemplate")}
-        </button>
+        </Button>
       </div>
-      <nav className="flex gap-4">
+      <nav
+        aria-label={t("title")}
+        className="inline-flex max-w-full gap-1 rounded-xl bg-secondary p-1"
+      >
         {["occurrences", "templates"].map((v) => (
           <button
-            className={tab === v ? "font-semibold underline" : ""}
+            aria-pressed={tab === v}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${tab === v ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
             key={v}
             onClick={() => setTab(v)}
           >
@@ -102,10 +108,10 @@ function Payments() {
       </nav>
       {tab === "occurrences" ? (
         <>
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-[auto_auto_minmax(120px,1fr)_auto] sm:items-center">
             <input
               aria-label={t("month")}
-              className="rounded border border-border bg-transparent p-2"
+              className="h-9 min-w-0 rounded-lg border border-border bg-background px-3 text-sm"
               type="month"
               value={month}
               onChange={(e) => {
@@ -116,7 +122,7 @@ function Payments() {
             />
             <select
               aria-label={t("status")}
-              className="rounded border border-border bg-transparent p-2"
+              className="h-9 min-w-0 rounded-lg border border-border bg-background px-3 text-sm"
               value={status}
               onChange={(e) => {
                 setStatus(e.target.value);
@@ -137,7 +143,7 @@ function Payments() {
               ))}
             </select>
             <input
-              className="min-w-0 rounded border border-border bg-transparent p-2"
+              className="col-span-2 sm:col-span-1 h-9 min-w-0 rounded-lg border border-border bg-background px-3 text-sm"
               aria-label={t("search")}
               placeholder={t("search")}
               value={search}
@@ -146,7 +152,7 @@ function Payments() {
                 setPage(1);
               }}
             />
-            <label className="self-center">
+            <label className="col-span-2 sm:col-span-1 flex items-center gap-2 text-sm text-muted-foreground">
               <input
                 type="checkbox"
                 checked={debts}
@@ -174,18 +180,23 @@ function Payments() {
                   setAction({ o, action, tenant: tenant || "" })
                 }
               />
-              <div className="flex gap-4">
-                <button disabled={page === 1} onClick={() => setPage(page - 1)}>
-                  {t("previous")}
-                </button>
-                <span>{page}</span>
-                <button
-                  disabled={page * 30 >= q.data.total}
-                  onClick={() => setPage(page + 1)}
-                >
-                  {t("next")}
-                </button>
-              </div>
+              {q.data.total > 30 && (
+                <div className="flex items-center justify-center gap-4 border-t border-border pt-4">
+                  <button
+                    disabled={page === 1}
+                    onClick={() => setPage(page - 1)}
+                  >
+                    {t("previous")}
+                  </button>
+                  <span>{page}</span>
+                  <button
+                    disabled={page * 30 >= q.data.total}
+                    onClick={() => setPage(page + 1)}
+                  >
+                    {t("next")}
+                  </button>
+                </div>
+              )}
             </>
           )}
         </>
@@ -193,16 +204,36 @@ function Payments() {
         <p role="alert">{t("loadError")}</p>
       ) : (
         <div className="space-y-3">
+          {templates.isPending && (
+            <p className="py-8 text-center text-muted-foreground">
+              {t("loading")}
+            </p>
+          )}
+          {templates.data?.templates.length === 0 && (
+            <div className="rounded-xl border border-dashed border-border bg-card px-4 py-6 text-center">
+              <h2 className="text-lg font-semibold">{t("emptyTemplates")}</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                {t("emptyTemplatesHint")}
+              </p>
+              <Button
+                className="mt-3"
+                icon="plus"
+                onClick={() => setEditor({ tenant: tenant || "" })}
+              >
+                {t("newTemplate")}
+              </Button>
+            </div>
+          )}
           {templates.data?.templates.map((template) => (
             <article
               key={template.id}
-              className="rounded-xl border border-border p-4 flex flex-wrap justify-between gap-3"
+              className="rounded-xl border border-border bg-card p-5 flex flex-wrap justify-between gap-3"
             >
               <div>
                 <h2 className="font-semibold">
                   {template.name} {template.archived && `· ${t("archived")}`}
                 </h2>
-                <p>
+                <p className="mt-1 text-sm text-muted-foreground">
                   {t(`interval${template.intervalMonths}`)} ·{" "}
                   {template.currencyCode} · {template.timezone}
                 </p>
@@ -275,7 +306,7 @@ function Payments() {
           onClose={() => setEditor(undefined)}
         />
       )}
-    </main>
+    </div>
   );
 }
 export default function Page() {

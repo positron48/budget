@@ -120,7 +120,6 @@ function DashboardInner() {
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      <PaymentsOverview key={tenant}/>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -142,6 +141,8 @@ function DashboardInner() {
           <StatCard icon="wallet" color={net >= 0 ? "primary" : "warning"} title={t("net")} value={formatCurrency(net, currencyCode)} />
         </div>
       )}
+
+      <PaymentsOverview key={tenant}/>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Expense breakdown */}

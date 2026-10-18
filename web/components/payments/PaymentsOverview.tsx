@@ -30,10 +30,13 @@ export default function PaymentsOverview() {
     refetchOnWindowFocus: true,
   });
   return (
-    <section className="rounded-xl border border-border p-4 sm:p-6 space-y-4">
+    <section className="rounded-xl border border-border bg-card p-4 space-y-3">
       <div className="flex flex-wrap justify-between gap-2">
-        <h2 className="text-xl font-semibold">{t("remainingThisMonth")}</h2>
-        <Link className="underline" href={`/payments?month=${month}`}>
+        <h2 className="text-base font-semibold">{t("remainingThisMonth")}</h2>
+        <Link
+          className="text-sm font-medium text-primary hover:underline"
+          href={`/payments?month=${month}`}
+        >
           {t("allPayments")}
         </Link>
       </div>

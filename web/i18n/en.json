@@ -850,6 +850,13 @@
     "cancel": "Cancel",
     "view": "Expense",
     "expenseEditHint": "Edit the expense in the transaction journal. Reconfirm this payment after changing the amount.",
-    "incompleteTotal": "Known remaining amount; total is incomplete"
+    "incompleteTotal": "Known remaining amount; total is incomplete",
+    "description": "Plan regular expenses and track payments, month by month.",
+    "emptyTemplates": "Add your first recurring payment",
+    "emptyTemplatesHint": "Rent, utilities or subscriptions — set up the schedule once.",
+    "remaining": "Still to pay",
+    "frequency1": "Monthly",
+    "frequency3": "Quarterly",
+    "frequency12": "Yearly"
   }
 }

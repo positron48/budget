@@ -153,7 +153,17 @@ for (const locale of ["ru", "en"])
       if (method.name === "ListPaymentOccurrences")
         data = { summary, occurrences: [occurrence()], total: 1 };
       if (method.name === "ListRecurringPaymentTemplates")
-        data = { templates: [] };
+        data = {
+          templates: [
+            {
+              id: "template",
+              name: "Utilities",
+              intervalMonths: 1,
+              currencyCode: "RUB",
+              timezone: "Europe/Moscow",
+            },
+          ],
+        };
       if (method.name === "CreateRecurringPaymentTemplate") {
         templates++;
         data = {
@@ -215,6 +225,11 @@ for (const locale of ["ru", "en"])
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
     await expect(page.getByText("Utilities", { exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByText(locale === "ru" ? "Ежемесячно" : "Monthly", { exact: true })
+        .first(),
+    ).toBeVisible();
     await expect(page.getByText("Old debt", { exact: false })).toBeVisible();
     expect(
       await page.evaluate(
@@ -250,6 +265,11 @@ for (const locale of ["ru", "en"])
     ).toBeVisible();
     await page.goto(`/payments?month=${month}`);
     await expect(page.getByText("Utilities", { exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByText(locale === "ru" ? "Ежемесячно" : "Monthly", { exact: true })
+        .first(),
+    ).toBeVisible();
     await page
       .getByRole("button", {
         name: locale === "ru" ? "Снять связь" : "Unlink expense",
@@ -327,10 +347,22 @@ for (const locale of ["ru", "en"])
       .click();
     await expect(dialog).toHaveCount(0);
     expect(templates).toBe(1);
+    await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({
       path: info.outputPath(`payments-${locale}-390.png`),
       fullPage: true,
     });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.screenshot({
+      path: info.outputPath(`payments-${locale}-desktop.png`),
+      fullPage: true,
+    });
+    await page
+      .getByRole("button", {
+        name: locale === "ru" ? "Шаблоны" : "Templates",
+        exact: true,
+      })
+      .click();
     expect(errors).toEqual([]);
     expect(
       seen.some(
