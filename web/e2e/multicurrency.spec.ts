@@ -68,6 +68,21 @@ for (const locale of ["en", "ru"]) test(`shared display currency ${locale}`, asy
   await page.keyboard.press("Escape");
   await page.screenshot({path:info.outputPath(`home-${locale}.png`),fullPage:true});
   const selector=page.getByRole("combobox",{name:locale==="ru"?"Валюта отображения":"Display currency"});
+  // Currency of an entered operation is independent of the shared display currency.
+  for (const [route, name] of [["/", locale==="ru"?"Добавить транзакцию":"Add transaction"], ["/transactions", locale==="ru"?"Добавить":"Add"]]) {
+    await page.goto(route);
+    await page.getByRole("button",{name,exact:true}).click();
+    const dialog=page.getByRole("dialog");
+    const inputCurrency=dialog.getByRole("combobox",{name:locale==="ru"?"Валюта":"Currency",exact:true});
+    await expect(inputCurrency).toHaveValue("RUB");
+    await inputCurrency.selectOption("EUR");
+    await expect(inputCurrency).toHaveValue("EUR");
+    await inputCurrency.selectOption("USD");
+    await expect(inputCurrency).toHaveValue("USD");
+    await expect(selector).toHaveValue("RUB");
+    await dialog.getByRole("button",{name:"Close",exact:true}).click();
+  }
+  await page.goto("/");
   await selector.selectOption("EUR");
   await expect.poll(()=>seen.some(q=>q.method==="GetMonthlySummary"&&q.currency==="EUR")).toBe(true);
   await expect(page.getByText("Euro lunch")).toBeVisible();

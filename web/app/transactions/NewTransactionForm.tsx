@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useClients } from "@/app/providers";
 import { TransactionType, CategoryKind } from "@/proto/budget/v1/common_pb";
-import { Icon, CategorySingleInput, Select } from "@/components";
+import { Icon, CategorySingleInput } from "@/components";
 import AssetAccountSelect from "@/components/assets/AssetAccountSelect";
 import { parseAssetAmount, localAssetTime } from "@/lib/assets";
 import { useTranslations } from "next-intl";
@@ -224,11 +224,14 @@ const NewTransactionForm = forwardRef<NewTxFormRef, Props>(function NewTransacti
             </div>
             {errors.amount && <p className="text-xs text-[hsl(var(--negative))] mt-0.5">{errors.amount.message}</p>}
           </div>
-          <Select
+          <select
+            aria-label={t("currency")}
+            className={`${baseInputClass} h-10`}
             value={currencyWatch}
-            onChange={(v) => { setValue('currencyCode', String(v), { shouldDirty: true, shouldValidate: true }); setValue('assetAccountId', ""); }}
-            options={CURRENCIES.map((c) => ({ value: c, label: c }))}
-          />
+            onChange={(e) => { setValue('currencyCode', e.target.value, { shouldDirty: true, shouldValidate: true }); setValue('assetAccountId', ""); }}
+          >
+            {CURRENCIES.map((currency) => <option key={currency} value={currency}>{currency}</option>)}
+          </select>
         </div>
       </div>
 
