@@ -429,6 +429,17 @@ func TestAssetsMigrationPreservesLegacy_PG(t *testing.T) {
 	if _, err = pool.DB.Exec(ctx, string(up)); err != nil {
 		t.Fatal(err)
 	}
+	// Check the assets-only upgrade directly on its historical schema. The current
+	// repository also reads recurring-payment links and requires all startup migrations.
+	var amount, comment string
+	var account *string
+	if err = pool.DB.QueryRow(ctx, `SELECT amount_numeric::text,comment,asset_account_id::text FROM transactions WHERE tenant_id=$1 AND id=$2`, tenant, id).Scan(&amount, &comment, &account); err != nil {
+		t.Fatal(err)
+	}
+	if amount != "123.45" || comment != "Legacy expense" || account != nil {
+		t.Fatalf("assets migration changed legacy row: %s %s %v", amount, comment, account)
+	}
+	applyMigrations(t, ctx, pool.DB)
 	tx, err := NewTransactionRepo(pool).Get(ctxutil.WithTenantID(ctx, tenant), id)
 	if err != nil {
 		t.Fatal(err)
