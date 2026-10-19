@@ -94,5 +94,6 @@ for(const locale of ["ru","en"]){test(`${locale} analytics charts show profit, p
  coldChart=false;partialHistory=true;await page.goto("/investments/analytics?from=2024-12-30&to=2025-01-03");
  await expect(history.getByRole("img",{name:ru?"Стоимость и вложения":"Value and invested",exact:true})).toBeVisible();await expect(history.getByRole("img",{name:ru?"Стоимость и вложения":"Value and invested",exact:true}).locator('polyline[stroke-dasharray="5 4"]')).toHaveCount(0);await expect(history.locator("circle")).toHaveCount(0);
  await expect(history.getByRole("img",{name:ru?"Накопленная прибыль":"Cumulative profit",exact:true}).locator('polyline[stroke="#55d0ad"]')).toHaveCount(1);
+ await expect(history).toContainText(ru?"Прибыль по доступной истории · бумаг: 1":"Profit with available history · instruments: 1");
  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:test.info().outputPath(`portfolio-growth-mobile-${locale}.png`),fullPage:true});expect(writes).toBe(0);expect(globalHistoryIncludesArchived).toBe(true);expect(errors).toEqual([]);
  });}
