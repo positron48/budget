@@ -225,12 +225,8 @@ func testTrackerHistoryScale(t *testing.T, operationsPerAccount, instruments int
 			t.Fatal("attribution scale shape", len(h.Points), len(h.Contributions))
 		}
 		for _, r := range h.Contributions {
-			if last == "2024-01-08" {
-				if r.Profit != nil {
-					t.Fatal("stale decade-old quote became an end valuation")
-				}
-			} else if r.Profit == nil || r.Profit.Sign() != 0 {
-				t.Fatal("flat-price exact attribution", r)
+			if r.Profit == nil || r.Profit.Sign() != 0 {
+				t.Fatal("flat-price attribution must retain the last known historical price", r)
 			}
 		}
 		t.Logf("%d operations, %d instruments, contribution boundaries through %s: %s", 10*operationsPerAccount, instruments, last, time.Since(began))

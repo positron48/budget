@@ -16,30 +16,47 @@ type trackerHistorySeries struct {
 	ID       string `json:"id"`
 }
 
+// Seed each bounded window with the preceding candle per adjustment. This
+// retains last-known prices across long closures without scanning old history.
 const trackerHistorySeriesSQL = `WITH requested AS (
  SELECT * FROM jsonb_to_recordset($2::jsonb) AS x(provider text,scope text,id uuid)
+), windows AS MATERIALIZED (
+ SELECT x.*,a.adjustment,(
+  SELECT p.observed_at FROM market_provider_observations p
+  WHERE p.tenant_id=$1 AND p.provider=x.provider AND p.access_scope=x.scope AND p.instrument_id=x.id
+  AND p.kind='daily_candle' AND p.source_kind='exchange' AND p.adjustment=a.adjustment AND p.observed_at<$3
+  ORDER BY p.observed_at DESC LIMIT 1
+ ) AS prior_at
+ FROM requested x CROSS JOIN unnest(ARRAY['unadjusted','provider_unspecified']) AS a(adjustment)
 )
 SELECT o.provider,o.access_scope,o.instrument_id,o.id,o.data,o.revision,o.received_at
-FROM requested x
+FROM windows x
 JOIN market_provider_observations o ON o.tenant_id=$1 AND o.provider=x.provider AND o.access_scope=x.scope AND o.instrument_id=x.id
 JOIN market_data_sources s ON s.tenant_id=o.tenant_id AND s.provider=o.provider AND s.access_scope=o.access_scope
-WHERE o.kind='daily_candle' AND o.source_kind='exchange'
-AND o.adjustment IN ('unadjusted','provider_unspecified')
-AND o.observed_at BETWEEN $3 AND $4 AND s.enabled
+WHERE o.kind='daily_candle' AND o.source_kind='exchange' AND o.adjustment=x.adjustment
+AND o.observed_at BETWEEN coalesce(x.prior_at,$3) AND $4 AND s.enabled
 ORDER BY o.provider,o.access_scope,o.instrument_id,o.observed_at,o.id LIMIT 100001`
 
-// Sparse boundary/transfer valuation uses bounded index ranges per listing and
-// cutoff, rather than reading every candle between distant dates.
+// Sparse boundaries use the same preceding-candle rule per listing and cutoff.
 const trackerHistorySparseSeriesSQL = `WITH requested AS (
  SELECT * FROM jsonb_to_recordset($2::jsonb) AS x(provider text,scope text,id uuid)
-), cutoffs AS (SELECT value::timestamptz at FROM jsonb_array_elements_text($3::jsonb))
+), cutoffs AS (SELECT value::timestamptz at FROM jsonb_array_elements_text($3::jsonb)), windows AS MATERIALIZED (
+ SELECT x.*,c.at,a.adjustment,coalesce((
+  SELECT p.observed_at FROM market_provider_observations p
+  WHERE p.tenant_id=$1 AND p.provider=x.provider AND p.access_scope=x.scope AND p.instrument_id=x.id
+  AND p.kind='daily_candle' AND p.source_kind='exchange' AND p.adjustment=a.adjustment
+  AND p.observed_at<(date_trunc('day',c.at AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')-interval '5 days'
+  ORDER BY p.observed_at DESC LIMIT 1
+ ),(date_trunc('day',c.at AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')-interval '5 days') AS lower_at
+ FROM requested x CROSS JOIN cutoffs c CROSS JOIN unnest(ARRAY['unadjusted','provider_unspecified']) AS a(adjustment)
+)
 SELECT DISTINCT ON (o.id) o.provider,o.access_scope,o.instrument_id,o.id,o.data,o.revision,o.received_at
-FROM requested x CROSS JOIN cutoffs c
+FROM windows x
 CROSS JOIN LATERAL (
  SELECT p.* FROM market_provider_observations p
  WHERE p.tenant_id=$1 AND p.provider=x.provider AND p.access_scope=x.scope AND p.instrument_id=x.id
- AND p.kind='daily_candle' AND p.source_kind='exchange' AND p.adjustment IN ('unadjusted','provider_unspecified')
- AND p.observed_at BETWEEN (date_trunc('day',c.at AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')-interval '5 days' AND c.at
+ AND p.kind='daily_candle' AND p.source_kind='exchange' AND p.adjustment=x.adjustment
+ AND p.observed_at BETWEEN x.lower_at AND x.at
  ORDER BY p.observed_at,p.id LIMIT 10001
 ) o JOIN market_data_sources s ON s.tenant_id=o.tenant_id AND s.provider=o.provider AND s.access_scope=o.access_scope
 WHERE s.enabled ORDER BY o.id LIMIT 100001`

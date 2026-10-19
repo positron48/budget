@@ -20,10 +20,11 @@ export default function PortfolioLineChart({series, from, to, locale, currency, 
   if (reference && Number.isFinite(reference.value)) values.push(reference.value);
   if (!values.length) return <p role="status" className="flex h-80 items-center justify-center text-sm text-slate-500">{locale === "ru" ? "Нет данных за этот период" : "No data for this period"}</p>;
   const low = Math.min(...values), high = Math.max(...values), padding = (high - low || Math.abs(high) || 1) * .07;
-  const {min, max, ticks: valueTicks} = chartScale(low - padding, high + padding);
+  const {min, max, ticks: valueTicks} = chartScale(low >= 0 ? Math.max(0, low - padding) : low - padding, high + padding);
   const start = Date.parse(from), days = Math.max(1, (Date.parse(to) - start) / 86400000);
   const x = (date: string) => 76 + (Date.parse(date) - start) / 86400000 / days * plotWidth;
   const y = (n: number) => 18 + (max - n) / (max - min) * 278;
+  const areaBaseline = y(Math.max(min, Math.min(max, 0)));
   const format = (n: number, compact = false) => new Intl.NumberFormat(locale, {maximumFractionDigits: compact ? 1 : precision, notation: compact ? "compact" : "standard", ...(currency ? {style: "currency", currency} : {})}).format(n)+(unit?" "+unit:"");
   const ticks = chartDateTicks(from, to,width<600?3:6), long = days > 1825;
   const hoverRows = hover ? series.flatMap(s => {const p = s.points.find(p => p.date === hover && p.value !== undefined); return p ? [{s, p}] : [];}) : [];
@@ -42,7 +43,7 @@ export default function PortfolioLineChart({series, from, to, locale, currency, 
       </g>)}
       {min < 0 && max > 0 && <line x1="76" x2={width-24} y1={y(0)} y2={y(0)} stroke="currentColor" strokeOpacity=".3" vectorEffect="non-scaling-stroke"/>}
       {series.flatMap((s,seriesIndex) => chartSegments(s.points).map((segment, i) => <g key={s.key+i}>
-        {seriesIndex===0&&segment.length>1&&<polygon points={`${x(segment[0].date)},296 `+segment.map(p=>`${x(p.date)},${y(p.value!)}`).join(" ")+` ${x(segment.at(-1)!.date)},296`} fill={s.color} fillOpacity=".07"/>}
+        {seriesIndex===0&&segment.length>1&&<polygon points={`${x(segment[0].date)},${areaBaseline} `+segment.map(p=>`${x(p.date)},${y(p.value!)}`).join(" ")+` ${x(segment.at(-1)!.date)},${areaBaseline}`} fill={s.color} fillOpacity=".07"/>}
         <polyline points={segment.length === 1 ? `${x(segment[0].date) - 1},${y(segment[0].value!)} ${x(segment[0].date) + 1},${y(segment[0].value!)}` : segment.map(p => `${x(p.date)},${y(p.value!)}`).join(" ")} fill="none" stroke={s.color} strokeWidth="2" strokeDasharray={s.dashed ? "5 4" : undefined} vectorEffect="non-scaling-stroke"><title>{s.title}{segment[0].segment?.startsWith("partial:") ? (locale === "ru" ? " · известная часть" : " · known portion") : ""} · {segment[0].date}: {format(segment[0].value!)} — {segment.at(-1)!.date}: {format(segment.at(-1)!.value!)}</title></polyline>
       </g>))}
 

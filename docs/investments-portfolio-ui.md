@@ -115,6 +115,17 @@ backfill earlier history. The API labels them `estimated` / `manual_estimate`;
 category rows and instrument headers show their dates. Mapping-only updates
 preserve the estimate schedule; an explicit empty schedule removes it.
 
+Daily history retains the preceding candle when a window starts after a long
+exchange closure. Expired valid prices remain dated `last_known_price` estimates;
+future candles, incomplete candles and contradictory evidence do not fill gaps.
+Dense pages and sparse contribution boundaries use the same rule. Unknown
+intraday timing does not invalidate known end-of-day security units. A scoped
+selection tests its own opening balances when deciding whether earlier recorded
+holdings start from zero; unrelated unknown openings retain their warnings only
+in scopes containing them. These changes invalidate derived history caches.
+Nonnegative charts keep a nonnegative axis; area fills end at zero, including
+profit charts that legitimately cross below zero.
+
 Pending source trades affect selected categories and securities only when their
 identity is established by posted source rows of the same import. Unknown or
 ambiguous identities remain incomplete in every selection. Missing quantities

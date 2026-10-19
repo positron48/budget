@@ -122,6 +122,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 
 	inputs := map[string]investmentReplayInput{}
 	startsFromZero := map[string]bool{}
+	scopedOperations := map[string][]d.InvestmentOperation{}
 	splits := map[string]map[string][]d.InvestmentOperation{}
 	count := 0
 	for _, id := range q.LedgerIDs {
@@ -166,7 +167,17 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 			return out, d.ErrInvestmentLimit
 		}
 		inputs[id] = investmentReplayInput{Ledger: l, Operations: ops}
-		startsFromZero[id] = inv.RecordedTrackerStartsFromZero(l, ops)
+		scopeOps := ops
+		if len(q.InstrumentKeys) > 0 || len(q.GroupIDs) > 0 {
+			scopeOps = nil
+			for _, op := range ops {
+				if selected(id, op.InstrumentKey) || (op.Distribution != nil && selected(id, op.Distribution.TargetInstrumentKey)) {
+					scopeOps = append(scopeOps, op)
+				}
+			}
+		}
+		scopedOperations[id] = scopeOps
+		startsFromZero[id] = inv.RecordedTrackerStartsFromZero(l, scopeOps)
 		splits[id] = map[string][]d.InvestmentOperation{}
 		for _, op := range ops {
 			if op.Kind == "split" && op.Status == "posted" {
@@ -276,6 +287,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		heads = append(heads, inputs[id].Ledger)
 	}
 	out.BasisKey = investmentHash(struct {
+		ValuationRules string
 		Heads          []d.InvestmentLedger
 		Policy         md.SavedFXPolicy
 		Points         []md.SavedFXPoint
@@ -283,7 +295,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		Classification *nav.InstrumentGroups
 		GroupIDs       []string
 		InstrumentKeys []string
-	}{heads, policy, points, cache, classification, q.GroupIDs, q.InstrumentKeys})
+	}{"daily-eod-v3", heads, policy, points, cache, classification, q.GroupIDs, q.InstrumentKeys})
 	if q.BasisOnly {
 		return out, tx.Commit(ctx)
 	}
@@ -359,7 +371,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 	needsReplay := false
 	for _, id := range q.LedgerIDs {
 		input := inputs[id]
-		history, supported, err := inv.TrackerUnitHistory(input.Ledger, input.Operations, days)
+		history, supported, err := inv.TrackerUnitHistory(input.Ledger, scopedOperations[id], days)
 		if err != nil {
 			return out, err
 		}
@@ -402,7 +414,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 				continue
 			}
 			input := inputs[id]
-			history, supported, err := inv.TrackerSecurityLegHistory(input.Ledger, input.Operations, legs[id], days)
+			history, supported, err := inv.TrackerSecurityLegHistory(input.Ledger, scopedOperations[id], legs[id], days)
 			if err != nil {
 				return out, err
 			}
@@ -538,6 +550,8 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 			}
 			for _, code := range s.Issues {
 				switch code {
+				case "date_only_timing":
+					continue // A known civil date determines end-of-day units without an intraday timestamp.
 				case "mixed_native_cost_currencies", "unknown_acquisition_cost", "unknown_acquired_interest", "historical_acquisition_date_unknown", "coupon_allocation_required", "history_before_opening_unknown", "settlement_assumed_trade_time", "imported_cash_deficit_reviewed":
 					continue // Cost/cash assumptions do not make known security units unpriced.
 				}
@@ -897,17 +911,10 @@ SELECT jsonb_build_array(
  )`
 
 func (entry trackerHistoryMarket) selectPrice(q md.PriceSelectionRequest, key string) (md.SelectedPrice, error) {
-	// SQL already reads five preceding UTC days. Apply the same window per
-	// valuation date so a larger page cannot change missing/stale diagnostics.
-	from := q.At.UTC().Truncate(24 * time.Hour).Add(-5 * 24 * time.Hour)
+	// Retain the preceding observation across holidays and suspended trading.
+	// Eligibility still rejects future, incomplete and contradictory candles.
 	if series := entry.series[key]; series != nil {
-		return series.SelectSince(q, from)
+		return series.Select(q)
 	}
-	selected := []md.ScopedObservation{}
-	for _, o := range entry.observations[key] {
-		if !o.At.Before(from) {
-			selected = append(selected, o)
-		}
-	}
-	return md.SelectValuationPrice(q, selected)
+	return md.SelectValuationPrice(q, entry.observations[key])
 }
