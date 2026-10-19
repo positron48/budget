@@ -32,6 +32,18 @@ describe("portfolio reporting currency", () => {
     lot.acquiredAt=at("2026-01-01");s.positions[0].costBasis="capitalized";
     expect(portfolioReport([s],[transfer],quote(),"RUB",fx()).positions[0].cost).toBeUndefined();
   });
+  it("uses archived acquisition metadata without importing its cash movements into the selection",()=>{
+    const source=buy();source.id="archived-buy";source.ledgerId="archived-account";
+    const s=snapshot(),lot=s.positions[0].lots[0];lot.acquisitionOperationId=source.id;lot.originLedgerId=source.ledgerId;
+    const transfer=create(InvestmentOperationSchema,{id:"transfer",ledgerId:"one",status:"posted",kind:"security_transfer_in",instrumentKey:"US",currency:"USD",quantity:"1",occurredAt:at("2026-02-01")});
+    const before=portfolioReport([s],[transfer],quote(),"RUB",fx());
+    const after=portfolioReport([s],[transfer],quote(),"RUB",fx(),()=>true,[source]);
+    expect(before.positions[0].cost).toBeUndefined();
+    expect(positionDecimal(after.positions[0].cost)).toBe("8000");
+    expect(after.positions[0].quantity).toEqual(before.positions[0].quantity);
+    expect(after.positions[0].profit).toBeUndefined();
+    expect(after.months).toEqual(before.months);
+  });
   it("translates remaining principal at acquisition FX, cash flows at their own dates and market value at current FX", () => {
     const sell = create(InvestmentOperationSchema, {id:"sell", ledgerId:"one", status:"posted", kind:"sell", instrumentKey:"US", currency:"USD", amount:"120", quantity:"1", fee:"1", accrued:"3", occurredAt:at("2026-02-01")});
     const payout = create(InvestmentOperationSchema, {id:"payout", status:"posted", kind:"coupon", instrumentKey:"US", currency:"USD", amount:"10", tax:"2", occurredAt:at("2026-02-01")});

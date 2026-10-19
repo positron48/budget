@@ -24,7 +24,7 @@ function reportPrincipal(op: InvestmentOperation) {
 }
 export type ReportPosition = TrackerPosition & {incomeComplete: boolean;unrealized?:Fraction;priceCurrency?:string};
 export type ReportHolding = {ledgerId:string;key:string;quantity:Fraction;cost?:Fraction;value?:Fraction;priceCurrency?:string};
-export function portfolioReport(snapshots: InvestmentSnapshot[], operations: InvestmentOperation[], quotes: Map<string, TrackerQuote>, currency: string, fx?: GetInvestmentExchangeRatesResponse, include: (ledger: string, instrument: string) => boolean = () => true) {
+export function portfolioReport(snapshots: InvestmentSnapshot[], operations: InvestmentOperation[], quotes: Map<string, TrackerQuote>, currency: string, fx?: GetInvestmentExchangeRatesResponse, include: (ledger: string, instrument: string) => boolean = () => true, originOperations:InvestmentOperation[] = []) {
   const rates = new Map((fx?.currency === currency ? fx.rates : []).map(r => [`${r.date}\0${r.fromCurrency}`, r.rate]));
   const holdingCosts: ReportHolding[]=[];
   const missingFX = new Set<string>(), positions = new Map<string, ReportPosition>();
@@ -47,7 +47,7 @@ export function portfolioReport(snapshots: InvestmentSnapshot[], operations: Inv
   };
   const now = fx?.readAt?.seconds ?? BigInt(Math.floor(Date.now() / 1000));
   const posted = operations.filter(o => o.status === "posted" && o.occurredAt && o.occurredAt.seconds <= now);
-  const byID = new Map(posted.map(o => [o.id, o]));
+  const byID = new Map([...originOperations.filter(o=>o.status==="posted"&&o.occurredAt&&o.occurredAt.seconds<=now),...posted].map(o => [o.id, o]));
   for (const s of snapshots) for (const holding of s.positions) {
     if (!include(s.ledger?.id || "", holding.instrumentKey)) continue;
     const p = get(holding.instrumentKey), quantity = decimal(holding.quantity);

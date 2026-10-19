@@ -10,7 +10,10 @@ the tooltip identifies Saturday's retrospective valuation date. Manual
 estimates cannot declare a trading session. Available fixed subsets remain
 usable when one security is unpriced.
 
-The current invested card shows the known acquisition-cost subtotal even when
+The current overview resolves referenced lot acquisitions from their source
+accounts, including archived custody accounts. These operations are used only
+for cost metadata; current holdings, cash flows and visible history keep their
+selected account scope. The invested card shows the known acquisition-cost subtotal even when
 another security lacks cost, with a partial-data label. The value chart's
 invested line uses recorded lifetime net strategy funding (purchases and
 expenses minus sales and received payouts), including flows before the selected

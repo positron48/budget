@@ -179,7 +179,7 @@ export async function commitSimpleImport(api: InvestmentAPI, plan: SimpleImportP
   return result;
 }
 
-export async function allOperations(api: InvestmentAPI, ledgerId: string, options?: CallOptions): Promise<InvestmentOperation[]> {
+export async function allOperations(api: Pick<InvestmentAPI,"listInvestmentOperations">, ledgerId: string, options?: CallOptions): Promise<InvestmentOperation[]> {
   const operations: InvestmentOperation[] = [];
   for (let offset = 0; ; offset += 200) {
     options?.signal?.throwIfAborted();

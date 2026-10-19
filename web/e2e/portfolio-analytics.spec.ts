@@ -10,7 +10,7 @@ for(const locale of ["ru","en"]){test(`${locale} analytics charts show profit, p
  const ru=locale==="ru",a="11111111-1111-4111-8111-111111111111",b="22222222-2222-4222-8222-222222222222",one="33333333-3333-4333-8333-333333333333",two="44444444-4444-4444-8444-444444444444",uid="55555555-5555-4555-8555-555555555555",key="tinvest:"+uid;
  const ledgers=[{id:one,name:"Broker one",version:1n,portfolioTracking:true},{id:two,name:"Broker two",version:1n,portfolioTracking:true}];
  let classification=create(InvestmentGroupsSchema,{version:1n,groups:[{id:a,name:"Alpha"},{id:b,name:"Beta"}],memberships:[{ledgerId:one,instrumentKey:key,groupId:a},{ledgerId:two,instrumentKey:key,groupId:b}]});
- let writes=0,historyReads=0,partialHistory=false,missingCost=false,coldChart=false,globalHistoryIncludesArchived=false;let releaseHistory=()=>{};let heldHistory:Promise<void>|undefined;const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
+ let writes=0,historyReads=0,partialHistory=false,missingCost=false,archivedCost=false,coldChart=false,globalHistoryIncludesArchived=false;let releaseHistory=()=>{};let heldHistory:Promise<void>|undefined;const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
  await context.addCookies([{name:"NEXT_LOCALE",value:locale,url:test.info().project.use.baseURL as string}]);await page.addInitScript(()=>{localStorage.setItem("budget/access","synthetic-session");localStorage.setItem("budget/tenant","tenant");});
  await page.route("**/budget.v1.*/*",async route=>{
   const path=new URL(route.request().url()).pathname,service=[InvestmentService,InvestmentNAVService,InvestmentImportService,TenantService].find(s=>path.includes(s.typeName+"/")),method=service?.methods.find(m=>path.endsWith("/"+m.name)),bytes=route.request().postDataBuffer()!,input=method?fromBinary(method.input,bytes.subarray(5,5+bytes.readUInt32BE(1))) as any:{};
@@ -20,7 +20,9 @@ for(const locale of ["ru","en"]){test(`${locale} analytics charts show profit, p
   if(method?.name==="ListInvestmentLedgers")data={ledgers:input.includeArchived?[...ledgers,{id:"66666666-6666-4666-8666-666666666666",name:"Closed source",archived:true,portfolioTracking:true,version:1n}]:ledgers};
   if(method?.name==="GetInvestmentSnapshot")data={snapshot:{ledger:ledgers.find(l=>l.id===input.ledgerId),positions:[{instrumentKey:key,currency:"RUB",quantity:qty,costBasis:"principal",lots:[{originId:input.ledgerId+"buy",quantity:qty,cleanCost:String(Number(qty)*100),acquiredAccrued:"0",acquiredAt:{seconds:at}}]}]}};
   if(method?.name==="GetInvestmentSnapshot"&&missingCost&&input.ledgerId===one)data.snapshot.positions.push({instrumentKey:"MISSING_COST",currency:"RUB",quantity:"1",costBasis:"principal",lots:[]});
+  if(method?.name==="GetInvestmentSnapshot"&&archivedCost&&input.ledgerId===one){data.snapshot.positions[0].costBasis="";data.snapshot.positions[0].lots=[{originId:"archived-buy",acquisitionOperationId:"archived-buy",originLedgerId:"66666666-6666-4666-8666-666666666666",quantity:"1",cleanCost:"75",acquiredAccrued:"0",acquiredAt:{seconds:at}}];}
   if(method?.name==="ListInvestmentOperations")data={operations:[{id:input.ledgerId+"buy",ledgerId:input.ledgerId,kind:"buy",status:"posted",instrumentKey:key,currency:"RUB",amount:String(Number(qty)*100),quantity:qty,fee:"0",accrued:"0",occurredAt:{seconds:at}},{id:input.ledgerId+"div",ledgerId:input.ledgerId,kind:"dividend",status:"posted",instrumentKey:key,currency:"RUB",amount:String(Number(qty)*5),occurredAt:{seconds:at+86400n}}]};
+  if(method?.name==="ListInvestmentOperations"&&archivedCost&&input.ledgerId==="66666666-6666-4666-8666-666666666666")data={operations:[{id:"archived-buy",ledgerId:input.ledgerId,kind:"buy",status:"posted",instrumentKey:key,currency:"RUB",amount:"150",quantity:"2",fee:"0",accrued:"0",occurredAt:{seconds:at}}]};
   if(method?.name==="ListInvestmentValuationProfiles")data={fxProfiles:[{key:"market",mode:"market",version:1n}]};
   if(method?.name==="GetInvestmentExchangeRates"){
    const now=BigInt(Math.floor(Date.now()/1000)),sources=input.fromCurrencies.length?input.fromCurrencies:["RUB"];
@@ -70,6 +72,9 @@ for(const locale of ["ru","en"]){test(`${locale} analytics charts show profit, p
  await page.screenshot({path:test.info().outputPath(`portfolio-overview-${locale}.png`),fullPage:true});
  await page.getByRole("button",{name:/Alpha/}).click();await expect(page).toHaveURL(new RegExp("group="+a));await expect(page.getByRole("button",{name:/ABC/})).toBeVisible();
  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:test.info().outputPath(`portfolio-category-mobile-${locale}.png`),fullPage:true});await page.setViewportSize({width:1280,height:720});
+ archivedCost=true;await page.goto("/investments?to=2025-01-03");
+ const archivedCostCard=page.locator("section").filter({has:page.getByRole("heading",{name:ru?"Вложено":"Invested",exact:true})});
+ await expect(archivedCostCard.locator("p.tabular-nums")).toContainText("275");await expect(archivedCostCard).not.toContainText(ru?"Неполные данные":"Incomplete data");await expect(page.getByRole("button",{name:"Closed source",exact:true})).toHaveCount(0);archivedCost=false;
  missingCost=true;await page.goto("/investments?to=2025-01-03");
  const invested=page.locator("section").filter({has:page.getByRole("heading",{name:ru?"Вложено":"Invested",exact:true})});
  await expect(invested.locator("p.tabular-nums")).toContainText("300");await expect(invested).toContainText(ru?"Неполные данные":"Incomplete data");missingCost=false;

@@ -24,6 +24,7 @@ import PortfolioFX from "@/components/PortfolioFX";
 import Modal from "@/components/Modal";
 import {allOperations, loadBrokerCatalog, portfolioInstrumentKey} from "@/lib/portfolio-import";
 import {add, decimal, divide, payoutKinds, trackerError, trackerKinds, tradeAmount, zero} from "@/lib/portfolio-tracker";
+import {acquisitionOriginReferences,loadAcquisitionOrigins} from "@/lib/portfolio-origins";
 import {portfolioQuotes} from "@/lib/portfolio-quotes";
 import {portfolioReport, reportingDate} from "@/lib/portfolio-report";
 import type {GetInvestmentGroupsResponse, GetInvestmentExchangeRatesResponse, GetInvestmentQuotesResponse, InvestmentValuationProfileOption} from "@/proto/budget/v1/investment_nav_pb";
@@ -55,9 +56,9 @@ function Tracker({tenantId,analyticsOnly=false}: {tenantId: string;analyticsOnly
   const [dialog, setDialog] = useState<"operation" | "account" | null>(null), [editing, setEditing] = useState<InvestmentOperation | null>(null);
   const [draft, setDraft] = useState({ledger: "", kind: "buy", instrument: "", exchange: "MCX", quantity: "1", price: "", amount: "", fee: "0", feeCurrency: "", accrued: "0", currency: "RUB", date: new Date().toLocaleDateString("en-CA", {timeZone: "Europe/Moscow"}), note: ""});
   const [newAccount, setNewAccount] = useState({name: "", broker: "", type: "regular"}), [busy, setBusy] = useState(false), [writeError, setWriteError] = useState("");
-  const ledgers = useQuery<InvestmentLedger[]>({queryKey: ["investment", tenantId, "tracker", "accounts",accountScope.explicit||analyticsOnly], queryFn: async () => {
+  const ledgers = useQuery<InvestmentLedger[]>({queryKey: ["investment", tenantId, "tracker", "accounts",true], queryFn: async () => {
     const all: InvestmentLedger[] = [];
-    for (let offset = 0; ; offset += 200) { const page = await api.listInvestmentLedgers({limit: 200, offset,includeArchived:accountScope.explicit||analyticsOnly}); all.push(...page.ledgers); if (page.ledgers.length < 200) return all; }
+    for (let offset = 0; ; offset += 200) { const page = await api.listInvestmentLedgers({limit: 200, offset,includeArchived:true}); all.push(...page.ledgers); if (page.ledgers.length < 200) return all; }
   }});
   const roles = useQuery<{memberships: TenantMembership[]}>({queryKey: ["investment", tenantId, "tracker", "roles"], queryFn: () => tenant.listMyTenants({})});
   const canWrite = !readOnly && roles.data?.memberships.some(m => m.tenant?.id === tenantId && [1, 2].includes(m.role));
@@ -73,6 +74,8 @@ function Tracker({tenantId,analyticsOnly=false}: {tenantId: string;analyticsOnly
     }
     return {snapshots, operations};
   }});
+  const originRefs=useMemo(()=>acquisitionOriginReferences(data.data?.snapshots||[],data.data?.operations||[]),[data.data]);
+  const origins=useQuery({queryKey:["investment",tenantId,"tracker","acquisition-origins",originRefs,ledgers.data?.map(l=>[l.id,l.version.toString()])],enabled:!!data.data&&originRefs.length>0,queryFn:({signal})=>loadAcquisitionOrigins(api,originRefs,{signal}),staleTime:60000});
   const catalog = useQuery({queryKey: ["investment", tenantId, "tracker", "broker-quotes"], queryFn: () => loadBrokerCatalog(imports), staleTime: 60000});
   const operations = (data.data?.operations || []).filter(o=>include(o.ledgerId,o.instrumentKey));
   const profiles = useQuery<InvestmentValuationProfileOption[]>({queryKey: ["investment", tenantId, "tracker", "fx-profiles"], queryFn: async () => {
@@ -85,7 +88,7 @@ function Tracker({tenantId,analyticsOnly=false}: {tenantId: string;analyticsOnly
     const days = new Set<string>();
     const now = BigInt(Math.floor(Date.now() / 1000));
     const today = reportingDate(now);
-    for (const op of data.data?.operations || []) {
+    for (const op of [...(data.data?.operations||[]),...(origins.data?.operations||[])]) {
       if (op.status !== "posted" || !op.occurredAt || op.occurredAt.seconds > now) continue;
       days.add(reportingDate(op.occurredAt.seconds));
       if (op.acquiredAt) days.add(reportingDate(op.acquiredAt.seconds));
@@ -93,7 +96,7 @@ function Tracker({tenantId,analyticsOnly=false}: {tenantId: string;analyticsOnly
     }
     for (const s of data.data?.snapshots || []) for (const p of s.positions) for (const lot of p.lots) if (lot.acquiredAt) days.add(reportingDate(lot.acquiredAt.seconds));
     return [...days].filter(date => date <= today).sort();
-  }, [data.data]);
+  }, [data.data,origins.data]);
   const rates = useQuery<GetInvestmentExchangeRatesResponse>({queryKey: ["investment", tenantId, "tracker", "fx", policy?.key, policy?.version, currency, dates], enabled: !!policy && !!data.data, staleTime: 60000, queryFn: async () => {
     const response: GetInvestmentExchangeRatesResponse = await nav.getInvestmentExchangeRates({fxPolicyKey: policy!.key, currency, fromCurrencies: ["RUB", "USD", "EUR"], dates});
     if (response.fxPolicyKey !== policy!.key || response.policyVersion !== policy!.version || response.mode !== fxMode) throw new Error("fx_policy_changed");
@@ -113,12 +116,12 @@ function Tracker({tenantId,analyticsOnly=false}: {tenantId: string;analyticsOnly
   const quotes = useMemo(() => portfolioQuotes(catalog.data?.quotes || new Map(), marketQuotes.data?.quotes || []), [catalog.data, marketQuotes.data]);
   // Absence is meaningful only after all first-load inputs have settled.
   // A background refresh keeps the last complete inputs visible.
-  const valuationLoading = profiles.isPending || catalog.isPending ||
+  const valuationLoading = profiles.isPending || catalog.isPending || (originRefs.length>0&&origins.isPending) ||
     (!!policy && !!data.data && rates.isPending) ||
     (!!data.data && quoteKeys.length > 0 && marketQuotes.isPending);
   const valuationUnavailable = !profiles.isPending && !policy;
   const valuationReady = !valuationLoading;
-  const report = useMemo(() => portfolioReport(data.data?.snapshots || [], data.data?.operations || [], quotes, currency, rates.data,include), [data.data, quotes, currency, rates.data,include]);
+  const report = useMemo(() => portfolioReport(data.data?.snapshots || [], data.data?.operations || [], quotes, currency, rates.data,include,origins.data?.operations), [data.data, quotes, currency, rates.data,include,origins.data]);
   const positions = report.positions;
   const current = positions, held = current.filter(p => BigInt(p.quantity.numerator) !== 0n);
   const sourceHistoryIncomplete = (data.data?.snapshots || []).some(s => s.issues.includes("source_trades_pending"));
@@ -133,14 +136,14 @@ function Tracker({tenantId,analyticsOnly=false}: {tenantId: string;analyticsOnly
     if(groupIDs.length||instrumentKeys.length)return current.filter(p=>BigInt(p.quantity.numerator)!==0n).map(p=>({id:p.key,name:quoteDetails.get(p.key)?.instrument?.ticker||catalog.data?.names.get(p.key)?.ticker||p.key,count:1,quantity:positionDecimal(p.quantity),estimateDate:p.quoteSource==="estimate"&&p.quoteAt?new Date(p.quoteAt).toLocaleDateString(locale):undefined,value:p.value,cost:p.cost,profit:p.profit,partial:!p.value}));
     if(!groups.data?.classification)return [];
     return [...groups.data.classification.groups,{id:"",name:tr("Без категории","Uncategorized")}].flatMap(g=>{
-      const sub=portfolioReport(data.data?.snapshots||[],data.data?.operations||[],quotes,currency,rates.data,groupPredicate(groups.data?.classification,[g.id]));
+      const sub=portfolioReport(data.data?.snapshots||[],data.data?.operations||[],quotes,currency,rates.data,groupPredicate(groups.data?.classification,[g.id]),origins.data?.operations);
       if(!sub.positions.length)return [];
       const open=sub.positions.filter(p=>BigInt(p.quantity.numerator)!==0n);
       if(!open.length)return [];
       const estimateDates=open.filter(p=>p.quoteSource==="estimate"&&p.quoteAt).map(p=>p.quoteAt!).sort((a,b)=>a-b);
       return [{id:g.id,name:g.name,count:open.length,estimateDate:estimateDates.length?new Date(estimateDates[0]).toLocaleDateString(locale):undefined,value:open.some(p=>p.value)||!open.length?add(...open.map(p=>p.value)):undefined,cost:open.some(p=>p.cost)?add(...open.map(p=>p.cost)):undefined,costPartial:open.some(p=>!p.cost),profit:sub.positions.every(p=>p.profit)?add(...sub.positions.map(p=>p.profit)):undefined,partial:open.some(p=>!p.value)}];
     });
-  },[groupIDs,instrumentKeys,current,quoteDetails,catalog.data,groups.data,data.data,quotes,currency,rates.data,sourceHistoryIncomplete,tr,locale]);
+  },[groupIDs,instrumentKeys,current,quoteDetails,catalog.data,groups.data,data.data,quotes,currency,rates.data,origins.data,sourceHistoryIncomplete,tr,locale]);
   const categoryTitle=groupIDs.length===1?(groups.data?.classification?.groups.find(g=>g.id===groupIDs[0])?.name||tr("Без категории","Uncategorized")):tr("Портфель","Portfolio");
   const visibleOperations = operations.filter(op => op.status === "posted" && (view === "payments" ? payoutKinds.has(op.kind) : ["buy", "sell"].includes(op.kind))).sort((a, b) => Number((b.occurredAt?.seconds || 0n) - (a.occurredAt?.seconds || 0n)));
   const pageSize=[25,50,100].includes(Number(params.get("page_size")))?Number(params.get("page_size")):50;
