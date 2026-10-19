@@ -32,6 +32,8 @@ type TrackerHistoryPoint struct {
 	Issues                     []calc.QualityIssue
 	PricedPositions, Positions int
 	StrategyFlow               *big.Rat
+	OpeningRecordedCapital     *big.Rat
+	OpeningCapitalReason       string
 	FlowReason                 string
 	Reset                      bool
 	Components                 map[string]TrackerContributionValue

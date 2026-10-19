@@ -53,7 +53,7 @@ func (s *InvestmentNAVServer) trackerChart(ctx context.Context, req *pb.GetTrack
 	}
 	req = &pb.GetTrackerChartRequest{LedgerIds: q.LedgerIDs, GroupIds: q.GroupIDs, InstrumentKeys: q.InstrumentKeys, Currency: q.Currency, FxPolicyKey: q.FXPolicyKey, FromDate: q.From, ToDate: q.To}
 	request, _ := proto.MarshalOptions{Deterministic: true}.Marshal(req)
-	scope := chartHash(append([]byte("tracker-chart-v8:"), request...))
+	scope := chartHash(append([]byte("tracker-chart-v9:"), request...))
 	fence := func() (string, error) {
 		check := q
 		check.BasisOnly = true

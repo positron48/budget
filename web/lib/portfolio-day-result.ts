@@ -1,4 +1,4 @@
-import type {GetInvestmentPerformanceResponse} from "@/proto/budget/v1/investment_nav_pb";
+import type {GetInvestmentPerformanceResponse,TrackerValueDetail} from "@/proto/budget/v1/investment_nav_pb";
 import {shiftHistoryDate} from "./portfolio-history";
 import {add,negate} from "./portfolio-tracker";
 import type {Fraction} from "./investment-positions";
@@ -13,4 +13,13 @@ export function portfolioDayResult(p:GetInvestmentPerformanceResponse|undefined,
  const calculated=add(after.value!,negate(before.value!),negate(after.flow!));
  if(BigInt(calculated.numerator)*BigInt(after.dailyProfit!.denominator)!==BigInt(after.dailyProfit!.numerator)*BigInt(calculated.denominator))return;
  return {profit:after.dailyProfit!,before:before.value!,after:after.value!,flow:after.flow!};
+}
+
+// Native historical candle PriceAt is its next-UTC-day availability boundary.
+// Manual estimates and stale carried prices cannot declare a trading session.
+export function latestCompletedTradingValuation(details:readonly TrackerValueDetail[],through:string){
+ const first=shiftHistoryDate(through,-14);
+ return details.filter(d=>d.priceAt&&valid(d.unitPrice)&&valid(d.quantity)&&BigInt(d.quantity.numerator)>0n&&/^(moex|twelvedata|alphavantage|tinvest)\//.test(d.priceSource)&&!d.issues.length)
+  .map(d=>new Date(Number(d.priceAt!.seconds)*1000).toISOString().slice(0,10))
+  .filter(date=>date>=first&&date<=through).sort().at(-1);
 }

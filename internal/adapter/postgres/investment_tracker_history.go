@@ -296,7 +296,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		Classification *nav.InstrumentGroups
 		GroupIDs       []string
 		InstrumentKeys []string
-	}{"daily-eod-v5", heads, policy, points, cache, classification, q.GroupIDs, q.InstrumentKeys})
+	}{"daily-eod-v6", heads, policy, points, cache, classification, q.GroupIDs, q.InstrumentKeys})
 	if q.BasisOnly {
 		return out, tx.Commit(ctx)
 	}
@@ -531,8 +531,29 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 			return out, e
 		}
 	}
+	// Only the first signed page needs lifetime funding. Unlike opening NAV,
+	// historical cash flows do not capitalize gains when the range is shortened.
+	var openingCapital *big.Rat
+	openingCapitalReason := ""
+	var openingCapitalExcluded []string
+	if q.PerformanceFrom == q.From && q.PerformanceFrom != "" && q.DetailDate == "" {
+		openingCapital, openingCapitalReason, openingCapitalExcluded, e = trackerOpeningCapital(ctx, tx, tenant, q, inputs, market, splits, fixings, md.FXPolicyRef(policy.Key, policy.Version), days[0], out.ReadAt, selected)
+		if e != nil {
+			return out, e
+		}
+	}
 	for i, at := range days {
 		row := nav.TrackerHistoryPoint{Date: at.In(moscow).Format(time.DateOnly), State: "ready"}
+		if i == 0 {
+			row.OpeningRecordedCapital = openingCapital
+			row.OpeningCapitalReason = openingCapitalReason
+			for _, key := range openingCapitalExcluded {
+				if basisKeys[key] {
+					row.AnalyticsExcludedKeys = append(row.AnalyticsExcludedKeys, key)
+					row.MonetaryExcludedKeys = append(row.MonetaryExcludedKeys, key)
+				}
+			}
+		}
 		if captureComponents {
 			row.Components = map[string]nav.TrackerContributionValue{}
 			row.LedgerReasons = map[string]string{}

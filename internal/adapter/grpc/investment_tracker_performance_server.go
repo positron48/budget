@@ -36,6 +36,8 @@ func (s *InvestmentNAVServer) GetTrackerPerformance(ctx context.Context, req *pb
 	resets := map[string]bool{}
 	basis, mode := "", ""
 	version := int64(0)
+	var openingCapital *big.Rat
+	openingCapitalReason := "historical_capital_unavailable"
 	size := 0
 	invalid := func() (*pb.GetInvestmentPerformanceResponse, error) {
 		return nil, status.Error(codes.FailedPrecondition, "portfolio snapshot changed; refresh history")
@@ -57,6 +59,20 @@ func (s *InvestmentNAVServer) GetTrackerPerformance(ctx context.Context, req *pb
 			basis, mode, version = claim.Basis, claim.FXMode, claim.FXVersion
 		} else if basis != claim.Basis || version != claim.FXVersion || mode != claim.FXMode {
 			return invalid()
+		}
+		if len(days) == 0 && len(claim.Days) > 0 {
+			first := claim.Days[0]
+			openingCapitalReason = first.OpeningCapitalReason
+			if first.OpeningRecordedCapital != "" && openingCapitalReason == "" {
+				var valid bool
+				openingCapital, valid = new(big.Rat).SetString(first.OpeningRecordedCapital)
+				if !valid {
+					return invalid()
+				}
+			}
+			if openingCapital == nil && openingCapitalReason == "" {
+				openingCapitalReason = "historical_capital_unavailable"
+			}
 		}
 		for _, d := range claim.Days {
 			if d.Date != cursor || d.Date > q.To || len(days) > 3661 {
@@ -156,7 +172,14 @@ func (s *InvestmentNAVServer) GetTrackerPerformance(ctx context.Context, req *pb
 	out := protoInvestmentPerformance(nav.Performance{PeriodPerformance: performance, Currency: q.Currency, FXPolicyKey: q.FXPolicyKey, Generation: fresh.Generation})
 	out.AnalyticsConvention = "retrospective_cashless_strategy_v1"
 	for _, p := range analytics.Points {
-		out.AnalyticsPoints = append(out.AnalyticsPoints, &pb.TrackerAnalyticsPoint{Date: p.Date, Value: protoPerformanceAmount(p.Value), Flow: protoPerformanceAmount(p.Flow), Contributions: protoPerformanceAmount(p.Contributions), Invested: protoPerformanceAmount(p.Invested), Profit: protoPerformanceAmount(p.Profit), DailyProfit: protoPerformanceAmount(p.DailyProfit), Reason: p.Reason, FlowReason: p.FlowReason})
+		var recordedCapital *big.Rat
+		capitalReason := openingCapitalReason
+		if openingCapital != nil && p.Contributions != nil && capitalReason == "" {
+			recordedCapital = new(big.Rat).Add(openingCapital, p.Contributions)
+		} else if capitalReason == "" {
+			capitalReason = p.FlowReason
+		}
+		out.AnalyticsPoints = append(out.AnalyticsPoints, &pb.TrackerAnalyticsPoint{RecordedCapital: protoPerformanceAmount(recordedCapital), RecordedCapitalReason: capitalReason, Date: p.Date, Value: protoPerformanceAmount(p.Value), Flow: protoPerformanceAmount(p.Flow), Contributions: protoPerformanceAmount(p.Contributions), Invested: protoPerformanceAmount(p.Invested), Profit: protoPerformanceAmount(p.Profit), DailyProfit: protoPerformanceAmount(p.DailyProfit), Reason: p.Reason, FlowReason: p.FlowReason})
 	}
 	convertPeriods := func(periods []calc.StrategyAnalyticsPeriod) []*pb.TrackerAnalyticsPeriod {
 		result := []*pb.TrackerAnalyticsPeriod{}

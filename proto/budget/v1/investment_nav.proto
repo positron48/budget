@@ -660,6 +660,9 @@ message TrackerAnalyticsPoint {
  InvestmentNAVAmount contributions=4; InvestmentNAVAmount invested=5;
  InvestmentNAVAmount profit=6; InvestmentNAVAmount daily_profit=7;
  string reason=8; string flow_reason=9;
+ // Lifetime cashless funding, independent of the displayed period. Purchases
+ // and expenses add capital; sales and received payouts remove it.
+ InvestmentNAVAmount recorded_capital=10; string recorded_capital_reason=11;
 }
 message TrackerAnalyticsPeriod {
  string key=1; string from_date=2; string to_date=3;

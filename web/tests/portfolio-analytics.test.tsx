@@ -18,7 +18,7 @@ it("shows partial monthly profit and excluded names on focus with a fixed scale 
 function fixture(){return create(GetInvestmentPerformanceResponseSchema,{currency:"RUB",fxPolicyKey:"market",analyticsConvention:"retrospective_cashless_strategy_v1",analyticsPoints:[{date:"2023-12-31",value:f("100"),contributions:f("0"),invested:f("100"),profit:f("0")},{date:"2024-01-01",flow:f("-5"),contributions:f("-5"),invested:f("95"),reason:"valuation_missing"},{date:"2024-01-02",value:f("110"),flow:f("0"),contributions:f("-5"),invested:f("95"),profit:f("15")}],monthlyProfit:[{key:"2024-01",fromDate:"2024-01-01",toDate:"2024-01-02",profit:f("15")}],yearlyProfit:[{key:"2024",fromDate:"2024-01-01",toDate:"2024-01-02",profit:f("15")}],trackerBenchmarks:[{key:"spy",title:"SPY",baseDate:"2023-12-31",points:[{date:"2023-12-31",virtualValue:f("100"),virtualProfit:f("0"),index:f("100")},{date:"2024-01-01",virtualReason:"benchmark_flow_price_missing"},{date:"2024-01-02",virtualReason:"benchmark_flow_price_missing"}]}]});}
 it("shows cumulative profit gaps without joining missing days or inventing zero",()=>{const {container}=render(<PortfolioAnalytics performance={fixture()} mode="profit" from="2024-01-01" to="2024-01-02" ru={false} locale="en" benchmarkIds={["spy"]} onBenchmarksChange={()=>{}}/>);expect(container.querySelectorAll("polyline")).toHaveLength(3);expect(screen.getByRole("img")).toHaveAttribute("aria-label","Cumulative profit");expect(container.querySelectorAll("circle")).toHaveLength(0);});
 it("retains incomplete monthly rows and displays exact selected boundaries",()=>{const p=fixture();p.monthlyProfit[0].profit=undefined;p.monthlyProfit[0].reason="valuation_missing";const {container}=render(<PortfolioAnalytics performance={p} mode="months" from="2024-01-01" to="2024-01-02" ru locale="ru" benchmarkIds={[]} onBenchmarksChange={()=>{}}/>);expect(screen.queryByRole("table")).toBeNull();expect(screen.getByRole("status")).toHaveTextContent("Не хватает исторической цены или курса");expect(container.querySelector("rect")).toBeNull();});
-it("exports exact values and quality with the same number of columns for all row kinds",()=>{const p=fixture();p.analyticsPoints[2].profit=create(GetInvestmentPerformanceResponseSchema,{profit:f("1","3")}).profit;const csv=portfolioAnalyticsCSV(p),rows=csv.split("\r\n").map(s=>s.slice(1,-1).split('\",\"'));expect(new Set(rows.map(r=>r.length))).toEqual(new Set([44]));expect(rows[0]).toContain("virtual_profit_den");expect(rows.find(r=>r[0]==="day"&&r[1]==="2024-01-01")![8]).toBe("-5");const day=rows.find(r=>r[0]==="day"&&r[1]==="2024-01-02"&&r[22]==="")!;expect(day[14]).toBe("1");expect(day[15]).toBe("3");expect(csv).toContain("benchmark_flow_price_missing");expect(rows.filter(r=>["month","year"].includes(r[0]))).toHaveLength(2);});
+it("exports exact values and quality with the same number of columns for all row kinds",()=>{const p=fixture();p.analyticsPoints[2].profit=create(GetInvestmentPerformanceResponseSchema,{profit:f("1","3")}).profit;const csv=portfolioAnalyticsCSV(p),rows=csv.split("\r\n").map(s=>s.slice(1,-1).split('\",\"'));expect(new Set(rows.map(r=>r.length))).toEqual(new Set([47]));expect(rows[0]).toContain("virtual_profit_den");expect(rows.find(r=>r[0]==="day"&&r[1]==="2024-01-01")![8]).toBe("-5");const day=rows.find(r=>r[0]==="day"&&r[1]==="2024-01-02"&&r[22]==="")!;expect(day[14]).toBe("1");expect(day[15]).toBe("3");expect(csv).toContain("benchmark_flow_price_missing");expect(rows.filter(r=>["month","year"].includes(r[0]))).toHaveLength(2);});
 
 it("plots the known portion when every full portfolio valuation is incomplete",()=>{
  const p=create(GetInvestmentPerformanceResponseSchema,{currency:"RUB",analyticsPoints:[{date:"2024-01-01",reason:"valuation_missing"},{date:"2024-01-02",reason:"valuation_missing"}]});
@@ -38,7 +38,7 @@ it("exports a partial value separately from unknown full valuation and profit",(
  expect(row[head.indexOf("value_num")]).toBe("");expect(row[head.indexOf("profit_num")]).toBe("");
  expect(row[head.indexOf("known_value_num")]).toBe("1");expect(row[head.indexOf("known_value_den")]).toBe("3");
  expect(row[head.indexOf("valuation_state")]).toBe("incomplete");expect(row[head.indexOf("priced_positions")]).toBe("105");
- expect(new Set(rows.map(r=>r.length))).toEqual(new Set([52]));
+ expect(new Set(rows.map(r=>r.length))).toEqual(new Set([55]));
 });
 
 it("breaks the known-value line when coverage changes, disappears or becomes complete",()=>{
@@ -106,4 +106,13 @@ it("keeps full profit when complete and rejects an incomplete or different curre
  subset.currency="USD";expect(visibleProfitPerformance(primary,subset)).toBe(primary);
  subset.currency="RUB";subset.analyticsPoints.pop();expect(visibleProfitPerformance(primary,subset)).toBe(primary);
  primary.analyticsPoints[1].profit=create(GetInvestmentPerformanceResponseSchema,{profit:f("8")}).profit;expect(visibleProfitPerformance(primary,fixture())).toBe(primary);
+});
+
+it("plots recorded capital rather than the market value at the selected range start",()=>{
+ const p=fixture();for(const point of p.analyticsPoints)point.recordedCapital=create(GetInvestmentPerformanceResponseSchema,{profit:f("60")}).profit;
+ const {container}=render(<PortfolioAnalytics performance={p} mode="value" from="2024-01-01" to="2024-01-02" ru locale="ru" benchmarkIds={[]} onBenchmarksChange={()=>{}}/>);
+ expect(screen.getByLabelText("Результат за период")).toHaveTextContent("60");
+ expect(screen.getByLabelText("Результат за период")).not.toHaveTextContent("95");
+ expect(container.querySelector('polyline[stroke="#a78bfa"]')).not.toBeNull();
+ expect(portfolioAnalyticsCSV(p)).toContain("recorded_capital_num");
 });

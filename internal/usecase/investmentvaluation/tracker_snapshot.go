@@ -18,9 +18,10 @@ import (
 type (
 	TrackerSnapshotSigner struct{ key []byte }
 	TrackerSnapshotDay    struct {
-		Date, Value, Flow string
-		Complete, Reset   bool
-		FlowReason        string
+		Date, Value, Flow                            string
+		Complete, Reset                              bool
+		FlowReason                                   string
+		OpeningRecordedCapital, OpeningCapitalReason string
 	}
 )
 
@@ -54,6 +55,10 @@ func (s *TrackerSnapshotSigner) Seal(tenant, actor string, q TrackerHistoryReque
 	claim := TrackerSnapshot{InstrumentScopeDigest: instrumentDigest, Tenant: tenant, Actor: actor, Request: q, Basis: data.BasisKey, FXVersion: data.FXPolicyVersion, FXMode: data.FXMode, Expires: data.ReadAt.Add(15 * time.Minute).Unix()}
 	appendPoint := func(p TrackerHistoryPoint) {
 		d := TrackerSnapshotDay{Date: p.Date, Complete: p.State == "ready", Reset: p.Reset, FlowReason: p.FlowReason}
+		if p.OpeningRecordedCapital != nil {
+			d.OpeningRecordedCapital = p.OpeningRecordedCapital.RatString()
+		}
+		d.OpeningCapitalReason = p.OpeningCapitalReason
 		if p.KnownValue != nil {
 			d.Value = p.KnownValue.RatString()
 		}

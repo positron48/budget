@@ -93,6 +93,32 @@ func TestInvestmentTrackerContributionsOwnFlowsGroupsAndClosedPositions(t *testi
 		t.Fatal(e)
 	}
 	q := nav.TrackerHistoryRequest{LedgerIDs: []string{ledgers[0].ID, ledgers[1].ID, ledgers[2].ID}, Currency: "RUB", FXPolicyKey: policy.Key, From: "2024-01-01", To: "2024-01-03", ContributionOnly: true}
+	// Net funding must retain old purchases, sales and received payouts when the
+	// visible period starts later. Journal total: 162-90-5+100+50-70 = 147 RUB.
+	for _, from := range []string{"2024-01-01", "2024-01-03"} {
+		historyQ := q
+		historyQ.ContributionOnly = false
+		historyQ.PerformanceFrom = from
+		historyQ.From = from
+		history, err := repo.TrackerHistory(ctx, tenant, actor, historyQ)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if history.Baseline == nil || history.Baseline.OpeningRecordedCapital == nil {
+			t.Fatal("missing historical capital", history)
+		}
+		capital := new(big.Rat).Set(history.Baseline.OpeningRecordedCapital)
+		for _, point := range history.Points {
+			if point.StrategyFlow == nil {
+				t.Fatal("missing flow", point)
+			}
+			capital.Add(capital, point.StrategyFlow)
+		}
+		if capital.Cmp(big.NewRat(147, 1)) != 0 {
+			t.Fatalf("period %s changed lifetime invested amount: %s", from, capital)
+		}
+	}
+
 	read := func(want string, rows int) {
 		h, e := repo.TrackerHistory(ctx, tenant, actor, q)
 		if e != nil {

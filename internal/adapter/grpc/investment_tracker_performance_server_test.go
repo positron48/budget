@@ -24,7 +24,7 @@ func (r *trackerPerformanceStub) TrackerHistory(_ context.Context, _ string, _ s
 	start, _ := time.Parse(time.DateOnly, q.From)
 	end, _ := time.Parse(time.DateOnly, q.To)
 	if q.PerformanceFrom == q.From {
-		out.Baseline = &nav.TrackerHistoryPoint{Date: start.AddDate(0, 0, -1).Format(time.DateOnly), State: "ready", KnownValue: big.NewRat(1000, 1), StrategyFlow: new(big.Rat)}
+		out.Baseline = &nav.TrackerHistoryPoint{Date: start.AddDate(0, 0, -1).Format(time.DateOnly), State: "ready", KnownValue: big.NewRat(1000, 1), StrategyFlow: new(big.Rat), OpeningRecordedCapital: big.NewRat(500, 1)}
 	}
 	for day := start; !day.After(end); day = day.AddDate(0, 0, 1) {
 		out.Points = append(out.Points, nav.TrackerHistoryPoint{Date: day.Format(time.DateOnly), State: "ready", KnownValue: big.NewRat(1100, 1), StrategyFlow: new(big.Rat)})
@@ -48,6 +48,11 @@ func TestTrackerPerformanceUsesSignedChartFactsAndRechecksBasis(t *testing.T) {
 	}
 	if result.AnalyticsConvention != "retrospective_cashless_strategy_v1" || len(result.AnalyticsPoints) != 3 || result.AnalyticsPoints[0].Profit.Numerator != "0" || result.AnalyticsPoints[2].Profit.Numerator != "100" || len(result.MonthlyProfit) != 1 || result.MonthlyProfit[0].Profit.Numerator != "100" || len(result.YearlyProfit) != 1 {
 		t.Fatal("daily and period analytics diverged from signed profit", result)
+	}
+	for _, point := range result.AnalyticsPoints {
+		if point.RecordedCapital == nil || point.RecordedCapital.Numerator != "500" || point.RecordedCapitalReason != "" {
+			t.Fatal("market gains capitalized into invested amount", point)
+		}
 	}
 	request.SnapshotTokens = append(request.SnapshotTokens, page.PerformanceSnapshot)
 	if _, e = s.GetTrackerPerformance(ctx, request); status.Code(e) != codes.FailedPrecondition {

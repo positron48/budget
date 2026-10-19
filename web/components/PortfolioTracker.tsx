@@ -124,7 +124,7 @@ function Tracker({tenantId,analyticsOnly=false}: {tenantId: string;analyticsOnly
   const sourceHistoryIncomplete = (data.data?.snapshots || []).some(s => s.issues.includes("source_trades_pending"));
   const valueKnown = held.every(p => p.value), costKnown = held.every(p => p.cost), profitKnown = !sourceHistoryIncomplete && current.every(p => p.profit);
   const hasQuotes = held.some(p => p.value);
-  const value = valueKnown || hasQuotes ? add(...held.map(p => p.value)) : undefined, cost = costKnown ? add(...held.map(p => p.cost)) : undefined;
+  const value = valueKnown || hasQuotes ? add(...held.map(p => p.value)) : undefined, cost = costKnown || held.some(p => p.cost) ? add(...held.map(p => p.cost)) : undefined;
   const profit = profitKnown || current.some(p => p.profit) ? add(...current.map(p => p.profit)) : undefined;
   const money = (amount?: Fraction, cur = currency) => amount ? `${new Intl.NumberFormat(locale, {maximumFractionDigits: 2}).format(Number(positionDecimal(amount)))} ${cur}` : "—";
   const quoteDetails=useMemo(()=>new Map((marketQuotes.data?.quotes||[]).map(q=>[q.instrumentKey,q])),[marketQuotes.data]);
@@ -138,7 +138,7 @@ function Tracker({tenantId,analyticsOnly=false}: {tenantId: string;analyticsOnly
       const open=sub.positions.filter(p=>BigInt(p.quantity.numerator)!==0n);
       if(!open.length)return [];
       const estimateDates=open.filter(p=>p.quoteSource==="estimate"&&p.quoteAt).map(p=>p.quoteAt!).sort((a,b)=>a-b);
-      return [{id:g.id,name:g.name,count:open.length,estimateDate:estimateDates.length?new Date(estimateDates[0]).toLocaleDateString(locale):undefined,value:open.some(p=>p.value)||!open.length?add(...open.map(p=>p.value)):undefined,cost:open.every(p=>p.cost)?add(...open.map(p=>p.cost)):undefined,profit:sub.positions.every(p=>p.profit)?add(...sub.positions.map(p=>p.profit)):undefined,partial:open.some(p=>!p.value)}];
+      return [{id:g.id,name:g.name,count:open.length,estimateDate:estimateDates.length?new Date(estimateDates[0]).toLocaleDateString(locale):undefined,value:open.some(p=>p.value)||!open.length?add(...open.map(p=>p.value)):undefined,cost:open.some(p=>p.cost)?add(...open.map(p=>p.cost)):undefined,costPartial:open.some(p=>!p.cost),profit:sub.positions.every(p=>p.profit)?add(...sub.positions.map(p=>p.profit)):undefined,partial:open.some(p=>!p.value)}];
     });
   },[groupIDs,instrumentKeys,current,quoteDetails,catalog.data,groups.data,data.data,quotes,currency,rates.data,sourceHistoryIncomplete,tr,locale]);
   const categoryTitle=groupIDs.length===1?(groups.data?.classification?.groups.find(g=>g.id===groupIDs[0])?.name||tr("Без категории","Uncategorized")):tr("Портфель","Portfolio");

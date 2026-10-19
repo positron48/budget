@@ -22,6 +22,9 @@ export function portfolioAnalyticsCSV(p:GetInvestmentPerformanceResponse,history
  for(const [kind,periods] of [["month",p.monthlyProfit],["year",p.yearlyProfit]] as const)for(const d of periods)rows.push([!d.profit&&d.knownProfit?kind+"_known":kind,d.fromDate,d.toDate,p.currency,p.fxPolicyKey,p.analyticsConvention,"","","","","","","","",...pair(d.profit||d.knownProfit),"","","","",d.reason,"","","","","","","","",""]);
  rows[0].push("twr_segment","twr_state","twr_reason","daily_return_num","daily_return_den","segment_return_num","segment_return_den","xirr_annual","xirr_reason","xirr_annualized","instrument_keys","group_ids","classification_version","monetary_only");
  for(const row of rows.slice(1)){const twr=row[0]==="day"?twrByDate.get(row[1]):undefined;row.push(twr?.segment.toString()||"",twr?.state||"",twr?.reason||"",...pair(twr?.dailyReturn),...pair(twr?.segmentReturn),p.xirr===undefined?"":String(p.xirr),p.xirrReason,String(p.xirrAnnualized),p.instrumentKeys.join(";"),p.groupIds.join(";"),p.classificationVersion.toString(),String(p.monetaryOnly));}
+ rows[0].push("recorded_capital_num","recorded_capital_den","recorded_capital_reason");
+ const capitalByDate=new Map(p.analyticsPoints.map(d=>[d.date,d]));
+ for(const row of rows.slice(1)){const d=row[0]==="day"?capitalByDate.get(row[1]):undefined;row.push(...pair(d?.recordedCapital),d?.recordedCapitalReason||"");}
  if(historyPoints){
   const historyByDate=new Map(historyPoints.map(d=>[d.date,d]));
   rows[0].push("valuation_state","known_value_num","known_value_den","priced_positions","positions","coverage_key","valuation_issues","valuation_issue_count");

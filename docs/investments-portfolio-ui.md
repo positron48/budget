@@ -1,10 +1,22 @@
 # Portfolio overview and growth
 
-The overview shows value, remaining acquisition cost, profit and completed-day
+The overview shows value, remaining acquisition cost, profit and latest completed trading-session
 change in money and percent. USD/RUB and EUR/RUB quotes compare the current
 eligible observation with the preceding source observation; their dates and
-source are available on hover. Daily profit uses completed retrospective
-valuations, not an intraday P&L estimate.
+source are available on hover. The daily card uses the latest verified completed trading session, found from
+native historical candle availability rather than yesterday's calendar date.
+A Friday close available on Saturday is labelled with Friday's session date;
+the tooltip identifies Saturday's retrospective valuation date. Manual
+estimates cannot declare a trading session. Available fixed subsets remain
+usable when one security is unpriced.
+
+The current invested card shows the known acquisition-cost subtotal even when
+another security lacks cost, with a partial-data label. The value chart's
+invested line uses recorded lifetime net strategy funding (purchases and
+expenses minus sales and received payouts), including flows before the selected
+range. Opening market value remains the baseline for period profit and virtual
+benchmark simulations; it is not relabelled as invested capital. Exact CSV
+exports include both period funding and recorded lifetime capital.
 
 Categories show allocation, value/cost, profit and weight. Selecting a category
 opens its securities and their allocation. Growth has a shared date range,
