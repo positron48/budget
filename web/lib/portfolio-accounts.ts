@@ -5,10 +5,16 @@ export function accountSelection(params:URLSearchParams){
 }
 export function selectedPortfolioAccounts(params:URLSearchParams,accounts:InvestmentLedger[]){
  const {ids,explicit}=accountSelection(params);
- return {ledgers:explicit?accounts.filter(l=>ids.includes(l.id)):accounts,invalid:ids.some(id=>!accounts.some(l=>l.id===id)),empty:explicit&&!ids.length};
+ return {ledgers:explicit?accounts.filter(l=>ids.includes(l.id)):accounts.filter(l=>!l.archived),invalid:ids.some(id=>!accounts.some(l=>l.id===id)),empty:explicit&&!ids.length};
+}
+// Explicit links may still open archived history, without adding every archived
+// account back to navigation when the API includes them for link resolution.
+export function visiblePortfolioAccounts(params:URLSearchParams,accounts:InvestmentLedger[]){
+ const {ids}=accountSelection(params);
+ return accounts.filter(l=>!l.archived||ids.includes(l.id));
 }
 export function togglePortfolioAccount(params:URLSearchParams,accounts:InvestmentLedger[],id:string,checked:boolean){
- const scope=accountSelection(params),ids=new Set(scope.explicit?scope.ids:accounts.map(l=>l.id));
+ const scope=accountSelection(params),ids=new Set(scope.explicit?scope.ids:accounts.filter(l=>!l.archived).map(l=>l.id));
  if(checked)ids.add(id);else ids.delete(id);
  return {account:[...ids].sort(),scope:"selected",selection:""};
 }

@@ -18,7 +18,7 @@ import PortfolioCategories from "@/components/PortfolioCategories";
 
 import PortfolioHistory from "@/components/PortfolioHistory";
 import PortfolioAccountSelection from "@/components/PortfolioAccountSelection";
-import {accountSelection,selectedPortfolioAccounts} from "@/lib/portfolio-accounts";
+import {accountSelection,selectedPortfolioAccounts,visiblePortfolioAccounts} from "@/lib/portfolio-accounts";
 import PortfolioDayResult from "@/components/PortfolioDayResult";
 import PortfolioFX from "@/components/PortfolioFX";
 import Modal from "@/components/Modal";
@@ -195,7 +195,7 @@ function Tracker({tenantId,analyticsOnly=false}: {tenantId: string;analyticsOnly
   return <div className="min-h-screen bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
     <div className="mx-auto grid max-w-[1480px] gap-6 px-4 py-7 lg:grid-cols-[210px_minmax(0,1fr)] lg:px-7">
       <aside className="min-w-0 space-y-5 lg:pt-2"><div className="flex items-center gap-2 text-lg font-semibold"><Wallet size={20} className="text-emerald-600"/>{tr("Мои портфели", "My portfolios")}</div>
-        <div className="flex gap-2 overflow-x-auto lg:flex-col"><button onClick={() => setAccount("")} className={`whitespace-nowrap rounded-xl px-3 py-3 text-left text-sm ${!accountScope.explicit ? "bg-emerald-50 font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "hover:bg-slate-100 dark:hover:bg-slate-800"}`}>{tr("Все счета", "All accounts")}</button>{ledgers.data?.map(l => <button key={l.id} onClick={() => setAccount(l.id)} className={`flex items-center justify-between gap-3 whitespace-nowrap rounded-xl px-3 py-3 text-left text-sm ${accountScope.ids.length===1&&account === l.id ? "bg-emerald-50 font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "hover:bg-slate-100 dark:hover:bg-slate-800"}`}><span>{l.name}</span>{l.accountType === "iis" && <span className="text-[10px] text-slate-400">{tr("ИИС", "IIS")}</span>}</button>)}</div>
+        <div className="flex gap-2 overflow-x-auto lg:flex-col"><button onClick={() => setAccount("")} className={`whitespace-nowrap rounded-xl px-3 py-3 text-left text-sm ${!accountScope.explicit ? "bg-emerald-50 font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "hover:bg-slate-100 dark:hover:bg-slate-800"}`}>{tr("Все счета", "All accounts")}</button>{visiblePortfolioAccounts(params,ledgers.data||[]).map(l => <button key={l.id} onClick={() => setAccount(l.id)} className={`flex items-center justify-between gap-3 whitespace-nowrap rounded-xl px-3 py-3 text-left text-sm ${accountScope.ids.length===1&&account === l.id ? "bg-emerald-50 font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "hover:bg-slate-100 dark:hover:bg-slate-800"}`}><span>{l.name}</span>{l.accountType === "iis" && <span className="text-[10px] text-slate-400">{tr("ИИС", "IIS")}</span>}</button>)}</div>
         <PortfolioAccountSelection tenantId={tenantId} accounts={ledgers.data||[]} ru={ru} canSave={!readOnly&&!!roles.data?.memberships.some(m=>m.tenant?.id===tenantId&&[1,2,3].includes(m.role))}/>
         {canWrite && !analyticsOnly && <button className={secondary + " w-full"} onClick={() => {setNewAccount({name: "", broker: "", type: "regular"}); setWriteError(""); writeKey.current = crypto.randomUUID(); setDialog("account");}}><Plus size={15}/>{tr("Добавить счёт", "Add account")}</button>}
 

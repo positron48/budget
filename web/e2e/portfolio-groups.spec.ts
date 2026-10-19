@@ -39,6 +39,7 @@ for(const locale of ["ru","en"]){test(`${locale} groups classify accounts, prese
  });
  await page.goto("/investments");await expect(page.getByRole("heading",{name:ru?"Мой портфель":"My portfolio",exact:true})).toBeVisible();
  await expect(page.getByRole("button",{name:"Alpha",exact:true})).toBeVisible();await expect(page.getByRole("button",{name:"Beta",exact:true})).toBeVisible();
+ await page.getByRole("button",{name:"Broker one",exact:true}).click();await expect(page.getByRole("button",{name:"Alpha",exact:true})).toBeVisible();await expect(page.getByRole("button",{name:"Beta",exact:true})).toHaveCount(0);await page.getByRole("button",{name:ru?"Все счета":"All accounts",exact:true}).click();await expect(page.getByRole("button",{name:"Beta",exact:true})).toBeVisible();
  await page.getByRole("button",{name:"Alpha",exact:true}).click();await expect(page).toHaveURL(new RegExp("group="+a));await expect(page.locator("tbody tr").first()).toContainText(ru?"1 шт.":"1 units");
  const filteredSummaryCalls=summaryCalls;
  await page.goto("/investments?group="+a+"&group="+b);await expect(page.locator("tbody tr").first()).toContainText(ru?"3 шт.":"3 units");

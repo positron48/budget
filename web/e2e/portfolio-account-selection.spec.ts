@@ -51,6 +51,7 @@ for(const locale of ["ru","en"])test(`${locale} account subsets are deduplicated
  await page.getByText(ru?"Выбрать несколько счетов":"Select multiple accounts",{exact:true}).click();await page.getByRole("button",{name:(ru?"Архивировать набор ":"Archive account set ")+"Selected brokers",exact:true}).click();await expect(page.getByRole("button",{name:(ru?"Восстановить набор ":"Restore account set ")+"Selected brokers",exact:true})).toBeVisible();
  archivedThird=true;await page.reload();await expect(cost).toContainText("400 RUB");
  await page.getByRole("button",{name:ru?"Все счета":"All accounts",exact:true}).click();await expect(cost).toContainText("300 RUB");
+ await page.getByRole("button",{name:"Broker 1",exact:true}).click();await expect(cost).toContainText("100 RUB");await expect(page.getByRole("button",{name:"Broker 3",exact:true})).toHaveCount(0);
  await page.getByText(ru?"Выбрать несколько счетов":"Select multiple accounts",{exact:true}).click();await page.getByRole("button",{name:ru?"Selected brokers · архив":"Selected brokers · archived",exact:true}).click();await expect(cost).toContainText("400 RUB");
  // The cost card can render before the previous account's day query settles.
  // Wait for that calculation before proving an invalid selection starts none.
