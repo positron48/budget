@@ -2,7 +2,7 @@ import {expect,it} from "vitest";
 import {create} from "@bufbuild/protobuf";
 import {render,screen,fireEvent} from "@testing-library/react";
 import {GetInvestmentPerformanceResponseSchema,TrackerHistoryPointSchema} from "@/proto/budget/v1/investment_nav_pb";
-import {portfolioAnalyticsCSV} from "@/lib/portfolio-analytics";
+import {portfolioAnalyticsCSV,visibleProfitPerformance} from "@/lib/portfolio-analytics";
 import PortfolioAnalytics from "@/components/PortfolioAnalytics";
 const f=(n:string,d="1")=>({numerator:n,denominator:d});
 it("keeps each loading chart separate from an empty result",()=>{
@@ -85,4 +85,25 @@ it("uses a common observed baseline for independent growth and continuous portfo
  p.twrPoints[2].segment=2;
  const partial=portfolioGrowthSeries(p,["spy"],"2023-12-31",p);
  expect(partial.lines).toHaveLength(2);expect(partial.lines[0].points[1].value).toBe(0);expect(partial.lines[0].points[2].value).toBeUndefined();
+});
+
+it("keeps the portfolio profit line when an unpriced holding prevents full valuations",()=>{
+ const primary=fixture();primary.instrumentKeys=["PRICED","MISSING"];
+ for(const point of primary.analyticsPoints){point.profit=undefined;point.value=undefined;point.reason="valuation_missing";}
+ const subset=fixture();subset.instrumentKeys=["PRICED"];
+ subset.analyticsPoints[1].profit=create(GetInvestmentPerformanceResponseSchema,{profit:f("7")}).profit;subset.analyticsPoints[1].value=create(GetInvestmentPerformanceResponseSchema,{profit:f("102")}).profit;subset.analyticsPoints[1].reason="";
+ const selected=visibleProfitPerformance(primary,subset);
+ expect(selected).toBe(subset);
+ const {container}=render(<PortfolioAnalytics performance={selected} mode="profit" from="2024-01-01" to="2024-01-02" ru locale="ru" benchmarkIds={["spy"]} onBenchmarksChange={()=>{}}/>);
+ expect(container.querySelector('polyline[stroke="#55d0ad"]')).not.toBeNull();
+ expect(portfolioAnalyticsCSV(selected!)).toContain("PRICED");
+ expect(portfolioAnalyticsCSV(selected!)).not.toContain("MISSING");
+ expect(primary.analyticsPoints.every(d=>!d.profit)).toBe(true);
+});
+it("keeps full profit when complete and rejects an incomplete or different currency fallback",()=>{
+ const primary=fixture(),subset=fixture();subset.analyticsPoints[1].profit=create(GetInvestmentPerformanceResponseSchema,{profit:f("7")}).profit;
+ expect(visibleProfitPerformance(primary,subset)).toBe(subset);
+ subset.currency="USD";expect(visibleProfitPerformance(primary,subset)).toBe(primary);
+ subset.currency="RUB";subset.analyticsPoints.pop();expect(visibleProfitPerformance(primary,subset)).toBe(primary);
+ primary.analyticsPoints[1].profit=create(GetInvestmentPerformanceResponseSchema,{profit:f("8")}).profit;expect(visibleProfitPerformance(primary,fixture())).toBe(primary);
 });

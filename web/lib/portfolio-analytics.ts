@@ -5,6 +5,14 @@ export function analyticsNumber(v?:{numerator:string;denominator:string}){
  if(!v)return undefined;
  const n=Number(positionDecimal(v,12));return Number.isFinite(n)?n:undefined;
 }
+// Use one fixed priced subset for the entire period, including its own flows and
+// benchmarks. Switching subsets day by day would create artificial profit jumps.
+export function visibleProfitPerformance(primary?:GetInvestmentPerformanceResponse,fallback?:GetInvestmentPerformanceResponse){
+ if(!fallback||!primary||fallback.currency!==primary.currency)return primary;
+ const dates=new Set(fallback.analyticsPoints.filter(d=>d.profit).map(d=>d.date));
+ const missing=primary.analyticsPoints.filter(d=>!d.profit);
+ return missing.length>0&&primary.analyticsPoints.every(d=>dates.has(d.date))?fallback:primary;
+}
 // Keep export values exact; numbers are only used to position pixels.
 export function portfolioAnalyticsCSV(p:GetInvestmentPerformanceResponse,historyPoints?:readonly TrackerHistoryPoint[]){
  const head=["type","date","through","currency","fx_policy","convention","value_num","value_den","flow_num","flow_den","contributions_num","contributions_den","invested_num","invested_den","profit_num","profit_den","daily_profit_num","daily_profit_den","twr_index_num","twr_index_den","reason","flow_reason","benchmark","benchmark_index_num","benchmark_index_den","virtual_value_num","virtual_value_den","virtual_profit_num","virtual_profit_den","virtual_reason"];

@@ -19,6 +19,14 @@ Source/coverage changes and missing days split the line before sampling, so
 many separate segments can exceed that target. Sampling does not change exact
 financial metrics, period totals or export values.
 
+Missing historical quotes must not suppress an otherwise available portfolio
+profit chart. When the full monetary history has gaps, the client uses the
+validated fixed subset with continuous prices, including that subset's own
+flows and benchmark simulations. The same subset powers period profit, CSV
+and security attribution; omitted instruments are named above the chart.
+Current portfolio value keeps its wider known scope. Refetching the same scope
+keeps an already loaded chart visible.
+
 ## History loading and reuse
 
 `GetTrackerHistory` and `GetTrackerInstrumentPrices` accept `page_days` up to 93;
