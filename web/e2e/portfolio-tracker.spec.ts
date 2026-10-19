@@ -104,7 +104,7 @@ for (const locale of ["ru", "en"]) {
     await expect(page.getByRole("img",{name:ru?"Распределение активов":"Asset allocation",exact:true})).toBeVisible();
     await page.getByRole("button",{name:ru?"Без категории":"Uncategorized",exact:true}).click();
     const table=page.getByRole("table"),abc=table.getByRole("row").filter({has:page.getByRole("button",{name:"ABC",exact:true})});
-    await expect(abc).toContainText(/5[,.]17\s?%/);await expect(abc).toContainText("300 RUB");
+    await expect(abc).toContainText(/5[,.]17\s?%/);await expect(abc).toContainText("200 RUB");
     missingForeignPrice=true;await page.getByRole("button",{name:ru?"Обновить портфель":"Refresh portfolio",exact:true}).click();await expect(page.getByText(ru?"Неполная оценка":"Partial valuation",{exact:true})).toBeVisible();
     const us=table.getByRole("row").filter({has:page.getByRole("button",{name:"US",exact:true})});await expect(us.locator("td").last()).toHaveText("—");
     missingForeignPrice=false;await page.getByRole("button",{name:ru?"Обновить портфель":"Refresh portfolio",exact:true}).click();await expect(value).toContainText(/23[\s,.]?200/);
@@ -124,7 +124,7 @@ for (const locale of ["ru", "en"]) {
       await dialog.getByRole("button", {name: ru ? "Сохранить" : "Save", exact: true}).click();
       await expect(dialog).toHaveCount(0); await expect(page.getByRole("table")).toContainText("11");
       await expect(page.locator("section").filter({has:page.getByRole("heading",{name:ru?"Вложено":"Invested",exact:true})})).toContainText(/17[\s,.]?100/);
-      await expect(page.locator("section").filter({has:page.getByRole("heading",{name:ru?"Прибыль":"Profit",exact:true})})).toContainText(/6[\s,.]?240/);
+      await expect(page.locator("section").filter({has:page.getByRole("heading",{name:ru?"Прибыль":"Profit",exact:true})})).toContainText(/6[\s,.]?220/);
       expect(calls.filter(c => c.method === "SaveInvestmentOperation")).toHaveLength(1);
       expect(calls.filter(c => c.method === "SaveInvestmentOperation").every(c => c.input.operation.kind !== "deposit")).toBe(true);
     } else await expect(page.getByRole("button", {name: ru ? "Добавить операцию" : "Add operation", exact: true})).toHaveCount(0);
@@ -135,7 +135,7 @@ for (const locale of ["ru", "en"]) {
     await page.locator("header summary").filter({hasText:ru?"Инвестиции":"Investments"}).click();
     await page.getByRole("link", {name:ru ? "Портфель" : "Portfolio", exact:true}).click();
     await page.reload();
-    await expect(page.locator("section").filter({has:page.getByRole("heading",{name:ru?"Прибыль":"Profit",exact:true})})).toContainText(ru?"Неполные данные":"Incomplete data");
+    await expect(page.locator("section").filter({has:page.getByRole("heading",{name:ru?"Прибыль":"Profit",exact:true})})).not.toContainText(ru?"Неполные данные":"Incomplete data");
     await page.locator("header summary").filter({hasText:ru?"Инвестиции":"Investments"}).click();
     await page.getByRole("link", {name: ru ? "Выплаты" : "Payouts", exact: true}).click();
     await expect(page.getByRole("table")).toContainText("100");

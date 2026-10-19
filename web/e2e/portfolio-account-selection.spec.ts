@@ -39,7 +39,8 @@ for(const locale of ["ru","en"])test(`${locale} account subsets are deduplicated
  });
  await page.goto(`/investments?account=${ids[0]}&account=${ids[2]}&account=${ids[0]}&from=2024-01-02&to=2024-01-02`);
  const cost=page.locator("section").filter({has:page.getByRole("heading",{name:ru?"Вложено":"Invested",exact:true})});await expect(cost).toContainText("400 RUB");await expect(page.getByRole("table")).toContainText("480 RUB");
- await expect.poll(()=>historyScopes.some(s=>JSON.stringify(s)==JSON.stringify([ids[0],ids[2]]))).toBe(true);
+ // Live daily change uses selected snapshots and quotes, without an EOD-history request.
+ expect(historyScopes).toHaveLength(0);
  await page.getByText(ru?"Выбрать несколько счетов":"Select multiple accounts",{exact:true}).click();
  const set=page.getByRole("group",{name:ru?"Счета в портфеле":"Portfolio accounts",exact:true});await expect(set.getByLabel("Broker 2",{exact:true})).not.toBeChecked();
  await page.getByLabel(ru?"Название набора счетов":"Account set name",{exact:true}).fill("Selected brokers");await page.getByRole("button",{name:ru?"Сохранить набор":"Save account set",exact:true}).click();await expect(page.getByRole("button",{name:"Selected brokers",exact:true})).toBeVisible();
@@ -53,8 +54,7 @@ for(const locale of ["ru","en"])test(`${locale} account subsets are deduplicated
  await page.getByRole("button",{name:ru?"Все счета":"All accounts",exact:true}).click();await expect(cost).toContainText("300 RUB");
  await page.getByRole("button",{name:"Broker 1",exact:true}).click();await expect(cost).toContainText("100 RUB");await expect(page.getByRole("button",{name:"Broker 3",exact:true})).toHaveCount(0);
  await page.getByText(ru?"Выбрать несколько счетов":"Select multiple accounts",{exact:true}).click();await page.getByRole("button",{name:ru?"Selected brokers · архив":"Selected brokers · archived",exact:true}).click();await expect(cost).toContainText("400 RUB");
- // The cost card can render before the previous account's day query settles.
- // Wait for that calculation before proving an invalid selection starts none.
+ // Wait for live valuation inputs before proving an invalid selection starts no history.
  const daily=page.getByRole("region",{name:ru?"Дневной результат":"Daily result",exact:true});
  await expect(daily).toBeVisible();await expect(daily.locator("p.tabular-nums").first()).not.toHaveText("…");
  const historyCount=historyScopes.length;await page.goto(`/investments?account=${ids[0]}&account=99999999-9999-4999-8999-999999999999`);await expect(page.getByRole("alert").filter({hasText:ru?"Выбранный счёт недоступен":"The selected account is unavailable"})).toBeVisible();await expect(cost).toHaveCount(0);expect(historyScopes.length).toBe(historyCount);await page.goBack();await expect(cost).toContainText("400 RUB");
