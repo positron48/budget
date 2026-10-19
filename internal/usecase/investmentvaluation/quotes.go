@@ -25,6 +25,9 @@ type PortfolioQuote struct {
 	RawPrice, Nominal, Accrued             *big.Rat
 	RawUnit, NominalCurrency               string
 	AccruedAt                              time.Time
+	PreviousClose                          *big.Rat
+	PreviousCloseCurrency                  string
+	PreviousCloseAt                        time.Time
 }
 type PortfolioQuotes struct {
 	ReadAt time.Time

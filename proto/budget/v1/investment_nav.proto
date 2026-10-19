@@ -565,6 +565,8 @@ message InvestmentQuote {
  InvestmentNAVAmount raw_price=11;string raw_unit=12;
  InvestmentNAVAmount nominal=13;string nominal_currency=14;
  InvestmentNAVAmount accrued=15;google.protobuf.Timestamp accrued_at=16;
+ // Latest saved close before the current UTC day; separate from live quotes.
+ InvestmentNAVAmount previous_close=17;string previous_close_currency=18;google.protobuf.Timestamp previous_close_at=19;
 }
 message GetInvestmentQuotesResponse {
  google.protobuf.Timestamp read_at=1; repeated InvestmentQuote quotes=2;

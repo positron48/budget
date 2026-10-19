@@ -29,7 +29,7 @@ for(const locale of ["ru","en"]){test(`${locale} analytics charts show profit, p
    data={currency:input.currency,fxPolicyKey:"market",policyVersion:1n,mode:"market",source:"alphavantage",timeConvention:"Retrospective next-day close",readAt:{seconds:now},rates:["",...input.dates].flatMap((date:string)=>sources.map((fromCurrency:string)=>({date,fromCurrency,rate:{numerator:"1",denominator:"1"}}))),currentFxLegs:sources.filter((c:string)=>c!==input.currency).map((c:string)=>({nativeCurrency:c,id:"synthetic-"+c,revision:1n,fromCurrency:c,toCurrency:input.currency,policy:"market@1",observedRate:{numerator:"1",denominator:"1"},asOf:{seconds:now-86400n},availableAt:{seconds:now-3600n},validUntil:{seconds:now+86400n}}))};
    if(input.currency==="RUB") for(const row of data.rates) if(row.date===""&&row.fromCurrency!=="RUB") {row.previousRate={numerator:"4",denominator:"5"};row.previousFxLegs=[{nativeCurrency:row.fromCurrency,id:"previous-"+row.fromCurrency,revision:2n,fromCurrency:row.fromCurrency,toCurrency:"RUB",policy:"market@1",observedRate:row.previousRate,asOf:{seconds:now-172800n},availableAt:{seconds:now-90000n},validUntil:{seconds:now-86400n}}];}
   }
-  if(method?.name==="GetInvestmentQuotes")data={quotes:[{instrumentKey:key,currency:"RUB",state:"fresh",cleanPrice:{numerator:"120",denominator:"1"},priceAt:{seconds:BigInt(Math.floor(Date.now()/1000)-60)},source:"tinvest/personal",instrument:{instrumentId:uid,ticker:"ABC",name:"Synthetic security",isin:"SYNTHETIC123",classCode:"SYNTHETIC",kind:"bond",currency:"RUB"},metadataAt:{seconds:at},rawPrice:{numerator:"12",denominator:"1"},rawUnit:"percent_of_nominal",nominal:{numerator:"1000",denominator:"1"},nominalCurrency:"RUB",accrued:{numerator:"0",denominator:"1"},accruedAt:{seconds:at}}]};
+  if(method?.name==="GetInvestmentQuotes")data={quotes:[{instrumentKey:key,currency:"RUB",state:"fresh",previousClose:{numerator:"100",denominator:"1"},previousCloseCurrency:"RUB",previousCloseAt:{seconds:at},cleanPrice:{numerator:"120",denominator:"1"},priceAt:{seconds:BigInt(Math.floor(Date.now()/1000)-60)},source:"tinvest/personal",instrument:{instrumentId:uid,ticker:"ABC",name:"Synthetic security",isin:"SYNTHETIC123",classCode:"SYNTHETIC",kind:"bond",currency:"RUB"},metadataAt:{seconds:at},rawPrice:{numerator:"12",denominator:"1"},rawUnit:"percent_of_nominal",nominal:{numerator:"1000",denominator:"1"},nominalCurrency:"RUB",accrued:{numerator:"0",denominator:"1"},accruedAt:{seconds:at}}]};
   if(method?.name==="ListBrokerSnapshots")data={snapshots:[{id:"snapshot",accountId:"broker",createdAt:{seconds:at}}]};
   if(method?.name==="GetBrokerSnapshot")data={originalJson:new TextEncoder().encode(JSON.stringify({fetched_at:new Date().toISOString(),operations:[{ticker:"ABC",instrumentUid:uid,name:"Synthetic security"}]}))};
   if(method?.name==="GetInvestmentGroups")data={classification,positions:[{ledgerId:one,ledgerName:"Broker one",instrumentKey:key},{ledgerId:two,ledgerName:"Broker two",instrumentKey:key},{ledgerId:two,ledgerName:"Broker two",instrumentKey:"OLD-CLOSED"}]};
@@ -65,7 +65,7 @@ for(const locale of ["ru","en"]){test(`${locale} analytics charts show profit, p
  });
  await page.goto("/investments?to=2025-01-03");
  const day=page.getByRole("region",{name:ru?"Дневной результат":"Daily result",exact:true});
- await expect(day.locator("p.tabular-nums").first()).toContainText("5");await expect(day.locator("p.tabular-nums").last()).toContainText("5");
+ await expect(day).toContainText(ru?"За сегодня":"Today");await expect(day.locator("p.tabular-nums").first()).toContainText("60");await expect(day.locator("p.tabular-nums").last()).toContainText("20");
  const fx=page.getByRole("region",{name:ru?"Валютные курсы портфеля":"Portfolio exchange rates",exact:true});await expect(fx).toContainText("USDRUB");await expect(fx).toContainText("EURRUB");await expect(fx).toContainText("25");
  await expect(page.getByRole("img",{name:ru?"Распределение активов":"Asset allocation"})).toBeVisible();
  await expect(page.getByRole("heading",{name:ru?"Стоимость портфеля":"Portfolio value",exact:true})).toHaveCount(0);
@@ -78,7 +78,7 @@ for(const locale of ["ru","en"]){test(`${locale} analytics charts show profit, p
  missingCost=true;await page.goto("/investments?to=2025-01-03");
  const invested=page.locator("section").filter({has:page.getByRole("heading",{name:ru?"Вложено":"Invested",exact:true})});
  await expect(invested.locator("p.tabular-nums")).toContainText("300");await expect(invested).toContainText(ru?"Неполные данные":"Incomplete data");missingCost=false;
- partialHistory=true;await page.goto("/investments?to=2025-01-03");await expect(day.locator("p.tabular-nums").first()).toContainText("5");await expect(day).toContainText(ru?"По доступным бумагам":"Available instruments");partialHistory=false;
+ partialHistory=true;await page.goto("/investments?to=2025-01-03");await expect(day.locator("p.tabular-nums").first()).toContainText("60");partialHistory=false;
  await page.goto("/investments/analytics?from=2024-12-30&to=2025-01-03");
  await expect(page.getByRole("heading",{name:ru?"Рост":"Growth",exact:true})).toBeVisible();
  const history=page.getByLabel(ru?"Рост портфеля":"Portfolio growth",{exact:true});

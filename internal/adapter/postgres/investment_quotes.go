@@ -32,6 +32,24 @@ func (r *MarketDataRepo) InvestmentQuotes(ctx context.Context, tenant, actor str
 	if e != nil {
 		return out, e
 	}
+	// Read prior daily closes in one bounded history query, independently of live prices.
+	cutoff := out.ReadAt.UTC().Truncate(24 * time.Hour)
+	history, e := readTrackerHistoryMarket(ctx, tx, tenant, keys, cutoff, cutoff, out.ReadAt, cutoff)
+	if e != nil {
+		return out, e
+	}
+	for i := range out.Quotes {
+		q := &out.Quotes[i]
+		close, err := trackerHistoricalQuote(tenant, q.InstrumentKey, history[q.InstrumentKey], cutoff, out.ReadAt)
+		if err != nil {
+			return out, err
+		}
+		if nav.UsablePortfolioQuote(close) {
+			q.PreviousClose = close.CleanPrice
+			q.PreviousCloseCurrency = close.Currency
+			q.PreviousCloseAt = close.At
+		}
+	}
 	return out, tx.Commit(ctx)
 }
 

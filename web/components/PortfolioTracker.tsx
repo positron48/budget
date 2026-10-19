@@ -26,7 +26,7 @@ import {allOperations, loadBrokerCatalog, portfolioInstrumentKey} from "@/lib/po
 import {add, decimal, divide, payoutKinds, trackerError, trackerKinds, tradeAmount, zero} from "@/lib/portfolio-tracker";
 import {acquisitionOriginReferences,loadAcquisitionOrigins} from "@/lib/portfolio-origins";
 import {portfolioQuotes} from "@/lib/portfolio-quotes";
-import {portfolioReport, reportingDate} from "@/lib/portfolio-report";
+import {portfolioReport, reportingDate, openPositionGain} from "@/lib/portfolio-report";
 import type {GetInvestmentGroupsResponse, GetInvestmentExchangeRatesResponse, GetInvestmentQuotesResponse, InvestmentValuationProfileOption} from "@/proto/budget/v1/investment_nav_pb";
 import {positionDecimal, type Fraction} from "@/lib/investment-positions";
 import type {InvestmentLedger, InvestmentOperation, InvestmentSnapshot} from "@/proto/budget/v1/investment_pb";
@@ -85,7 +85,7 @@ function Tracker({tenantId,analyticsOnly=false}: {tenantId: string;analyticsOnly
   }});
   const policy = profiles.data?.find(p => p.mode === fxMode);
   const dates = useMemo(() => {
-    const days = new Set<string>();
+    const days = new Set<string>([new Date(Date.now()-86400000).toLocaleDateString("en-CA",{timeZone:"Europe/Moscow"})]);
     const now = BigInt(Math.floor(Date.now() / 1000));
     const today = reportingDate(now);
     for (const op of [...(data.data?.operations||[]),...(origins.data?.operations||[])]) {
@@ -102,7 +102,7 @@ function Tracker({tenantId,analyticsOnly=false}: {tenantId: string;analyticsOnly
     if (response.fxPolicyKey !== policy!.key || response.policyVersion !== policy!.version || response.mode !== fxMode) throw new Error("fx_policy_changed");
     return response;
   }});
-  const quoteKeys = useMemo(() => [...new Set([...(data.data?.snapshots || []).flatMap(s => s.positions.filter(p => {const q = decimal(p.quantity); return !!q && BigInt(q.numerator) > 0n;}).map(p => p.instrumentKey)),...(closed?(data.data?.operations||[]).map(o=>o.instrumentKey).filter(Boolean):[])])].sort(), [data.data,closed]);
+  const quoteKeys = useMemo(() => [...new Set([...(data.data?.snapshots || []).flatMap(s => s.positions.filter(p => {const q = decimal(p.quantity); return !!q && BigInt(q.numerator) > 0n;}).map(p => p.instrumentKey)),...(data.data?.operations||[]).filter(o=>closed||reportingDate(o.occurredAt?.seconds)===reportingDate(BigInt(Math.floor(Date.now()/1000)))).map(o=>o.instrumentKey).filter(Boolean)])].sort(), [data.data,closed]);
   const marketQuotes = useQuery<GetInvestmentQuotesResponse>({queryKey: ["investment", tenantId, "tracker", "market-quotes", quoteKeys], enabled: !!data.data && !!quoteKeys.length, staleTime: 30000, refetchInterval: 60000, queryFn: async () => {
     const result: GetInvestmentQuotesResponse = {
       $typeName: "budget.v1.GetInvestmentQuotesResponse", quotes: [],
@@ -124,16 +124,15 @@ function Tracker({tenantId,analyticsOnly=false}: {tenantId: string;analyticsOnly
   const report = useMemo(() => portfolioReport(data.data?.snapshots || [], data.data?.operations || [], quotes, currency, rates.data,include,origins.data?.operations), [data.data, quotes, currency, rates.data,include,origins.data]);
   const positions = report.positions;
   const current = positions, held = current.filter(p => BigInt(p.quantity.numerator) !== 0n);
-  const sourceHistoryIncomplete = (data.data?.snapshots || []).some(s => s.issues.includes("source_trades_pending"));
-  const valueKnown = held.every(p => p.value), costKnown = held.every(p => p.cost), profitKnown = !sourceHistoryIncomplete && current.every(p => p.profit);
+  const valueKnown = held.every(p => p.value), costKnown = held.every(p => p.cost), profitKnown = openPositionGain(held).complete;
   const hasQuotes = held.some(p => p.value);
   const value = valueKnown || hasQuotes ? add(...held.map(p => p.value)) : undefined, cost = costKnown || held.some(p => p.cost) ? add(...held.map(p => p.cost)) : undefined;
-  const profit = profitKnown || current.some(p => p.profit) ? add(...current.map(p => p.profit)) : undefined;
+  const profit = openPositionGain(held).amount;
   const money = (amount?: Fraction, cur = currency) => amount ? `${new Intl.NumberFormat(locale, {maximumFractionDigits: 2}).format(Number(positionDecimal(amount)))} ${cur}` : "—";
   const quoteDetails=useMemo(()=>new Map((marketQuotes.data?.quotes||[]).map(q=>[q.instrumentKey,q])),[marketQuotes.data]);
   const name = (key: string) => key ? quoteDetails.get(key)?.instrument?.ticker || catalog.data?.names.get(key)?.ticker || key.replace(/^tinvest:/, "") : tr("Прочие выплаты", "Other payouts");
   const categoryRows=useMemo(()=>{
-    if(groupIDs.length||instrumentKeys.length)return current.filter(p=>BigInt(p.quantity.numerator)!==0n).map(p=>({id:p.key,name:quoteDetails.get(p.key)?.instrument?.ticker||catalog.data?.names.get(p.key)?.ticker||p.key,count:1,quantity:positionDecimal(p.quantity),estimateDate:p.quoteSource==="estimate"&&p.quoteAt?new Date(p.quoteAt).toLocaleDateString(locale):undefined,value:p.value,cost:p.cost,profit:p.profit,partial:!p.value}));
+    if(groupIDs.length||instrumentKeys.length)return current.filter(p=>BigInt(p.quantity.numerator)!==0n).map(p=>({id:p.key,name:quoteDetails.get(p.key)?.instrument?.ticker||catalog.data?.names.get(p.key)?.ticker||p.key,count:1,quantity:positionDecimal(p.quantity),estimateDate:p.quoteSource==="estimate"&&p.quoteAt?new Date(p.quoteAt).toLocaleDateString(locale):undefined,value:p.value,cost:p.cost,profit:openPositionGain([p]).amount,partial:!p.value}));
     if(!groups.data?.classification)return [];
     return [...groups.data.classification.groups,{id:"",name:tr("Без категории","Uncategorized")}].flatMap(g=>{
       const sub=portfolioReport(data.data?.snapshots||[],data.data?.operations||[],quotes,currency,rates.data,groupPredicate(groups.data?.classification,[g.id]),origins.data?.operations);
@@ -141,9 +140,9 @@ function Tracker({tenantId,analyticsOnly=false}: {tenantId: string;analyticsOnly
       const open=sub.positions.filter(p=>BigInt(p.quantity.numerator)!==0n);
       if(!open.length)return [];
       const estimateDates=open.filter(p=>p.quoteSource==="estimate"&&p.quoteAt).map(p=>p.quoteAt!).sort((a,b)=>a-b);
-      return [{id:g.id,name:g.name,count:open.length,estimateDate:estimateDates.length?new Date(estimateDates[0]).toLocaleDateString(locale):undefined,value:open.some(p=>p.value)||!open.length?add(...open.map(p=>p.value)):undefined,cost:open.some(p=>p.cost)?add(...open.map(p=>p.cost)):undefined,costPartial:open.some(p=>!p.cost),profit:sub.positions.every(p=>p.profit)?add(...sub.positions.map(p=>p.profit)):undefined,partial:open.some(p=>!p.value)}];
+      return [{id:g.id,name:g.name,count:open.length,estimateDate:estimateDates.length?new Date(estimateDates[0]).toLocaleDateString(locale):undefined,value:open.some(p=>p.value)||!open.length?add(...open.map(p=>p.value)):undefined,cost:open.some(p=>p.cost)?add(...open.map(p=>p.cost)):undefined,costPartial:open.some(p=>!p.cost),profit:openPositionGain(open).amount,partial:open.some(p=>!p.value)}];
     });
-  },[groupIDs,instrumentKeys,current,quoteDetails,catalog.data,groups.data,data.data,quotes,currency,rates.data,origins.data,sourceHistoryIncomplete,tr,locale]);
+  },[groupIDs,instrumentKeys,current,quoteDetails,catalog.data,groups.data,data.data,quotes,currency,rates.data,origins.data,tr,locale]);
   const categoryTitle=groupIDs.length===1?(groups.data?.classification?.groups.find(g=>g.id===groupIDs[0])?.name||tr("Без категории","Uncategorized")):tr("Портфель","Portfolio");
   const visibleOperations = operations.filter(op => op.status === "posted" && (view === "payments" ? payoutKinds.has(op.kind) : ["buy", "sell"].includes(op.kind))).sort((a, b) => Number((b.occurredAt?.seconds || 0n) - (a.occurredAt?.seconds || 0n)));
   const pageSize=[25,50,100].includes(Number(params.get("page_size")))?Number(params.get("page_size")):50;
@@ -220,9 +219,9 @@ function Tracker({tenantId,analyticsOnly=false}: {tenantId: string;analyticsOnly
           {!analyticsOnly&&valuationReady&&<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[
             {title:tr("Стоимость","Value"),amount:value,icon:Wallet,partial:!valueKnown},
             {title:tr("Вложено","Invested"),amount:cost,icon:PieChart,partial:!costKnown},
-            {title:tr("Прибыль","Profit"),amount:profit,icon:ArrowUpRight,partial:!profitKnown},
-          ].map(card=><section className={panel+" p-5"} key={card.title}><div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400"><h2>{card.title}</h2><card.icon size={17}/></div><p className={"mt-4 text-2xl font-semibold tabular-nums "+(card.title===tr("Прибыль","Profit")&&card.amount?(BigInt(card.amount.numerator)>=0n?"text-emerald-500":"text-rose-500"):"")}>{money(card.amount)}</p>{card.partial&&<span className="mt-2 inline-block text-xs text-amber-600" title={tr("Не все исходные данные доступны","Some source data is unavailable")}>{tr("Неполные данные","Incomplete data")}</span>}</section>)}
-          {policy&&<PortfolioDayResult tenantId={tenantId} ledgers={historicalPortfolioAccounts(params,ledgers.data||[])} currency={currency} policyKey={policy.key} policyVersion={policy.version} fxMode={fxMode} groupIds={groupIDs} instrumentKeys={instrumentKeys} classificationVersion={groups.data?.classification?.version||0n} ru={ru}/>}
+            {title:tr("Прибыль","Profit"),amount:profit,icon:ArrowUpRight,partial:!profitKnown,description:tr("Стоимость текущих бумаг минус стоимость их покупки","Current holdings value minus acquisition principal")},
+          ].map(card=><section className={panel+" p-5"} key={card.title} title={card.description}><div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400"><h2>{card.title}</h2><card.icon size={17}/></div><p className={"mt-4 text-2xl font-semibold tabular-nums "+(card.title===tr("Прибыль","Profit")&&card.amount?(BigInt(card.amount.numerator)>=0n?"text-emerald-500":"text-rose-500"):"")}>{money(card.amount)}</p>{card.partial&&<span className="mt-2 inline-block text-xs text-amber-600" title={tr("Не все исходные данные доступны","Some source data is unavailable")}>{tr("Неполные данные","Incomplete data")}</span>}</section>)}
+          {policy&&<PortfolioDayResult currency={currency} ru={ru} live={valuationReady?[positions,data.data?.operations||[],marketQuotes.data?.quotes||[],currency,rates.data,include]:undefined}/>}
           </div>}
           {!analyticsOnly&&valuationReady&&(report.missingFX.length > 0 || rates.error) && <p role="status" className="text-sm text-amber-700 dark:text-amber-400">{tr("Для части сумм нет валютного курса. Они отмечены как неизвестные; итог может быть неполным.", "Exchange rates are unavailable for some amounts. They remain unknown; totals may be incomplete.")}</p>}
           {view === "overview" ? <>

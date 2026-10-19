@@ -151,3 +151,9 @@ export function portfolioReport(snapshots: InvestmentSnapshot[], operations: Inv
   for(const h of holdingCosts){const p=positions.get(h.key);h.priceCurrency=p?.priceCurrency;h.value=p?.price?multiply(h.quantity,p.price):undefined;}
   return {holdingCosts,positions: [...positions.values()], months: [...months].sort(([a], [b]) => a.localeCompare(b)).slice(-12), monthsComplete, missingFX: [...missingFX]};
 }
+
+// Gain of currently held securities, on the same principal basis as Invested.
+export function openPositionGain(positions:readonly Pick<ReportPosition,"quantity"|"value"|"cost">[]){
+ const open=positions.filter(p=>BigInt(p.quantity.numerator)!==0n),known=open.filter(p=>p.value&&p.cost);
+ return {amount:known.length||!open.length?add(...known.map(p=>add(p.value,negate(p.cost!)))):undefined,complete:known.length===open.length};
+}

@@ -3,7 +3,7 @@ import {create} from "@bufbuild/protobuf";
 import {TimestampSchema} from "@bufbuild/protobuf/wkt";
 import {InvestmentOperationSchema, InvestmentSnapshotSchema} from "@/proto/budget/v1/investment_pb";
 import {GetInvestmentExchangeRatesResponseSchema} from "@/proto/budget/v1/investment_nav_pb";
-import {portfolioReport} from "@/lib/portfolio-report";
+import {portfolioReport,openPositionGain} from "@/lib/portfolio-report";
 import {decimal} from "@/lib/portfolio-tracker";
 import {positionDecimal} from "@/lib/investment-positions";
 const at = (date: string) => create(TimestampSchema, {seconds: BigInt(Date.parse(date + "T10:00:00Z") / 1000), nanos: 0});
@@ -145,4 +145,11 @@ it("keeps exact per-account values and original quote currency without replaying
  const report=portfolioReport([first,second],[purchase,other],quote(),"RUB",fx());
  expect(report.holdingCosts.map(h=>[h.ledgerId,positionDecimal(h.value),h.priceCurrency])).toEqual([["one","14000","USD"],["two","28000","USD"]]);
  expect(positionDecimal(report.positions[0].value)).toBe("42000");
+});
+
+it("open holdings gain uses the same value and cost basis and ignores closed history",()=>{
+ const p=(q:string,v:string,c:string)=>({quantity:decimal(q)!,value:decimal(v)!,cost:decimal(c)!});
+ const result=openPositionGain([p("1","9761087.76","7747070.16"),p("0","0","999")]);
+ expect(positionDecimal(result.amount)).toBe("2014017.6");expect(result.complete).toBe(true);
+ expect(openPositionGain([{quantity:decimal("1")!,value:decimal("10")!}]).complete).toBe(false);
 });

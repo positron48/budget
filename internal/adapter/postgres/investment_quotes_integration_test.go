@@ -54,6 +54,20 @@ func TestInvestmentQuotesOutsideBrokerHoldingsAndSourceBoundaries(t *testing.T) 
 		if _, e = repo.SaveObservations(ctx, scope, []md.Observation{quote}); e != nil {
 			t.Fatal(e)
 		}
+		if key == "STOCK" {
+			close := quote
+			close.Kind = "daily_candle"
+			close.At = at.UTC().Truncate(24 * time.Hour).Add(-24 * time.Hour)
+			close.Price = "90"
+			close.Open = "90"
+			close.High = "90"
+			close.Low = "90"
+			close.Volume = "1"
+			close.PriceUnit = "currency_per_unit"
+			if _, e = repo.SaveObservations(ctx, scope, []md.Observation{close}); e != nil {
+				t.Fatal(e)
+			}
+		}
 		// A newer dealer quote and future exchange quote must not replace the eligible series.
 		quote.SourceKind, quote.At, quote.Price = "dealer", at.Add(time.Minute), "999"
 		if _, e = repo.SaveObservations(ctx, scope, []md.Observation{quote}); e != nil {
@@ -70,6 +84,9 @@ func TestInvestmentQuotesOutsideBrokerHoldingsAndSourceBoundaries(t *testing.T) 
 		t.Fatal(result, e)
 	}
 	for _, q := range result.Quotes {
+		if q.InstrumentKey == "STOCK" && (q.PreviousClose == nil || q.PreviousClose.RatString() != "90" || q.PreviousCloseCurrency != "USD" || q.PreviousCloseAt.IsZero()) {
+			t.Fatal("prior close missing or live price leaked", q)
+		}
 		if q.InstrumentKey != "MISSING" && (q.Instrument == nil || q.Instrument.Ticker != q.InstrumentKey || q.MetadataAt.IsZero()) {
 			t.Fatal("provider metadata missing", q)
 		}
