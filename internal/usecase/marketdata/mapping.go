@@ -132,7 +132,9 @@ func ValidateMappingChange(tenant string, c MappingChange) error {
 }
 
 func ValidatePriceEstimates(estimates []PriceEstimate) error {
-	if len(estimates) > 100 {
+	// A dated last-known-price schedule can cover the same ten-year daily
+	// window as portfolio history. Never compress it into future backfills.
+	if len(estimates) > 3661 {
 		return ErrInvalid
 	}
 	for i, e := range estimates {

@@ -231,3 +231,7 @@ and realized results remain part of the lifetime strategy, and custody moves
 from a closed broker do not become new external capital. Navigation and current
 holdings still use active accounts. Explicit single/multiple account selections
 keep their requested scope, including the existing transfer-boundary rules.
+# Датированные исторические оценки
+
+Для снятой с торгов бумаги без доступного дневного ряда можно хранить проверенные закрытия отдельных дат как `PriceEstimates`: цена применяется только начиная с её `From`, сохраняет исходную дату `At` и ссылку на источник. Между такими датами переносится последнее известное значение; это оценка, а не синтетическая дневная свеча. Ограничение расписания — 3661 значение, как у десятилетнего окна истории. Текущая ручная оценка сохраняется отдельной более поздней записью. Покупки, продажи и выплаты это расписание не меняет.
+

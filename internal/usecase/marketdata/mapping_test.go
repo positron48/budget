@@ -6,6 +6,25 @@ import (
 	"time"
 )
 
+func TestHistoricalPriceEstimateScheduleBound(t *testing.T) {
+	start := time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC)
+	estimates := make([]PriceEstimate, 3662)
+	for i := range estimates {
+		at := start.AddDate(0, 0, i)
+		estimates[i] = PriceEstimate{Price: "11.98", Currency: "USD", At: at, From: at.AddDate(0, 0, 1), Reference: "Dated historical close; available next day"}
+	}
+	if err := ValidatePriceEstimates(estimates[:3661]); err != nil {
+		t.Fatal("bounded daily history rejected", err)
+	}
+	if err := ValidatePriceEstimates(estimates); err == nil {
+		t.Fatal("unbounded estimate schedule accepted")
+	}
+	estimates[100].From = estimates[99].From
+	if err := ValidatePriceEstimates(estimates[:101]); err == nil {
+		t.Fatal("overlapping historical availability accepted")
+	}
+}
+
 func TestMappingScheduleBoundaries(t *testing.T) {
 	tenant := uuid.NewString()
 	at := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
