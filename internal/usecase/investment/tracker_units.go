@@ -129,3 +129,78 @@ func TrackerUnitHistory(ledger d.InvestmentLedger, input []d.InvestmentOperation
 	}
 	return snapshots, true, nil
 }
+
+// TrackerSecurityLegHistory projects daily units from validated security legs.
+// Legs are written atomically with journal mutations and already include exact
+// transfer, split and distribution deltas. This projection is only for market
+// valuation, never acquisition costs or profit. Legacy cash books keep replay.
+func TrackerSecurityLegHistory(ledger d.InvestmentLedger, ops []d.InvestmentOperation, input []d.InvestmentSecurityLeg, cutoffs []time.Time) ([]d.InvestmentSnapshot, bool, error) {
+	if !ledger.PortfolioTracking {
+		return nil, false, nil
+	}
+	for _, o := range ops {
+		if o.Status == "voided" {
+			continue
+		}
+		switch o.Kind {
+		case "buy", "sell", "opening_position", "split", "redemption", "dividend", "coupon", "repo_income", "cash_interest", "fee", "tax", "tax_refund", "deposit", "withdrawal", "opening_cash", "security_transfer_in", "security_transfer_out", "distribution", "amortization":
+		default:
+			return nil, false, nil
+		}
+	}
+	if len(cutoffs) == 0 || len(cutoffs) > MaxTrackerUnitCutoffs {
+		return nil, true, d.ErrInvestmentLimit
+	}
+	legs := slices.Clone(input)
+	slices.SortStableFunc(legs, func(a, b d.InvestmentSecurityLeg) int { return a.EffectiveAt.Compare(b.EffectiveAt) })
+	quantities := map[string]*big.Rat{}
+	out := make([]d.InvestmentSnapshot, 0, len(cutoffs))
+	next := 0
+	startsFromZero := RecordedTrackerStartsFromZero(ledger, ops)
+	for i, at := range cutoffs {
+		if at.IsZero() || i > 0 && !at.After(cutoffs[i-1]) {
+			return nil, true, d.ErrInvestmentInvalid
+		}
+		for next < len(legs) && !legs[next].EffectiveAt.After(at) {
+			leg := legs[next]
+			amount, ok := new(big.Rat).SetString(leg.Quantity)
+			if !ok {
+				return nil, true, d.ErrInvestmentInvalid
+			}
+			if quantities[leg.InstrumentKey] == nil {
+				quantities[leg.InstrumentKey] = new(big.Rat)
+			}
+			quantities[leg.InstrumentKey].Add(quantities[leg.InstrumentKey], amount)
+			next++
+		}
+		s := d.InvestmentSnapshot{Ledger: ledger, AsOf: at, Positions: []d.InvestmentPosition{}}
+		if startsFromZero || !at.Before(ledger.StartedAt) {
+			keys := []string{}
+			for key, q := range quantities {
+				if q.Sign() < 0 {
+					return nil, true, d.ErrInvestmentPrecondition
+				}
+				if q.Sign() > 0 {
+					keys = append(keys, key)
+				}
+			}
+			slices.Sort(keys)
+			for _, key := range keys {
+				s.Positions = append(s.Positions, d.InvestmentPosition{InstrumentKey: key, Quantity: decimalString(quantities[key])})
+			}
+			for _, o := range ops {
+				if o.Status != "posted" || o.OccurredAt.After(at) {
+					continue
+				}
+				if o.Timing != nil && (o.Timing.OccurredDate != "" || o.Timing.SettlementDate != "") && !slices.Contains(s.Issues, "date_only_timing") {
+					s.Issues = append(s.Issues, "date_only_timing")
+				}
+				if o.TradeFinancials != nil && strings.TrimSpace(o.TradeFinancials.DifferenceReason) != "" && !slices.Contains(s.Issues, "trade_settlement_difference_reviewed") {
+					s.Issues = append(s.Issues, "trade_settlement_difference_reviewed")
+				}
+			}
+		}
+		out = append(out, s)
+	}
+	return out, true, nil
+}

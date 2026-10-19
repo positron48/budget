@@ -123,6 +123,7 @@ func (s *InvestmentNAVServer) GetTrackerPerformance(ctx context.Context, req *pb
 	// Recheck current membership, selected ledger identities and scoped market
 	// basis. A signed old value is never silently used after a correction.
 	check := q
+	check.BasisOnly = true
 	check.From = q.To
 	check.PerformanceFrom = ""
 	fresh, e := repo.TrackerHistory(ctx, tenant, actor, check)

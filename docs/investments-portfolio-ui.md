@@ -24,7 +24,11 @@ financial metrics, period totals or export values.
 `GetTrackerHistory` and `GetTrackerInstrumentPrices` accept `page_days` up to 93;
 zero preserves the existing 31-day contract. Standalone unit history processes
 the quarter and its baseline in one journal pass, without calculating FIFO
-cost. The web client consumes pages in date order with a bounded window of speculative read requests. Servers returning
+cost. Tracker accounts with custody transfers or distributions use the atomic
+`investment_security_legs` projection for daily quantities, including split and
+distribution deltas. Historical acquisition lots and transfer cost books are
+not replayed per day. Legacy cash books retain their existing replay contract.
+The web client consumes pages in date order with a bounded window of speculative read requests. Servers returning
 legacy pages still work. Scope, daily continuity, policy and basis checks remain
 mandatory, and abandoning a load cancels outstanding requests.
 
@@ -43,7 +47,9 @@ most 24 views of up to 16 MiB. A process restart preserves the projections.
 Snapshot tokens are used only during calculation and are never persisted.
 
 Every read rechecks current membership, ledger identities and the scoped
-journal/market/FX/classification basis. Built-in benchmark prices and source
+journal/market/FX/classification basis. Internal basis-only checks read distinct
+instrument identities and source versions without calculating positions or
+quotes; they produce the same basis as the full history read. Built-in benchmark prices and source
 eligibility have an additional fence, even when the index is not a holding.
 Corrections cause a recalculation; expired projections are not returned. A cold
 view calculates quarterly internally, with one cold bundle at a time and

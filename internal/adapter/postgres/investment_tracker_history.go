@@ -132,7 +132,32 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		if !l.PortfolioTracking {
 			return out, d.ErrInvestmentPrecondition
 		}
-		ops, e := loadInvestmentOperations(ctx, tx, tenant, id)
+		var ops []d.InvestmentOperation
+		if q.BasisOnly {
+			rows, err := tx.Query(ctx, `SELECT DISTINCT COALESCE(data->>'InstrumentKey',''),COALESCE(data#>>'{Distribution,TargetInstrumentKey}',''),status FROM investment_operations WHERE tenant_id=$1 AND ledger_id=$2`, tenant, id)
+			if err != nil {
+				return out, err
+			}
+			for rows.Next() {
+				var key, target, status string
+				if err = rows.Scan(&key, &target, &status); err != nil {
+					rows.Close()
+					return out, err
+				}
+				op := d.InvestmentOperation{LedgerID: id, InstrumentKey: key, Status: status}
+				if target != "" {
+					op.Distribution = &d.InvestmentDistribution{TargetInstrumentKey: target}
+				}
+				ops = append(ops, op)
+			}
+			err = rows.Err()
+			rows.Close()
+			if err != nil {
+				return out, err
+			}
+		} else {
+			ops, e = loadInvestmentOperations(ctx, tx, tenant, id)
+		}
 		if e != nil {
 			return out, e
 		}
@@ -259,6 +284,9 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		GroupIDs       []string
 		InstrumentKeys []string
 	}{heads, policy, points, cache, classification, q.GroupIDs, q.InstrumentKeys})
+	if q.BasisOnly {
+		return out, tx.Commit(ctx)
+	}
 	first, _ := time.Parse(time.DateOnly, q.From)
 	performanceBaseline := ""
 	if q.PerformanceFrom != "" {
@@ -339,6 +367,50 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 			unitHistory[id] = history
 		} else {
 			needsReplay = true
+		}
+	}
+	if needsReplay {
+		// Unit projections are committed atomically with the journal and source
+		// corrections. Reading them avoids repeating connected FIFO for each day.
+		rows, err := tx.Query(ctx, `SELECT ledger_id::text,operation_id::text,instrument_key,quantity::text,effective_at FROM investment_security_legs WHERE tenant_id=$1 AND ledger_id=ANY($2::uuid[]) ORDER BY ledger_id,effective_at,ordinal LIMIT 100001`, tenant, q.LedgerIDs)
+		if err != nil {
+			return out, err
+		}
+		legs := map[string][]d.InvestmentSecurityLeg{}
+		count := 0
+		for rows.Next() {
+			var id string
+			var leg d.InvestmentSecurityLeg
+			if err = rows.Scan(&id, &leg.OperationID, &leg.InstrumentKey, &leg.Quantity, &leg.EffectiveAt); err != nil {
+				rows.Close()
+				return out, err
+			}
+			legs[id] = append(legs[id], leg)
+			count++
+		}
+		err = rows.Err()
+		rows.Close()
+		if err != nil {
+			return out, err
+		}
+		if count > 100000 {
+			return out, d.ErrInvestmentLimit
+		}
+		needsReplay = false
+		for _, id := range q.LedgerIDs {
+			if _, ok := unitHistory[id]; ok {
+				continue
+			}
+			input := inputs[id]
+			history, supported, err := inv.TrackerSecurityLegHistory(input.Ledger, input.Operations, legs[id], days)
+			if err != nil {
+				return out, err
+			}
+			if supported {
+				unitHistory[id] = history
+			} else {
+				needsReplay = true
+			}
 		}
 	}
 	var pendingFrom map[string]string
@@ -801,7 +873,7 @@ const trackerHistoryBasisSQL = `WITH mappings AS (
  SELECT instrument_key,data FROM investment_market_mappings WHERE tenant_id=$1 AND instrument_key=ANY($2::text[])
 ), listings AS (
  SELECT DISTINCT p->>'Provider' provider,p->>'AccessScope' access_scope,(p->>'InstrumentID')::uuid instrument_id
- FROM mappings CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_array_length(COALESCE(data->'HistoricalPeriods','[]'::jsonb))>0 THEN data->'HistoricalPeriods' ELSE data->'Periods' END) p
+ FROM mappings CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_array_length(COALESCE(data->'HistoricalPeriods','[]'::jsonb))>0 THEN data->'HistoricalPeriods' ELSE COALESCE(NULLIF(data->'Periods','null'::jsonb),'[]'::jsonb) END) p
 ), bindings AS (
  SELECT * FROM investment_import_ledger_bindings WHERE tenant_id=$1 AND ledger_id=ANY($3::uuid[])
 ), source_rows AS (

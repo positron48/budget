@@ -37,6 +37,7 @@ func (s *InvestmentNAVServer) GetTrackerChart(ctx context.Context, req *pb.GetTr
 	defer cancel()
 	return s.trackerChart(ctx, req, false)
 }
+
 func (s *InvestmentNAVServer) trackerChart(ctx context.Context, req *pb.GetTrackerChartRequest, force bool) (*pb.GetTrackerChartResponse, error) {
 	tenant, actor, err := assetContext(ctx)
 	if err != nil {
@@ -55,6 +56,7 @@ func (s *InvestmentNAVServer) trackerChart(ctx context.Context, req *pb.GetTrack
 	scope := chartHash(append([]byte("tracker-chart-v4:"), request...))
 	fence := func() (string, error) {
 		check := q
+		check.BasisOnly = true
 		check.From = q.To
 		check.CompactIssues = true
 		h, e := repo.TrackerHistory(ctx, tenant, actor, check)

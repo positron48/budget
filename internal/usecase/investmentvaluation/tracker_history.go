@@ -11,6 +11,7 @@ import (
 )
 
 type TrackerHistoryRequest struct {
+	BasisOnly                       bool // Internal authorization and source-version fence; never a signed page.
 	CompactIssues                   bool
 	PageDays                        int
 	LedgerIDs                       []string
