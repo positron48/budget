@@ -1,7 +1,7 @@
 import {describe,it,expect} from "vitest";
 import {create} from "@bufbuild/protobuf";
 import {InvestmentLedgerSchema} from "../proto/budget/v1/investment_pb";
-import {accountSelection,selectedPortfolioAccounts,togglePortfolioAccount,accountScopeParams,visiblePortfolioAccounts} from "../lib/portfolio-accounts";
+import {accountSelection,selectedPortfolioAccounts,togglePortfolioAccount,accountScopeParams,visiblePortfolioAccounts,historicalPortfolioAccounts} from "../lib/portfolio-accounts";
 const accounts=["a","b","c"].map(id=>create(InvestmentLedgerSchema,{id}));
 describe("account scope",()=>{
  it("normalizes duplicates and keeps explicit empty different from all",()=>{
@@ -25,4 +25,12 @@ describe("account scope",()=>{
   expect(next).toEqual({account:["a","c"],scope:"selected",selection:""});
   expect(accountScopeParams(p).toString()).toBe("currency=EUR&fx=cbr");
  });
+});
+
+it("retains archived tracker history only in the global chart without restoring navigation",()=>{
+ const source=create(InvestmentLedgerSchema,{id:"closed-source",archived:true,portfolioTracking:true}),legacy=create(InvestmentLedgerSchema,{id:"legacy-cash",archived:true});
+ const all=[...accounts,source,legacy];
+ expect(historicalPortfolioAccounts(new URLSearchParams(),all).map(l=>l.id)).toEqual(["a","b","c","closed-source"]);
+ expect(visiblePortfolioAccounts(new URLSearchParams(),all).map(l=>l.id)).toEqual(["a","b","c"]);
+ expect(historicalPortfolioAccounts(new URLSearchParams("account=a"),all).map(l=>l.id)).toEqual(["a"]);
 });

@@ -225,3 +225,9 @@ change any operation or its acquisition cost.
 Index history starts independently of the first complete portfolio valuation.
 Available TWR segments remain visible even if the whole-period TWR is
 incomplete; a reset is not joined to the old index as an investment loss.
+
+The global historical chart includes archived tracker accounts so acquisitions
+and realized results remain part of the lifetime strategy, and custody moves
+from a closed broker do not become new external capital. Navigation and current
+holdings still use active accounts. Explicit single/multiple account selections
+keep their requested scope, including the existing transfer-boundary rules.

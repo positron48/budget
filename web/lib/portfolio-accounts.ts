@@ -19,3 +19,8 @@ export function togglePortfolioAccount(params:URLSearchParams,accounts:Investmen
  return {account:[...ids].sort(),scope:"selected",selection:""};
 }
 export function accountScopeParams(params:URLSearchParams){const result=new URLSearchParams();for(const key of ["account","scope","currency","fx"])for(const value of params.getAll(key))result.append(key,value);return result;}
+// Closing custody does not erase its acquisition history from the global chart.
+// Explicit account selections retain their own boundary/transfer semantics.
+export function historicalPortfolioAccounts(params:URLSearchParams,accounts:InvestmentLedger[]){
+ return accountSelection(params).explicit?selectedPortfolioAccounts(params,accounts).ledgers:accounts.filter(l=>!l.archived||l.portfolioTracking);
+}
