@@ -105,3 +105,22 @@ func TestPreparedPriceSeriesWindowMatchesBoundedDatabaseRead(t *testing.T) {
 		t.Fatal("cross-scope window accepted")
 	}
 }
+
+func TestPreparedPriceSeriesRetainsPriorHolidayCandle(t *testing.T) {
+	q, values := selectionFixture()
+	q.Calendar = nil
+	q.Retrospective = &RetrospectiveDailyPolicy{Convention: RetrospectiveCloseNextUTCDay, MaxAge: 96 * time.Hour}
+	series, err := NewPriceSeries(q, values)
+	if err != nil {
+		t.Fatal(err)
+	}
+	q.At = values[len(values)-1].At.AddDate(0, 0, 12)
+	want, err := SelectValuationPrice(q, values)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := series.SelectSinceWithPrior(q, q.At.Add(-5*24*time.Hour))
+	if err != nil || !reflect.DeepEqual(got, want) || got.Candidate == nil || got.State != "stale" {
+		t.Fatal("holiday evidence lost", got, want, err)
+	}
+}

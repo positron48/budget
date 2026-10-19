@@ -295,7 +295,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		Classification *nav.InstrumentGroups
 		GroupIDs       []string
 		InstrumentKeys []string
-	}{"daily-eod-v3", heads, policy, points, cache, classification, q.GroupIDs, q.InstrumentKeys})
+	}{"daily-eod-v4", heads, policy, points, cache, classification, q.GroupIDs, q.InstrumentKeys})
 	if q.BasisOnly {
 		return out, tx.Commit(ctx)
 	}
@@ -914,7 +914,7 @@ func (entry trackerHistoryMarket) selectPrice(q md.PriceSelectionRequest, key st
 	// Retain the preceding observation across holidays and suspended trading.
 	// Eligibility still rejects future, incomplete and contradictory candles.
 	if series := entry.series[key]; series != nil {
-		return series.Select(q)
+		return series.SelectSinceWithPrior(q, q.At.UTC().Truncate(24*time.Hour).Add(-5*24*time.Hour))
 	}
 	return md.SelectValuationPrice(q, entry.observations[key])
 }

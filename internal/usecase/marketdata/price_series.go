@@ -47,3 +47,21 @@ func (s *PriceSeries) SelectSince(q PriceSelectionRequest, from time.Time) (Sele
 	end := sort.Search(len(s.observations), func(i int) bool { return s.observations[i].At.After(q.At) })
 	return selectValuationPrice(q, s.observations[first:end], true)
 }
+
+// SelectSinceWithPrior seeds a bounded window with the preceding observation
+// date. It retains holiday/suspension evidence without rechecking an entire
+// multi-month page for every valuation date.
+func (s *PriceSeries) SelectSinceWithPrior(q PriceSelectionRequest, from time.Time) (SelectedPrice, error) {
+	if s == nil || s.identity.Scope != q.Scope || s.identity.InstrumentID != q.InstrumentID || s.identity.Kind != q.Kind || s.identity.SourceKind != q.SourceKind || s.identity.Adjustment != q.Adjustment || !s.identity.KnowledgeAt.Equal(q.KnowledgeAt) || from.After(q.At) {
+		return SelectedPrice{}, ErrInvalid
+	}
+	first := sort.Search(len(s.observations), func(i int) bool { return !s.observations[i].At.Before(from) })
+	if first > 0 {
+		at := s.observations[first-1].At
+		for first > 0 && s.observations[first-1].At.Equal(at) {
+			first--
+		}
+	}
+	end := sort.Search(len(s.observations), func(i int) bool { return s.observations[i].At.After(q.At) })
+	return selectValuationPrice(q, s.observations[first:end], true)
+}
