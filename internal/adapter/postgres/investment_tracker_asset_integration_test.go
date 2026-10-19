@@ -127,7 +127,7 @@ func TestInvestmentTrackerAssetReplacementUsesCleanQuotesWithoutFundingOrDoubleC
 		t.Fatal("new quote did not update value without a manual snapshot", updated, e)
 	}
 	stale, e := NewAssetRepo(pool).GetAccount(ctx, tenant, a.ID, time.Now().Add(5*24*time.Hour))
-	if e != nil || !stale.ValuationIncomplete || stale.Balances[0].Amount.MinorUnits != 0 {
-		t.Fatal("stale quotes revived the replaced manual estimate", stale, e)
+	if e != nil || !stale.ValuationIncomplete || stale.Balances[0].Amount.MinorUnits != 378000 {
+		t.Fatal("last-known quote lost value or revived the replaced manual balance", stale, e)
 	}
 }

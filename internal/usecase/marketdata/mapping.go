@@ -45,6 +45,7 @@ type Mapping struct {
 type PriceEstimate struct {
 	Price, Currency, Reference string
 	At, From                   time.Time
+	Fallback                   bool `json:",omitempty"`
 }
 
 type MappingChange struct {
@@ -71,6 +72,7 @@ type MappingService struct {
 func NewMappingService(repo MappingRepo, roles Roles) *MappingService {
 	return &MappingService{repo, roles}
 }
+
 func (s *MappingService) authorize(ctx context.Context, t, u string, write bool) error {
 	for _, v := range []string{t, u} {
 		if id, e := uuid.Parse(v); e != nil || id.String() != v {
@@ -86,6 +88,7 @@ func (s *MappingService) authorize(ctx context.Context, t, u string, write bool)
 	}
 	return ErrForbidden
 }
+
 func (s *MappingService) Save(ctx context.Context, t, u string, c MappingChange) (Mapping, error) {
 	if e := s.authorize(ctx, t, u, true); e != nil {
 		return Mapping{}, e
@@ -95,6 +98,7 @@ func (s *MappingService) Save(ctx context.Context, t, u string, c MappingChange)
 	}
 	return s.repo.SaveMapping(ctx, t, u, c)
 }
+
 func (s *MappingService) Get(ctx context.Context, t, u, key string) (Mapping, error) {
 	if e := s.authorize(ctx, t, u, false); e != nil {
 		return Mapping{}, e
@@ -104,9 +108,11 @@ func (s *MappingService) Get(ctx context.Context, t, u, key string) (Mapping, er
 	}
 	return s.repo.GetMapping(ctx, t, key)
 }
+
 func mappingText(s string, max int) bool {
 	return len(s) > 0 && len(s) <= max && strings.TrimSpace(s) == s && utf8.ValidString(s) && !strings.ContainsRune(s, 0)
 }
+
 func ValidateMappingChange(tenant string, c MappingChange) error {
 	if !mappingText(c.InstrumentKey, 200) || !mappingText(c.RequestKey, 128) || !mappingText(c.Reason, 2000) || c.ExpectedVersion < 0 || len(c.Periods) > 100 {
 		return ErrInvalid
@@ -183,6 +189,7 @@ func (m Mapping) HistoryPeriods() []MappingPeriod {
 	}
 	return m.Periods
 }
+
 func (p MappingPeriod) Terms(id string, revision int64) calc.PriceTerms {
 	return calc.PriceTerms{ID: id, Revision: revision, InstrumentID: p.InstrumentID, SourceKey: p.Provider + "/" + p.AccessScope, Kind: p.Kind, Currency: p.Currency, Unit: p.Unit, Nominal: p.Nominal, NominalCurrency: p.NominalCurrency, LotSize: p.LotSize, From: p.From, To: p.To, Confirmed: true}
 }

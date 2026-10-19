@@ -40,12 +40,15 @@ func TestInvestmentQuotesOutsideBrokerHoldingsAndSourceBoundaries(t *testing.T) 
 		if kind == "bond" {
 			change.Periods[0].From = at.UTC().Truncate(24 * time.Hour)
 		}
+		if key == "STALE" {
+			change.Periods[0].From = at.Add(-100 * 24 * time.Hour)
+		}
 		if _, e = repo.SaveMapping(ctx, tenant, actor, change); e != nil {
 			t.Fatal(e)
 		}
 		quoteAt := at
 		if key == "STALE" {
-			quoteAt = at.Add(-5 * 24 * time.Hour)
+			quoteAt = at.Add(-70 * 24 * time.Hour)
 		}
 		quote := md.Observation{InstrumentID: item.ID, Kind: "last_price", At: quoteAt, SourceKind: "exchange", Adjustment: "unadjusted", PriceUnit: "provider_unspecified", Price: "95", Complete: true}
 		if _, e = repo.SaveObservations(ctx, scope, []md.Observation{quote}); e != nil {
@@ -79,8 +82,11 @@ func TestInvestmentQuotesOutsideBrokerHoldingsAndSourceBoundaries(t *testing.T) 
 		if q.InstrumentKey == "BOND" && (q.CleanPrice == nil || q.CleanPrice.RatString() != "475") {
 			t.Fatal(q)
 		}
-		if (q.InstrumentKey == "STALE" || q.InstrumentKey == "MISSING") && q.CleanPrice != nil {
-			t.Fatal("missing/stale quote became money", q)
+		if q.InstrumentKey == "STALE" && (q.CleanPrice == nil || q.CleanPrice.RatString() != "95" || q.State != "estimated" || !q.At.Equal(at.Add(-70*24*time.Hour))) {
+			t.Fatal("last-known quote was lost or given a new date", q)
+		}
+		if q.InstrumentKey == "MISSING" && q.CleanPrice != nil {
+			t.Fatal("missing quote became money", q)
 		}
 	}
 	// No broker snapshots, journals or NAV registrations were created.

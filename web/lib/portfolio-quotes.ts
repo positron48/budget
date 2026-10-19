@@ -7,7 +7,7 @@ import type {TrackerQuote} from "./portfolio-tracker";
 export function portfolioQuotes(fallback: Map<string, TrackerQuote>, market: InvestmentQuote[], now = Date.now()): Map<string, TrackerQuote> {
   const out = new Map(fallback);
   for (const q of market) {
-    const estimated = q.state === "estimated" && q.source === "manual_estimate";
+    const estimated = q.state === "estimated" && (q.source === "manual_estimate" || q.issues.includes("last_known_price"));
     if (q.state !== "fresh" && !estimated || !q.cleanPrice || !q.priceAt || !["RUB", "USD", "EUR"].includes(q.currency)) continue;
     const at = Number(q.priceAt.seconds) * 1000 + q.priceAt.nanos / 1000000;
     if (!Number.isFinite(at) || at > now || !estimated && now - at > 96 * 3600000 || BigInt(q.cleanPrice.numerator) < 0n || !estimated && BigInt(q.cleanPrice.numerator) === 0n || BigInt(q.cleanPrice.denominator) <= 0n) continue;

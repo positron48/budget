@@ -65,7 +65,11 @@ export function portfolioReport(snapshots: InvestmentSnapshot[], operations: Inv
       const principal = origin && decimal(origin.amount), fee = origin && decimal(origin.fee);
       const remaining = principal && fee && clean && divide(clean, holding.costBasis === "principal" ? principal : add(principal, fee));
       const source = origin && reportPrincipal(origin);
-      const pure = source?.amount && remaining ? convert(multiply(source.amount, remaining), source.currency, lot.acquiredAt ? reportingDate(lot.acquiredAt.seconds) : source.date) : undefined;
+      // Transferred lots retain their principal and acquisition date even when
+      // the original purchase is on another (possibly archived) account.
+      // A capitalized-cost lot cannot provide pure principal without its origin.
+      const pure = source?.amount && remaining ? convert(multiply(source.amount, remaining), source.currency, lot.acquiredAt ? reportingDate(lot.acquiredAt.seconds) : source.date)
+        : !origin && holding.costBasis === "principal" ? convert(clean, lot.currency || holding.currency, lot.acquiredAt ? reportingDate(lot.acquiredAt.seconds) : undefined) : undefined;
       const f = origin?.tradeFinancials;
       const date = origin?.occurredAt ? reportingDate(origin.occurredAt.seconds) : undefined;
       const feeCost = fee && remaining ? convert(multiply(decimal(f?.fee?.amount || origin?.fee || "" ) || zero, remaining), f?.fee?.currency || origin?.feeCurrency || origin?.currency || lot.currency || holding.currency, f?.fee?.at ? reportingDate(f.fee.at.seconds) : date) : undefined;

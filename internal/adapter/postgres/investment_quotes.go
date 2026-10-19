@@ -81,7 +81,7 @@ func readPortfolioQuotes(ctx context.Context, tx pgx.Tx, tenant string, keys []s
 		}
 		terms, ok := mapping.TermsAt(out.ReadAt)
 		if !ok {
-			out.Quotes = append(out.Quotes, nav.PortfolioQuote{InstrumentKey: key, State: "unavailable", MappingVersion: mapping.Version, Issues: []string{"terms_missing"}})
+			out.Quotes = append(out.Quotes, nav.WithPortfolioFallback(mapping, nav.PortfolioQuote{InstrumentKey: key, State: "unavailable", MappingVersion: mapping.Version, Issues: []string{"terms_missing"}}, at))
 			continue
 		}
 		var period md.MappingPeriod
@@ -92,7 +92,9 @@ func readPortfolioQuotes(ctx context.Context, tx pgx.Tx, tenant string, keys []s
 			}
 		}
 		selection := md.PriceSelectionRequest{Scope: md.Scope{TenantID: tenant, Provider: period.Provider, AccessScope: period.AccessScope}, InstrumentID: terms.InstrumentID, Kind: "last_price", SourceKind: "exchange", Adjustment: "unadjusted", At: out.ReadAt, MaxQuoteAge: nav.PortfolioQuoteMaxAge}
-		from := out.ReadAt.Add(-30 * 24 * time.Hour)
+		// The query reads only the latest row, including a last-known quote
+		// for a suspended listing rather than dropping it after thirty days.
+		from := out.ReadAt.Add(-3660 * 24 * time.Hour)
 		if terms.From.After(from) {
 			from = terms.From
 		}
@@ -105,8 +107,12 @@ func readPortfolioQuotes(ctx context.Context, tx pgx.Tx, tenant string, keys []s
 			return out, e
 		}
 		var bond *md.SavedBondFacts
-		if terms.Kind == "bond" && price.State == "fresh" && price.Fact != nil {
-			bond, e = readPortfolioBondFacts(ctx, tx, selection.Scope, terms.InstrumentID, price.Fact.EffectiveAt, out.ReadAt)
+		fact := price.Fact
+		if fact == nil && price.State == "stale" {
+			fact = price.Candidate
+		}
+		if terms.Kind == "bond" && fact != nil {
+			bond, e = readPortfolioBondFacts(ctx, tx, selection.Scope, terms.InstrumentID, fact.EffectiveAt, out.ReadAt)
 			if e != nil {
 				return out, e
 			}
@@ -127,7 +133,7 @@ func readPortfolioQuotes(ctx context.Context, tx pgx.Tx, tenant string, keys []s
 				quote.NominalCurrency = nominal.Currency
 			}
 		}
-		out.Quotes = append(out.Quotes, quote)
+		out.Quotes = append(out.Quotes, nav.WithPortfolioFallback(mapping, quote, at))
 	}
 	return out, nil
 }

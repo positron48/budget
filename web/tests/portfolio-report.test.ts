@@ -17,6 +17,21 @@ const snapshot = () => create(InvestmentSnapshotSchema, {ledger:{id:"one", name:
 const quote = () => new Map([["US\0USD", {price:decimal("140")!, at:Date.parse("2026-03-01")}]]);
 
 describe("portfolio reporting currency", () => {
+  it("values transferred principal lots without loading the archived source account into the selected portfolio", () => {
+    const s=snapshot();s.positions[0].costBasis="principal";
+    const lot=s.positions[0].lots[0];lot.cleanCost="100";lot.acquisitionOperationId="archived-buy";lot.originLedgerId="archived-account";lot.currency="USD";
+    const transfer=create(InvestmentOperationSchema,{id:"transfer",ledgerId:"one",status:"posted",kind:"security_transfer_in",instrumentKey:"US",currency:"USD",quantity:"1",occurredAt:at("2026-02-01")});
+    let report=portfolioReport([s],[transfer],quote(),"RUB",fx());
+    expect(positionDecimal(report.positions[0].cost)).toBe("8000");
+    expect(positionDecimal(report.holdingCosts[0].cost)).toBe("8000");
+    expect(report.positions[0].profit).toBeUndefined();
+    lot.acquiredAt=undefined;
+    report=portfolioReport([s],[transfer],quote(),"RUB",fx());
+    expect(report.positions[0].cost).toBeUndefined();
+    expect(report.missingFX).toContain("missing-date:USD/RUB");
+    lot.acquiredAt=at("2026-01-01");s.positions[0].costBasis="capitalized";
+    expect(portfolioReport([s],[transfer],quote(),"RUB",fx()).positions[0].cost).toBeUndefined();
+  });
   it("translates remaining principal at acquisition FX, cash flows at their own dates and market value at current FX", () => {
     const sell = create(InvestmentOperationSchema, {id:"sell", ledgerId:"one", status:"posted", kind:"sell", instrumentKey:"US", currency:"USD", amount:"120", quantity:"1", fee:"1", accrued:"3", occurredAt:at("2026-02-01")});
     const payout = create(InvestmentOperationSchema, {id:"payout", status:"posted", kind:"coupon", instrumentKey:"US", currency:"USD", amount:"10", tax:"2", occurredAt:at("2026-02-01")});

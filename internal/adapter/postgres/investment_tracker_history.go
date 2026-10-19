@@ -736,7 +736,7 @@ func trackerHistoricalQuote(tenant, key string, entry trackerHistoryMarket, at, 
 		return estimate, nil
 	}
 	missing := func(code string) nav.PortfolioQuote {
-		return nav.PortfolioQuote{InstrumentKey: key, State: "unavailable", Issues: []string{code}}
+		return nav.WithPortfolioFallback(entry.mapping, nav.PortfolioQuote{InstrumentKey: key, State: "unavailable", Issues: []string{code}}, at)
 	}
 	if entry.mapping.InstrumentKey == "" {
 		return missing("mapping_missing"), nil
@@ -760,7 +760,11 @@ func trackerHistoricalQuote(tenant, key string, entry trackerHistoryMarket, at, 
 				return missing("price_before_mapping"), nil
 			}
 			var bond *md.SavedBondFacts
-			if price.Fact != nil {
+			fact := price.Fact
+			if fact == nil && price.State == "stale" {
+				fact = price.Candidate
+			}
+			if fact != nil {
 				for _, observation := range entry.observations[cache] {
 					if observation.ID == price.ObservationID && observation.Revision == price.ObservationRevision {
 						var err error
@@ -771,7 +775,7 @@ func trackerHistoricalQuote(tenant, key string, entry trackerHistoryMarket, at, 
 						break
 					}
 				}
-				day := price.Fact.EffectiveAt.UTC().Truncate(24 * time.Hour).Add(-24 * time.Hour)
+				day := fact.EffectiveAt.UTC().Truncate(24 * time.Hour).Add(-24 * time.Hour)
 				for _, f := range entry.bonds[cache] {
 					if bond == nil && !day.Before(f.From) && !day.After(f.To) {
 						copy := f
@@ -780,7 +784,11 @@ func trackerHistoricalQuote(tenant, key string, entry trackerHistoryMarket, at, 
 					}
 				}
 			}
-			return nav.NormalizeHistoricalPortfolioQuote(entry.mapping, price, at, readAt, bond)
+			quote, err := nav.NormalizeHistoricalPortfolioQuote(entry.mapping, price, at, readAt, bond)
+			if err != nil {
+				return nav.PortfolioQuote{}, err
+			}
+			return nav.WithPortfolioFallback(entry.mapping, quote, at), nil
 		}
 	}
 	return missing("terms_missing"), nil

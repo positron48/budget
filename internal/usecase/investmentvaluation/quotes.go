@@ -34,16 +34,37 @@ type PortfolioQuotes struct {
 // Estimates are usable for totals, but are never labelled exchange prices and
 // cannot fill dates before their explicitly reviewed effective boundary.
 func EstimatedPortfolioQuote(mapping md.Mapping, at time.Time) (PortfolioQuote, bool) {
+	return portfolioPriceEstimate(mapping, at, false)
+}
+
+// Last-known estimates retain their observation date and only fill missing
+// market valuations. Explicit manual estimates (including zero) take priority.
+func WithPortfolioFallback(mapping md.Mapping, quote PortfolioQuote, at time.Time) PortfolioQuote {
+	if UsablePortfolioQuote(quote) {
+		return quote
+	}
+	if estimate, ok := portfolioPriceEstimate(mapping, at, true); ok {
+		estimate.Instrument, estimate.MetadataAt = quote.Instrument, quote.MetadataAt
+		return estimate
+	}
+	return quote
+}
+
+func portfolioPriceEstimate(mapping md.Mapping, at time.Time, fallback bool) (PortfolioQuote, bool) {
 	if md.ValidatePriceEstimates(mapping.PriceEstimates) != nil {
 		return PortfolioQuote{}, false
 	}
 	for i := len(mapping.PriceEstimates) - 1; i >= 0; i-- {
 		e := mapping.PriceEstimates[i]
-		if at.Before(e.From) {
+		if e.Fallback != fallback || at.Before(e.From) {
 			continue
 		}
 		price, _ := new(big.Rat).SetString(e.Price)
-		return PortfolioQuote{InstrumentKey: mapping.InstrumentKey, MappingVersion: mapping.Version, Currency: e.Currency, CleanPrice: price, At: e.At, State: "estimated", Source: "manual_estimate", Issues: []string{"reviewed_price_estimate"}}, true
+		issue := "reviewed_price_estimate"
+		if fallback {
+			issue = "last_known_price"
+		}
+		return PortfolioQuote{InstrumentKey: mapping.InstrumentKey, MappingVersion: mapping.Version, Currency: e.Currency, CleanPrice: price, At: e.At, State: "estimated", Source: "manual_estimate", Issues: []string{issue}}, true
 	}
 	return PortfolioQuote{}, false
 }
@@ -89,6 +110,10 @@ func NormalizeHistoricalPortfolioQuote(mapping md.Mapping, price md.SelectedPric
 }
 
 func normalizePortfolioQuote(mapping md.Mapping, price md.SelectedPrice, at time.Time, facts *md.SavedBondFacts, knowledge time.Time, retrospective bool) (PortfolioQuote, error) {
+	lastKnown := price.State == "stale" && price.Candidate != nil && len(price.Issues) == 1 && price.Issues[0] == "price_stale"
+	if lastKnown {
+		price.Fact, price.State, price.Issues = price.Candidate, "fresh", nil
+	}
 	out := PortfolioQuote{InstrumentKey: mapping.InstrumentKey, MappingVersion: mapping.Version, State: price.State, Issues: slices.Clone(price.Issues)}
 	terms, ok := mapping.TermsAt(at)
 	if retrospective {
@@ -154,6 +179,10 @@ func normalizePortfolioQuote(mapping md.Mapping, price md.SelectedPrice, at time
 			out.Nominal = nominal
 			out.NominalCurrency = terms.NominalCurrency
 		}
+	}
+	if lastKnown {
+		out.State = "estimated"
+		out.Issues = append(out.Issues, "last_known_price")
 	}
 	return out, nil
 }

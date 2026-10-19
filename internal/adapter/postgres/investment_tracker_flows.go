@@ -43,7 +43,7 @@ func trackerConvertedStrategyFlows(ctx context.Context, tenant string, ids []str
 		if e != nil {
 			return calc.SecurityFlowValue{}, e
 		}
-		if quote.CleanPrice == nil || quote.State != "fresh" {
+		if !nav.UsablePortfolioQuote(quote) {
 			return calc.SecurityFlowValue{}, nil
 		}
 		price, e := nav.RebaseHistoricalPrice(quote.CleanPrice, quote.At, op.OccurredAt, op.InstrumentKey, splits[op.LedgerID][op.InstrumentKey])

@@ -12,7 +12,9 @@ import (
 // The observation remains unadjusted in storage. This is a retrospective book
 // calculation, not evidence of corporate entitlement or historical tradability.
 func RebaseHistoricalPrice(price *big.Rat, eligibleAt, at time.Time, key string, splits []d.InvestmentOperation) (*big.Rat, error) {
-	if price == nil || price.Sign() <= 0 || eligibleAt.IsZero() || at.Before(eligibleAt) || key == "" || reportingZoneError != nil {
+	// A reviewed zero estimate is usable portfolio evidence. Rebasing units
+	// keeps that value zero, just as it preserves a positive quote's total value.
+	if price == nil || price.Sign() < 0 || eligibleAt.IsZero() || at.Before(eligibleAt) || key == "" || reportingZoneError != nil {
 		return nil, d.ErrInvestmentInvalid
 	}
 	out := new(big.Rat).Set(price)

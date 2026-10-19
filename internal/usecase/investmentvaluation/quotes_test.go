@@ -1,6 +1,7 @@
 package investmentvaluation
 
 import (
+	"math/big"
 	"testing"
 	"time"
 
@@ -8,12 +9,48 @@ import (
 	md "github.com/positron48/budget/internal/usecase/marketdata"
 )
 
+func TestPortfolioLastKnownQuoteRetainsItsActualDate(t *testing.T) {
+	mapping, price, at := quoteFixture("share", "currency_per_unit", "")
+	mapping.Periods[0].From = at.AddDate(-1, 0, 0)
+	price.Fact.EffectiveAt, price.Fact.AvailableAt = at.AddDate(0, -2, 0), at.AddDate(0, -2, 0)
+	price.Candidate, price.Fact, price.State, price.Issues = price.Fact, nil, "stale", []string{"price_stale"}
+	quote, err := NormalizePortfolioQuote(mapping, price, at)
+	if err != nil || !UsablePortfolioQuote(quote) || quote.State != "estimated" || quote.CleanPrice.RatString() != "95" || !quote.At.Equal(price.Candidate.EffectiveAt) {
+		t.Fatal("last known quote disappeared or became fresh", quote, err)
+	}
+	price.Issues = append(price.Issues, "retrospective_latest_candle_incomplete")
+	quote, err = NormalizePortfolioQuote(mapping, price, at)
+	if err != nil || quote.CleanPrice != nil {
+		t.Fatal("other evidence problems hidden by age fallback", quote, err)
+	}
+}
+
+func TestPortfolioFallbackNeverReplacesFreshPriceOrBackdatesFirstEvidence(t *testing.T) {
+	at := time.Date(2026, 10, 18, 17, 5, 0, 0, time.UTC)
+	m := md.Mapping{InstrumentKey: "Q", Version: 1, PriceEstimates: []md.PriceEstimate{{Price: "115.37", Currency: "USD", At: at, From: at, Reference: "Broker screenshot", Fallback: true}}}
+	missing := PortfolioQuote{InstrumentKey: "Q", State: "unavailable"}
+	if q := WithPortfolioFallback(m, missing, at.Add(-time.Hour)); q.CleanPrice != nil {
+		t.Fatal("future screenshot backdated", q)
+	}
+	if q := WithPortfolioFallback(m, missing, at); q.State != "estimated" || q.CleanPrice.RatString() != "11537/100" || !q.At.Equal(at) {
+		t.Fatal(q)
+	}
+	fresh := PortfolioQuote{InstrumentKey: "Q", State: "fresh", CleanPrice: big.NewRat(120, 1)}
+	if q := WithPortfolioFallback(m, fresh, at); q.CleanPrice.Cmp(fresh.CleanPrice) != 0 || q.State != "fresh" {
+		t.Fatal("fallback hid a new market quote", q)
+	}
+	if _, ok := EstimatedPortfolioQuote(m, at); ok {
+		t.Fatal("fallback became an unconditional manual override")
+	}
+}
+
 func quoteFixture(kind, unit, nominal string) (md.Mapping, md.SelectedPrice, time.Time) {
 	at := time.Date(2026, 1, 2, 12, 0, 0, 0, time.UTC)
 	mapping := md.Mapping{InstrumentKey: "TEST", Version: 1, Periods: []md.MappingPeriod{{Provider: "tinvest", AccessScope: "personal", InstrumentID: "instrument", Kind: kind, Currency: "USD", Unit: unit, Nominal: nominal, NominalCurrency: "USD", LotSize: "100", From: at.Add(-24 * time.Hour)}}}
 	price := md.SelectedPrice{State: "fresh", Fact: &calc.PriceFact{InstrumentID: "instrument", SourceKey: "tinvest/personal", Price: "95", Unit: "provider_unspecified", Adjustment: "unadjusted", EffectiveAt: at.Add(-time.Hour), AvailableAt: at.Add(-time.Hour), Complete: true}}
 	return mapping, price, at
 }
+
 func TestPortfolioQuoteIsPerSecurityAndCleanBondMoneyNeedsNoNKD(t *testing.T) {
 	for _, kind := range []string{"share", "etf", "bond"} {
 		unit, nominal, want := "currency_per_unit", "", "95"
@@ -100,6 +137,7 @@ func TestPortfolioBondNominalCannotBeGuessedFromMissingOrContradictoryEvidence(t
 		})
 	}
 }
+
 func TestPortfolioQuotesNeverPromoteStaleUnknownOrConflictingPriceToValue(t *testing.T) {
 	for _, change := range []string{"stale", "missing", "adjustment", "currency", "terms", "zero", "invalid"} {
 		mapping, price, at := quoteFixture("share", "currency_per_unit", "")

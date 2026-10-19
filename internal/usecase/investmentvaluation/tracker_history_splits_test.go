@@ -8,6 +8,18 @@ import (
 	d "github.com/positron48/budget/internal/domain"
 )
 
+func TestHistoricalRebaseRetainsReviewedZeroEstimate(t *testing.T) {
+	day := time.Date(2026, 10, 16, 0, 0, 0, 0, time.UTC)
+	splits := []d.InvestmentOperation{{Kind: "split", Status: "posted", InstrumentKey: "S", SplitOld: "1", SplitNew: "3", OccurredAt: day.Add(24 * time.Hour)}}
+	price, err := RebaseHistoricalPrice(new(big.Rat), day, day.Add(48*time.Hour), "S", splits)
+	if err != nil || price.Sign() != 0 {
+		t.Fatal("reviewed zero estimate broke history", price, err)
+	}
+	if _, err := RebaseHistoricalPrice(big.NewRat(-1, 1), day, day.Add(48*time.Hour), "S", splits); err == nil {
+		t.Fatal("negative quote accepted")
+	}
+}
+
 func TestRetrospectiveSplitDoesNotMultiplyOldCloseByNewUnits(t *testing.T) {
 	friday := time.Date(2024, 6, 7, 0, 0, 0, 0, time.UTC)
 	split := d.InvestmentOperation{Kind: "split", Status: "posted", InstrumentKey: "S", SplitOld: "1", SplitNew: "10", OccurredAt: friday.AddDate(0, 0, 2)}

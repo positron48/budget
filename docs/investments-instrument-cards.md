@@ -49,3 +49,16 @@ Current and native historical schedules remain independent; opening a listing
 never creates this mapping implicitly.
 
 The compact overview and growth charts are described in [Portfolio UI](investments-portfolio-ui.md).
+
+When a live price is unavailable, the portfolio uses a dated last-known price
+and labels it as an estimate rather than a fresh exchange quote. Explicit manual
+valuations (including a confirmed zero value) remain authoritative; fallback
+estimates yield to a usable market quote. Missing quotes alone never establish
+that a security has ceased to exist. Historical fallbacks cannot fill dates
+before the price became available. Bond point quotes require the confirmed
+nominal and its currency for the corresponding date.
+
+Transferred principal-basis lots retain their acquisition cost and date even
+when the source account is archived or excluded from the selected portfolio.
+The overview can value those lots without adding the source account's trades
+to the selected account's income or profit.
