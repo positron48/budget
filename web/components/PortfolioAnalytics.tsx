@@ -1,19 +1,25 @@
 "use client";
 import type {GetInvestmentPerformanceResponse, TrackerHistoryPoint} from "@/proto/budget/v1/investment_nav_pb";
 import {analyticsNumber, portfolioGrowthSeries, type AnalyticsMode} from "@/lib/portfolio-analytics";
-import {shiftHistoryDate} from "@/lib/portfolio-history";
+import {historyPointVisible,shiftHistoryDate} from "@/lib/portfolio-history";
 import type {ChartPoint} from "@/lib/portfolio-chart";
 import PortfolioLineChart from "./PortfolioLineChart";
 import PortfolioChartLoading from "./PortfolioChartLoading";
 import PortfolioPeriodChart from "./PortfolioPeriodChart";
 
-export default function PortfolioAnalytics({performance, comparisonPerformance, historyPoints = [], mode, from, to, ru, locale, benchmarkIds, onBenchmarksChange, onValueInspect, loading=false, instrumentNames}: {
-  loading?:boolean; instrumentNames?:Map<string,string>;
+export default function PortfolioAnalytics({performance, comparisonPerformance, historyPoints = [], mode, from, to, ru, locale, benchmarkIds, onBenchmarksChange, onValueInspect, loading=false, instrumentNames, currency}: {
+  loading?:boolean; instrumentNames?:Map<string,string>; currency?:string;
   comparisonPerformance?:GetInvestmentPerformanceResponse; onValueInspect?: (date: string) => void; performance?: GetInvestmentPerformanceResponse; historyPoints?: readonly TrackerHistoryPoint[];
   mode: AnalyticsMode; from: string; to: string; ru: boolean; locale: string; benchmarkIds: string[]; onBenchmarksChange: (ids: string[]) => void;
 }) {
   const tr = (r: string, e: string) => ru ? r : e;
-  if (loading) return <PortfolioChartLoading ru={ru}/>;
+  if (loading) {
+    if(mode==="value"&&historyPoints.some(historyPointVisible))return <div className="space-y-3">
+      <p className="text-xs text-slate-500">{tr("Загруженная часть истории. Вложения и доходность рассчитываются.","Loaded history window. Invested capital and returns are being calculated.")}</p>
+      <PortfolioLineChart from={from} to={to} currency={currency} locale={locale} title={tr("Стоимость портфеля · загрузка","Portfolio value · loading")} series={[{key:"portfolio",title:tr("Портфель","Portfolio"),color:"#13b5ea",points:historyPoints.map(p=>({date:p.date,value:historyPointVisible(p)?analyticsNumber(p.knownValue):undefined,segment:p.state==="incomplete"?"partial:"+p.coverageKey:"complete"}))}]}/>
+    </div>;
+    return <PortfolioChartLoading ru={ru}/>;
+  }
   if (!performance?.analyticsPoints.length) return <p role="status" className="py-10 text-sm text-slate-500">{tr("Нет данных за этот период", "No data for this period")}</p>;
   const p = performance, indices = mode === "indices", bars = mode === "months" || mode === "years";
 

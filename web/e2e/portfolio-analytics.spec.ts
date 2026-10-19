@@ -10,7 +10,7 @@ for(const locale of ["ru","en"]){test(`${locale} analytics charts show profit, p
  const ru=locale==="ru",a="11111111-1111-4111-8111-111111111111",b="22222222-2222-4222-8222-222222222222",one="33333333-3333-4333-8333-333333333333",two="44444444-4444-4444-8444-444444444444",uid="55555555-5555-4555-8555-555555555555",key="tinvest:"+uid;
  const ledgers=[{id:one,name:"Broker one",version:1n,portfolioTracking:true},{id:two,name:"Broker two",version:1n,portfolioTracking:true}];
  let classification=create(InvestmentGroupsSchema,{version:1n,groups:[{id:a,name:"Alpha"},{id:b,name:"Beta"}],memberships:[{ledgerId:one,instrumentKey:key,groupId:a},{ledgerId:two,instrumentKey:key,groupId:b}]});
- let writes=0,historyReads=0,partialHistory=false;const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
+ let writes=0,historyReads=0,partialHistory=false,coldChart=false;let releaseHistory=()=>{};let heldHistory:Promise<void>|undefined;const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
  await context.addCookies([{name:"NEXT_LOCALE",value:locale,url:test.info().project.use.baseURL as string}]);await page.addInitScript(()=>{localStorage.setItem("budget/access","synthetic-session");localStorage.setItem("budget/tenant","tenant");});
  await page.route("**/budget.v1.*/*",async route=>{
   const path=new URL(route.request().url()).pathname,service=[InvestmentService,InvestmentNAVService,InvestmentImportService,TenantService].find(s=>path.includes(s.typeName+"/")),method=service?.methods.find(m=>path.endsWith("/"+m.name)),bytes=route.request().postDataBuffer()!,input=method?fromBinary(method.input,bytes.subarray(5,5+bytes.readUInt32BE(1))) as any:{};
@@ -30,8 +30,9 @@ for(const locale of ["ru","en"]){test(`${locale} analytics charts show profit, p
   if(method?.name==="GetBrokerSnapshot")data={originalJson:new TextEncoder().encode(JSON.stringify({fetched_at:new Date().toISOString(),operations:[{ticker:"ABC",instrumentUid:uid,name:"Synthetic security"}]}))};
   if(method?.name==="GetInvestmentGroups")data={classification,positions:[{ledgerId:one,ledgerName:"Broker one",instrumentKey:key},{ledgerId:two,ledgerName:"Broker two",instrumentKey:key},{ledgerId:two,ledgerName:"Broker two",instrumentKey:"OLD-CLOSED"}]};
   if(method?.name==="SaveInvestmentGroups"){writes++;expect(input.classification.version).toBe(1n);expect(input.requestKey).toBeTruthy();expect(input.classification.groups.map((g:any)=>g.name).sort()).toEqual(["Core","New"]);expect(input.classification.memberships).toHaveLength(1);expect(input.classification.memberships[0].ledgerId).toBe(one);classification=create(InvestmentGroupsSchema,{...input.classification,version:2n});data={classification};}
-  if(await chartFallback(route,method))return;
+  if(await chartFallback(route,method,coldChart?4:12))return;
   if(method?.name==="GetTrackerHistory"){historyReads++;
+   if(coldChart&&input.performanceFromDate&&input.fromDate>"2019-01-01")await heldHistory;
    const selected=new Set(input.groupIds||[]),group=(id:string)=>classification.memberships.find(m=>m.ledgerId===id&&m.instrumentKey===key)?.groupId||"";
    const amount=(!selected.size||selected.has(group(one))?120:0)+(!selected.size||selected.has(group(two))?240:0);const points:any[]=[];let date=input.fromDate;
    while(date<=input.toDate&&points.length<(input.pageDays||31)){points.push({date,state:partialHistory?"incomplete":"ready",knownValue:{numerator:String(100+((Date.parse(date)-Date.parse(input.performanceFromDate||input.fromDate))/86400000+1)*10),denominator:"1"},positions:amount?(partialHistory?2:1):0,pricedPositions:amount?1:0,coverageKey:"a".repeat(64)});const d=new Date(date+"T00:00:00Z");d.setUTCDate(d.getUTCDate()+1);date=d.toISOString().slice(0,10);}
@@ -77,13 +78,18 @@ for(const locale of ["ru","en"]){test(`${locale} analytics charts show profit, p
  await history.getByLabel(ru?"Действия с графиком":"Chart actions").click();const download=page.waitForEvent("download");await history.getByRole("button",{name:"CSV",exact:true}).first().click();const file=await download;expect(file.suggestedFilename()).toBe("portfolio-analytics-2024-12-30-2025-01-03.csv");
  const fs=await import("node:fs/promises"),text=await fs.readFile((await file.path())!,"utf8");expect(text).toContain("daily_profit_num");expect(text).toContain("retrospective_cashless_strategy_v1");
  await history.getByLabel(ru?"Действия с графиком":"Chart actions").click();await page.screenshot({path:test.info().outputPath(`portfolio-growth-${locale}.png`),fullPage:true});
- historyReads=0;await page.goto("/investments/analytics?from=2019-01-01&to=2025-12-31");
+ historyReads=0;coldChart=true;heldHistory=new Promise<void>(resolve=>{releaseHistory=resolve;});await page.goto("/investments/analytics?from=2019-01-01&to=2025-12-31");
+ const preview=history.getByRole("img",{name:ru?"Стоимость портфеля · загрузка":"Portfolio value · loading",exact:true});
+ await expect(preview).toBeVisible({timeout:5000});
+ await expect(history).toContainText(ru?"Вложения и доходность рассчитываются":"Invested capital and returns are being calculated");
+ await expect(history.getByRole("alert")).toHaveCount(0);
+ releaseHistory();
  const longValue=history.getByRole("img",{name:ru?"Стоимость и вложения":"Value and invested",exact:true});await expect(longValue).toBeVisible();await expect(history.getByRole("img",{name:ru?"Прибыль по годам":"Yearly profit",exact:true})).toBeVisible();
- expect(historyReads).toBe(28);for(const line of await longValue.locator("polyline").all())expect((await line.getAttribute("points"))!.split(" ").length).toBeLessThanOrEqual(400);
+ expect(historyReads).toBe(29);for(const line of await longValue.locator("polyline").all())expect((await line.getAttribute("points"))!.split(" ").length).toBeLessThanOrEqual(400);
  await expect(longValue.locator("circle")).toHaveCount(0);await expect(longValue.locator("polyline")).toHaveCount(4);
- await history.getByRole("checkbox",{name:"SPY · S&P 500",exact:true}).first().uncheck();await expect(longValue.locator("polyline")).toHaveCount(3);expect(historyReads).toBe(28);
+ await history.getByRole("checkbox",{name:"SPY · S&P 500",exact:true}).first().uncheck();await expect(longValue.locator("polyline")).toHaveCount(3);expect(historyReads).toBe(29);
  await page.screenshot({path:test.info().outputPath(`portfolio-seven-years-${locale}.png`),fullPage:true});
- partialHistory=true;await page.goto("/investments/analytics?from=2024-12-30&to=2025-01-03");
+ coldChart=false;partialHistory=true;await page.goto("/investments/analytics?from=2024-12-30&to=2025-01-03");
  await expect(history.getByRole("img",{name:ru?"Стоимость и вложения":"Value and invested",exact:true})).toBeVisible();await expect(history.getByRole("img",{name:ru?"Стоимость и вложения":"Value and invested",exact:true}).locator('polyline[stroke-dasharray="5 4"]')).toHaveCount(0);await expect(history.locator("circle")).toHaveCount(0);
  await expect(history.locator('polyline[stroke="#55d0ad"]')).toHaveCount(0);
  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:test.info().outputPath(`portfolio-growth-mobile-${locale}.png`),fullPage:true});expect(writes).toBe(0);expect(errors).toEqual([]);

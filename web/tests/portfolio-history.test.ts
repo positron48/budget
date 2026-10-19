@@ -169,3 +169,19 @@ it("does not hide a chart error behind legacy pagination",async()=>{
  api.getTrackerHistory.mockResolvedValueOnce(page("2020-01-01","2020-01-02")).mockResolvedValueOnce(page("2020-01-02",""));
  const out=await loadPortfolioPerformanceHistory(api,scope,new AbortController().signal,vi.fn());expect(out.points).toHaveLength(2);
 });
+
+
+it("loads validated pages progressively when a cold chart exceeds the short probe",async()=>{
+ const api={getTrackerChart:vi.fn().mockRejectedValue(new ConnectError("cold chart",Code.DeadlineExceeded)),getTrackerHistory:vi.fn().mockResolvedValueOnce(page("2020-01-01","2020-01-02")).mockResolvedValueOnce(page("2020-01-02","")),getTrackerPerformance:vi.fn()};
+ const progress=vi.fn(),signal=new AbortController().signal;
+ const out=await loadPortfolioPerformanceHistory(api,scope,signal,progress);
+ expect(api.getTrackerChart.mock.calls[0][1]).toEqual({signal,timeoutMs:1500});
+ expect(progress.mock.calls.map(call=>call[0].length)).toEqual([1,2]);
+ expect(out.points).toHaveLength(2);
+});
+it("does not restart pagination when the chart probe is abandoned",async()=>{
+ const controller=new AbortController();
+ const api={getTrackerChart:vi.fn().mockImplementation(async()=>{controller.abort();throw new ConnectError("deadline",Code.DeadlineExceeded)}),getTrackerHistory:vi.fn(),getTrackerPerformance:vi.fn()};
+ await expect(loadPortfolioPerformanceHistory(api,scope,controller.signal,vi.fn())).rejects.toThrow();
+ expect(api.getTrackerHistory).not.toHaveBeenCalled();
+});

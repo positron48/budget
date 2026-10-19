@@ -14,13 +14,14 @@ export function lastHistoryDate(): string {
 export async function loadPortfolioHistory(api: HistoryAPI, scope: HistoryScope, signal: AbortSignal, progress: (points: TrackerHistoryPoint[]) => void): Promise<TrackerHistoryPoint[]> {
   return (await historyPages(api, scope, signal, progress, false)).points;
 }
-type PerformanceAPI = HistoryAPI & {getTrackerChart?(input:Omit<HistoryScope,"fxPolicyVersion"|"fxMode"|"classificationVersion">,options:{signal:AbortSignal}):Promise<GetTrackerChartResponse>;getTrackerPerformance(input: Omit<HistoryScope, "fxPolicyVersion" | "fxMode" | "classificationVersion"> & {snapshotTokens: string[];monetaryOnly?:boolean}, options: {signal: AbortSignal}): Promise<GetInvestmentPerformanceResponse>};
+type PerformanceAPI = HistoryAPI & {getTrackerChart?(input:Omit<HistoryScope,"fxPolicyVersion"|"fxMode"|"classificationVersion">,options:{signal:AbortSignal;timeoutMs?:number}):Promise<GetTrackerChartResponse>;getTrackerPerformance(input: Omit<HistoryScope, "fxPolicyVersion" | "fxMode" | "classificationVersion"> & {snapshotTokens: string[];monetaryOnly?:boolean}, options: {signal: AbortSignal}): Promise<GetInvestmentPerformanceResponse>};
 export type PerformanceHistoryResult = {points:TrackerHistoryPoint[];basisKey:string;performance?:GetInvestmentPerformanceResponse;partialPoints?:TrackerHistoryPoint[];partialBasisKey?:string;partialPerformance?:GetInvestmentPerformanceResponse;growthPerformance?:GetInvestmentPerformanceResponse;excludedKeys?:string[];partialUnavailable?:boolean};
-export async function loadPortfolioPerformanceHistory(api: PerformanceAPI, scope: HistoryScope, signal: AbortSignal, progress: (points: TrackerHistoryPoint[]) => void, allowPartial=true):Promise<PerformanceHistoryResult> {
+export async function loadPortfolioPerformanceHistory(api: PerformanceAPI, scope: HistoryScope, signal: AbortSignal, progress: (points: TrackerHistoryPoint[], loaded?:number) => void, allowPartial=true):Promise<PerformanceHistoryResult> {
   if(api.getTrackerChart){
     const {fxPolicyVersion:_v,fxMode:_m,classificationVersion:_c,...request}=scope;
     try {
-      const chart=await api.getTrackerChart(request,{signal});signal.throwIfAborted();
+      // A cold multi-year projection must not block the first visible history page.
+      const chart=await api.getTrackerChart(request,{signal,timeoutMs:1500});signal.throwIfAborted();
       if(!chart.portfolio?.performance||!chart.portfolio.pages.length)throw new Error("invalid_chart");
       const calculations=[chart.portfolio,...(chart.knownPortfolio?[chart.knownPortfolio]:[]),...(chart.growthPortfolio?[chart.growthPortfolio]:[])].map(c=>({...c,pages:c.pages.map(p=>({...p,analyticsExcludedKeys:p.monetaryExcludedKeys}))}));
       // Run the same continuity, exact arithmetic and selection validators as
@@ -42,7 +43,25 @@ export async function loadPortfolioPerformanceHistory(api: PerformanceAPI, scope
         validated.growthPerformance=growth.performance;
       }
       return validated;
-    } catch(error){if(!(error instanceof ConnectError&&error.code===Code.Unimplemented))throw error;}
+    } catch(error){
+      signal.throwIfAborted();
+      if(!(error instanceof ConnectError&&[Code.Unimplemented,Code.DeadlineExceeded].includes(error.code)))throw error;
+      if(error.code===Code.DeadlineExceeded){
+        const paginated:PerformanceAPI={getTrackerHistory:(input,options)=>api.getTrackerHistory(input,options),getTrackerPerformance:(input,options)=>api.getTrackerPerformance(input,options)};
+        const previewController=new AbortController();
+        let recentPoints:TrackerHistoryPoint[]|undefined,loaded=0,finished=false;
+        const recentFrom=shiftHistoryDate(scope.toDate,1-chartPageDays);
+        if(recentFrom>scope.fromDate){
+          // Display one independently validated recent window while older pages
+          // load. Never merge snapshots from separate reads into one history.
+          void loadPortfolioHistory(paginated,{...scope,fromDate:recentFrom},AbortSignal.any([signal,previewController.signal]),points=>{if(!finished){recentPoints=points;progress(points,Math.max(loaded,points.length));}}).catch(()=>{});
+        }
+        try {
+          const result=await loadPortfolioPerformanceHistory(paginated,scope,signal,points=>{loaded=points.length;progress(recentPoints||points,loaded);},allowPartial);
+          finished=true;if(recentPoints)progress(result.points,result.points.length);return result;
+        }finally{finished=true;previewController.abort();}
+      }
+    }
   }
   const result = await historyPages(api, scope, signal, progress, true);
   if (!result.tokens.length) return {points: result.points, basisKey:result.basisKey, performance: undefined};

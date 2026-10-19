@@ -54,6 +54,13 @@ eligibility have an additional fence, even when the index is not a holding.
 Corrections cause a recalculation; expired projections are not returned. A cold
 view calculates quarterly internally, with one cold bundle at a time and
 cancellable waiting. A warm view does not wait behind a cold calculation.
+The web probes the ready chart for at most 1.5 seconds. A cold projection falls
+back to validated, cancellable quarterly pages and shows progressive history;
+source-change, authorization and validation errors remain errors. This avoids
+waiting on a multi-year bundle before showing any dates. A separate recent
+quarter can appear first while older pages load; independently read windows
+are never merged into the final history. Invested capital and returns stay in
+the loading state until the full signed sequence has been checked.
 The 32 MiB process-local daily LRU remains an arithmetic optimization for those
 internal pages and for existing paginated clients.
 
