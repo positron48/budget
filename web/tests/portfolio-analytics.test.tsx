@@ -81,5 +81,8 @@ it("uses a common observed baseline for independent growth and continuous portfo
  expect(growth.baseline).toBe("2024-01-01");expect(growth.lines).toHaveLength(2);
  expect(growth.lines[0].points[0].value).toBeUndefined();expect(growth.lines[0].points[1].value).toBe(0);
  expect(growth.lines[0].points[2].value).toBeCloseTo(5);expect(growth.lines[1].points[2].value).toBeCloseTo(10);
- p.twrReason="discontinuous_history";expect(portfolioGrowthSeries(p,["spy"],"2023-12-31",p).lines).toHaveLength(1);
+ p.twrReason="discontinuous_history";
+ p.twrPoints[2].segment=2;
+ const partial=portfolioGrowthSeries(p,["spy"],"2023-12-31",p);
+ expect(partial.lines).toHaveLength(2);expect(partial.lines[0].points[1].value).toBe(0);expect(partial.lines[0].points[2].value).toBeUndefined();
 });

@@ -202,3 +202,28 @@ func TestInstrumentSelectionCannotReuseAnotherSignedScope(t *testing.T) {
 		t.Fatal("wrong instrument scope accepted", e)
 	}
 }
+
+type lateBaselineBenchmarkStub struct{ *trackerAnalyticsBenchmarkStub }
+
+func (r *lateBaselineBenchmarkStub) TrackerHistory(ctx context.Context, t, u string, q nav.TrackerHistoryRequest) (nav.TrackerHistory, error) {
+	h, e := r.trackerPerformanceStub.TrackerHistory(ctx, t, u, q)
+	if h.Baseline != nil {
+		h.Baseline.State = "incomplete"
+	}
+	h.Points[0].State = "incomplete"
+	return h, e
+}
+func TestTrackerIndexBaselineDoesNotWaitForCompletePortfolio(t *testing.T) {
+	r := &lateBaselineBenchmarkStub{&trackerAnalyticsBenchmarkStub{&trackerPerformanceStub{basis: strings.Repeat("a", 64)}}}
+	s := NewInvestmentNAVServer(r, "synthetic-key")
+	ctx := ctxutil.WithUserID(ctxutil.WithTenantID(context.Background(), "tenant"), "actor")
+	ids := []string{"11111111-1111-4111-8111-111111111111"}
+	p, e := s.GetTrackerHistory(ctx, &pb.GetTrackerHistoryRequest{LedgerIds: ids, Currency: "RUB", FxPolicyKey: "market", FromDate: "2024-01-01", ToDate: "2024-01-02", PerformanceFromDate: "2024-01-01"})
+	if e != nil {
+		t.Fatal(e)
+	}
+	a, e := s.GetTrackerPerformance(ctx, &pb.GetTrackerPerformanceRequest{LedgerIds: ids, Currency: "RUB", FxPolicyKey: "market", FromDate: "2024-01-01", ToDate: "2024-01-02", SnapshotTokens: []string{p.PerformanceSnapshot}})
+	if e != nil || len(a.TrackerBenchmarks) != 1 || a.TrackerBenchmarks[0].BaseDate != "2023-12-31" {
+		t.Fatal("index history was clipped to portfolio quality", a, e)
+	}
+}

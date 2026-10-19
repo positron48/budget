@@ -128,7 +128,7 @@ it("excludes the union of incomplete instruments for the whole range using a sep
  const original=[page("2020-01-01","2020-01-02"),page("2020-01-02","")];
  const partial=[page("2020-01-01","2020-01-02"),page("2020-01-02","")];
  for(const p of original){p.analyticsInstrumentKeys=["GOOD","BAD"];p.performanceSnapshot="original";}
- original[1].analyticsExcludedKeys=["BAD"];
+ original[1].analyticsExcludedKeys=["BAD"];original[1].monetaryExcludedKeys=["BAD"];
  for(const p of partial){p.instrumentKeys=["GOOD"];p.analyticsInstrumentKeys=["GOOD"];p.performanceSnapshot="subset";}
  api.getTrackerHistory.mockReset();for(const p of [...original,...partial,original[1]])api.getTrackerHistory.mockResolvedValueOnce(p);
  const known=performanceFixture();known.instrumentKeys=["GOOD"];
@@ -143,7 +143,7 @@ it("excludes the union of incomplete instruments for the whole range using a sep
 
 it("does not turn an empty eligible subset into the all-instrument scope",async()=>{
  const api=performanceAPI();const a=page("2020-01-01","2020-01-02"),b=page("2020-01-02","");
- for(const p of [a,b]){p.analyticsInstrumentKeys=["BAD"];p.analyticsExcludedKeys=["BAD"];p.performanceSnapshot="original";}
+ for(const p of [a,b]){p.analyticsInstrumentKeys=["BAD"];p.analyticsExcludedKeys=["BAD"];p.monetaryExcludedKeys=["BAD"];p.performanceSnapshot="original";}
  api.getTrackerHistory.mockReset().mockResolvedValueOnce(a).mockResolvedValueOnce(b);
  const result=await loadPortfolioPerformanceHistory(api,scope,new AbortController().signal,vi.fn());
  expect(result.partialUnavailable).toBe(true);expect(result.partialPerformance).toBeUndefined();expect(api.getTrackerHistory).toHaveBeenCalledTimes(2);
@@ -175,7 +175,7 @@ it("loads validated pages progressively when a cold chart exceeds the short prob
  const api={getTrackerChart:vi.fn().mockRejectedValue(new ConnectError("cold chart",Code.DeadlineExceeded)),getTrackerHistory:vi.fn().mockResolvedValueOnce(page("2020-01-01","2020-01-02")).mockResolvedValueOnce(page("2020-01-02","")),getTrackerPerformance:vi.fn()};
  const progress=vi.fn(),signal=new AbortController().signal;
  const out=await loadPortfolioPerformanceHistory(api,scope,signal,progress);
- expect(api.getTrackerChart.mock.calls[0][1]).toEqual({signal,timeoutMs:1500});
+ expect(api.getTrackerChart.mock.calls[0][1]).toEqual({signal,timeoutMs:4000});
  expect(progress.mock.calls.map(call=>call[0].length)).toEqual([1,2]);
  expect(out.points).toHaveLength(2);
 });
@@ -184,4 +184,14 @@ it("does not restart pagination when the chart probe is abandoned",async()=>{
  const api={getTrackerChart:vi.fn().mockImplementation(async()=>{controller.abort();throw new ConnectError("deadline",Code.DeadlineExceeded)}),getTrackerHistory:vi.fn(),getTrackerPerformance:vi.fn()};
  await expect(loadPortfolioPerformanceHistory(api,scope,controller.signal,vi.fn())).rejects.toThrow();
  expect(api.getTrackerHistory).not.toHaveBeenCalled();
+});
+
+it("keeps monetary and continuous return subsets consistent on paginated fallback",async()=>{
+ const api={getTrackerHistory:vi.fn(async(input:any)=>{
+   const p=page(input.fromDate,input.fromDate===scope.fromDate?scope.toDate:"");
+   const keys=input.instrumentKeys||[];p.instrumentKeys=keys;p.analyticsInstrumentKeys=keys.length?keys:["A","B","C"];p.performanceSnapshot="signed";
+   p.monetaryExcludedKeys=keys.length?[]:["C"];p.analyticsExcludedKeys=keys.length===1?[]:["B",...(keys.length?[]:["C"])];return p;
+ }),getTrackerPerformance:vi.fn(async(input:any)=>{const p=performanceFixture();p.instrumentKeys=input.instrumentKeys||[];return p;})};
+ const result=await loadPortfolioPerformanceHistory(api,scope,new AbortController().signal,vi.fn());
+ expect(result.excludedKeys).toEqual(["C"]);expect(result.partialPerformance?.instrumentKeys).toEqual(["A","B"]);expect(result.growthPerformance?.instrumentKeys).toEqual(["A"]);
 });

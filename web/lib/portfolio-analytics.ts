@@ -29,9 +29,9 @@ export function portfolioAnalyticsCSV(p:GetInvestmentPerformanceResponse,history
 // returns, independently of portfolio trades; portfolio TWR removes flow effects.
 export function portfolioGrowthSeries(p:GetInvestmentPerformanceResponse,ids:string[],from:string,portfolio?:GetInvestmentPerformanceResponse){
  const lines=p.trackerBenchmarks.filter(b=>ids.includes(b.key)).map(b=>({key:b.key,title:b.key==="imoex"?"IMOEX":"SPY · S&P 500",color:b.key==="imoex"?"#ffa638":"#ec70ad",points:b.points.map(d=>({date:d.date,value:analyticsNumber(d.index)}))}));
- if(portfolio&&!portfolio.twrReason&&portfolio.twrPoints.some(d=>d.index))lines.unshift({key:"portfolio",title:"Portfolio",color:"#13b5ea",points:portfolio.twrPoints.map(d=>({date:d.date,value:analyticsNumber(d.index)}))});
+ if(portfolio&&portfolio.twrPoints.some(d=>d.index))lines.unshift({key:"portfolio",title:"Portfolio",color:"#13b5ea",points:portfolio.twrPoints.map(d=>({date:d.date,value:analyticsNumber(d.index),segment:String(d.segment)}))});
  const available=lines.filter(s=>s.points.some(d=>d.value!==undefined&&d.date>=from));
  const maps=available.map(s=>new Map(s.points.map(d=>[d.date,d.value])));
  const baseline=available[0]?.points.find(d=>d.date>=from&&maps.every(m=>(m.get(d.date)||0)>0))?.date;
- return {baseline,lines:available.map((s,i)=>({...s,points:s.points.map(d=>({date:d.date,value:baseline&&d.date>=baseline&&d.value!==undefined?(d.value/maps[i].get(baseline)!-1)*100:undefined}))}))};
+ return {baseline,lines:available.map((s,i)=>({...s,points:s.points.map(d=>({date:d.date,value:baseline&&d.date>=baseline&&d.value!==undefined&&(!("segment" in d)||d.segment===(s.points.find(p=>p.date===baseline) as {segment?:string}|undefined)?.segment)?(d.value/maps[i].get(baseline)!-1)*100:undefined}))}))};
 }

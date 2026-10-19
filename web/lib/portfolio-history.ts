@@ -21,9 +21,9 @@ export async function loadPortfolioPerformanceHistory(api: PerformanceAPI, scope
     const {fxPolicyVersion:_v,fxMode:_m,classificationVersion:_c,...request}=scope;
     try {
       // A cold multi-year projection must not block the first visible history page.
-      const chart=await api.getTrackerChart(request,{signal,timeoutMs:1500});signal.throwIfAborted();
+      const chart=await api.getTrackerChart(request,{signal,timeoutMs:4000});signal.throwIfAborted();
       if(!chart.portfolio?.performance||!chart.portfolio.pages.length)throw new Error("invalid_chart");
-      const calculations=[chart.portfolio,...(chart.knownPortfolio?[chart.knownPortfolio]:[]),...(chart.growthPortfolio?[chart.growthPortfolio]:[])].map(c=>({...c,pages:c.pages.map(p=>({...p,analyticsExcludedKeys:p.monetaryExcludedKeys}))}));
+      const calculations=[chart.portfolio,...(chart.knownPortfolio?[chart.knownPortfolio]:[]),...(chart.growthPortfolio?[chart.growthPortfolio]:[])].map(c=>({...c,pages:c.pages}));
       // Run the same continuity, exact arithmetic and selection validators as
       // paginated history. Projection pages carry no reusable signed capability.
       const local:PerformanceAPI={
@@ -92,6 +92,14 @@ export async function loadPortfolioPerformanceHistory(api: PerformanceAPI, scope
     if (!expected || seen.has(line.key) || [line.provider, line.nativeCurrency, line.kind, line.sourceUrl].some((s, i) => s !== expected[i]) || line.baseDate < first || line.baseDate > scope.toDate || line.points.length !== count || line.points.some((p, i) => p.date !== shiftHistoryDate(first, i) || ![p.index,p.virtualValue,p.virtualProfit].every(rational) || p.virtualValue&&BigInt(p.virtualValue.numerator)<0n || p.virtualValue&&p.virtualReason!=="" || p.index && (p.reason !== "" || Number(p.index.numerator) / Number(p.index.denominator) <= 0))) throw new Error("invalid_performance");
     seen.add(line.key);
   }
+  const withGrowth=async(output:PerformanceHistoryResult)=>{
+    if(allowPartial&&!scope.groupIds?.length&&result.strictExcludedKeys.some(key=>!result.excludedKeys.includes(key))){
+      const strict=new Set(result.strictExcludedKeys),keys=result.instrumentKeys.filter(key=>!strict.has(key));
+      if(keys.length){const growth=await loadPortfolioPerformanceHistory(api,{...scope,instrumentKeys:keys},signal,()=>{},false);output.growthPerformance=growth.performance;
+        const check=await api.getTrackerHistory({...request,fromDate:scope.toDate,compactIssues:true},{signal});if(check.basisKey!==result.basisKey)throw new Error("history_changed");}
+    }
+    return output;
+  };
   if(allowPartial && result.excludedKeys.length){
     const excluded=new Set(result.excludedKeys),keys=result.instrumentKeys.filter(key=>!excluded.has(key));
     if(!keys.length)return {points:result.points,basisKey:result.basisKey,performance,excludedKeys:result.excludedKeys,partialUnavailable:true};
@@ -101,20 +109,20 @@ export async function loadPortfolioPerformanceHistory(api: PerformanceAPI, scope
       // its calculation so edits during the second pass cannot mix journals.
       const check=await api.getTrackerHistory({...request,fromDate:scope.toDate,compactIssues:true},{signal});
       if(check.basisKey!==result.basisKey)throw new Error("history_changed");
-      return {points:result.points,basisKey:result.basisKey,performance,partialPerformance:partial.performance,partialPoints:partial.points,partialBasisKey:partial.basisKey,excludedKeys:result.excludedKeys,partialUnavailable:!partial.performance};
+      return withGrowth({points:result.points,basisKey:result.basisKey,performance,partialPerformance:partial.performance,partialPoints:partial.points,partialBasisKey:partial.basisKey,excludedKeys:result.excludedKeys,partialUnavailable:!partial.performance});
     } catch(error) {
       signal.throwIfAborted();
       if(error instanceof Error&&error.message==="history_changed")throw error;
       return {points:result.points,basisKey:result.basisKey,performance,excludedKeys:result.excludedKeys,partialUnavailable:true};
     }
   }
-  return {points: result.points, basisKey:result.basisKey, performance};
+  return withGrowth({points: result.points, basisKey:result.basisKey, performance});
 }
-async function historyPages(api: HistoryAPI, scope: HistoryScope, signal: AbortSignal, progress: (points: TrackerHistoryPoint[]) => void, performance: boolean): Promise<{points: TrackerHistoryPoint[]; tokens: string[];basisKey:string;instrumentKeys:string[];excludedKeys:string[]}> {
+async function historyPages(api: HistoryAPI, scope: HistoryScope, signal: AbortSignal, progress: (points: TrackerHistoryPoint[]) => void, performance: boolean): Promise<{points: TrackerHistoryPoint[]; tokens: string[];basisKey:string;instrumentKeys:string[];excludedKeys:string[];strictExcludedKeys:string[]}> {
   const {fxPolicyVersion, fxMode, classificationVersion, ...request} = scope;
   const result: TrackerHistoryPoint[] = [];
   const tokens: string[] = []; let hasSnapshots = true;
-  let instrumentKeys:string[]|undefined;const excludedKeys=new Set<string>();
+  let instrumentKeys:string[]|undefined;const excludedKeys=new Set<string>(),strictExcludedKeys=new Set<string>();
   let cursor = scope.fromDate, basis: string | undefined, version: bigint | undefined;
   for await (const page of chartHistoryPages(scope.fromDate,scope.toDate,signal,(date,pageSignal)=>api.getTrackerHistory({...request,fromDate:date,pageDays:chartPageDays,compactIssues:true,...(performance?{performanceFromDate:scope.fromDate,monetaryOnly:!!scope.groupIds?.length}:{})},{signal:pageSignal}))) {
     signal.throwIfAborted();
@@ -123,10 +131,10 @@ async function historyPages(api: HistoryAPI, scope: HistoryScope, signal: AbortS
     if (scope.groupIds?.length && classificationVersion !== undefined && page.classificationVersion !== classificationVersion) throw new Error("history_changed");
     if (basis !== undefined && (basis !== page.basisKey || version !== page.fxPolicyVersion)) throw new Error("history_changed");
     basis = page.basisKey; version = page.fxPolicyVersion;
-    const keys=page.analyticsInstrumentKeys||[],excluded=page.analyticsExcludedKeys||[];
-    if(keys.length>500||new Set(keys).size!==keys.length||keys.some(k=>!k)||excluded.length>500||excluded.some(k=>!keys.includes(k)))throw new Error("invalid_analytics_scope");
+    const keys=page.analyticsInstrumentKeys||[],excluded=page.monetaryExcludedKeys||[],strict=page.analyticsExcludedKeys||[];
+    if(keys.length>500||new Set(keys).size!==keys.length||keys.some(k=>!k)||excluded.length>500||strict.length>500||[...excluded,...strict].some(k=>!keys.includes(k)))throw new Error("invalid_analytics_scope");
     if(instrumentKeys&&!historySelectionEqual(instrumentKeys,keys))throw new Error("history_changed");
-    instrumentKeys=keys;for(const key of excluded)excludedKeys.add(key);
+    instrumentKeys=keys;for(const key of excluded)excludedKeys.add(key);for(const key of strict)strictExcludedKeys.add(key);
 
     if (performance) {if (!page.performanceSnapshot) hasSnapshots = false; else {if (page.performanceSnapshot.length > 131072) throw new Error("invalid_performance"); tokens.push(page.performanceSnapshot);}}
     for (const point of page.points) {
@@ -134,7 +142,7 @@ async function historyPages(api: HistoryAPI, scope: HistoryScope, signal: AbortS
       result.push(point); cursor = shiftHistoryDate(cursor, 1);
     }
     progress([...result]);
-    if (!page.nextDate) {if (cursor !== shiftHistoryDate(scope.toDate, 1)) throw new Error("truncated_history"); return {points: result, tokens: hasSnapshots ? tokens : [],basisKey:basis,instrumentKeys:instrumentKeys||[],excludedKeys:[...excludedKeys].sort()};}
+    if (!page.nextDate) {if (cursor !== shiftHistoryDate(scope.toDate, 1)) throw new Error("truncated_history"); return {points: result, tokens: hasSnapshots ? tokens : [],basisKey:basis,instrumentKeys:instrumentKeys||[],excludedKeys:[...excludedKeys].sort(),strictExcludedKeys:[...strictExcludedKeys].sort()};}
     if (page.nextDate !== cursor || cursor > scope.toDate) throw new Error("invalid_history_cursor");
   }
   throw new Error("history_limit");

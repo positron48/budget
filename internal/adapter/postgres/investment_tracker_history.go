@@ -273,6 +273,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 			out.AnalyticsExcludedKeys = append(out.AnalyticsExcludedKeys, point.AnalyticsExcludedKeys...)
 			out.MonetaryExcludedKeys = append(out.MonetaryExcludedKeys, point.MonetaryExcludedKeys...)
 		}
+		out.AnalyticsExcludedKeys = closeTrackerReturnExclusions(out.AnalyticsExcludedKeys, analyticsKeys, inputs, through)
 		slices.Sort(out.AnalyticsExcludedKeys)
 		out.AnalyticsExcludedKeys = slices.Compact(out.AnalyticsExcludedKeys)
 		slices.Sort(out.MonetaryExcludedKeys)
@@ -295,7 +296,7 @@ func (r *MarketDataRepo) TrackerHistory(ctx context.Context, tenant, actor strin
 		Classification *nav.InstrumentGroups
 		GroupIDs       []string
 		InstrumentKeys []string
-	}{"daily-eod-v4", heads, policy, points, cache, classification, q.GroupIDs, q.InstrumentKeys})
+	}{"daily-eod-v5", heads, policy, points, cache, classification, q.GroupIDs, q.InstrumentKeys})
 	if q.BasisOnly {
 		return out, tx.Commit(ctx)
 	}
@@ -917,4 +918,38 @@ func (entry trackerHistoryMarket) selectPrice(q md.PriceSelectionRequest, key st
 		return series.SelectSinceWithPrior(q, q.At.UTC().Truncate(24*time.Hour).Add(-5*24*time.Hour))
 	}
 	return md.SelectValuationPrice(q, entry.observations[key])
+}
+
+// Return scopes keep corporate families together when an allocation cannot be valued.
+func closeTrackerReturnExclusions(excluded []string, analyticsKeys map[string]bool, inputs map[string]investmentReplayInput, through time.Time) []string {
+	strict := map[string]bool{}
+	for _, key := range excluded {
+		strict[key] = true
+	}
+	changed := true
+	for changed {
+		changed = false
+		for _, input := range inputs {
+			for _, op := range input.Operations {
+				if op.Status != "posted" || op.Distribution == nil || op.OccurredAt.After(through) {
+					continue
+				}
+				a, b := op.InstrumentKey, op.Distribution.TargetInstrumentKey
+				if strict[a] || strict[b] {
+					for _, key := range []string{a, b} {
+						if analyticsKeys[key] && !strict[key] {
+							strict[key] = true
+							changed = true
+						}
+					}
+				}
+			}
+		}
+	}
+	out := []string{}
+	for key := range strict {
+		out = append(out, key)
+	}
+	slices.Sort(out)
+	return out
 }

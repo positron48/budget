@@ -109,12 +109,7 @@ func (s *InvestmentNAVServer) GetTrackerPerformance(ctx context.Context, req *pb
 		TrackerBenchmarks(context.Context, string, string, nav.TrackerHistoryRequest, string) ([]nav.TrackerBenchmark, error)
 	}); ok {
 		baseline := days[0].Date
-		for _, p := range performance.TWR.Points {
-			if p.State == "baseline" {
-				baseline = p.Date
-				break
-			}
-		}
+
 		benchmarks, e = benchmarkRepo.TrackerBenchmarks(ctx, tenant, actor, q, baseline)
 		if e != nil {
 			return nil, investmentRPCError(e)

@@ -208,3 +208,20 @@ Derived events have deterministic IDs and `origin=provider` or
 automatically to receipts, or turned into journal operations. Saved user events,
 including cancellations, take priority for the same security/kind/payment date.
 The calendar shows known monthly totals alongside incomplete-amount indicators.
+
+## Consistent chart loading and return scopes
+
+The persisted chart and paginated fallback use `monetary_excluded_keys` for
+monetary profit and a separate `analytics_excluded_keys` scope for continuous
+returns. A temporary price gap must not silently change the profit universe
+when the chart probe times out. Both paths validate the scoped calculation and
+recheck the original basis after calculating subsets.
+
+Continuous return subsets exclude connected corporate distributions together
+when one side is unavailable. Otherwise a selected fractional-review unit can
+create an unknown external flow after its parent was excluded. This does not
+change any operation or its acquisition cost.
+
+Index history starts independently of the first complete portfolio valuation.
+Available TWR segments remain visible even if the whole-period TWR is
+incomplete; a reset is not joined to the old index as an investment loss.
