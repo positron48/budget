@@ -2,7 +2,7 @@ module github.com/positron48/budget
 
 go 1.26.0
 
-toolchain go1.26.9
+toolchain go1.26.10
 
 require (
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1

@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
-          go-version: '1.26.9'
+          go-version: '1.26.10'
           cache: true
       - name: Install pinned Buf
         run: go install github.com/bufbuild/buf/cmd/buf@v1.47.2
@@ -58,7 +58,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
-          go-version: '1.26.9'
+          go-version: '1.26.10'
           cache: true
       - name: Install gofumpt
         run: go install mvdan.cc/gofumpt@v0.11.0
@@ -101,7 +101,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
-          go-version: '1.26.9'
+          go-version: '1.26.10'
           cache: true
       - name: Test financial persistence and real pg_dump/pg_restore
         run: |
@@ -207,7 +207,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
-          go-version: '1.26.9'
+          go-version: '1.26.10'
           cache: true
       - uses: actions/setup-node@v5
         with:
@@ -325,7 +325,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
-          go-version: '1.26.9'
+          go-version: '1.26.10'
           cache: true
       - name: Download dependencies
         run: go mod download
@@ -392,7 +392,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
-          go-version: '1.26.9'
+          go-version: '1.26.10'
           cache: true
       - name: Install Go dependencies
         run: |
