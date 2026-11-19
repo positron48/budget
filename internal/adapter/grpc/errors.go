@@ -4,8 +4,8 @@ import (
 	"errors"
 	"github.com/positron48/budget/internal/domain"
 
-	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	authuse "github.com/positron48/budget/internal/usecase/auth"
 	tenuse "github.com/positron48/budget/internal/usecase/tenant"
 	txuse "github.com/positron48/budget/internal/usecase/transaction"
