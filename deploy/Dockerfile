@@ -9,7 +9,7 @@ RUN for command in budgetd marketdata investmentnav investcbr investfxpolicy inv
       CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/$command ./cmd/$command || exit 1; \
     done
 
-FROM gcr.io/distroless/base-debian12
+FROM gcr.io/distroless/static-debian12:nonroot@sha256:afa5c872c891853ca7fcf1f12c3edb23f7eeef36189728842dd51042ff57f7ab
 WORKDIR /app
 COPY --from=builder /out/ /app/
 ENV GRPC_ADDR=0.0.0.0:8080
